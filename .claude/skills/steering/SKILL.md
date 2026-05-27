@@ -1,0 +1,139 @@
+---
+name: steering
+description: "Meta-skill for managing the .steering/ cross-session context system. Invoke ONLY when the user explicitly says: 'new task' / 'start steering' / 'resume [task]' / 'archive [task]' / 'steering status' / 'what tasks are in progress'. Do NOT auto-invoke when .steering/ is merely read during normal session start, or when design-doc is already handling context setup."
+---
+
+# Steering
+
+`.steering/` ディレクトリのライフサイクルを管理するインフラスキル。
+設計・実装ワークフローから独立した独立ツール。
+
+## When NOT to use
+
+- `design-doc` スキルが新機能タスクを開始しているとき（そちらが `.steering/` の初期化を担当）
+- 通常のセッション開始で `.steering/` を読むだけのとき（読む → 普通に作業）
+- 別のスキルがすでに `.steering/` を管理しているとき
+
+## ディレクトリ構造
+
+```
+.steering/
+├── [YYYYMMDD]-[task-name]/
+│   ├── requirements.md     (必須)
+│   ├── design.md           (必須 — APPROVED になるまで実装禁止)
+│   ├── tasklist.md         (必須 — セッションごとに更新)
+│   ├── session-log.md      (自動生成 — Stop hook が追記)
+│   ├── decisions.md        (任意 — タスク固有の決定事項)
+│   ├── blockers.md         (任意 — 未解決の問題)
+│   ├── .capture-needed     (フラグ — knowledge-capture 未実行)
+│   └── capture_done        (フラグ — knowledge-capture 完了済み)
+└── archived/
+    └── [YYYYMMDD]-[task-name]/   (完了タスク)
+```
+
+詳細仕様: `references/spec.md`
+
+---
+
+## モード: init
+
+**トリガー**: "新しいタスク"、"steering を始める"、直接呼び出し
+
+1. ユーザーと確認してタスク名を決定（kebab-case、≤5 words）
+2. 日付は今日（YYYYMMDD 形式）
+3. `.steering/[YYYYMMDD]-[task-name]/` を作成
+4. 以下のファイルをテンプレートから生成:
+   - `requirements.md`
+   - `design.md`（Status: DRAFT）
+   - `tasklist.md`
+5. 作成したパスを報告
+
+**注**: 新機能タスクには `design-doc` スキルを使うこと（こちらの方が詳細なフロー）。
+`steering init` は軽量なコンテキスト設定用。
+
+---
+
+## モード: resume
+
+**トリガー**: "再開"、"[task] の続き"、新セッションで `.steering/` あり
+
+1. `.steering/` のアクティブタスク一覧（`archived/` 除外）を確認
+2. 対象タスクの以下を読む:
+   - `requirements.md`（目的の確認）
+   - `design.md`（設計と Status）
+   - `tasklist.md`（進捗確認）
+   - `blockers.md`（あれば）
+   - `decisions.md`（最新の決定事項）
+3. セッションサマリーを表示:
+
+```
+## Session Resume: [task-name]
+
+**Goal**: [requirements.md から一行]
+**Design**: DRAFT / APPROVED
+**Progress**: X/Y tasks チェック済み
+
+### 残タスク
+- [ ] [未チェックの項目]
+
+### ブロッカー
+[blockers.md の内容、なければ "なし"]
+
+### 最新の決定事項
+[decisions.md の最後のエントリ、なければ "記録なし"]
+```
+
+4. 「何から始めますか？」と確認
+
+---
+
+## モード: status
+
+**トリガー**: "steering status"、"進行中のタスクは？"
+
+アクティブタスクの一覧テーブルを表示:
+
+```
+## Steering Status
+
+### アクティブタスク
+| タスク | 作成日 | Design | 進捗 |
+|--------|--------|--------|------|
+| [name] | [date] | APPROVED | 3/7 |
+| [name] | [date] | DRAFT | 0/5 |
+
+### アーカイブ済み（直近3件）
+- [name] — archived [date]
+```
+
+進捗は `tasklist.md` のチェック済み / 全チェックボックス数から計算。
+
+---
+
+## モード: archive
+
+**トリガー**: "[task] を完了"、"アーカイブして"、knowledge-capture 実行後
+
+**アーカイブ前チェック**:
+- [ ] `tasklist.md` の全項目がチェック済み
+- [ ] `knowledge-capture` スキルが実行済み（または明示的に省略を確認）
+
+チェックを満たしている場合:
+1. `.steering/[date]-[task]` を `.steering/archived/[date]-[task]` に移動
+2. `tasklist.md` の末尾に `Archived: [YYYYMMDD]` を追記
+3. 「アーカイブ完了。`.steering/archived/[task]` に保存されました。」と報告
+
+チェックが不足している場合は、不足している項目をリストして確認を求める。
+
+---
+
+## ファイル命名規則
+
+- タスク名: kebab-case、≤5 words、具体的（NG: `task-1` / OK: `user-auth-refresh`）
+- 日付: タスク作成時の YYYYMMDD（アーカイブ時も変えない）
+
+## Related skills
+
+- `design-doc` — 新機能タスクの主要な入口（.steering/ の詳細なフロー付き）
+- `knowledge-capture` — アーカイブ前に実行が推奨
+- `impl-from-design` — 実装フェーズで tasklist.md を更新
