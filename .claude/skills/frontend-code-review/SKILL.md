@@ -1,6 +1,6 @@
 ---
 name: frontend-code-review
-description: "Use when reviewing code after implementation — phrases like 'review the code', 'let's review', 'code review', 'check the implementation'. Orchestrates test-review (test code quality) then impl-review (implementation quality + design alignment) in sequence, producing a combined summary. Use this as the default review entry point. Use test-review or impl-review directly only when you need a focused single-axis review."
+description: "実装後のコードレビューに使う — 「コードをレビューして」「レビューしよう」「コードレビュー」「実装を確認して」などのフレーズが対象。test-review（テストコード品質）→ impl-review（実装品質・設計整合性）の順に実行し、統合サマリーを生成。デフォルトのレビュー起点として使う。単一軸のレビューが必要な場合のみ test-review または impl-review を直接使う。"
 ---
 
 # Frontend Code Review

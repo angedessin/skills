@@ -1,6 +1,6 @@
 ---
 name: knowledge-capture
-description: "Meta-skill for saving project knowledge at session end. Invoke ONLY when the user explicitly says: 'capture knowledge', 'save what we learned', 'document this decision', 'end of session', 'update the docs'. Also invoke when a .capture-needed file is found at session start. Reads session-log.md and classifies insights into the right memory layer (docs/knowledge/, docs/decisions/, .steering/decisions.md, CLAUDE.md). Do NOT auto-invoke at every task completion. DISTINCT from retrospective-codify which creates lint rules and skills — this skill saves project knowledge documents."
+description: "セッション終了時のプロジェクト知識保存に使うメタスキル。「ナレッジを保存して」「学んだことを記録して」「この決定をドキュメント化して」「セッション終了」「ドキュメントを更新して」と明示的に言われた場合のみ起動。セッション開始時に .capture-needed ファイルがあれば起動。session-log.md を読んで各知見を docs/knowledge/・docs/decisions/・.steering/decisions.md・CLAUDE.md に分類する。タスク完了のたびに自動起動しない。lint ルール・スキルを作成する retrospective-codify とは別物。"
 ---
 
 # Knowledge Capture

@@ -1,6 +1,6 @@
 ---
 name: impl-from-design
-description: "Use when implementing features based on an approved design document — phrases like 'start implementing', 'implement from design', 'design is approved, let's build it'. Requires .steering/[task]/design.md with Status APPROVED. Do NOT trigger without an approved design.md — if design is missing or DRAFT, redirect to design-doc first. Do NOT trigger on generic 'implement this' requests without a .steering/ context."
+description: "承認済みデザインドキュメントに基づく実装に使う — 「実装を開始して」「設計から実装して」「設計が承認された、作ろう」などのフレーズが対象。.steering/[task]/design.md の Status が APPROVED である必要がある。design.md がない・DRAFT の場合は design-doc にリダイレクト。.steering/ コンテキストなしの汎用「実装して」リクエストには起動しない。"
 ---
 
 # Impl from Design

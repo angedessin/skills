@@ -1,6 +1,6 @@
 ---
 name: design-doc
-description: "Use when starting a new feature, task, or incident investigation — phrases like 'let's build X', 'design a solution for Z', 'investigate incident N', 'start a new task', 'new feature'. Creates .steering/[YYYYMMDD]-[task-name]/ with requirements.md, design.md, and tasklist.md, then STOPS for mandatory human review of design.md before any implementation. Trigger on task-start signals even if the user does not say 'design doc'. Do NOT trigger when .steering/ context already exists for the current task — use steering (resume mode) instead. Do NOT trigger on 'add a test' or 'fix a small bug' when no design is needed."
+description: "新機能・タスク開始・障害調査に使う — 「Xを作ろう」「Zの設計をして」「新しいタスク」などのフレーズが対象。.steering/[YYYYMMDD]-[task-name]/ に requirements.md・design.md・tasklist.md を作成し、design.md 作成後は必ず停止して人間のレビューを待つ（実装に入らない）。「design doc」と言われなくてもタスク開始のシグナルがあれば起動する。現在タスクの .steering/ が既に存在する場合は steering（resume モード）を使う。テスト追加のみや小さなバグ修正では起動しない。"
 ---
 
 # Design Doc

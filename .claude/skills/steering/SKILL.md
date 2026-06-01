@@ -1,6 +1,6 @@
 ---
 name: steering
-description: "Meta-skill for managing the .steering/ cross-session context system. Invoke ONLY when the user explicitly says: 'new task' / 'start steering' / 'resume [task]' / 'archive [task]' / 'steering status' / 'what tasks are in progress'. Do NOT auto-invoke when .steering/ is merely read during normal session start, or when design-doc is already handling context setup."
+description: ".steering/ クロスセッションコンテキスト管理のメタスキル。「new task」「start steering」「[task] を再開」「[task] をアーカイブ」「steering status」「進行中タスクは？」と明示的に言われた場合のみ起動。通常のセッション開始で .steering/ を読むだけの場合や design-doc がコンテキスト設定を担っている場合は自動起動しない。"
 ---
 
 # Steering

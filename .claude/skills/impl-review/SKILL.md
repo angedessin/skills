@@ -1,6 +1,6 @@
 ---
 name: impl-review
-description: "Use when reviewing implementation code quality — phrases like 'review the implementation', 'check if code matches design', 'TypeScript issues', 'React patterns review'. Checks: design.md alignment, project conventions from docs/knowledge/, TypeScript quality, React/Next.js patterns, basic accessibility. Works standalone or as Step 2 inside frontend-code-review orchestrator. Do NOT trigger for test code review (use test-review) or test infrastructure audit."
+description: "実装コードの品質レビューに使う — 「実装をレビューして」「コードが設計に合っているか確認して」「TypeScript の問題」「React パターンのレビュー」などのフレーズが対象。確認内容: design.md との整合性・docs/knowledge/ のプロジェクト規約・TypeScript 品質・React/Next.js パターン・基本アクセシビリティ。単独または frontend-code-review の Step 2 として動作。テストコードのレビュー（test-review を使う）やテストインフラの監査には起動しない。"
 ---
 
 # Impl Review

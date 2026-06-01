@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: "Use when writing code test-first or adding tests to existing code — phrases like 'write tests first', 'TDD this', 'red green refactor', 'add tests to existing code', 'write failing tests'. Stack: Vitest + React Testing Library + MSW for unit/integration; Playwright for E2E. Use standalone for adding tests to existing code without a design doc. Do NOT trigger when the user only asks to review existing tests (use test-review) or when no failing test is intended first."
+description: "テストファースト開発や既存コードへのテスト追加に使う — 「テストを先に書いて」「TDD で」「レッド・グリーン・リファクタリング」「既存コードにテストを追加して」「失敗するテストを書いて」などのフレーズが対象。スタック: Vitest + React Testing Library + MSW（ユニット・インテグレーション）、Playwright（E2E）。設計ドキュメントなしで既存コードにテストを追加する場合に単独で使う。既存テストのレビューのみの場合は起動しない（test-review を使う）。"
 ---
 
 # TDD

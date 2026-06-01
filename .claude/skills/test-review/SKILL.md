@@ -1,6 +1,6 @@
 ---
 name: test-review
-description: "Use when reviewing test code quality in a Next.js/TypeScript/Vitest/React Testing Library project — phrases like 'review the tests', 'check test quality', 'are these tests good?', 'implementation echoes', 'bad assertions'. Audits test code for: implementation coupling, assertion quality, MSW discipline, RTL query priority, coverage intent. Triggered standalone or as Step 1 inside frontend-code-review orchestrator. Do NOT trigger for test infrastructure audit (vitest config, coverage tooling setup) — use frontend-review-testing for that."
+description: "Next.js/TypeScript/Vitest/React Testing Library プロジェクトのテストコード品質レビューに使う — 「テストをレビューして」「テストの品質を確認して」「このテストは良い？」「実装エコー」「アサーションが悪い」などのフレーズが対象。確認内容: 実装結合・アサーション品質・MSW 規律・RTL クエリ優先順位・カバレッジ意図。単独または frontend-code-review の Step 1 として動作。テストインフラの監査（vitest 設定・カバレッジツール設定）には起動しない。"
 ---
 
 # Test Review
