@@ -4,7 +4,16 @@
 
 ---
 
-## vitest.config.ts テンプレート
+## vitest.config.mts テンプレート
+
+> **重要**: ファイル名は `vitest.config.mts`（`.ts` ではなく）。
+> `.ts` のままだと CJS として読み込まれ、ESM の `@vitejs/plugin-react` で
+> `ExperimentalWarning` が出る。
+
+> **必須**: `environment: 'jsdom'` を使う場合は `jsdom` を別途インストールすること。
+> ```bash
+> pnpm add -D jsdom
+> ```
 
 ```typescript
 import { defineConfig } from 'vitest/config'
