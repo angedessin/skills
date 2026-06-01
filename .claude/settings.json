@@ -1,4 +1,28 @@
 {
+  "permissions": {
+    "deny": [
+      "Bash(pnpm add *)",
+      "Bash(pnpm remove *)",
+      "Bash(pnpm install)",
+      "Bash(pnpm i)",
+      "Bash(npm install *)",
+      "Bash(npm i *)",
+      "Bash(npm ci)",
+      "Bash(yarn add *)",
+      "Bash(yarn install)",
+      "Bash(bun add *)",
+      "Bash(bun install)",
+      "Bash(cat .env*)",
+      "Bash(cat *.env)",
+      "Bash(grep * .env*)",
+      "Bash(grep * *.env)",
+      "Bash(rm -rf *)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -f*)"
+    ]
+  },
   "hooks": {
     "Stop": [
       {
