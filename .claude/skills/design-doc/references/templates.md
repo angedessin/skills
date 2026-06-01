@@ -97,10 +97,27 @@ Last updated: [YYYYMMDD]
 
 ## Review
 
-- [ ] frontend-code-review スキルの実行（test-review + impl-review）
-- [ ] 指摘事項の修正
+- [ ] frontend-code-review の実行
+- [ ] レビュー指摘の修正（review-result.md を参照）
+- [ ] 修正後の再確認
+
+## Deploy
+<!-- git push してブランチを PR にするフェーズ。CI がないリポジトリはスキップ可。 -->
+<!-- GitHub Actions 等があれば CI グリーンを確認してからマージする。 -->
+
+- [ ] PR 作成（`pr-create` スキルまたは `gh pr create`）
+- [ ] CI グリーン確認
+- [ ] マージ
+
+## Compound
+<!-- レビュー・実装で発見したパターンをルール・知識・スキルに昇格するフェーズ。 -->
+<!-- frontend-code-review 完了後に .codify-needed フラグが作成される。 -->
+
+- [ ] compound スキルの実行（パターンをルール・知識に昇格）
 
 ## Knowledge
+<!-- セッションの知見を docs/ に永続保存するフェーズ。 -->
+<!-- .capture-needed フラグが次セッション開始時のリマインダーになる。 -->
 
 - [ ] knowledge-capture スキルの実行
 - [ ] steering archive モードでアーカイブ
@@ -120,6 +137,56 @@ Last updated: [YYYYMMDD]
 **Decision**: [決定内容]
 **Reason**: [なぜこの決定をしたか]
 **Impact**: [今後に影響すること]
+```
+
+---
+
+## review-result.md テンプレート（frontend-code-review が生成）
+
+レビュー指摘とその修正状況を追跡する。
+
+```markdown
+# Review Result: [task-name]
+
+Date: [YYYYMMDD]
+Status: PENDING | IN_PROGRESS | RESOLVED
+
+## Test
+
+| Axis | 指摘 | ファイル | 分類 | 修正状況 |
+|------|------|----------|------|----------|
+| 実装エコー | [内容] | [file:line] | implementation bug | [ ] |
+| MSW 規律 | [内容] | [file:line] | test was wrong | [ ] |
+
+## Implementation
+
+| Axis | 指摘 | ファイル | 修正状況 |
+|------|------|----------|----------|
+| 設計整合性 | [内容] | [file] | [ ] |
+| TypeScript | [内容] | [file:line] | [ ] |
+
+## Security
+
+| 指摘 | ファイル | 修正状況 |
+|------|----------|----------|
+| [内容] | [file:line] | [ ] |
+
+## Performance
+
+| 指摘 | ファイル | 修正状況 |
+|------|----------|----------|
+| [内容] | [file:line] | [ ] |
+
+## Accessibility
+
+| 指摘 | ファイル | 修正状況 |
+|------|----------|----------|
+| [内容] | [file:line] | [ ] |
+
+## サマリー
+
+- 重要な問題: N件
+- 修正完了: 0/N件
 ```
 
 ---

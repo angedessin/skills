@@ -11,7 +11,9 @@
 │   ├── session-log.md         ← 自動生成: Stop hook が追記するセッション記録
 │   ├── decisions.md           ← 任意: タスク固有の決定事項ログ
 │   ├── blockers.md            ← 任意: 未解決の問題・依存待ち
+│   ├── review-result.md       ← frontend-code-review が生成: 指摘と修正追跡
 │   ├── .capture-needed        ← フラグ: knowledge-capture 未実行を示す
+│   ├── .codify-needed         ← フラグ: compound スキル未実行を示す
 │   └── capture_done           ← フラグ: knowledge-capture 完了済みを示す
 └── archived/
     └── [YYYYMMDD]-[task-name]/  ← 完了タスク（git で永続管理）
@@ -103,8 +105,24 @@ Last updated: [YYYYMMDD]
 - [ ] リファクタリング（Refactor フェーズ）
 
 ## Review
-- [ ] frontend-code-review スキルの実行
+- [ ] frontend-code-review の実行
+- [ ] レビュー指摘の修正（review-result.md を参照）
+- [ ] 修正後の再確認
+
+## Deploy
+<!-- git push してブランチを PR にするフェーズ。CI がないリポジトリはスキップ可。 -->
+- [ ] PR 作成（`pr-create` スキルまたは `gh pr create`）
+- [ ] CI グリーン確認
+- [ ] マージ
+
+## Compound
+<!-- レビュー・実装で発見したパターンをルール・知識・スキルに昇格するフェーズ。 -->
+- [ ] compound スキルの実行（パターンをルール・知識に昇格）
+
+## Knowledge
+<!-- セッションの知見を docs/ に永続保存するフェーズ。 -->
 - [ ] knowledge-capture スキルの実行
+- [ ] steering archive モードでアーカイブ
 ```
 
 ### session-log.md（自動生成）
@@ -119,6 +137,12 @@ Stop hook（`.claude/hooks/session-stop.sh`）が自動追記。Claude が次回
  M src/components/Login.tsx
 ?? src/api/auth.ts
 ```
+
+### review-result.md（frontend-code-review が生成）
+
+`frontend-code-review` スキルがレビュー完了後に書き込む。
+修正状況のチェックボックスで「何が直ったか」を追跡する。
+`compound` スキルはこのファイルを入力として使う。
 
 ### decisions.md（任意）
 
@@ -147,10 +171,11 @@ Stop hook（`.claude/hooks/session-stop.sh`）が自動追記。Claude が次回
 ## セッション開始コントラクト
 
 CLAUDE.md に記述済み。毎セッション:
-1. `find .steering -name '.capture-needed' 2>/dev/null` を実行
+1. `find .steering -name '.capture-needed' -o -name '.codify-needed' 2>/dev/null` を実行
 2. `.capture-needed` があれば knowledge-capture を促す
-3. アクティブタスクの context を読む
-4. 複数タスクがあれば優先度を確認
+3. `.codify-needed` があれば compound スキルを促す
+4. アクティブタスクの context を読む
+5. 複数タスクがあれば優先度を確認
 
 ## アーカイブポリシー
 

@@ -41,6 +41,10 @@ Stop hook が自動追記したセッション記録（git diff --stat）を確�
 
 `.capture-needed` フラグが存在する場合は、それがトリガーになっている旨をユーザーに伝える。
 
+`.codify-needed` フラグが存在する場合: `compound` スキルがまだ実行されていない。
+「compound スキルも未実行です。先に compound を実行しますか？」と確認する。
+（compound = ルール・スキルへの昇格、knowledge-capture = ドキュメント保存、両方を順に実施推奨）
+
 ---
 
 ## Step 2 — 保存先を決定する

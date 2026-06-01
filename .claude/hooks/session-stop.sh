@@ -20,6 +20,7 @@ find "$STEERING_DIR" -maxdepth 1 -mindepth 1 -type d ! -name "archived" | while 
   TASK_NAME=$(basename "$ACTIVE")
   LOG_FILE="$ACTIVE/session-log.md"
   CAPTURE_FLAG="$ACTIVE/.capture-needed"
+  HASH_FILE="$ACTIVE/.last-log-hash"
 
   # git の変更をキャプチャ（ステージ済み + 未ステージ両方）
   GIT_STAT=$(cd "$PROJECT_ROOT" && git diff HEAD --stat 2>/dev/null)
@@ -28,6 +29,14 @@ find "$STEERING_DIR" -maxdepth 1 -mindepth 1 -type d ! -name "archived" | while 
   if [ -z "$COMBINED" ]; then
     COMBINED="no changes detected"
   fi
+
+  # 前回と同じ内容なら記録しない（重複抑制）
+  CURRENT_HASH=$(echo "$COMBINED" | md5 -q 2>/dev/null || echo "$COMBINED" | md5sum | cut -d' ' -f1)
+  LAST_HASH=$(cat "$HASH_FILE" 2>/dev/null)
+  if [ "$CURRENT_HASH" = "$LAST_HASH" ]; then
+    continue
+  fi
+  echo "$CURRENT_HASH" > "$HASH_FILE"
 
   # session-log.md に追記（なければ作成）
   {
@@ -41,7 +50,6 @@ find "$STEERING_DIR" -maxdepth 1 -mindepth 1 -type d ! -name "archived" | while 
   # - capture_done が存在しない（knowledge-capture 未実行）
   # - かつ .capture-needed がまだない
   # 場合のみ作成する
-  # knowledge-capture スキルが完了時に capture_done を作成し .capture-needed を削除する
   if [ ! -f "$ACTIVE/capture_done" ] && [ ! -f "$CAPTURE_FLAG" ]; then
     touch "$CAPTURE_FLAG"
     echo "📝 [$TASK_NAME] ナレッジ未保存。次回セッションで knowledge-capture を実行してください。"

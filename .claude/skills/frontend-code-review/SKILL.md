@@ -1,115 +1,160 @@
 ---
 name: frontend-code-review
-description: "実装後のコードレビューに使う — 「コードをレビューして」「レビューしよう」「コードレビュー」「実装を確認して」などのフレーズが対象。test-review（テストコード品質）→ impl-review（実装品質・設計整合性）の順に実行し、統合サマリーを生成。デフォルトのレビュー起点として使う。単一軸のレビューが必要な場合のみ test-review または impl-review を直接使う。"
+description: "実装後のコードレビューに使う — 「コードをレビューして」「レビューしよう」「コードレビュー」「実装を確認して」などのフレーズが対象。diff トリアージでモードを判定し、ロジック/コンポーネント変更はフルモード（5エージェント並列）、リファクタリング/スタイルのみは軽量モード（直列）で実行。結果を .steering/[task]/review-result.md に書き込む。"
 ---
 
 # Frontend Code Review
 
-`test-review` と `impl-review` を順番に実行するオーケストレーター。
-`.tmp/skills` の `frontend-review-weekly` に相当する役割。
+diff の変更種別を判定し、適切なモードでレビューを実行するオーケストレーター。
 
 ## When to use sub-skills directly
 
 - テストコードのみを確認したい → `test-review` を直接使う
 - 実装コードのみを確認したい → `impl-review` を直接使う
-- このスキルはデフォルトの「レビューして」への対応
+- セキュリティのみ → `review-security` を直接使う
+- パフォーマンスのみ → `review-performance` を直接使う
+- アクセシビリティのみ → `review-a11y` を直接使う
 
 ---
 
-## Step 1 — スコープを確認する
+## Phase 1 — diff トリアージ
 
-レビュー対象を把握する:
+変更ファイルを取得して種別を分類する:
 
 ```bash
-# 変更されたファイルの一覧
 git diff --name-only HEAD
 ```
 
-ユーザーが特定のファイル・PR・ディレクトリを指定していれば、そちらを優先。
+**分類ルール:**
+
+| ファイルパターン | 種別 |
+|---|---|
+| `src/lib/`・`src/hooks/`・`src/api/`・`src/utils/` | ロジック変更 |
+| `src/components/`・`src/app/`・`src/pages/` | コンポーネント変更 |
+| リネーム・移動・型定義のみ | リファクタリング |
+| `*.css`・`*.scss`・`config.*`・`*.env*`・`*.json` | スタイル/設定のみ |
+
+**モード判定:**
+- **ロジック変更またはコンポーネント変更を含む** → フルモード（並列エージェント）
+- **リファクタリング/スタイル/設定のみ** → 軽量モード（直列）
+
+ユーザーにモードと対象ファイルを提示してから実行に進む:
+```
+トリアージ結果:
+- ロジック変更: src/hooks/useAuth.ts, src/api/user.ts
+- テストファイル: src/hooks/useAuth.test.ts
+→ フルモード（5エージェント並列）で実行します
+```
 
 ---
 
-## Step 2 — test-review を実行する
+## Phase 2A — フルモード（並列エージェント）
 
-以下の手順で `test-review` スキルの審査を行う。
+以下の5エージェントを**単一メッセージ内で同時に**ディスパッチする。
 
-**スコープ**: `git diff --name-only HEAD` の `*.test.ts`・`*.spec.ts`・`*.test.tsx`
+各エージェントは対応するサブスキルのロジックを実行し、軸ごとの結果を返す:
 
-5つの軸で確認する（詳細は `test-review` スキルを参照）:
+- **test-agent**: `test-review` スキルの全ロジックを実行
+  - スコープ: `*.test.ts`・`*.spec.ts`・`*.test.tsx`
+  - 5軸: 実装エコー・アサーション品質・MSW 規律・RTL クエリ・カバレッジ意図
 
-1. **実装エコー**: 内部 state・クラス名・dispatch をアサートしていないか
-2. **アサーション品質**: `toBeTruthy()` より具体的か、async は `findBy*`/`waitFor` を使っているか
-3. **MSW 規律**: `vi.mock` でネットワーク系をモックしていないか
-4. **RTL クエリ優先順位**: `querySelector`・`container.firstChild` を使っていないか
-5. **カバレッジの意図**: render-only テストや実装コピーテストがないか
+- **impl-agent**: `impl-review` スキルの全ロジックを実行
+  - スコープ: `.ts`・`.tsx`（テストファイルを除く）
+  - 5軸: 設計整合性・プロジェクト規約・TypeScript・React/Next.js・基本 a11y
 
-各問題をトリアージ分類（spec changed / implementation bug / test was wrong / low-value）する。
+- **security-agent**: `review-security` スキルの全ロジックを実行
+  - スコープ: `.ts`・`.tsx`（テストファイルを除く）
+  - 4軸: XSS・型安全・env var・依存関係
 
-**この結果をバッファに保持して Step 3 に進む。**
+- **perf-agent**: `review-performance` スキルの全ロジックを実行
+  - スコープ: `.ts`・`.tsx`（テストファイルを除く）
+  - 3軸: Bundle サイズ・再レンダリング・CWV
 
----
-
-## Step 3 — impl-review を実行する
-
-以下の手順で `impl-review` スキルの審査を行う。
-
-**スコープ**: `git diff --name-only HEAD` の `.ts`・`.tsx`（テストファイルを除く）
-
-5つの軸で確認する（詳細は `impl-review` スキルを参照）:
-
-1. **設計整合性**: `.steering/[task]/design.md` が存在すれば照合。Key components・Approach・Open questions
-2. **プロジェクト規約**: `docs/knowledge/antipatterns.md` があれば照合。CLAUDE.md の制約も確認
-3. **TypeScript 品質**: `as any`・非 null アサーション・`Record<string, any>` の不適切な使用
-4. **React / Next.js パターン**: useEffect deps・Server/Client 境界・過剰な state
-5. **アクセシビリティ（基本）**: `<div onClick>`・aria-label 欠落・`alt` 欠落
-
-**この結果をバッファに保持して Step 4 に進む。**
+- **a11y-agent**: `review-a11y` スキルの全ロジックを実行
+  - スコープ: `.tsx`（テストファイルを除く）
+  - 4軸: セマンティクス・ARIA・フォーカス管理・キーボード操作
 
 ---
 
-## Step 4 — サマリーを出力する
+## Phase 2B — 軽量モード（直列）
 
-両レビューの結果をまとめて出力:
+リファクタリング/スタイル/設定のみの変更に対して直列で実行:
+
+1. `test-review` を実行
+2. `impl-review` を実行
+3. Phase 3 に進む（security/perf/a11y はスキップ）
+
+---
+
+## Phase 3 — 統合サマリーの出力と記録
+
+全エージェントの結果をまとめて出力する:
 
 ```
 ## Code Review Summary
 
-### Test Review
+### テスト（test-review）
 重要な問題: N件
+| Axis | 問題 | ファイル | 分類 |
+|------|------|----------|------|
+| [軸] | [内容] | [file:line] | [分類] |
 
-| 軸 | 問題 | ファイル | 分類 |
-|----|------|----------|------|
-| 実装エコー | [内容] | [file:line] | implementation bug |
-| MSW 規律 | [内容] | [file:line] | test was wrong |
+### 実装（impl-review）
+重要な問題: N件
+| Axis | 問題 | ファイル |
+|------|------|----------|
+| [軸] | [内容] | [file:line] |
 
-### Implementation Review
-重要な問題: M件
+### セキュリティ（review-security）
+重要な問題: N件
+| Axis | 問題 | ファイル |
+|------|------|----------|
 
-| 軸 | 問題 | ファイル |
-|----|------|----------|
-| 設計整合性 | [内容] | [file] |
-| TypeScript | [内容] | [file:line] |
+### パフォーマンス（review-performance）
+重要な問題: N件
+| Axis | 問題 | ファイル |
+|------|------|----------|
+
+### アクセシビリティ（review-a11y）
+重要な問題: N件
+| Axis | 問題 | ファイル |
+|------|------|----------|
 
 ### 全体サマリー
-- テスト問題: N件（重要: X件）
-- 実装問題: M件（重要: Y件）
+- 合計の重要な問題: N件
+- モード: フル / 軽量
+```
 
-### 次のアクション
-- [ ] [最優先で修正すべき問題]
-- [ ] [次に修正すべき問題]
-- knowledge-capture を実行して発見したパターンを `docs/knowledge/` に保存することを推奨
+### review-result.md への書き込み
+
+`.steering/[task]/` ディレクトリが存在する場合、`review-result.md` を書き込む。
+`templates.md` の形式に従う。修正状況チェックボックスはすべて未チェックで初期化する。
+
+書き込み後に `.codify-needed` フラグを作成する:
+```bash
+touch .steering/[task]/.codify-needed
+```
+
+書き込み完了後にユーザーに通知:
+```
+review-result.md を更新しました。
+
+次のステップ:
+- [ ] 指摘事項を修正する（review-result.md を参照）
+- [ ] 修正後に再確認
+- [ ] Deploy（PR 作成 → CI → マージ）
+- [ ] compound スキルで学びをルール・知識に昇格（.codify-needed が作成されました）
 ```
 
 ---
 
-## 承認後の修正フロー
+## 修正後の再確認フロー
 
-サマリーをユーザーが確認後:
-- 修正が必要な項目を確認してから実施（自動修正しない）
-- 修正後は該当のテストを再実行して確認
-- `tasklist.md` のレビューチェックボックスを更新
-
-深いレビューが必要な場合: `/code-review high` または `/code-review ultra` を追加で実行することを提案。
+ユーザーが修正完了を伝えた場合:
+1. `review-result.md` の指摘チェックボックスを確認
+2. 修正済み項目に `✅ DONE` を追記
+3. 残っている未修正の指摘を再提示
+4. 全指摘が解消されたら `review-result.md` の Status を `RESOLVED` に更新
 
 ---
 
@@ -117,4 +162,8 @@ git diff --name-only HEAD
 
 - `test-review` — テストコードのみを審査（単独利用可）
 - `impl-review` — 実装コードのみを審査（単独利用可）
+- `review-security` — セキュリティ観点のみを審査（単独利用可）
+- `review-performance` — パフォーマンス観点のみを審査（単独利用可）
+- `review-a11y` — アクセシビリティ観点のみを審査（単独利用可）
+- `compound` — レビュー完了後に学びをルール・知識に昇格
 - `knowledge-capture` — レビューで発見したパターンを docs/ に保存
