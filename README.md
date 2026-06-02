@@ -32,7 +32,6 @@
 ├── .steering/                         # クロスセッション コンテキスト（タスク毎）
 └── docs/
     ├── knowledge/                     # 経験・パターン集
-    │   └── testing-patterns.md
     └── decisions/                     # ADR（設計判断）
 ```
 
@@ -400,14 +399,6 @@ Claude Code の短い常時ルール（1行の命令形）
 2. `.capture-needed` があれば「前回セッションのナレッジが未保存です。knowledge-capture を実行しますか？」と確認
 3. `.steering/` のアクティブタスクをすべて読んでから作業開始
 4. 複数のアクティブタスクがある場合はどれを再開するか確認
-
-### スタック制約
-
-- `vi.mock` でネットワーク系のモックは禁止（MSW の `http.*` を使う）
-- RTL クエリ: `role > label > text > testId` の優先順位を守る
-- Playwright: `waitForTimeout` 禁止
-- `as any` / `as unknown` の不用意な使用禁止
-- `<div onClick>` → `<button>` に置き換える
 
 ### ナレッジ保存先
 

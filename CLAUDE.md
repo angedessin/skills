@@ -25,15 +25,3 @@ CLAUDE.md は行動ルールのみ。知識の倉庫にしない（毎回コン�
 | 経験・パターン・アンチパターン | `docs/knowledge/[topic].md`（@参照で読む） |
 | 設計判断（ADR） | `docs/decisions/[date]-[slug].md` |
 | タスク固有の決定 | `.steering/[task]/decisions.md` |
-
-## ドキュメント参照（必要なトピック作業時のみ）
-
-テスト実装時: @docs/knowledge/testing-patterns.md
-
-## スタック制約（行動ルール）
-
-- `vi.mock` でネットワーク系のモックは禁止（MSW の `http.*` を使う）
-- RTL クエリ: `role > label > text > testId` の優先順位を守る
-- Playwright: `waitForTimeout` 禁止
-- `as any` / `as unknown` の不用意な使用禁止
-- `<div onClick>` → `<button>` に置き換える
