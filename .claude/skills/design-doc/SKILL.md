@@ -113,6 +113,18 @@ description: "新機能・タスク開始・障害調査に使う — 「Xを作
 
 ---
 
+## 方針転換が起きた場合
+
+実装中にスコープや技術選択が大きく変わったとき（採用ライブラリの変更・別スキルへの置き換え・scope の追加・削除など）は `design.md` と `requirements.md` を実態に合わせて更新する:
+
+1. `design.md` の Approach / Key components / Alternatives considered を修正
+2. `requirements.md` の Scope / Acceptance criteria を修正
+3. `tasklist.md` の未完了タスクを実態に合わせて追記・削除
+
+**更新しないと `.steering/` と実際の作業が乖離し、セッションをまたいだ再開時に混乱する。**
+
+---
+
 ## Related skills
 
 - `steering` — `.steering/` のライフサイクル全体（resume / archive / status）

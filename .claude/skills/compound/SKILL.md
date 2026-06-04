@@ -20,12 +20,13 @@ description: "レビューや実装で得た学びをルール・知識・スキ
 
 ## Step 1 — 入力を収集する
 
-以下のファイルを読んでパターンを探す（存在するものだけ）:
+以下のコマンドで対象ファイルを探す:
 
 ```bash
-# .steering/ のアクティブタスクを確認
 find .steering -maxdepth 2 \( -name "review-result.md" -o -name "session-log.md" -o -name "decisions.md" \) ! -path "*/archived/*" 2>/dev/null
 ```
+
+**ファイルが見つかった場合** — 下記テーブルの通り読む:
 
 | ファイル | 読む内容 |
 |---|---|
@@ -33,6 +34,17 @@ find .steering -maxdepth 2 \( -name "review-result.md" -o -name "session-log.md"
 | `.steering/[task]/session-log.md` | 実装中の判断・詰まりどころ |
 | `.steering/[task]/decisions.md` | 技術的判断とその理由 |
 | `docs/knowledge/` | 既存の知識（重複確認のため） |
+| `CLAUDE.md` | 既存ルールとの重複確認（同一ルールへの追記を防ぐ） |
+
+**ファイルが 1 件も見つからなかった場合（`.steering/` が存在しない等）** — ここで止まってユーザーに確認する:
+
+```
+.steering/ にファイルが見つかりませんでした。
+パターン抽出の対象ファイルのパスを教えてください。
+（例: ~/project/review-result.md）
+```
+
+ユーザーが提示したファイルを読んで Step 2 に進む。Step 5 のフラグ更新（`.codify-needed` 削除・`codify-log.md`・`tasklist.md`）は `.steering/` がなければスキップし、その旨を Step 3 のドラフトに明記する。
 
 ---
 
@@ -56,6 +68,8 @@ find .steering -maxdepth 2 \( -name "review-result.md" -o -name "session-log.md"
 
 抽出したパターンを分類してドラフトを提示する:
 
+**昇格候補が 1 件以上ある場合:**
+
 ```
 ## Compound ドラフト
 
@@ -67,22 +81,18 @@ find .steering -maxdepth 2 \( -name "review-result.md" -o -name "session-log.md"
 - `<div onClick>` は `<button>` に置き換える
 ───
 
-### [パターン2のラベル]
-昇格先: docs/knowledge/testing-patterns.md への追記
-理由: MSW vs vi.mock の使い分けで詰まった
-内容:
-───
-## [サブトピック]
-[パターン説明]
-───
-
-### [パターン3のラベル]
-昇格先: 新スキルの骨組み生成
-理由: 毎回同じ手順でセットアップしている
-内容: [スキルの骨組み概要]
-───
-
 採用するものを番号または名前で教えてください。
+```
+
+**昇格候補がゼロの場合（すべて既存ルールと重複 / 1回限りの事象のみ）:**
+
+```
+## Compound ドラフト
+
+新規昇格候補はありませんでした。
+（理由: [重複 / 1回限りの事象など]）
+
+.codify-needed フラグの削除のみ行います。よければ「はい」と承認してください。
 ```
 
 **承認なしに自動適用しない。**
@@ -143,6 +153,8 @@ description: "[起動条件の説明]"
 ---
 
 ## Step 5 — フラグを更新する
+
+**Step 4 でユーザーが承認した後に実行する。昇格作業がゼロでも `.codify-needed` フラグ削除・`codify-log.md` 追記・`tasklist.md` 更新は必ず実行する。**
 
 実行完了後:
 
