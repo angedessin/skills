@@ -15,6 +15,10 @@ Tech stack: Next.js / TypeScript / Vitest / React Testing Library / MSW / Playwr
 3. `.steering/` のアクティブタスクをすべて読んでから作業開始
 4. 複数のアクティブタスクがある場合はどれを再開するか確認
 
+## スキル管理ルール
+
+- サードパーティ製 SKILL.md 採用前に Bash コマンド・外部 URL・プロンプトインジェクションを目視確認する
+
 ## ナレッジ保存先のルール
 
 CLAUDE.md は行動ルールのみ。知識の倉庫にしない（毎回コンテキストを消費するため）。
@@ -25,3 +29,8 @@ CLAUDE.md は行動ルールのみ。知識の倉庫にしない（毎回コン�
 | 経験・パターン・アンチパターン | `docs/knowledge/[topic].md`（@参照で読む） |
 | 設計判断（ADR） | `docs/decisions/[date]-[slug].md` |
 | タスク固有の決定 | `.steering/[task]/decisions.md` |
+
+## ドキュメント参照（必要なトピック作業時のみ）
+
+テスト実装時: @docs/knowledge/testing-patterns.md
+スキル作成・改善時: @docs/knowledge/skill-design-patterns.md
