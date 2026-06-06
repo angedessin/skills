@@ -22,7 +22,7 @@ description: agent 向けテキスト指示（skill / slash command / task プ�
 0. **Iteration 0 — description と body の整合チェック**（静的、dispatch 不要）
    - frontmatter `description` が謳う trigger / 用途を読む
    - body がカバーする範囲を読む
-   - 乖離があれば iter 1 に進む前に description か body を合わせる
+   - 乖離があれば iter 1 に進む前に description か body を合わせる（ユーザー確認なしで Claude が直接修正する）
    - 例: description「navigation / form filling / data extraction」と書いてあるが body は `npx playwright test` の CLI ref のみ、のような乖離を検出
    - これを飛ばすと、subagent が description と body の乖離を自力補完しようとして再試行回数が増える（再試行回数は subagent の自己申告レポートから抽出、指示側では測れない）
 
@@ -135,8 +135,8 @@ description: agent 向けテキスト指示（skill / slash command / task プ�
 - **収束（停止）**: 連続 2 回で次を **全て** 満たす:
   - 新規不明瞭点: 0 件
   - 精度の前回比改善: +3 ポイント以下（飽和）
-  - ステップ数の前回比変動: ±10% 以内
-  - duration の前回比変動: ±15% 以内
+  - ステップ数の前回比変動: ±10% 以内（全シナリオ個別に閾値内であること。平均値で判定しない）
+  - duration の前回比変動: ±15% 以内（同上）
   - **過適合チェック**: 収束判定時に、これまで使っていない hold-out シナリオ 1 本を追加して評価。精度が直近平均から 15 ポイント以上落ちたら過適合。baseline シナリオ設計に戻って edge を足す。
 - **発散（設計を疑う）**: 3 回以上イテレーションしても新規不明瞭点が減らない → プロンプトの設計方針自体が間違っている可能性。修正パッチで直すのをやめ、構造を書き直す
 - **リソース打ち切り**: 重要度と改善コストが釣り合わなくなったら止める（80 点で出す判断）

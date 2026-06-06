@@ -33,6 +33,9 @@ git diff --name-only HEAD
 | `src/components/`・`src/app/`・`src/pages/` | コンポーネント変更 |
 | リネーム・移動・型定義のみ | リファクタリング |
 | `*.css`・`*.scss`・`config.*`・`*.env*`・`*.json` | スタイル/設定のみ |
+| `*.md`・`*.txt` 等ドキュメント | 種別なし（モード判定に影響しない） |
+
+**優先順位**: 拡張子パターンはディレクトリパターンより優先する。例: `src/components/Button.module.css` は `.css` に該当するため「スタイル/設定のみ」。
 
 **モード判定:**
 - **ロジック変更またはコンポーネント変更を含む** → フルモード（並列エージェント）
@@ -127,8 +130,8 @@ git diff --name-only HEAD
 
 ### review-result.md への書き込み
 
-`.steering/[task]/` ディレクトリが存在する場合、`review-result.md` を書き込む。
-`templates.md` の形式に従う。修正状況チェックボックスはすべて未チェックで初期化する。
+`.steering/[task]/` タスクディレクトリが存在する場合のみ `review-result.md` を書き込む。タスクディレクトリが存在しない場合は出力のみで書き込みを行わない。
+`templates.md` の形式に従う。ファイルが存在しない場合は「## Code Review Result\n\n### 指摘事項\n- [ ] [Axis] [内容] [file:line]」の形式で合理的に生成してよい。修正状況チェックボックスはすべて未チェックで初期化する。
 
 書き込み後に `.codify-needed` フラグを作成する:
 ```bash
