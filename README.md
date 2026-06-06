@@ -192,7 +192,10 @@ diff のトリアージでモードを自動判定し、適切なサブスキル
 | `src/lib/` `src/hooks/` `src/api/` `src/utils/` | ロジック変更 |
 | `src/components/` `src/app/` `src/pages/` | コンポーネント変更 |
 | リネーム・移動・型定義のみ | リファクタリング |
-| `*.css` `*.json` `config.*` | スタイル/設定のみ |
+| `*.css` `*.scss` `*.json` `config.*` `*.env*` | スタイル/設定のみ |
+| `*.md` `*.txt` 等ドキュメント | 種別なし（モード判定に影響しない） |
+
+拡張子パターンはディレクトリパターンより優先する（例: `src/components/Button.module.css` → スタイル/設定のみ）。
 
 **Phase 2A — フルモード**（ロジック/コンポーネント変更を含む場合）:
 5エージェントを**単一メッセージで並列**ディスパッチ:
@@ -209,8 +212,8 @@ a11y-agent    → review-a11y スキルを実行
 `test-review` → `impl-review` を直列で実行。
 
 **Phase 3 — 統合サマリー**:
-全エージェントの結果を集約して `.steering/[task]/review-result.md` に書き込む。
-完了後に `.codify-needed` フラグを作成（compound スキルへの引き継ぎ）。
+全エージェントの結果を集約して出力する。`.steering/[task]/` タスクディレクトリが存在する場合のみ `review-result.md` を書き込む（タスクなし時は出力のみ）。
+書き込み後に `.codify-needed` フラグを作成（compound スキルへの引き継ぎ）。
 
 ---
 
