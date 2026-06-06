@@ -16,6 +16,8 @@ description: "Next.js/TypeScript フロントエンドのパフォーマンス�
 git diff --name-only HEAD | grep -E '\.(ts|tsx)$' | grep -v '\.(test|spec)\.'
 ```
 
+上記の結果が **空の場合**: `.ts/.tsx` の変更がなくても `package.json` が変更されている場合は **Axis 1（Bundle サイズ）のみ** を実施する。`package.json` も変更がなければ「パフォーマンスレビューの対象ファイルがありません」とユーザーに伝えて終了する。
+
 ---
 
 ## 3つのチェック軸

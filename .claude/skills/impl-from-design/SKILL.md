@@ -25,23 +25,35 @@ find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
 
 対象タスクの `design.md` を読み、Status を確認する:
 - `APPROVED` → 続行
-- `DRAFT` → 止まる: "design.md がまだ DRAFT です。`design-doc` スキルで設計レビューを完了してください。"
+- `DRAFT` → **ここで止まる**。`design-doc` スキルは起動しない（案内のみ）:
+  ```
+  design.md がまだ DRAFT です。
+  `design-doc` スキルで設計レビューを完了してからもう一度呼び出してください。
+  ```
 
 `tasklist.md` も読んで実装スコープを把握する。
+- `tasklist.md` が存在しない場合 → ユーザーに確認する:
+  ```
+  tasklist.md が見つかりません。
+  design.md の Key components を実装スコープとして進めてよいですか？
+  ```
+  ユーザーが Yes → Key components を実装順に並べてスコープとする。
+  ユーザーが No → tasklist.md のパスを教えてもらう。
 
 ---
 
 ## Step 1.5 — 既存コードベースの調査（code-explorer）
 
-新規コンポーネント作成 or 既存の複雑なファイルへの変更を含む場合に実行する。
-単純な定数追加・typo 修正の場合はスキップしてよい（ユーザーに確認して省略可）。
+**スコープ全体（tasklist.md 全件）を見て1回だけ判断する**:
+- 1件でも「新規コンポーネント作成 or 既存の複雑なファイルへの変更」を含む → 実行
+- 全件が「単純な定数追加・typo 修正」 → スキップ。「既存コード調査をスキップして実装モードの選択に進みます」と伝えて Step 2 へ（確認不要）
 
-`feature-dev:code-explorer` を起動して以下を調査する:
+`feature-dev:code-explorer` を起動して以下を調査する（起動できない場合は自分でファイルを探索して代替する）:
 - 実装対象に近い既存コードのパターン・規約
 - `design.md` の Key components が既存コードとどう繋がるか
 - プロジェクト固有の書き方（fetch のラッパー・エラーハンドリング・状態管理など）
 
-**探索結果の記録**: 調査結果を `design.md` の `## Research` セクションに追記する。
+**探索結果の記録**: code-explorer のレポートを受け取り、**impl-from-design（呼び出し元）が** `design.md` の `## Research` セクションに追記する。
 セッションをまたいでも参照できるように揮発させない。
 
 ```
@@ -72,6 +84,8 @@ find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
 どちらで進めますか？（デフォルト: 1）
 ```
 
+ユーザーが「1」または無応答の場合は TDD モードで続行する。
+
 ---
 
 ## TDD モード（モード1）
@@ -83,12 +97,16 @@ find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
 **Red — 失敗するテストを書く**
 
 TDD のパターンは `.claude/skills/tdd/references/patterns.md` を参照。
+- ファイルが存在しない場合は Vitest + React Testing Library の標準パターンで書いてよい（`describe/it/expect` + `render/screen`）
+- テストファイルは実装ファイルと同階層にコロケーション配置する（例: `src/components/Foo.tsx` → `src/components/Foo.test.tsx`）
 - テストファイルに失敗するテストを記述
 - 実行して「正しい理由」で失敗することを確認:
   ```bash
   npx vitest run [テストファイルパス]
   ```
-- コンパイルエラーで失敗している場合は Red ではない（型・import を先に修正）
+- **コンパイルエラーで失敗している場合は Red ではない**。次の手順で解消してから再実行する:
+  1. 実装ファイルに型だけ通る最小スタブを作成する（関数・コンポーネントをエクスポートするだけで本体は空）
+  2. 再実行してアサーション失敗（コンパイルエラーではなく）になることを確認してから Red とみなす
 
 **Green — 最小実装でパスさせる**
 

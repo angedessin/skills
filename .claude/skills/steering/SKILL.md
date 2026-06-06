@@ -62,8 +62,8 @@ description: ".steering/ クロスセッションコンテキスト管理のメ�
    - `requirements.md`（目的の確認）
    - `design.md`（設計と Status）
    - `tasklist.md`（進捗確認）
-   - `blockers.md`（あれば）
-   - `decisions.md`（最新の決定事項）
+   - `blockers.md`（なければ「なし」として扱う）
+   - `decisions.md`（なければ「記録なし」として扱う）
 3. セッションサマリーを表示:
 
 ```
@@ -124,6 +124,9 @@ description: ".steering/ クロスセッションコンテキスト管理のメ�
 3. 「アーカイブ完了。`.steering/archived/[task]` に保存されました。」と報告
 
 チェックが不足している場合は、不足している項目をリストして確認を求める。
+ユーザーが「省略してアーカイブ」と明示した場合は未チェック項目をスキップしてアーカイブを実行する。
+
+**knowledge-capture 実行済みの判定**: `capture_done` フラグが存在するか、または `tasklist.md` の knowledge-capture チェックボックスがチェック済みであれば OK（どちらか一方で十分）。
 
 ---
 

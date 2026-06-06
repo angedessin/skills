@@ -28,13 +28,15 @@ description: "新機能・タスク開始・障害調査に使う — 「Xを作
    find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
    ```
    アクティブタスクがあれば「既存タスク [name] があります。新しいタスクとして続けますか？」と確認。
+   - ユーザーが **Yes** → Phase 2 に進み新しいタスクを初期化する
+   - ユーザーが **No** → `steering` スキルの resume モードで既存タスクを再開するよう案内して終了する
 
 ---
 
 ## Phase 2 — .steering/ を初期化する
 
 `.steering/[YYYYMMDD]-[task-name]/` ディレクトリと以下の3ファイルを作成する。
-テンプレートの全文は `references/templates.md` を参照。
+テンプレートの全文は `references/templates.md` を参照。ファイルが存在しない場合は、以下の各ファイルの説明に従って合理的に生成してよい（参照不要）。
 
 ### 作成するファイル
 

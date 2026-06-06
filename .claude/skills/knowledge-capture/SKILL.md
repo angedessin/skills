@@ -30,20 +30,33 @@ Claude の外部記憶を構築・更新する。
 
 ## Step 1 — session-log.md を読む
 
-`.steering/` のアクティブタスクから `session-log.md` を読む:
+`.steering/` のアクティブタスクのフラグとログを一括確認する:
 
 ```bash
-find .steering -maxdepth 2 -name "session-log.md" ! -path "*/archived/*"
+find .steering -maxdepth 2 \( -name "session-log.md" -o -name ".capture-needed" -o -name ".codify-needed" \) ! -path "*/archived/*"
 ```
 
+**フラグ確認（session-log.md の有無に関係なく独立して処理する。上から順に実行する）:**
+
+- `.capture-needed` が存在する → それがトリガーになっている旨をユーザーに伝える
+- `.codify-needed` が存在する → **session-log.md の有無に関わらずここで確認する**:
+  「compound スキルも未実行です。先に compound を実行しますか？」
+  （compound = ルール・スキルへの昇格、knowledge-capture = ドキュメント保存、両方を順に実施推奨）
+  - ユーザーが **Yes** → knowledge-capture をここで中断し、compound スキルを先に実行するよう案内する。compound 完了後にもう一度 knowledge-capture を呼び出してもらう。
+  - ユーザーが **No** → そのまま続行する（session-log.md の確認へ進む）。
+
+**session-log.md の確認（フラグ確認の後で行う）:**
+
+`session-log.md` が**見つからない場合** → ここで止まる:
+```
+session-log.md が見つかりませんでした。
+保存したい知見の内容を直接教えてください（または session-log.md のパスを指定してください）。
+```
+ユーザーが内容を提示したらその内容を「知見」として Step 2 に進む。
+
+`session-log.md` が**見つかった場合** → 読んで知見を抽出する。
 Stop hook が自動追記したセッション記録（git diff --stat）を確認する。
 `decisions.md` があれば合わせて読む。
-
-`.capture-needed` フラグが存在する場合は、それがトリガーになっている旨をユーザーに伝える。
-
-`.codify-needed` フラグが存在する場合: `compound` スキルがまだ実行されていない。
-「compound スキルも未実行です。先に compound を実行しますか？」と確認する。
-（compound = ルール・スキルへの昇格、knowledge-capture = ドキュメント保存、両方を順に実施推奨）
 
 ---
 
@@ -70,9 +83,11 @@ Claude Code の短い常時ルール（1行の命令形）?
 語彙・用語?
   YES → docs/glossary.md（upsert）
 
-一回限りのタスク固有の事象?
-  NO → コミットメッセージで十分
+上記のどれにも該当しない一回限りのタスク固有の事象?
+  YES → コミットメッセージで十分。ドキュメント保存は不要。
 ```
+
+**複数の分岐に同時命中する場合**: 命中した分岐すべてのドラフトを作成してユーザーに提示する（例: 「なぜこの設計にしたか」と「再利用できるパターン」の両方に命中 → ADR と knowledge の両方をドラフトに含める）。ユーザーがどれを採用するか選ぶ。
 
 ---
 
