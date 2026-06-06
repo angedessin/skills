@@ -23,6 +23,8 @@ description: "Next.js/TypeScript/Vitest/React Testing Library プロジェクト
 git diff --name-only HEAD | grep -E '\.(test|spec)\.(ts|tsx)$'
 ```
 
+スコープが空の場合（変更されたテストファイルが 0 件）は「テストレビューの対象ファイルがありません」と出力して終了する。5つのレビュー軸のチェックは行わない。
+
 ---
 
 ## 5つのレビュー軸
@@ -100,6 +102,8 @@ server.use(
 - DB・ファイルシステム・外部 SDK（HTTP を使わない）
 - 日時・乱数など環境依存の値
 
+**違反判定の基準**: `vi.mock` の対象が `fetch`・`axios` を呼ぶモジュール、または `api/`・`service/` 等の HTTP 通信を担うレイヤーの場合が違反対象。ファイル名だけで判断できない場合はモジュール内に `fetch`/`axios` 呼び出しがあるかを確認する。
+
 ---
 
 ### Axis 4 — RTL クエリ優先順位
@@ -163,19 +167,19 @@ it('returns the sum', () => {
 ## Test Review: [スコープ（ファイルまたはディレクトリ）]
 
 ### Axis 1 — 実装エコー
-- [file.test.ts:L42] mockDispatch の引数をアサート → `screen.findByText` で結果を確認すべき [implementation bug]
+- [file.test.ts:L42] mockDispatch の引数をアサート → `screen.findByText` で結果を確認すべき **[implementation bug]**
 
 ### Axis 2 — アサーション品質
-- [file.test.ts:L18] `toBeTruthy()` → `toEqual({ id: 1 })` に変更 [spec changed]
+- [file.test.ts:L18] `toBeTruthy()` → `toEqual({ id: 1 })` に変更 **[spec changed]**
 
 ### Axis 3 — MSW 規律
 （問題なし）
 
 ### Axis 4 — RTL クエリ
-- [file.test.tsx:L33] `getByTestId('btn')` → `getByRole('button', { name: /submit/i })` [test was wrong]
+- [file.test.tsx:L33] `getByTestId('btn')` → `getByRole('button', { name: /submit/i })` **[test was wrong]**
 
 ### Axis 5 — カバレッジの意図
-- [file.test.tsx:L5] renders without error のみ → 主要インタラクションのアサーションを追加 [low-value]
+- [file.test.tsx:L5] renders without error のみ → 主要インタラクションのアサーションを追加 **[low-value]**
 
 ### サマリー
 - 確認したテストファイル: N件

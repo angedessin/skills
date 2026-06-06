@@ -24,13 +24,15 @@ description: "実装コードの品質レビューに使う — 「実装をレ�
 git diff --name-only HEAD | grep -E '\.(ts|tsx)$' | grep -v '\.(test|spec)\.'
 ```
 
+スコープが空の場合は「レビュー対象の実装ファイルがありません（変更はテストのみまたは非 TS ファイルです）」と出力して終了する。
+
 ---
 
 ## 5つのレビュー軸
 
 ### Axis 1 — 設計整合性（最重要・このスキル固有）
 
-`.steering/[task]/design.md` が存在する場合、実装との整合性を確認する。
+`.steering/[task]/design.md` が存在する場合、実装との整合性を確認する。複数のアクティブタスクがある場合は変更ファイルのパスと最も関連するタスクを選択する（判断できない場合はユーザーに確認する）。
 
 **確認項目**:
 
@@ -74,7 +76,7 @@ function process(input: ProcessInput) { ... }
 ```
 
 **チェック項目**:
-- `as any` / `as unknown` の不用意な使用
+- `any` の不用意な使用（型注釈 `: any` · キャスト `as any` · `as unknown` を問わず）
 - `Record<string, any>` → 型引数の明示化
 - 非 null アサーション（`!`）の過剰使用
 - `@ts-ignore` の使用（理由がコメントにあるか）
