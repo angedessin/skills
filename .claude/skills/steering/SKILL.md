@@ -19,17 +19,21 @@ description: ".steering/ クロスセッションコンテキスト管理のメ�
 ```
 .steering/
 ├── [YYYYMMDD]-[task-name]/
-│   ├── requirements.md     (必須)
-│   ├── design.md           (必須 — APPROVED になるまで実装禁止)
+│   ├── design.md           (必須 — Goal/Scope/Acceptance を含む。APPROVED になるまで実装禁止)
 │   ├── tasklist.md         (必須 — セッションごとに更新)
-│   ├── session-log.md      (自動生成 — Stop hook が追記)
 │   ├── decisions.md        (任意 — タスク固有の決定事項)
 │   ├── blockers.md         (任意 — 未解決の問題)
+│   ├── skill-issues.md     (任意 — スキル自体の不具合記録。compound が読む)
+│   ├── review-result.md    (frontend-code-review が生成)
+│   ├── codify-log.md       (compound が生成 — 昇格履歴)
 │   ├── .capture-needed     (フラグ — knowledge-capture 未実行)
+│   ├── .codify-needed      (フラグ — compound 未実行)
 │   └── capture_done        (フラグ — knowledge-capture 完了済み)
 └── archived/
     └── [YYYYMMDD]-[task-name]/   (完了タスク)
 ```
+
+旧構造のタスク（`requirements.md`・`session-log.md` がある）は読み取り時のみ対応する: あれば読む、新規には作らない。
 
 詳細仕様: `references/spec.md`
 
@@ -43,8 +47,7 @@ description: ".steering/ クロスセッションコンテキスト管理のメ�
 2. 日付は今日（YYYYMMDD 形式）
 3. `.steering/[YYYYMMDD]-[task-name]/` を作成
 4. 以下のファイルをテンプレートから生成:
-   - `requirements.md`
-   - `design.md`（Status: DRAFT）
+   - `design.md`（Status: DRAFT — Goal/Scope/Acceptance criteria を含む）
    - `tasklist.md`
 5. 作成したパスを報告
 
@@ -59,8 +62,7 @@ description: ".steering/ クロスセッションコンテキスト管理のメ�
 
 1. `.steering/` のアクティブタスク一覧（`archived/` 除外）を確認
 2. 対象タスクの以下を読む:
-   - `requirements.md`（目的の確認）
-   - `design.md`（設計と Status）
+   - `design.md`（Goal・設計と Status。旧構造で `requirements.md` があればそれも読む）
    - `tasklist.md`（進捗確認）
    - `blockers.md`（なければ「なし」として扱う）
    - `decisions.md`（なければ「記録なし」として扱う）
@@ -69,7 +71,7 @@ description: ".steering/ クロスセッションコンテキスト管理のメ�
 ```
 ## Session Resume: [task-name]
 
-**Goal**: [requirements.md から一行]
+**Goal**: [design.md の Goal から一行]
 **Design**: DRAFT / APPROVED
 **Progress**: X/Y tasks チェック済み
 

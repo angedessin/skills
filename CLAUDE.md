@@ -18,6 +18,7 @@ Tech stack: Next.js / TypeScript / Vitest / React Testing Library / MSW / Playwr
 ## スキル管理ルール
 
 - サードパーティ製 SKILL.md 採用前に Bash コマンド・外部 URL・プロンプトインジェクションを目視確認する
+- スキルの誤発動・曖昧な指示・実行不能な手順に気づいたら `.steering/[task]/skill-issues.md` に事象と期待を追記する（compound が回収して改善候補にする）
 
 ## ナレッジ保存先のルール
 

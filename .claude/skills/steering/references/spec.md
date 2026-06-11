@@ -1,17 +1,23 @@
 # .steering/ 仕様詳細
 
+## 作成基準
+
+**`.steering/` は複数セッションにまたがる見込みのタスクのみ作成する。**
+1セッションで完了する見込みのタスクは、会話内で設計方針を確認して進める（次セッションの自分が読まないファイルは作らない）。
+途中で複数セッションにまたがると判明したら、その時点で作成して会話内の設計内容を design.md に転記する。
+
 ## ディレクトリ構造
 
 ```
 .steering/
 ├── [YYYYMMDD]-[task-name]/    ← 進行中タスク
-│   ├── requirements.md        ← 必須: 要求・目標・スコープ
-│   ├── design.md              ← 必須: 実装アプローチ（DRAFT → APPROVED）
+│   ├── design.md              ← 必須: 要求 + 実装アプローチ（DRAFT → APPROVED）
 │   ├── tasklist.md            ← 必須: チェックボックス形式のタスクリスト
-│   ├── session-log.md         ← 自動生成: Stop hook が追記するセッション記録
 │   ├── decisions.md           ← 任意: タスク固有の決定事項ログ
 │   ├── blockers.md            ← 任意: 未解決の問題・依存待ち
+│   ├── skill-issues.md        ← 任意: スキル自体の不具合記録（compound が読む）
 │   ├── review-result.md       ← frontend-code-review が生成: 指摘と修正追跡
+│   ├── codify-log.md          ← compound が生成: パターン昇格の履歴
 │   ├── .capture-needed        ← フラグ: knowledge-capture 未実行を示す
 │   ├── .codify-needed         ← フラグ: compound スキル未実行を示す
 │   └── capture_done           ← フラグ: knowledge-capture 完了済みを示す
@@ -19,16 +25,20 @@
     └── [YYYYMMDD]-[task-name]/  ← 完了タスク（git で永続管理）
 ```
 
+**旧構造との互換**: 2026-06 以前のタスクには `requirements.md`（要求を分離したファイル）と `session-log.md`（Stop hook の自動ログ）が存在する。読み取り時はあれば読む。新規タスクでは作らない。
+
 ## 各ファイルの役割
 
-### requirements.md（必須）
+### design.md（必須）
 
-何をするか・なぜするかを記述。セッションをまたいでも目的がブレないようにする。
+要求の整理（Goal / Scope / Acceptance criteria）と実装アプローチを1ファイルにまとめる。
+**Status が DRAFT の間は実装に入らない。** 人間の承認後に APPROVED に変更する。
 
 ```markdown
-# Requirements: [task-name]
+# Design: [task-name]
 
 Created: [YYYYMMDD]
+Status: **DRAFT — awaiting review**
 
 ## Goal
 [一段落: このタスクが達成することと理由]
@@ -47,16 +57,6 @@ Created: [YYYYMMDD]
 ## Acceptance criteria
 - [ ] [基準1]
 - [ ] [基準2]
-```
-
-### design.md（必須）
-
-**Status が DRAFT の間は実装に入らない。** 人間の承認後に APPROVED に変更する。
-
-```markdown
-# Design: [task-name]
-
-Status: **DRAFT — awaiting review**
 
 ## Approach
 [2〜4文: 核となる技術的な判断]
@@ -107,7 +107,7 @@ Last updated: [YYYYMMDD]
 ## Review
 - [ ] frontend-code-review の実行
 - [ ] レビュー指摘の修正（review-result.md を参照）
-- [ ] 修正後の再確認
+- [ ] 修正後の差分再レビュー
 
 ## Deploy
 <!-- git push してブランチを PR にするフェーズ。CI がないリポジトリはスキップ可。 -->
@@ -125,24 +125,16 @@ Last updated: [YYYYMMDD]
 - [ ] steering archive モードでアーカイブ
 ```
 
-### session-log.md（自動生成）
-
-Stop hook（`.claude/hooks/session-stop.sh`）が自動追記。Claude が次回セッション開始時に読む。
-
-```markdown
----
-## 2026-05-27 14:32 (task: user-auth-refresh)
- src/components/Login.tsx | 45 ++++++
- src/api/auth.ts          | 23 +++
- M src/components/Login.tsx
-?? src/api/auth.ts
-```
-
 ### review-result.md（frontend-code-review が生成）
 
 `frontend-code-review` スキルがレビュー完了後に書き込む。
 修正状況のチェックボックスで「何が直ったか」を追跡する。
 `compound` スキルはこのファイルを入力として使う。
+
+### codify-log.md（compound が生成）
+
+compound 実行のたびに「何をどこへ昇格したか」を追記する履歴。
+次回の compound がこれを読み、**昇格済みルールに反する指摘が再発していないか**を突合する（ルールの効果検証）。
 
 ### decisions.md（任意）
 
@@ -154,6 +146,18 @@ Stop hook（`.claude/hooks/session-stop.sh`）が自動追記。Claude が次回
 **Decision**: [決定内容]
 **Reason**: [なぜ]
 **Impact**: [今後に影響すること]
+```
+
+### skill-issues.md（任意）
+
+セッション中に気づいたスキル自体の不具合（誤発動・指示の曖昧さ・実行不能な手順・裁量補完が必要だった箇所）を記録する。
+`compound` が読んで `empirical-prompt-tuning` の起動候補にする。
+
+```markdown
+## [YYYYMMDD] — [skill-name]
+
+**事象**: [何が起きたか]
+**期待**: [本来どう動くべきだったか]
 ```
 
 ### blockers.md（任意）

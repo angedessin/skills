@@ -4,12 +4,15 @@
 
 ---
 
-## requirements.md テンプレート
+## design.md テンプレート
+
+要求の整理（Goal / Scope / Acceptance criteria）と実装アプローチを1ファイルにまとめる。
 
 ```markdown
-# Requirements: [task-name]
+# Design: [task-name]
 
 Created: [YYYYMMDD]
+Status: **DRAFT — awaiting review**
 
 ## Goal
 
@@ -32,16 +35,6 @@ Created: [YYYYMMDD]
 
 - [ ] [基準1]
 - [ ] [基準2]
-```
-
----
-
-## design.md テンプレート
-
-```markdown
-# Design: [task-name]
-
-Status: **DRAFT — awaiting review**
 
 ## Approach
 
@@ -78,6 +71,13 @@ Status: **DRAFT — awaiting review**
 [インシデントや未知の技術を調査した場合、その結果をここに記載]
 ```
 
+承認後の Status 表記:
+
+```markdown
+Status: **APPROVED**
+Approved: [YYYYMMDD]
+```
+
 ---
 
 ## tasklist.md テンプレート
@@ -99,7 +99,7 @@ Last updated: [YYYYMMDD]
 
 - [ ] frontend-code-review の実行
 - [ ] レビュー指摘の修正（review-result.md を参照）
-- [ ] 修正後の再確認
+- [ ] 修正後の差分再レビュー
 
 ## Deploy
 <!-- git push してブランチを PR にするフェーズ。CI がないリポジトリはスキップ可。 -->
@@ -137,6 +137,22 @@ Last updated: [YYYYMMDD]
 **Decision**: [決定内容]
 **Reason**: [なぜこの決定をしたか]
 **Impact**: [今後に影響すること]
+```
+
+---
+
+## skill-issues.md テンプレート（任意ファイル）
+
+セッション中に気づいたスキル自体の不具合（誤発動・指示の曖昧さ・裁量補完が必要だった箇所）を記録する。
+`compound` スキルがこれを入力として読み、`empirical-prompt-tuning` の起動候補にする。
+
+```markdown
+# Skill Issues: [task-name]
+
+## [YYYYMMDD] — [skill-name]
+
+**事象**: [何が起きたか（誤発動 / 指示が曖昧 / 手順が実行不能 など）]
+**期待**: [本来どう動くべきだったか]
 ```
 
 ---
@@ -186,6 +202,7 @@ Status: PENDING | IN_PROGRESS | RESOLVED
 ## サマリー
 
 - 重要な問題: N件
+- 重複統合: N件
 - 修正完了: 0/N件
 ```
 

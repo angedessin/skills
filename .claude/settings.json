@@ -16,6 +16,10 @@
       "Bash(cat *.env)",
       "Bash(grep * .env*)",
       "Bash(grep * *.env)",
+      "Read(./.env*)",
+      "Read(./**/.env*)",
+      "Read(./*.env)",
+      "Read(./**/*.env)",
       "Bash(rm -rf *)",
       "Bash(git push --force*)",
       "Bash(git push -f*)",
@@ -29,7 +33,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/session-stop.sh"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-stop.sh"
           }
         ]
       }

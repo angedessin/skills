@@ -1,6 +1,6 @@
 ---
 name: knowledge-capture
-description: "セッション終了時のプロジェクト知識保存に使うメタスキル。「ナレッジを保存して」「学んだことを記録して」「この決定をドキュメント化して」「セッション終了」「ドキュメントを更新して」と明示的に言われた場合のみ起動。セッション開始時に .capture-needed ファイルがあれば起動。session-log.md を読んで各知見を docs/knowledge/・docs/decisions/・.steering/decisions.md・CLAUDE.md に分類する。タスク完了のたびに自動起動しない。lint ルール・スキルを作成する retrospective-codify とは別物。"
+description: "セッション終了時のプロジェクト知識保存に使うメタスキル。「ナレッジを保存して」「学んだことを記録して」「この決定をドキュメント化して」「セッション終了」「ドキュメントを更新して」と明示的に言われた場合のみ起動。セッション開始時に .capture-needed ファイルがあれば起動。decisions.md・review-result.md・会話コンテキストから知見を抽出し docs/knowledge/・docs/decisions/・.steering/decisions.md・CLAUDE.md に分類する。タスク完了のたびに自動起動しない。lint ルール・スキルを作成する compound とは別物。"
 ---
 
 # Knowledge Capture
@@ -10,15 +10,15 @@ Claude の外部記憶を構築・更新する。
 
 ## When NOT to use
 
-- lint ルール・スキル・CLAUDE.md 行動ルールとして固めたい → `retrospective-codify`（`.tmp/skills`）
+- lint ルール・スキル・CLAUDE.md 行動ルールとして固めたい → `compound`
 - 知識がすでにコードのコメント・型・テストとして表現されている → 追加ドキュメント不要
 - タスク固有の一回限りの事象 → コミットメッセージで十分
 
 ---
 
-## retrospective-codify との役割分担
+## compound との役割分担
 
-| concern | knowledge-capture | retrospective-codify |
+| concern | knowledge-capture | compound |
 |---------|------------------|----------------------|
 | ADR・設計判断ドキュメント | **担当** | 対象外 |
 | 経験・パターン・アンチパターン集 | **担当** | 対象外 |
@@ -28,35 +28,37 @@ Claude の外部記憶を構築・更新する。
 
 ---
 
-## Step 1 — session-log.md を読む
+## Step 1 — 知見の入力を集める
 
-`.steering/` のアクティブタスクのフラグとログを一括確認する:
+`.steering/` のアクティブタスクのフラグと入力ファイルを一括確認する:
 
 ```bash
-find .steering -maxdepth 2 \( -name "session-log.md" -o -name ".capture-needed" -o -name ".codify-needed" \) ! -path "*/archived/*"
+find .steering -maxdepth 2 \( -name "decisions.md" -o -name "review-result.md" -o -name ".capture-needed" -o -name ".codify-needed" \) ! -path "*/archived/*"
 ```
 
-**フラグ確認（session-log.md の有無に関係なく独立して処理する。上から順に実行する）:**
+**フラグ確認（入力ファイルの有無に関係なく独立して処理する。上から順に実行する）:**
 
 - `.capture-needed` が存在する → それがトリガーになっている旨をユーザーに伝える
-- `.codify-needed` が存在する → **session-log.md の有無に関わらずここで確認する**:
+- `.codify-needed` が存在する → **入力ファイルの有無に関わらずここで確認する**:
   「compound スキルも未実行です。先に compound を実行しますか？」
   （compound = ルール・スキルへの昇格、knowledge-capture = ドキュメント保存、両方を順に実施推奨）
   - ユーザーが **Yes** → knowledge-capture をここで中断し、compound スキルを先に実行するよう案内する。compound 完了後にもう一度 knowledge-capture を呼び出してもらう。
-  - ユーザーが **No** → そのまま続行する（session-log.md の確認へ進む）。
+  - ユーザーが **No** → そのまま続行する（入力の確認へ進む）。
 
-**session-log.md の確認（フラグ確認の後で行う）:**
+**知見の入力（フラグ確認の後で行う）。入力源は3つで、あるものをすべて使う:**
 
-`session-log.md` が**見つからない場合** → ここで止まる:
+1. `.steering/[task]/decisions.md` — 実装中の技術的判断とその理由
+2. `.steering/[task]/review-result.md` — レビューで発見されたパターン
+3. **現在の会話コンテキスト** — このセッションで得た学び・ハマりどころ（同一セッション内で起動された場合）
+
+3つとも**得られない場合**（ファイルなし・別セッションからの再開で会話に文脈もない）→ ここで止まる:
 ```
-session-log.md が見つかりませんでした。
-保存したい知見の内容を直接教えてください（または session-log.md のパスを指定してください）。
+知見の入力が見つかりませんでした（decisions.md / review-result.md なし）。
+保存したい知見の内容を直接教えてください。
 ```
 ユーザーが内容を提示したらその内容を「知見」として Step 2 に進む。
 
-`session-log.md` が**見つかった場合** → 読んで知見を抽出する。
-Stop hook が自動追記したセッション記録（git diff --stat）を確認する。
-`decisions.md` があれば合わせて読む。
+git の変更履歴を確認したい場合は `git log --oneline -20` と `git diff [範囲] --stat` を使う（旧構造の session-log.md は廃止済み。古いタスクに残っていれば参考として読んでよい）。
 
 ---
 
@@ -77,7 +79,7 @@ Stop hook が自動追記したセッション記録（git diff --stat）を確�
 
 Claude Code の短い常時ルール（1行の命令形）?
   YES → CLAUDE.md（project）or ~/.claude/CLAUDE.md（global）
-       ※ 行動ルールの詳細化は retrospective-codify に委譲
+       ※ 行動ルールの詳細化は compound に委譲
        ※ CLAUDE.md は ≤200行 厳守
 
 語彙・用語?
@@ -223,5 +225,5 @@ touch .steering/[task]/capture_done
 ## Related skills
 
 - `steering` — フラグ更新後はアーカイブへ（steering archive モード）
-- `retrospective-codify` — lint ルール・スキル・行動ルールとして固めたい場合
+- `compound` — lint ルール・スキル・行動ルールとして固めたい場合
 - `frontend-code-review` — レビューで発見したパターンをここで保存

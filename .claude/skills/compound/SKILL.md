@@ -23,7 +23,7 @@ description: "レビューや実装で得た学びをルール・知識・スキ
 以下のコマンドで対象ファイルを探す:
 
 ```bash
-find .steering -maxdepth 2 \( -name "review-result.md" -o -name "session-log.md" -o -name "decisions.md" \) ! -path "*/archived/*" 2>/dev/null
+find .steering -maxdepth 2 \( -name "review-result.md" -o -name "decisions.md" -o -name "skill-issues.md" -o -name "codify-log.md" \) ! -path "*/archived/*" 2>/dev/null
 ```
 
 **ファイルが見つかった場合** — 下記テーブルの通り読む:
@@ -31,8 +31,9 @@ find .steering -maxdepth 2 \( -name "review-result.md" -o -name "session-log.md"
 | ファイル | 読む内容 |
 |---|---|
 | `.steering/[task]/review-result.md` | レビュー指摘のパターン（繰り返し出現するものを重視） |
-| `.steering/[task]/session-log.md` | 実装中の判断・詰まりどころ |
 | `.steering/[task]/decisions.md` | 技術的判断とその理由 |
+| `.steering/[task]/skill-issues.md` | スキル自体の不具合（誤発動・曖昧な指示・裁量補完）。Step 2 でスキル改善候補にする |
+| `.steering/[task]/codify-log.md` | 過去に昇格したルールの履歴。Step 2 の効果検証（突合）に使う |
 | `docs/knowledge/` | 既存の知識（重複確認のため） |
 | `CLAUDE.md` | 既存ルールとの重複確認（同一ルールへの追記を防ぐ） |
 
@@ -48,7 +49,7 @@ find .steering -maxdepth 2 \( -name "review-result.md" -o -name "session-log.md"
 
 ---
 
-## Step 2 — パターン抽出
+## Step 2 — パターン抽出と効果検証
 
 以下の観点で「再利用可能な学び」を識別する:
 
@@ -57,10 +58,20 @@ find .steering -maxdepth 2 \( -name "review-result.md" -o -name "session-log.md"
 2. **知らなかった仕様・落とし穴**（一度詰まったもの）→ `docs/knowledge/`
 3. **技術的判断の理由**（なぜその設計か）→ `docs/decisions/` (ADR)
 4. **再利用可能な実装パターン**（汎用的な解法）→ `docs/knowledge/` or 新スキルの骨組み
+5. **スキル自体の不具合**（skill-issues.md 由来）→ 該当スキルの修正 + `empirical-prompt-tuning` の実行提案
 
 **昇格しないもの:**
 - 1回限りのバグ修正 → コミットメッセージで十分
 - プロジェクト固有すぎて横展開できないもの
+
+**昇格済みルールの効果検証（codify-log.md がある場合は必ず行う）:**
+
+1. `codify-log.md`（アクティブタスクと `archived/` 直近数件）から過去に昇格したルールの一覧を得る
+   ```bash
+   find .steering -name "codify-log.md" 2>/dev/null
+   ```
+2. 今回の `review-result.md` の指摘と突合する
+3. **昇格済みルールに反する指摘が再発している場合** → そのルールは効いていない。「ルールの書き方自体」を改善対象として Step 3 のドラフトに含める（例: 表現が曖昧 → 具体例を追加、CLAUDE.md では読まれない → lint ルール化を提案）
 
 ---
 
@@ -79,6 +90,22 @@ find .steering -maxdepth 2 \( -name "review-result.md" -o -name "session-log.md"
 内容:
 ───
 - `<div onClick>` は `<button>` に置き換える
+───
+
+### [パターン2のラベル]（skill-issues.md 由来の例）
+昇格先: .claude/skills/[skill]/SKILL.md の修正 + empirical-prompt-tuning 実行
+理由: skill-issues.md に「[事象]」の記録
+内容:
+───
+[SKILL.md の修正案。適用後に empirical-prompt-tuning での検証を提案する]
+───
+
+### [パターン3のラベル]（効果検証で再発を検知した例）
+昇格先: 既存ルールの改善（CLAUDE.md / lint ルール化）
+理由: codify-log.md の昇格済みルール「[ルール]」に反する指摘が review-result.md に再発
+内容:
+───
+[ルールの書き直し案 or lint ルール化の提案]
 ───
 
 採用するものを番号または名前で教えてください。
