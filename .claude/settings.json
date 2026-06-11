@@ -1,33 +1,87 @@
 {
   "permissions": {
+    "allow": [
+      "Bash(ls)",
+      "Bash(ls *)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)"
+    ],
+    "ask": [
+      "Bash(git push*)",
+      "Edit(./.claude/settings.json)",
+      "Write(./.claude/settings.json)",
+      "Edit(./.claude/settings.local.json)",
+      "Write(./.claude/settings.local.json)",
+      "Edit(./.claude/hooks/**)",
+      "Write(./.claude/hooks/**)"
+    ],
     "deny": [
       "Bash(pnpm add *)",
       "Bash(pnpm remove *)",
       "Bash(pnpm install)",
+      "Bash(pnpm install *)",
       "Bash(pnpm i)",
+      "Bash(pnpm i *)",
+      "Bash(pnpm dlx *)",
+      "Bash(npm install)",
       "Bash(npm install *)",
+      "Bash(npm i)",
       "Bash(npm i *)",
       "Bash(npm ci)",
+      "Bash(npm ci *)",
+      "Bash(npx -y *)",
+      "Bash(npx --yes *)",
       "Bash(yarn add *)",
       "Bash(yarn install)",
+      "Bash(yarn install *)",
+      "Bash(yarn dlx *)",
       "Bash(bun add *)",
       "Bash(bun install)",
+      "Bash(bun install *)",
+      "Bash(bunx *)",
+      "Bash(pip install *)",
+      "Bash(pip3 install *)",
+      "Bash(brew install *)",
       "Bash(cat .env*)",
       "Bash(cat *.env)",
       "Bash(grep * .env*)",
       "Bash(grep * *.env)",
+      "Bash(printenv)",
+      "Bash(printenv *)",
+      "Bash(env)",
       "Read(./.env*)",
       "Read(./**/.env*)",
       "Read(./*.env)",
       "Read(./**/*.env)",
+      "Read(./**/*.pem)",
+      "Read(./**/*.key)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.claude/.credentials.json)",
       "Bash(rm -rf *)",
+      "Bash(rm -fr *)",
       "Bash(git push --force*)",
       "Bash(git push -f*)",
+      "Bash(git push * +*)",
       "Bash(git reset --hard*)",
       "Bash(git clean -f*)"
     ]
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-env-read.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
