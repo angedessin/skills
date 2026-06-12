@@ -6,3 +6,7 @@ node_modules/
 .tmp/
 .vscode/
 .claude/settings.local.json
+# .steering ランタイムフラグ（セッション状態。知識は md が持つ）
+.steering/**/.capture-needed
+.steering/**/.codify-needed
+.steering/**/capture_done
