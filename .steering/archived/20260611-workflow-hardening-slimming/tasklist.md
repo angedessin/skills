@@ -45,13 +45,15 @@ Last updated: 20260611
 
 ## Deploy
 
-- [ ] コミット（remote なしのためローカルコミットのみ）
+- [x] コミット（remote なしのためローカルコミットのみ。1ac3743 / 38b5f98 ほかで完了済み）
 
 ## Compound
 
-- [ ] compound スキルの実行（パターンをルール・知識に昇格）
+- [x] compound スキルの実行（パターンをルール・知識に昇格）
 
 ## Knowledge
 
-- [ ] knowledge-capture スキルの実行
-- [ ] steering archive モードでアーカイブ
+- [x] knowledge-capture スキルの実行（docs/decisions/20260611-slim-steering-artifacts.md 作成）
+- [x] steering archive モードでアーカイブ
+
+Archived: 20260612
