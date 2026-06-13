@@ -91,6 +91,8 @@ Claude Code の短い常時ルール（1行の命令形）?
 
 **複数の分岐に同時命中する場合**: 命中した分岐すべてのドラフトを作成してユーザーに提示する（例: 「なぜこの設計にしたか」と「再利用できるパターン」の両方に命中 → ADR と knowledge の両方をドラフトに含める）。ユーザーがどれを採用するか選ぶ。
 
+**`docs/` ディレクトリが存在しないプロジェクトの場合**: 決定木の保存先はそのまま使い、Step 4 のドラフト提示時に「ディレクトリを新規作成するか・別の置き場にするか」をあわせて確認する。
+
 ---
 
 ## Step 3 — 重複チェック
@@ -208,6 +210,8 @@ Status: Accepted
 
 ## Step 6 — フラグを更新して tasklist を更新する
 
+`.steering/` のタスクディレクトリが存在しない場合（会話から直接知見を保存した場合）はこの Step をスキップして完了報告する。
+
 保存完了後:
 
 ```bash
@@ -218,7 +222,7 @@ rm -f .steering/[task]/.capture-needed
 touch .steering/[task]/capture_done
 ```
 
-`tasklist.md` の knowledge-capture チェックボックスをチェック済みにする。
+`tasklist.md` の knowledge-capture チェックボックスをチェック済みにする（tasklist.md が無ければスキップ）。
 
 ---
 

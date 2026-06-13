@@ -156,6 +156,8 @@ TDD のパターンは `.claude/skills/tdd/references/patterns.md` を参照。
 **Impact**: [影響範囲]
 ```
 
+追記に承認は不要 — 気づいた時点で記録する。内容の取捨選択は compound / knowledge-capture 時にまとめて行う。
+
 ---
 
 ## 完了後

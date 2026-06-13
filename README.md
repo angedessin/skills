@@ -79,7 +79,7 @@
 
 | スキル | 役割 |
 |---|---|
-| [`compound`](.claude/skills/compound/SKILL.md) | 福利化。review-result.md / decisions.md / skill-issues.md からパターンを抽出し、ルール・知識・スキル改善に昇格。codify-log.md と突合して**昇格済みルールの効果検証**（再発検知）も行う。承認制 |
+| [`compound`](.claude/skills/compound/SKILL.md) | 福利化。review-result.md / decisions.md / skill-issues.md からパターンを抽出し、ルール・知識・スキル改善に昇格。codify-log.md と突合して**昇格済みルールの効果検証**（再発検知）も行う。昇格の適用は承認制（昇格ゼロ時のフラグ整理のみ承認不要） |
 | [`knowledge-capture`](.claude/skills/knowledge-capture/SKILL.md) | セッションの知見を docs/knowledge/（パターン）・docs/decisions/（ADR）・CLAUDE.md（行動ルール）・glossary に振り分けて保存。承認制 |
 | [`empirical-prompt-tuning`](.claude/skills/empirical-prompt-tuning/SKILL.md) | スキル・プロンプト自体の品質改善。フレッシュな subagent に実行させて両面評価し、改善が頭打ちになるまで反復 |
 
@@ -97,7 +97,7 @@
 スキル不具合 → 該当 SKILL.md 修正 + empirical-prompt-tuning で検証
 ```
 
-- セッション中にスキルの誤発動・曖昧な指示に気づいたら `.steering/[task]/skill-issues.md` に記録する（CLAUDE.md ルール）
+- セッション中にスキルの誤発動・曖昧な指示に気づいたら `.steering/[task]/skill-issues.md` に記録する（CLAUDE.md ルール。decisions.md / skill-issues.md / blockers.md への追記は承認不要 — 内容の取捨選択は compound / knowledge-capture 時に行う）
 - Stop hook が knowledge-capture 未実行タスクに `.capture-needed` フラグを作成し、次セッション開始時にリマインドされる
 - frontend-code-review 完了時に `.codify-needed` フラグが作成され、compound への引き継ぎになる
 
@@ -107,6 +107,19 @@
 
 - **Stop Hook** (`.claude/hooks/session-stop.sh`): アクティブタスクに `capture_done` がなければ `.capture-needed` フラグを作成するだけの軽量フック（セッション記録は git が持つ）
 - **settings.json**: パッケージインストール・`.env` 読み取り（Bash / Read 両方）・破壊的 git 操作・`rm -rf` を deny
+
+---
+
+## 横展開（他プロジェクトでの利用）
+
+このリポジトリがマスター。スキルは人が選んで配置先プロジェクトの `.claude/skills/` に手動コピーする（`~/.claude/` への配置・symlink・プラグイン化はしない）。
+
+- 配置の取捨選択自体がガードレール（無関係なスキルの誤発動を防ぐ）
+- 改善は必ずマスターに還元し、再コピーで配る。配置先で直接編集しない
+- 配置時にマスターのコミットハッシュを配置先に記録する（ドリフト追跡）
+- スキルは CLAUDE.md・docs/・`.steering/` が無くても動く自己完結設計（[skill-design-patterns.md](docs/knowledge/skill-design-patterns.md)）
+
+経緯: [ADR 20260612-manual-copy-skill-distribution](docs/decisions/20260612-manual-copy-skill-distribution.md)
 
 ---
 

@@ -11,7 +11,7 @@ description: "実装コードの品質レビューに使う — 「実装をレ�
 ## When NOT to use
 
 - テストコードのレビュー → `test-review`
-- テストインフラの監査 → `.tmp/skills` の `frontend-review-testing`
+- テストインフラ（vitest 設定・カバレッジ設定）の監査 → 本スキルの対象外
 - 深いレビューが必要 → `/code-review high` または `/code-review ultra` を追加で使う
 
 ---
@@ -54,9 +54,9 @@ git diff --name-only HEAD | grep -E '\.(ts|tsx)$' | grep -v '\.(test|spec)\.'
 ### Axis 2 — プロジェクト規約
 
 `docs/knowledge/` の antipatterns.md が存在すれば読んで照合する。
-CLAUDE.md のスタック制約も確認する。
+CLAUDE.md が存在すればスタック制約も確認する。
 
-**デフォルトチェック**（docs がない場合も実施）:
+**デフォルトチェック**（docs/knowledge/・CLAUDE.md がないプロジェクトでも実施）:
 - `vi.mock` でネットワーク系をモックしていないか（MSW を使うべき）
 - `waitForTimeout` が使われていないか
 - `<div onClick>` になっていないか

@@ -113,16 +113,18 @@ find .steering -maxdepth 2 \( -name "review-result.md" -o -name "decisions.md" -
 
 **昇格候補がゼロの場合（すべて既存ルールと重複 / 1回限りの事象のみ）:**
 
+承認は求めない。以下を報告し、そのまま Step 5（フラグ更新）を実行する:
+
 ```
 ## Compound ドラフト
 
 新規昇格候補はありませんでした。
 （理由: [重複 / 1回限りの事象など]）
 
-.codify-needed フラグの削除のみ行います。よければ「はい」と承認してください。
+.codify-needed フラグの削除と codify-log.md への記録を行います。
 ```
 
-**承認なしに自動適用しない。**
+**昇格（CLAUDE.md・docs/・スキルへの書き込み）は承認なしに適用しない。** フラグ削除・codify-log.md 追記は git で巻き戻せてタスク内に閉じる操作なので承認不要。
 
 ---
 
@@ -138,10 +140,12 @@ find .steering -maxdepth 2 \( -name "review-result.md" -o -name "decisions.md" -
 ```
 
 **制約**: CLAUDE.md は ≤200行 厳守。詳細な説明は `docs/knowledge/` に書いて `@参照` にする。
+CLAUDE.md が存在しないプロジェクトでは、追記先（AGENTS.md 等の相当ファイル）をユーザーに確認する。
 
 ### docs/knowledge/[topic].md への追記
 
 既存ファイルがあれば追記、なければ新規作成。
+`docs/knowledge/` ディレクトリ自体が無いプロジェクトでは、ディレクトリを新規作成するか別の置き場にするかをユーザーに確認する。
 
 ```markdown
 ## [サブトピック]
@@ -181,7 +185,7 @@ description: "[起動条件の説明]"
 
 ## Step 5 — フラグを更新する
 
-**Step 4 でユーザーが承認した後に実行する。昇格作業がゼロでも `.codify-needed` フラグ削除・`codify-log.md` 追記・`tasklist.md` 更新は必ず実行する。**
+**昇格候補があった場合は Step 4 の承認後に、昇格候補ゼロの場合は承認なしでそのまま実行する。昇格作業がゼロでも `.codify-needed` フラグ削除・`codify-log.md` 追記・`tasklist.md` 更新は必ず実行する。**
 
 実行完了後:
 
@@ -202,17 +206,7 @@ cat >> .steering/[task]/codify-log.md << 'EOF'
 EOF
 ```
 
-`tasklist.md` の Compound チェックボックスをチェック済みにする。
-
----
-
-## 汎用性について
-
-このスキルはプロジェクト固有の前提を持たない。
-異なるプロジェクトで使う場合:
-- `.steering/` が存在しなければ `review-result.md` のみを入力として使う
-- `docs/knowledge/` が存在しなければ、出力先をユーザーに確認する
-- CLAUDE.md が存在しなければ、適切な設定ファイルをユーザーに確認する
+`tasklist.md` の Compound チェックボックスをチェック済みにする（tasklist.md が無ければスキップ）。
 
 ---
 

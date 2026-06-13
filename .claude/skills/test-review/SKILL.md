@@ -9,7 +9,7 @@ description: "Next.js/TypeScript/Vitest/React Testing Library プロジェクト
 
 ## When NOT to use
 
-- テストインフラ（vitest 設定・カバレッジ統合・Playwright 設定）の監査 → `.tmp/skills` の `frontend-review-testing`
+- テストインフラ（vitest 設定・カバレッジ統合・Playwright 設定）の監査 → 本スキルの対象外
 - 新しいテストを書く → `tdd`
 
 ---
