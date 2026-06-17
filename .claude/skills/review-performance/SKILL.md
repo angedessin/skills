@@ -1,6 +1,7 @@
 ---
 name: review-performance
-description: "Next.js/TypeScript フロントエンドのパフォーマンスレビューに使うサブスキル。Bundle サイズ・不要な再レンダリング・CWV（Core Web Vitals）の観点で確認する。frontend-code-review オーケストレーターからの並列呼び出しを想定。単独でも使用可。"
+description: "フロントエンドのパフォーマンスレビューに使うサブスキル。Bundle サイズ・不要な再レンダリング・CWV（Core Web Vitals）の観点で確認する。frontend-code-review オーケストレーターからの並列呼び出しを想定。単独でも使用可。"
+compatibility: "React / TypeScript（SSR・コード分割・CWV 観点はフレームワーク中立。フレームワーク固有の最適化 API があればそれを使う）"
 ---
 
 # Review — Performance
@@ -37,7 +38,7 @@ import { format } from 'date-fns'
 **チェック項目**:
 - `import * as` や デフォルトインポートで大きなライブラリを全量取り込んでいないか
 - `package.json` への新規依存追加がある場合、代替の軽量ライブラリがないか
-- `next/dynamic` を使うべき重いコンポーネントが SSR されていないか（チャート・エディタなど）
+- 重いコンポーネント（チャート・エディタなど）が動的 import（`React.lazy` + `Suspense` 等）で分割されず初期バンドルに含まれていないか
 
 ### Axis 2 — 不要な再レンダリング
 
@@ -58,21 +59,15 @@ return <Child config={config} />
 - リスト描画で `key` が index だけになっていないか（並び替え時に再マウント）
 - 大きなコンテキスト（Provider）が頻繁に更新されていないか
 
-### Axis 3 — Core Web Vitals（Next.js 固有）
+### Axis 3 — Core Web Vitals（フレームワーク中立）
 
-```typescript
-// ❌ Bad: LCP 対象の画像を priority なしで読み込む
-<Image src="/hero.jpg" alt="hero" width={1200} height={600} />
-
-// ✅ Good: above the fold の画像には priority を付ける
-<Image src="/hero.jpg" alt="hero" width={1200} height={600} priority />
-```
+CWV は特定フレームワーク非依存の観点。フレームワーク固有の最適化 API（画像コンポーネント・フォントローダ等）があればそれを使い、無ければ素の手段で同じ目的を満たす。
 
 **チェック項目**:
-- above the fold の `<Image>` に `priority` がついているか（LCP）
-- `loading="lazy"` を above the fold 画像に誤用していないか
-- Server Component で取得できるデータを Client Component で fetch していないか（ウォーターフォール）
-- `Suspense` 境界が適切に設定されているか（INP・FID 改善）
+- **LCP**: above the fold の画像が最適化されているか（適切なサイズ・フォーマット・優先読み込み）。遅延読み込み（`loading="lazy"`）を above the fold 画像に誤用していないか
+- **ウォーターフォール**: サーバー側で取得できるデータをクライアントで fetch して直列化していないか（SSR/RSC でもクライアントフェッチでも同じ落とし穴）
+- **コード分割 / INP**: 動的 import と `Suspense` 境界が適切に設定されているか
+- **CLS**: フォント読み込み・画像の寸法未指定でレイアウトシフトが出ていないか
 
 ---
 

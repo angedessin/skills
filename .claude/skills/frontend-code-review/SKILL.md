@@ -104,11 +104,11 @@ subagent はセッション履歴もスキル定義も持たない。**サブス
 
 - **test-agent**: `test-review` スキルの全ロジックを実行
   - スコープ: `*.test.ts`・`*.spec.ts`・`*.test.tsx`
-  - 5軸: 実装エコー・アサーション品質・MSW 規律・RTL クエリ・カバレッジ意図
+  - 5軸: 実装エコー・アサーション品質・ネットワークモック境界・クエリ優先順位・カバレッジ意図
 
 - **impl-agent**: `impl-review` スキルの全ロジックを実行
   - スコープ: `.ts`・`.tsx`（テストファイルを除く）
-  - 5軸: 設計整合性・プロジェクト規約・TypeScript・React/Next.js・基本 a11y
+  - 5軸: 設計整合性・プロジェクト規約・TypeScript・React・基本 a11y
 
 - **security-agent**: `review-security` スキルの全ロジックを実行
   - スコープ: `.ts`・`.tsx`（テストファイルを除く）

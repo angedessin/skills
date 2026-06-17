@@ -28,7 +28,7 @@ Status: **DRAFT — awaiting review**
 
 ## Constraints
 
-- Stack: Next.js / TypeScript / Vitest / React Testing Library / MSW / Playwright
+- Stack: React / TypeScript / Vitest / React Testing Library / MSW / Playwright
 - [その他の制約]
 
 ## Acceptance criteria
@@ -172,7 +172,7 @@ Status: PENDING | IN_PROGRESS | RESOLVED
 | Axis | 指摘 | ファイル | 分類 | 修正状況 |
 |------|------|----------|------|----------|
 | 実装エコー | [内容] | [file:line] | implementation bug | [ ] |
-| MSW 規律 | [内容] | [file:line] | test was wrong | [ ] |
+| ネットワークモック境界 | [内容] | [file:line] | test was wrong | [ ] |
 
 ## Implementation
 

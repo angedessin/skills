@@ -1,150 +1,53 @@
 ---
 name: test-review
-description: "Next.js/TypeScript/Vitest/React Testing Library プロジェクトのテストコード品質レビューに使う — 「テストをレビューして」「テストの品質を確認して」「このテストは良い？」「実装エコー」「アサーションが悪い」などのフレーズが対象。確認内容: 実装結合・アサーション品質・MSW 規律・RTL クエリ優先順位・カバレッジ意図。単独または frontend-code-review の Step 1 として動作。テストインフラの監査（vitest 設定・カバレッジツール設定）には起動しない。"
+description: "テストコード品質をレビューする — 「テストをレビューして」「テストの品質を確認して」「このテストは良い？」「実装エコー」「アサーションが悪い」などのフレーズが対象。確認内容: 実装結合・アサーション品質・ネットワークモック境界・クエリ優先順位・カバレッジ意図。単独または frontend-code-review の Step 1 として動作。テストインフラの監査（テストランナー設定・カバレッジツール設定）には起動しない。"
+compatibility: "React / TypeScript / Vitest / React Testing Library / MSW（具体例は references/patterns.md。別スタックは同ファイルを差し替える）"
 ---
 
 # Test Review
 
 テストコードの品質審査。テストの行数やカバレッジ率ではなく、**テストが正しく機能しているか**を確認する。
 
+このスキルは「エンジン＋カートリッジ」構成: 本文はスタック非依存の判断軸、具体的な API・コード例は `references/patterns.md`（カートリッジ）に置く。本文は §名でカートリッジを参照する。**`references/patterns.md` が無い場合**は、スタック固有の良し悪し例は提示できないが、下記の判断軸は言語非依存なので**そのまま適用してレビューを続ける**（その旨を出力に明記する）。
+
 ## When NOT to use
 
-- テストインフラ（vitest 設定・カバレッジ統合・Playwright 設定）の監査 → 本スキルの対象外
+- テストインフラ（テストランナー設定・カバレッジ統合・E2E ランナー設定）の監査 → 本スキルの対象外
 - 新しいテストを書く → `tdd`
 
 ---
 
 ## スコープの決定
 
-デフォルト: `git diff --name-only HEAD` で変更された `*.test.ts`・`*.spec.ts`・`*.test.tsx` ファイル。
-ユーザーが特定のファイルやディレクトリを指定した場合はそちらを優先。
+デフォルト: バージョン管理上で変更されたテストファイル（`git diff --name-only HEAD`）。ユーザーが特定のファイルやディレクトリを指定した場合はそちらを優先。プロジェクトのテストファイル命名規約での絞り込みコマンドは `references/patterns.md §scope` 参照（無ければ一般的なテスト命名で絞る）。
 
-```bash
-git diff --name-only HEAD | grep -E '\.(test|spec)\.(ts|tsx)$'
-```
-
-スコープが空の場合（変更されたテストファイルが 0 件）は「テストレビューの対象ファイルがありません」と出力して終了する。5つのレビュー軸のチェックは行わない。
+スコープが空（変更されたテストファイルが 0 件）の場合は「テストレビューの対象ファイルがありません」と出力して終了する。5つのレビュー軸のチェックは行わない。
 
 ---
 
-## 5つのレビュー軸
+## 5つのレビュー軸（判断エンジン）
+
+各軸は言語・フレームワーク非依存の判断原則。具体的な良し悪し例は対応するカートリッジ §名を読む。
 
 ### Axis 1 — 実装エコー（最重要）
-
-実装エコーとは「内部の実装方法をアサートするテスト」。リファクタリングしても壊れず、実装が間違っていても通ってしまう。
-
-**レッドフラグ**:
-
-```typescript
-// ❌ Bad: 内部 state をアサートしている
-expect(component.state.isLoading).toBe(true)
-
-// ❌ Bad: dispatch の引数をアサートしている（ユーザーには見えない）
-expect(mockDispatch).toHaveBeenCalledWith({ type: 'SET_USER', payload: user })
-
-// ❌ Bad: クラス名でアサートしている
-expect(button).toHaveClass('btn-primary')
-```
-
-```typescript
-// ✅ Good: ユーザーが見る動作をアサート
-expect(screen.getByRole('progressbar')).toBeInTheDocument()
-expect(await screen.findByText('Alice')).toBeInTheDocument()
-expect(screen.getByRole('button')).toBeDisabled()
-```
-
----
+「内部の実装方法をアサートするテスト」。リファクタリングで壊れ、実装が間違っていても通ってしまう。**ユーザーから見える振る舞いをアサートしているか**で判断する。内部 state・dispatch 引数・クラス名・private メソッドへのアサートはレッドフラグ。
+→ 例: `references/patterns.md §echo`
 
 ### Axis 2 — アサーション品質
+**具体性**（「何でも truthy」でなく期待値を厳密に）と **非同期の正しい待機**（Promise を直接アサートしない／結果を await する）を見る。曖昧なアサートは「通っているのに何も保証していない」。
+→ 例: `references/patterns.md §assertions`
 
-**具体性のないアサーション**:
+### Axis 3 — ネットワークモック境界
+**モックは内部モジュールでなくネットワーク境界で行う**。HTTP I/O を担うモジュールをモジュールレベルでモックすると、統合契約が壊れても気づかない。境界（HTTP）でのモックは可、内部実装の差し替えは不可。DB・FS・外部 SDK・日時/乱数など*非ネットワークかつ非決定的*なものはモジュールレベルのモックを許容。
+→ 例・違反判定基準: `references/patterns.md §network-mocking`
 
-```typescript
-// ❌ Bad: 何でも true
-expect(result).toBeTruthy()
-expect(mockFn).toHaveBeenCalled()
-
-// ✅ Good: 具体的な値
-expect(result).toEqual({ id: 1, status: 'active' })
-expect(mockFn).toHaveBeenCalledWith({ userId: '42' })
-```
-
-**非同期アサーション**:
-
-```typescript
-// ❌ Bad: Promise を直接アサート（常に truthy）
-expect(screen.findByText('Done')).toBeTruthy()
-
-// ✅ Good: await で待つ
-expect(await screen.findByText('Done')).toBeInTheDocument()
-await waitFor(() => expect(mockFn).toHaveBeenCalled())
-```
-
----
-
-### Axis 3 — MSW 規律
-
-ネットワーク呼び出しをするモジュールを `vi.mock` でモックしていないか確認する。
-
-```typescript
-// ❌ Bad: vi.mock でネットワーク層をモック（統合契約が壊れても気づかない）
-vi.mock('../api/user', () => ({
-  getUser: vi.fn().mockResolvedValue({ id: 1 })
-}))
-
-// ✅ Good: MSW で HTTP 境界のみモック
-server.use(
-  http.get('/api/user', () => HttpResponse.json({ id: 1 }))
-)
-```
-
-`vi.mock` が許容される場合:
-- DB・ファイルシステム・外部 SDK（HTTP を使わない）
-- 日時・乱数など環境依存の値
-
-**違反判定の基準**: `vi.mock` の対象が `fetch`・`axios` を呼ぶモジュール、または `api/`・`service/` 等の HTTP 通信を担うレイヤーの場合が違反対象。ファイル名だけで判断できない場合はモジュール内に `fetch`/`axios` 呼び出しがあるかを確認する。
-
----
-
-### Axis 4 — RTL クエリ優先順位
-
-優先順位: `getByRole` > `getByLabelText` > `getByText` > `getByTestId`
-
-```typescript
-// ❌ Bad: セマンティクスを無視したクエリ
-container.querySelector('.submit-button')
-screen.getByTestId('submit-btn')
-screen.getByClassName('btn')
-
-// ✅ Good: セマンティクスを活かしたクエリ
-screen.getByRole('button', { name: /submit/i })
-screen.getByLabelText('Email')
-```
-
----
+### Axis 4 — クエリ優先順位
+**ユーザー可視のセマンティクスを反映するクエリを優先**し、実装詳細（test-id・クラス・CSS セレクタ）でのクエリは最後の手段。具体的な優先順位ラダーはスタック依存。
+→ 優先順位表・例: `references/patterns.md §queries`
 
 ### Axis 5 — カバレッジの意図
-
-テストが存在する意味を持っているか確認する。
-
-**低価値なテストパターン**:
-
-```typescript
-// ❌ Bad: レンダリングするだけ（何も検証しない）
-it('renders without error', () => {
-  render(<MyComponent />)
-  // アサーションなし
-})
-
-// ❌ Bad: 実装のコピー
-it('returns the sum', () => {
-  expect(add(1, 2)).toBe(1 + 2) // 実装と同じ計算をしている
-})
-```
-
-**良いテストの基準**:
-- 仕様をエンコードしている（意図した動作を表現している）
-- 壊れたら本当のバグを教えてくれる
+テストが**仕様をエンコードし、壊れたら本当のバグを教えてくれるか**。アサーションの無いレンダリングだけのテスト、実装と同じ計算をなぞるだけのテストは低価値。
+→ 例: `references/patterns.md §coverage-intent`
 
 ---
 
@@ -159,6 +62,8 @@ it('returns the sum', () => {
 | test was wrong | テストが最初から仕様と合っていない | テストを書き直す |
 | low-value | 存在価値が低い | 削除または拡充 |
 
+`spec changed` と `implementation bug` の区別は実装コードとの照合が前提。**実装ファイルが参照できない場合は両者の判定を保留し「要実装確認」と注記する**（テスト記法自体の誤りは実装に依存せず分類できる）。
+
 ---
 
 ## 出力形式
@@ -167,19 +72,19 @@ it('returns the sum', () => {
 ## Test Review: [スコープ（ファイルまたはディレクトリ）]
 
 ### Axis 1 — 実装エコー
-- [file.test.ts:L42] mockDispatch の引数をアサート → `screen.findByText` で結果を確認すべき **[implementation bug]**
+- [file.test.ts:L42] 内部 dispatch 引数をアサート → 結果の表示を確認すべき **[implementation bug]**
 
 ### Axis 2 — アサーション品質
-- [file.test.ts:L18] `toBeTruthy()` → `toEqual({ id: 1 })` に変更 **[spec changed]**
+- [file.test.ts:L18] 曖昧な truthy アサート → 期待値を厳密に **[spec changed]**
 
-### Axis 3 — MSW 規律
+### Axis 3 — ネットワークモック境界
 （問題なし）
 
-### Axis 4 — RTL クエリ
-- [file.test.tsx:L33] `getByTestId('btn')` → `getByRole('button', { name: /submit/i })` **[test was wrong]**
+### Axis 4 — クエリ優先順位
+- [file.test.tsx:L33] 実装詳細でのクエリ → セマンティクスを反映したクエリへ **[test was wrong]**
 
 ### Axis 5 — カバレッジの意図
-- [file.test.tsx:L5] renders without error のみ → 主要インタラクションのアサーションを追加 **[low-value]**
+- [file.test.tsx:L5] レンダリングのみ → 主要インタラクションのアサーションを追加 **[low-value]**
 
 ### サマリー
 - 確認したテストファイル: N件

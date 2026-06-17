@@ -51,7 +51,7 @@ Status: **DRAFT — awaiting review**
 - [項目]
 
 ## Constraints
-- Stack: Next.js / TypeScript / Vitest / React Testing Library / MSW / Playwright
+- Stack: React / TypeScript / Vitest / React Testing Library / MSW / Playwright
 - [その他の制約]
 
 ## Acceptance criteria

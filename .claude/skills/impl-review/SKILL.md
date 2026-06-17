@@ -1,6 +1,7 @@
 ---
 name: impl-review
-description: "実装コードの品質レビューに使う — 「実装をレビューして」「コードが設計に合っているか確認して」「TypeScript の問題」「React パターンのレビュー」などのフレーズが対象。確認内容: design.md との整合性・docs/knowledge/ のプロジェクト規約・TypeScript 品質・React/Next.js パターン・基本アクセシビリティ。単独または frontend-code-review の Step 2 として動作。テストコードのレビュー（test-review を使う）やテストインフラの監査には起動しない。"
+description: "実装コードの品質レビューに使う — 「実装をレビューして」「コードが設計に合っているか確認して」「TypeScript の問題」「React パターンのレビュー」などのフレーズが対象。確認内容: design.md との整合性・docs/knowledge/ のプロジェクト規約・TypeScript 品質・React パターン・基本アクセシビリティ。単独または frontend-code-review の Step 2 として動作。テストコードのレビュー（test-review を使う）やテストインフラの監査には起動しない。"
+compatibility: "React / TypeScript"
 ---
 
 # Impl Review
@@ -83,7 +84,7 @@ function process(input: ProcessInput) { ... }
 
 ---
 
-### Axis 4 — React / Next.js パターン
+### Axis 4 — React パターン
 
 **useEffect の依存配列**:
 
@@ -168,7 +169,7 @@ function Card({ title }: { title: string }) {
 ### Axis 3 — TypeScript
 - [api/user.ts:L12] `as any` → 型を定義して明示 (`UserResponse`)
 
-### Axis 4 — React/Next.js
+### Axis 4 — React
 - [components/Form.tsx:L34] useEffect の deps に `userId` が抜けている
 
 ### Axis 5 — アクセシビリティ

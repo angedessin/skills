@@ -1,12 +1,14 @@
 ---
 name: tdd
-description: "テストファースト開発や既存コードへのテスト追加に使う — 「テストを先に書いて」「TDD で」「レッド・グリーン・リファクタリング」「既存コードにテストを追加して」「失敗するテストを書いて」などのフレーズが対象。スタック: Vitest + React Testing Library + MSW（ユニット・インテグレーション）。設計ドキュメントなしで既存コードにテストを追加する場合に単独で使う。既存テストのレビューのみの場合は起動しない（test-review を使う）。"
+description: "テストファースト開発や既存コードへのテスト追加に使う — 「テストを先に書いて」「TDD で」「レッド・グリーン・リファクタリング」「既存コードにテストを追加して」「失敗するテストを書いて」などのフレーズが対象。Red→Green→Refactor を哲学・振る舞い分解・AAA・境界値/異常系チェックリストとともに駆動する。設計ドキュメントなしで既存コードにテストを追加する場合に単独で使う。既存テストのレビューのみの場合は起動しない（test-review を使う）。"
+compatibility: "React / TypeScript / Vitest / React Testing Library / MSW（具体例は references/patterns.md。別スタックは同ファイルを差し替える）"
 ---
 
 # TDD
 
-Red → Green → Refactor サイクル。
-単独での使用（既存コードへのテスト追加）と `impl-from-design` からの参照の両方に対応。
+Red → Green → Refactor サイクル。単独での使用（既存コードへのテスト追加）と `impl-from-design` からの参照の両方に対応。
+
+このスキルは「エンジン＋カートリッジ」構成: 本文はスタック非依存の判断軸（哲学・進め方・チェックリスト）、具体的な API・コード例は `references/patterns.md`（カートリッジ）に §名で置く。**`references/patterns.md` が無い場合**は、具体例は出せないが下記の判断軸は言語非依存なので**そのまま適用してテストを書き進める**（その旨を伝える）。
 
 ## When NOT to use
 
@@ -15,188 +17,97 @@ Red → Green → Refactor サイクル。
 
 ---
 
+## 哲学（3原則）
+
+1. **テストは設計行為** — テストを書くと API・責務の境界が決まる。書きにくいテストは設計の歪みのサイン。先にテストを書くのは、使う側の視点で設計するため。
+2. **テストは仕様書** — テストは「コードが何をすべきか」を表現する。実装をなぞる（同じ計算を書く）のではなく**意図をエンコード**する。壊れたら本当のバグを教えるテストが良いテスト。
+3. **小さく回す** — 1つの振る舞いごとに Red→Green→Refactor を回す。大きなステップを避け、常に「次の1つの振る舞い」に集中する。
+
+---
+
 ## サイクル
 
 ### Red — 失敗するテストを書く
+テストを書いて実行し、**正しい理由で**失敗することを確認する。コンパイル/import エラーでの失敗は Red ではない（直してから確認）。実行コマンドは `references/patterns.md §run`。
 
-**テストファイルの配置**: 実装ファイルと同じディレクトリにコロケーション配置する。
-例: `src/components/UserCard.tsx` → `src/components/UserCard.test.tsx`
-
-テストを書いてから実行。**正しい理由** で失敗することを確認する。
-
-```bash
-npx vitest run path/to/the.test.ts
-```
-
-コンパイルエラーや import エラーで失敗している場合は Red ではない。
-型・import を修正してから改めて Red を確認する。
-
-**既存実装へのテスト追加の場合**: テストが最初から Green になることがある。
-- Green になった → その振る舞いがすでに正しい。Refactor フェーズに直行してよい。
-- Red にしたい場合 → 期待値をわざと間違えて「正しい理由で失敗する」ことを確認してから正しい値に直す。
+**既存実装へのテスト追加**: 最初から Green になることがある。
+- Green → その振る舞いはすでに正しい。Refactor へ直行してよい。
+- Red にしたい → 期待値をわざと間違えて「正しい理由で落ちる」ことを確認してから正しい値に直す。
 
 ### Green — 最小実装でパスさせる
-
-テストを通す最小限のコードを書く。過剰実装は Refactor フェーズでやる。
-
-```bash
-npx vitest run path/to/the.test.ts
-```
+通す最小限のコードを書く。過剰実装は Refactor でやる。
 
 ### Refactor — テストが緑のまま整理する
-
 重複・命名・構造を改善する。変更のたびに再実行して緑を維持。
 
 ---
 
-## パターン: Unit テスト
+## Step 1 — 振る舞いで分解する（最初の Red の前）
 
-### 通常の describe/it 形式
+いきなりテストを書く前に、要件を「**入力 → 期待される観察可能な振る舞い**」のリストに分解する。このリストが残りサイクルの作業計画になる。
 
-```typescript
-import { describe, it, expect } from 'vitest'
-import { calculateTotal } from './cart'
+- 正常系（代表的なケース）
+- 異常系（不正入力・エラー・失敗）
+- 境界値（下記チェックリスト）
 
-describe('calculateTotal', () => {
-  it('割引コードが有効な場合に割引を適用する', () => {
-    expect(calculateTotal({ subtotal: 100, discountCode: 'SAVE10' })).toBe(90)
-  })
-
-  it('割引コードがない場合は小計をそのまま返す', () => {
-    expect(calculateTotal({ subtotal: 100 })).toBe(100)
-  })
-})
-```
-
-### In-source testing（ロジックが重いユーティリティファイル向け）
-
-「ロジックが重い」の目安: 分岐・計算ロジックが多い（if/switch が複数ある、計算式が複雑）ユーティリティ。単純なラッパー・1行委譲関数は対象外 → describe/it 形式を使う。
-
-本番ビルドではツリーシェイクされる。AI がソースとテストを1ファイルで把握できる利点がある。
-
-```typescript
-// src/lib/cart.ts
-export function calculateTotal(params: { subtotal: number; discountCode?: string }): number {
-  if (params.discountCode === 'SAVE10') return params.subtotal * 0.9
-  return params.subtotal
-}
-
-if (import.meta.vitest) {
-  const { it, expect } = import.meta.vitest
-  it('SAVE10 で 10% 割引', () => {
-    expect(calculateTotal({ subtotal: 100, discountCode: 'SAVE10' })).toBe(90)
-  })
-}
-```
-
-`vitest.config.ts` に `includeSource: ['src/**/*.ts']` を追加すること。
+**1テスト1振る舞い**。1つのテストで複数のことを確認しない。
 
 ---
 
-## パターン: Component テスト（React Testing Library）
+## 各テストの構造 — AAA（Arrange / Act / Assert）
 
-### クエリの優先順位（必ず守る）
+- **Arrange** — 前提を整える（入力・モック・レンダリング）
+- **Act** — 対象を**1回**実行する（操作を複数詰めない）
+- **Assert** — **観察可能な結果**を検証する（内部 state ではなく）
 
-1. `getByRole` — 常に最初に試す
-2. `getByLabelText` — フォーム要素
-3. `getByText` — 表示テキスト
-4. `getByTestId` — 上記が使えない最終手段のみ
-
-`querySelector`・`container.firstChild`・クラス名での取得は禁止。
-
-### 基本パターン
-
-```typescript
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { describe, it, expect } from 'vitest'
-import { LoginForm } from './LoginForm'
-
-describe('LoginForm', () => {
-  it('正常なログインで Welcome を表示する', async () => {
-    const user = userEvent.setup()
-    render(<LoginForm />)
-
-    await user.type(screen.getByLabelText('Email'), 'user@example.com')
-    await user.type(screen.getByLabelText('Password'), 'secret')
-    await user.click(screen.getByRole('button', { name: /sign in/i }))
-
-    expect(await screen.findByText('Welcome')).toBeInTheDocument()
-  })
-})
-```
-
-**テストしてはいけないもの**: コンポーネントの内部 state・CSS クラス・中間変数。
-**テストするもの**: ユーザーが見る・操作できるもの（observable behavior）。
-
-**「存在しない」ことの確認**: `getByText` ではなく `queryByText` を使い `.not.toBeInTheDocument()` でアサートする。
-
-### 非同期アサーション
-
-```typescript
-// Good: findBy* は自動的に待つ
-expect(await screen.findByText('Loading complete')).toBeInTheDocument()
-
-// Good: waitFor でポーリング
-await waitFor(() => expect(mockFn).toHaveBeenCalledWith({ id: '1' }))
-
-// Bad: Promise を直接アサートしない
-expect(screen.findByText('...')).toBeTruthy() // 常に truthy になる
-```
+3ブロックが視覚的に分かれていると、何を検証しているかが一目で分かる。
 
 ---
 
-## パターン: MSW（ネットワークモック）
+## 境界値・異常系チェックリスト
 
-**ルール**: ネットワーク呼び出しをするモジュールを `vi.mock` でモックしない。
-MSW で HTTP 境界のみをモックする。
+振る舞い分解のときにこれを当てて漏れを防ぐ:
 
-### セットアップ
+- **空**: 空文字・空配列・`null`・`undefined`・0件
+- **単数 vs 複数**: 1件と複数件で挙動が変わらないか
+- **境界（off-by-one）**: `0` / `1` / `n-1` / `n` / `n+1`
+- **不正入力**: 型違反・範囲外・想定外フォーマット
+- **非同期**: 失敗・タイムアウト・競合（レース）・解決順序
+- **エラーパス**: 例外が握りつぶされていないか（`catch {}`）。エラー時の表示・回復も検証する
 
-```typescript
-// src/test-utils/handlers.ts
-import { http, HttpResponse } from 'msw'
+---
 
-export const handlers = [
-  http.get('/api/user', () =>
-    HttpResponse.json({ id: 1, name: 'Alice' })
-  ),
-  http.post('/api/login', async ({ request }) => {
-    const body = await request.json() as { password: string }
-    if (body.password === 'wrong') {
-      return HttpResponse.json({ error: 'Invalid credentials' }, { status: 401 })
-    }
-    return HttpResponse.json({ token: 'abc123' })
-  }),
-]
-```
+## 何をテストするか
 
-```typescript
-// vitest.setup.ts
-import { setupServer } from 'msw/node'
-import { handlers } from './src/test-utils/handlers'
+- ✅ **観察可能な振る舞い** — ユーザーが見る/操作する、関数の戻り値、副作用の結果
+- ❌ **内部実装** — コンポーネントの内部 state、private、CSS クラス、中間変数
 
-export const server = setupServer(...handlers)
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
-afterEach(() => server.resetHandlers())
-afterAll(() => server.close())
-```
+「実装を変えても振る舞いが同じならテストは緑のまま」が理想。これが崩れるテストは実装に結合している。
 
-### テストごとのオーバーライド
+### コンポーネントのクエリ
+セマンティクス（ユーザーに見える意味）を優先してクエリする。具体的な優先順位ラダーは `references/patterns.md §query-ladder`。「存在しない」ことの確認は `queryBy*` + `.not.toBeInTheDocument()`。
 
-```typescript
-import { server } from '../test-utils/server'
-import { http, HttpResponse } from 'msw'
+### ネットワークモック境界
+内部モジュールをモックせず、**HTTP 境界**でモックする（統合契約を守るため）。DB・ファイルシステム・日時/乱数など*非ネットワークかつ非決定的*なものはモジュールレベルのモックで可。API 例は `references/patterns.md §network` / `§api-layer`。
 
-it('500 エラーを正しくハンドルする', async () => {
-  server.use(
-    http.get('/api/user', () => HttpResponse.error())
-  )
-  // ... テスト
-})
-```
+---
 
-詳細パターンは `.claude/skills/tdd/references/patterns.md` を参照（ファイルが存在しない場合はこのスキルのパターン例で代替してよい）。
+## テストの種類と配置
+
+- **配置**: 実装ファイルと同じディレクトリにコロケーション（例: `UserCard.tsx` → `UserCard.test.tsx`）
+- **describe/it か In-source か**: ロジックが重いユーティリティ（分岐・計算が多い）は In-source、それ以外は describe/it。判断基準とコードは `references/patterns.md §unit`。ただし In-source は `includeSource` 設定（§config）が前提 — **テストランナー設定が無い／`src/` 構成でない単独ファイルの場合は describe/it のコロケーションを既定**とする
+- 種類別の具体例: コンポーネント=§component / Hook=§hook / 状態管理=§state / API層=§api-layer / E2E=§e2e
+- セットアップ（設定・MSW）: §config / §setup、カバレッジ目安: §coverage
+
+---
+
+## アンチパターン集（レビュー時の赤信号）
+
+- **実装詳細テスト** — 内部構造・state・呼び出し引数をアサート。リファクタで壊れ、バグは見逃す
+- **テスト間依存** — 実行順序や共有状態に依存。単独実行で落ちる/順序で結果が変わる
+- **過度なモック** — 検証対象そのものまでモックして、結局何も検証していない
+- **巨大テスト** — 複数の振る舞いを1テストに詰め、落ちたとき原因が特定できない
+- **無意味なテスト** — アサーションなし（レンダリングするだけ）／実装と同じ計算をなぞるだけ
 
 ---
 
