@@ -1,6 +1,6 @@
 # skills — personal frontend workflow skill set
 
-Tech stack: Next.js / TypeScript / Vitest / React Testing Library / MSW / Playwright
+Tech stack: React / TypeScript / Vitest / React Testing Library / MSW / Playwright
 
 ## .steering ルール
 

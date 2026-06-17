@@ -1,8 +1,8 @@
 # AI Skills — フロントエンド開発ワークフロー
 
-個人用の Claude Code スキルセット。Next.js / TypeScript プロジェクトにおける設計から実装・レビュー・ナレッジ保存までを一貫したワークフローとして定義している。
+個人用の Claude Code スキルセット。React / TypeScript プロジェクトにおける設計から実装・レビュー・ナレッジ保存までを一貫したワークフローとして定義している。
 
-**スタック**: Next.js / TypeScript / Vitest / React Testing Library / MSW / Playwright
+**スタック**: React / TypeScript / Vitest / React Testing Library / MSW / Playwright
 
 各スキルの詳細手順は `.claude/skills/[name]/SKILL.md` が一次情報。この README は全体像のみを示す。
 
@@ -69,8 +69,8 @@
 | スキル | 役割 |
 |---|---|
 | [`frontend-code-review`](.claude/skills/frontend-code-review/SKILL.md) | オーケストレーター。コミット済み + 未コミットの diff をトリアージし、ロジック/コンポーネント変更はフルモード（5エージェント並列）、リファクタ/スタイルのみは軽量モード（直列）。結果を `review-result.md` に記録し、修正後は指摘があった軸のみ差分再レビュー |
-| [`test-review`](.claude/skills/test-review/SKILL.md) | テストコード品質。実装エコー・アサーション品質・MSW 規律・RTL クエリ優先順位・カバレッジ意図の5軸 |
-| [`impl-review`](.claude/skills/impl-review/SKILL.md) | 実装コード品質。設計整合性・プロジェクト規約・TypeScript・React/Next.js・基本 a11y の5軸 |
+| [`test-review`](.claude/skills/test-review/SKILL.md) | テストコード品質。実装エコー・アサーション品質・ネットワークモック境界・クエリ優先順位・カバレッジ意図の5軸 |
+| [`impl-review`](.claude/skills/impl-review/SKILL.md) | 実装コード品質。設計整合性・プロジェクト規約・TypeScript・React・基本 a11y の5軸 |
 | [`review-security`](.claude/skills/review-security/SKILL.md) | XSS・型安全・env var・依存関係の4軸 |
 | [`review-performance`](.claude/skills/review-performance/SKILL.md) | Bundle サイズ・再レンダリング・CWV の3軸 |
 | [`review-a11y`](.claude/skills/review-a11y/SKILL.md) | セマンティクス・ARIA・フォーカス管理・キーボード操作の4軸 |
