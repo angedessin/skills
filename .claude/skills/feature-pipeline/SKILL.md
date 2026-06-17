@@ -1,0 +1,270 @@
+---
+name: feature-pipeline
+description: "機能開発の複数フェーズ（計画→実装→テスト→レビュー→知見蓄積）を一気通貫で回したいときに使うエンドツーエンドのオーケストレーター。発動の合図は『フロー全体を通して/一括で/最初から最後まで/エンドツーエンドで』のように、単一作業ではなく工程全体をまとめて進めたい意図があること。例:『この機能を設計から実装・テストして最後にナレッジ残すまで通してやって』『新機能を計画から知見蓄積まで一括で面倒みて』『フル開発サイクルで回したい、途中の承認は挟んでいい』。既存スキル（design-doc → impl-from-design → frontend-code-review → knowledge-capture / compound）を順に呼び出し、各フェーズ境界で人間の承認ゲートを挟む半自動フロー。`.steering/[task]/` の成果物から現在地を検出して途中フェーズから再開できるため、複数セッションにまたがる機能開発に向く。**単一フェーズだけの依頼では発動しない** — 設計のみは design-doc、承認済み設計からの実装のみは impl-from-design、レビューのみは frontend-code-review、テスト追加のみは tdd、知見保存のみは knowledge-capture、ルール昇格のみは compound を直接使う。CI/CD・デプロイの『パイプライン』や、小さなバグ修正・タスク状況の確認にも使わない。"
+---
+
+# Feature Pipeline
+
+計画から知見蓄積までの機能開発フロー全体を、既存スキルを順に呼び出して回す
+**ルーター型オーケストレーター**。
+
+このスキルは独自のロジックを実装しない。各フェーズの実体は既存スキルが持っている。
+このスキルの仕事は「**今どのフェーズか**を検出し、**正しいスキルを正しい順で呼び**、
+**フェーズ境界で人間の承認を取る**」ことだけ。
+
+```
+計画          実装               テスト/レビュー          知見蓄積
+design-doc → impl-from-design → frontend-code-review → knowledge-capture → compound
+   ▣ gate        ▣ gate              ▣ gate                  ▣ gate
+```
+
+`▣ gate` = 人間の承認ポイント。承認後は自動で次フェーズへ進む（半自動）。
+ゲートはこのシステムの安全装置。勝手にスキップしない。
+
+## When NOT to use（個別スキルを直接使うべきケース）
+
+- 設計だけしたい / 設計フェーズで止めたい → `design-doc` を直接使う
+- 承認済み design.md からの実装だけ → `impl-from-design` を直接使う
+- レビューだけ実行したい → `frontend-code-review` を直接使う
+- 既存コードにテストを足すだけ → `tdd` を直接使う
+- 知見保存だけ・ルール昇格だけ → `knowledge-capture` / `compound` を直接使う
+- 30分以内のバグ修正・typo → 設計フェーズ不要。そのまま直す
+
+このスキルは「**フロー全体を通して回したい**」ときのためのもの。一部だけなら個別スキルが軽い。
+
+## サブスキルが配置されていない場合（他プロジェクトへ単体コピー時）
+
+各フェーズに進む直前に、呼び出すスキルの存在を確認する:
+```bash
+ls .claude/skills/[スキル名]/SKILL.md 2>/dev/null
+```
+- 存在する → そのフェーズを実行
+- **存在しない** → そのフェーズはスキップし、ユーザーに「[スキル名] が未配置のため [フェーズ] を手動で行ってください」と報告して、可能なら次のフェーズへ進む
+
+`.steering/` が無いプロジェクトでは状態検出ができないため、後述の「会話内フォールバック」で進める。
+
+---
+
+## Step 0 — 現在地を検出する（状態機械）
+
+このスキルは毎回ここから始める。`.steering/` の成果物を読んで、どのフェーズから始める／再開するかを決める。
+複数セッションにまたがる前提なので、**前回の続きを正しく拾うこと**が最重要。
+
+### アクティブタスクの特定
+
+```bash
+find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
+```
+
+- **`.steering/` ディレクトリ自体が無い、またはアクティブタスクなし** → 新規開始。Phase 1（計画）へ進む。`.steering/` を作るかどうかは design-doc が判断するので、ここでは作らない（`.steering/` が無いまま Phase 1 に入ってよい）。
+- **タスク1件** → そのタスクの成果物を読んで現在地を判定（下表）。
+- **タスク複数** → どのタスクのパイプラインを進めるかユーザーに確認してから判定。
+
+### 現在地の判定表
+
+対象タスクの `design.md`・`tasklist.md`・`review-result.md` を確認し、**上から順に評価して最初にマッチした行で確定する。確定したらそれ以降の行は評価しない**（複数行の条件が同時に成立して見えても、上の行が優先）:
+
+| 観測される状態 | 現在地 |
+|---|---|
+| `design.md` が無い | **Phase 1**（計画） |
+| `design.md` の Status が `DRAFT` | **Gate 1 で停止**（設計レビュー待ち。実装に入らない） |
+| `design.md` が `APPROVED` かつ `tasklist.md` の実装タスクに未チェックあり | **Phase 2**（実装） |
+| 実装タスクが全チェック済み かつ `review-result.md` が無い | **Phase 3**（レビュー） |
+| `review-result.md` が存在し Status が `OPEN` | **Gate 3 で停止**（指摘の修正対応待ち） |
+| `review-result.md` の Status が `RESOLVED` または `DEFERRED` かつ `capture_done` フラグが無い | **Phase 4**（知見蓄積） |
+| `capture_done` フラグあり | **Phase 5**（クローズ） |
+
+`review-result.md` の Status は3値: `OPEN`（未対応の指摘あり・前進不可）／`RESOLVED`（全解消 or 指摘なし扱い）／`DEFERRED`（指摘を残したまま前進すると Gate 3 でユーザーが選択した）。Gate 3 を通過すると `OPEN` は必ず `RESOLVED` か `DEFERRED` に更新される（後述）。**`OPEN` のままにしない** — そうしないと resume で永久に Gate 3 に差し戻る。
+
+**フラグについての注意:** 現在地は上表の `design.md`/`tasklist.md`/`review-result.md` の状態で確定する。`.codify-needed` のようなフラグは判定の入力ではない（`capture_done` だけが最終行で参照される）。例えば「`review-result.md` が OPEN なのに `.codify-needed` がある」のは矛盾ではなく正常 — `.codify-needed` はレビュー実行時（Phase 3）に立つフラグなので、レビュー後・未対応の状態では当然存在する。フラグに引っ張られて下位フェーズと誤判定しない。
+
+判定結果を必ずユーザーに伝えてから進む:
+```
+タスク [name] の現在地: [フェーズ名]
+（[判定の根拠: 例 design.md=APPROVED, 実装タスク 2/5 完了（未チェック3件）]）
+→ [フェーズ名] から続けます。
+```
+新規開始（`.steering/` 無し）の場合は「→ Phase 1（計画 / 新規開始）から始めます」と伝える。
+
+### `.steering/` が無いプロジェクトでの会話内フォールバック
+
+`.steering/` ディレクトリ自体が存在しない場合は状態検出ができない。
+この場合は成果物ファイルではなく**会話の文脈**で現在地を判断し、各フェーズのゲートは
+ファイル更新ではなく会話内の承認で代替する。フェーズの順序と承認の取り方は同じ。
+
+---
+
+## Phase 1 — 計画（design-doc）
+
+`design-doc` スキルを起動する。これがタスクの規模を判定し、`.steering/[date]-[task]/` に
+`design.md`（Status: DRAFT）と `tasklist.md` を作成する。
+
+> design-doc は「1セッションで終わる軽いタスクなら `.steering/` を作らず会話内で設計確認」する。
+> その判断は design-doc に委ねてよい。`.steering/` が作られなかった場合はこのスキルも
+> 会話内フォールバックに切り替える。
+
+### ▣ Gate 1 — 設計レビュー（停止）
+
+design-doc は `design.md` 作成後に必ず停止し、レビューを促す。**ここで実装に入らない。**
+ユーザーの応答を待つ:
+
+- **承認**（「承認」「approved」） → design-doc が `design.md` の Status を `APPROVED` に更新する。
+  その後このスキルが Phase 2 へ自動で進む。
+- **修正指示** → design-doc に修正させ、再度 Gate 1 で承認を待つ。
+
+Gate 1 を通過したことをユーザーに伝えてから Phase 2 を開始する:
+```
+✅ 設計承認。実装フェーズ（impl-from-design）に進みます。
+```
+
+---
+
+## Phase 2 — 実装（impl-from-design）
+
+進む前に `design.md` の Status が `APPROVED` であることを再確認する（DRAFT なら Gate 1 に戻る）。
+
+`impl-from-design` スキルを起動する。これは:
+- `tasklist.md` の実装スコープを確認（無ければユーザーに確認）
+- 必要なら既存コード調査（code-explorer）
+- **実装モードを選ばせる**（TDD 推奨 / Impl-first）← これも一種のゲート。ユーザーに選ばせる
+- タスク単位で実装し、`tasklist.md` を更新
+
+> 「テスト」フェーズは独立したフェーズではなく、impl-from-design の TDD モード内で
+> Red→Green→Refactor として実行される。Impl-first を選んだ場合はコンポーネントごとに
+> テスト追加を確認される。どちらでも実装とテストはこの Phase 2 で完了する。
+
+### ▣ Gate 2 — 実装完了の確認
+
+impl-from-design は全タスク完了後に「実装が完了しました」と報告する。
+このスキルはその報告を受けて、Phase 3 へ進む前にユーザーに一言確認する:
+```
+実装が完了しました（tasklist.md 全項目チェック済み）。
+レビューフェーズ（frontend-code-review）に進んでよいですか？
+```
+- 異議なし / 「進めて」 → Phase 3 へ
+- 追加実装の要望 → impl-from-design に戻る
+
+> 実装中に design.md との乖離が生じた場合、impl-from-design 自身が止まってユーザーに
+> 報告する。その場合はこのスキルも待機し、設計変更が必要なら Phase 1 に戻る判断をする。
+
+---
+
+## Phase 3 — レビュー（frontend-code-review）
+
+`frontend-code-review` スキルを起動する。これは diff をトリアージして適切なモードで
+レビューを実行し、`.steering/[task]/review-result.md` に結果を書き、`.codify-needed` を立てる。
+
+### ▣ Gate 3 — 指摘のトリアージ（停止）
+
+frontend-code-review はレビュー結果を提示して停止する。ユーザーに対応方針を選ばせる:
+
+```
+レビューで [N] 件の重要な指摘がありました（review-result.md 参照）。
+どうしますか？
+1. 今すぐ修正する（修正後、指摘のあった軸のみ再レビュー）
+2. 後で対応する（このまま知見蓄積へ進む）
+3. このまま進める（指摘なし扱い）
+```
+
+- **1（今すぐ修正）** → 修正を実施 → frontend-code-review の「修正後の差分再レビュー」で
+  指摘のあった軸のみ再レビュー → 全解消で `review-result.md` の Status を `RESOLVED` に。
+  解消するまでこのゲートを繰り返す。
+- **2（後で対応する）** → `review-result.md` の Status を `DEFERRED` に更新し、未対応の指摘は
+  チェックボックスを未チェックのまま残す → Phase 4 へ。Phase 5 のサマリーに未対応として明記する。
+- **3（このまま進める / 指摘なし扱い）** → `review-result.md` の Status を `RESOLVED` に更新 → Phase 4 へ。
+
+**いずれの選択でも `review-result.md` の Status を `OPEN` から必ず変更する。** `OPEN` のまま Phase 4 に
+進むと、次セッションの Step 0 が再び Gate 3 と判定してパイプラインが前に進めなくなる（resume デッドロック）。
+
+> 指摘の修正そのものは重い実装になることがある。その場合は Phase 2 の作法（TDD で回帰テスト）
+> に従ってよい。判断はユーザーと相談する。
+
+Gate 3 通過後:
+```
+✅ レビュー対応完了。知見蓄積フェーズに進みます。
+```
+
+---
+
+## Phase 4 — 知見蓄積（knowledge-capture → compound 提案）
+
+### Step 4a — knowledge-capture
+
+`knowledge-capture` スキルを起動する。これは `decisions.md`・`review-result.md`・会話から
+知見を抽出し、`docs/knowledge/`・`docs/decisions/`・`CLAUDE.md` に振り分けて保存し、
+完了時に `capture_done` フラグを立てる。
+
+> CLAUDE.md・docs/ への書き込みは承認制。knowledge-capture が保存内容を提示するので、
+> ユーザーの承認を取ってから保存される。これが ▣ Gate 4。
+
+### Step 4b — compound の提案（強制しない）
+
+知見保存後、**福利化（ルール・スキル・lint への昇格）を提案する**。
+ただし1回のパイプライン実行だけで昇格を急がない — compound 自身が
+「繰り返し出現するパターンを重視」するため、シグナルが薄ければ次回に委譲する:
+
+```
+知見を docs/ に保存しました。
+今回のレビュー指摘・判断から、ルール／スキル化すべき繰り返しパターンはありますか？
+1. compound で福利化する（CLAUDE.md ルール・スキル・lint への昇格）
+2. 今回は見送る（.codify-needed を残し、次セッションで再検討）
+```
+
+- **1** → `compound` スキルを起動する。
+- **2** → `.codify-needed` フラグを残したまま Phase 5 へ（次セッション開始時に再提案される）。
+
+> `.codify-needed` は frontend-code-review が Phase 3 で既に立てている。compound を実行すると
+> compound 側でこのフラグが処理される。見送る場合はフラグをそのまま残す（消さない）。
+
+---
+
+## Phase 5 — クローズ
+
+1. `tasklist.md` の全セクション（実装・テスト・review・knowledge-capture）のチェック状況を最終確認し、
+   完了済み項目をチェックする。
+2. パイプライン全体のサマリーを出力する:
+   ```
+   ## Feature Pipeline 完了サマリー — [task name]
+
+   - 計画: design.md（APPROVED）
+   - 実装: [実装したファイル/コンポーネント数]、モード: [TDD / Impl-first]
+   - レビュー: 重要指摘 [N] 件 / 対応 [済 / 一部後回し（内容）]
+   - 知見: [保存先 docs/knowledge/... ] / 福利化: [実施 / 見送り]
+   - 残課題: [後回しにした指摘・Open questions があれば列挙]
+   ```
+3. タスクの締め方を確認する:
+   ```
+   このタスクをアーカイブしますか？（steering スキルの archive モード）
+   - Yes → steering でアーカイブ
+   - No → .steering/ にアクティブのまま残す（追加作業の余地がある場合）
+   ```
+
+---
+
+## パイプライン全体の運用ルール
+
+- **各フェーズは前フェーズのゲート通過後にのみ開始する。** ゲートを飛ばして先のフェーズの
+  作業を始めない（特に Gate 1 の設計承認前に実装しない — これは CLAUDE.md の中核ルール）。
+  「続きを進めて」「いい感じにやって」のような曖昧な続行指示は、ゲートをスキップする承認とは
+  みなさない。ゲートに到達したら選択肢を提示して明示的な応答を待つ。
+- **中断に強くする。** ユーザーがセッションを終えても、`.steering/` の成果物に状態が残るので
+  次回 Step 0 の判定表で正しいフェーズから再開できる。フェーズ完了ごとに成果物
+  （design.md / tasklist.md / review-result.md / フラグ）が更新されていることを確認する。
+- **後戻りを許す。** 実装中に設計が崩れたら Phase 1 へ、レビュー指摘が重ければ Phase 2 の
+  作法へ、と前フェーズに戻る判断をしてよい。一方通行に固執しない。
+- このスキルはルーター。各スキルの内部手順（実装の書き方・レビュー軸・知見の振り分けなど）を
+  **再現・上書きしない**。呼び出すだけ。
+  ただしフェーズ境界の `.steering` 簿記 — `review-result.md` の Status 更新（Gate 3）・
+  `tasklist.md` のチェック・フラグの確認 — はルーター自身の仕事であり、サブスキルの再実装ではない。
+  ゲート通過の記録はルーターが行う。
+
+---
+
+## Related skills
+
+- `design-doc` — Phase 1。設計と `.steering/` ブートストラップ
+- `impl-from-design` — Phase 2。承認済み設計からの実装（内部で `tdd`）
+- `frontend-code-review` — Phase 3。レビューのオーケストレーター
+- `knowledge-capture` — Phase 4a。知見を docs/ に保存
+- `compound` — Phase 4b。学びをルール・スキル・lint に昇格
+- `steering` — `.steering/` のライフサイクル（resume / archive / status）。Phase 5 のアーカイブで使う
