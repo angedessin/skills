@@ -1,15 +1,16 @@
-# スキル評価体系 — 設計メモ
+# スキル評価体系 — QA インフラ設計メモ
 
-作成日: 2026-06-13
+作成日: 2026-06-13 / 最終更新: 2026-06-17
 ステータス: **設計案（議論中）**
-関連: [empirical-prompt-tuning](../../.claude/skills/empirical-prompt-tuning/SKILL.md) / [rule-audit メモ](./20260613-rule-audit-skill.md) / skill-creator プラグイン
+関連: [empirical-prompt-tuning](../../.claude/skills/empirical-prompt-tuning/SKILL.md) / 新スキル `rule-audit`・`prompt-lint` は [new-skills.md](./new-skills.md) / skill-creator プラグイン
+
+> このドキュメントは「**スキルをどう評価・検証・QA するか**」の仕組みを扱う。新規スキルそのものの設計は [new-skills.md](./new-skills.md)、既存スキルの修正方針は [issues-and-plan.md](./issues-and-plan.md)。
 
 ---
 
 ## 動機
 
-スキルが増えてきた（13個）。継続運用には**評価・検証・テストの仕組み**が要る。
-現状は `empirical-prompt-tuning`（質的改善）のみで、以下が欠けている:
+スキルが増えてきた（13個）。継続運用には**評価・検証・テストの仕組み**が要る。現状は `empirical-prompt-tuning`（質的改善）のみで、以下が欠けている:
 - スキルが「スキルなしより本当に良い」かの定量比較（baseline）
 - 誤発動・未発動の定量測定（triggering accuracy）
 - 改訂による退行（回帰）の検出
@@ -30,6 +31,8 @@
   ↓ ③ skills-ref validate / rule-audit（静的・構造）
      frontmatter・命名・行数の機械検証
 ```
+
+> ③ の `rule-audit` は新スキル。設計は [new-skills.md](./new-skills.md) を参照。
 
 ---
 
@@ -70,8 +73,7 @@
 | frontmatter / 命名 / 行数の規約チェック | ③ skills-ref validate / rule-audit |
 | 軽い静的チェックだけで十分 | ③ or empirical の構造審査モード |
 
-**コスト注意**: ① と ② は機能が一部重複する（両方 subagent 実行）。両方フルで回すと高い。
-軽い質的チェック=①、本格 QA・triggering・回帰=② と発動条件を分ける。
+**コスト注意**: ① と ② は機能が一部重複する（両方 subagent 実行）。両方フルで回すと高い。軽い質的チェック=①、本格 QA・triggering・回帰=② と発動条件を分ける。
 
 ---
 
@@ -81,6 +83,8 @@
 - **skill-issues.md → skill-creator**: 誤発動の記録が triggering eval の should-not-trigger ケースの素材になる
 - **compound → 回帰監視**: compound がルール/スキルを増やすほど退行リスクが上がる。改訂時に benchmark を取る運用とセット
 - **empirical → skill-creator**: empirical で質的に磨いた後、skill-creator で定量固定。順序は ① → ②
+
+> プロンプト本文の静的レビュー（`prompt-lint`）は *skill* 評価ではなく *プロンプト* 検証なので本3層とは別系統。設計は [new-skills.md](./new-skills.md) を参照。
 
 ---
 
