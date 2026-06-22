@@ -153,8 +153,8 @@ CLAUDE.md が存在しないプロジェクトでは、追記先（AGENTS.md 等
 [パターン・アンチパターン・注意点]
 
 ```typescript
-// ✅ Good
-// ❌ Bad
+// Good
+// Bad
 ```
 
 ### 新スキルの骨組み生成

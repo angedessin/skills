@@ -67,11 +67,11 @@ CLAUDE.md が存在すればスタック制約も確認する。
 ### Axis 3 — TypeScript 品質
 
 ```typescript
-// ❌ Bad: any の使用
+// Bad: any の使用
 const data: any = await fetch('/api/user').then(r => r.json())
 function process(input: any) { ... }
 
-// ✅ Good: 型を明示
+// Good: 型を明示
 const data: User = await fetch('/api/user').then(r => r.json())
 function process(input: ProcessInput) { ... }
 ```
@@ -89,12 +89,12 @@ function process(input: ProcessInput) { ... }
 **useEffect の依存配列**:
 
 ```typescript
-// ❌ Bad: deps が不完全
+// Bad: deps が不完全
 useEffect(() => {
   fetchUser(userId)
 }, []) // userId が抜けている
 
-// ✅ Good
+// Good
 useEffect(() => {
   fetchUser(userId)
 }, [userId])
@@ -103,14 +103,14 @@ useEffect(() => {
 **Server / Client Component の境界**:
 
 ```typescript
-// ❌ Bad: Server Component で useEffect を使用
+// Bad: Server Component で useEffect を使用
 // app/users/page.tsx
 'use server' // または宣言なし
 export default function Page() {
   const [data, setData] = useState([]) // エラー: Server Component で state 不可
 }
 
-// ✅ Good: Client Component に分離
+// Good: Client Component に分離
 'use client'
 export function UserList({ users }: { users: User[] }) {
   const [selected, setSelected] = useState<string | null>(null)
@@ -120,10 +120,10 @@ export function UserList({ users }: { users: User[] }) {
 **過剰な state**:
 
 ```typescript
-// ❌ Bad: props で十分なのに state を使う
+// Bad: props で十分なのに state を使う
 const [title, setTitle] = useState(props.title) // props が変わっても追従しない
 
-// ✅ Good: props を直接使う
+// Good: props を直接使う
 function Card({ title }: { title: string }) {
   return <h2>{title}</h2>
 }
@@ -134,16 +134,16 @@ function Card({ title }: { title: string }) {
 ### Axis 5 — アクセシビリティ（基本）
 
 ```tsx
-// ❌ Bad: インタラクティブな div
+// Bad: インタラクティブな div
 <div onClick={handleSubmit} className="btn">送信</div>
 
-// ✅ Good: セマンティックな要素
+// Good: セマンティックな要素
 <button type="button" onClick={handleSubmit}>送信</button>
 
-// ❌ Bad: aria-label なしのアイコンボタン
+// Bad: aria-label なしのアイコンボタン
 <button onClick={handleClose}><XIcon /></button>
 
-// ✅ Good
+// Good
 <button onClick={handleClose} aria-label="閉じる"><XIcon /></button>
 ```
 

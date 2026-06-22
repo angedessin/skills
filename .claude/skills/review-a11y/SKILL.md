@@ -26,10 +26,10 @@ git diff --name-only HEAD | grep -E '\.tsx$' | grep -v '\.(test|spec)\.'
 ### Axis 1 — セマンティクスとインタラクティブ要素
 
 ```tsx
-// ❌ Bad: クリック可能な div
+// Bad: クリック可能な div
 <div onClick={handleSubmit} className="btn">送信</div>
 
-// ✅ Good: セマンティックな button
+// Good: セマンティックな button
 <button type="button" onClick={handleSubmit}>送信</button>
 ```
 
@@ -41,16 +41,16 @@ git diff --name-only HEAD | grep -E '\.tsx$' | grep -v '\.(test|spec)\.'
 ### Axis 2 — ARIA ラベルと説明
 
 ```tsx
-// ❌ Bad: アイコンのみのボタンに aria-label なし
+// Bad: アイコンのみのボタンに aria-label なし
 <button onClick={handleClose}><XIcon /></button>
 
-// ✅ Good
+// Good
 <button onClick={handleClose} aria-label="閉じる"><XIcon /></button>
 
-// ❌ Bad: 画像の alt なし
+// Bad: 画像の alt なし
 <img src="/logo.png" />
 
-// ✅ Good
+// Good
 <img src="/logo.png" alt="サービスロゴ" />
 // 装飾画像は空文字
 <img src="/decoration.png" alt="" />
@@ -65,12 +65,12 @@ git diff --name-only HEAD | grep -E '\.tsx$' | grep -v '\.(test|spec)\.'
 ### Axis 3 — フォーカス管理
 
 ```tsx
-// ❌ Bad: モーダルを開いてもフォーカスが移動しない
+// Bad: モーダルを開いてもフォーカスが移動しない
 function Modal({ isOpen }) {
   return isOpen ? <div role="dialog">...</div> : null
 }
 
-// ✅ Good: useEffect でフォーカスを移動 + Escape で閉じる
+// Good: useEffect でフォーカスを移動 + Escape で閉じる
 function Modal({ isOpen, onClose }) {
   const firstFocusableRef = useRef<HTMLButtonElement>(null)
   useEffect(() => {
@@ -88,10 +88,10 @@ function Modal({ isOpen, onClose }) {
 ### Axis 4 — キーボード操作
 
 ```tsx
-// ❌ Bad: onMouseEnter / onMouseLeave のみ（キーボード非対応）
+// Bad: onMouseEnter / onMouseLeave のみ（キーボード非対応）
 <div onMouseEnter={showTooltip} onMouseLeave={hideTooltip}>
 
-// ✅ Good: フォーカスイベントも併用
+// Good: フォーカスイベントも併用
 <div
   onMouseEnter={showTooltip}
   onMouseLeave={hideTooltip}

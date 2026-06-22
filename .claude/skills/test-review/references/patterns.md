@@ -9,18 +9,18 @@
 ## §echo — 実装エコー（Axis 1）
 
 ```typescript
-// ❌ Bad: 内部 state をアサートしている
+// Bad: 内部 state をアサートしている
 expect(component.state.isLoading).toBe(true)
 
-// ❌ Bad: dispatch の引数をアサート（ユーザーには見えない）
+// Bad: dispatch の引数をアサート（ユーザーには見えない）
 expect(mockDispatch).toHaveBeenCalledWith({ type: 'SET_USER', payload: user })
 
-// ❌ Bad: クラス名でアサート
+// Bad: クラス名でアサート
 expect(button).toHaveClass('btn-primary')
 ```
 
 ```typescript
-// ✅ Good: ユーザーが見る動作をアサート
+// Good: ユーザーが見る動作をアサート
 expect(screen.getByRole('progressbar')).toBeInTheDocument()
 expect(await screen.findByText('Alice')).toBeInTheDocument()
 expect(screen.getByRole('button')).toBeDisabled()
@@ -33,11 +33,11 @@ expect(screen.getByRole('button')).toBeDisabled()
 **具体性のないアサーション**:
 
 ```typescript
-// ❌ Bad: 何でも true
+// Bad: 何でも true
 expect(result).toBeTruthy()
 expect(mockFn).toHaveBeenCalled()
 
-// ✅ Good: 具体的な値
+// Good: 具体的な値
 expect(result).toEqual({ id: 1, status: 'active' })
 expect(mockFn).toHaveBeenCalledWith({ userId: '42' })
 ```
@@ -45,10 +45,10 @@ expect(mockFn).toHaveBeenCalledWith({ userId: '42' })
 **非同期アサーション**:
 
 ```typescript
-// ❌ Bad: Promise を直接アサート（常に truthy）
+// Bad: Promise を直接アサート（常に truthy）
 expect(screen.findByText('Done')).toBeTruthy()
 
-// ✅ Good: await で待つ
+// Good: await で待つ
 expect(await screen.findByText('Done')).toBeInTheDocument()
 await waitFor(() => expect(mockFn).toHaveBeenCalled())
 ```
@@ -58,12 +58,12 @@ await waitFor(() => expect(mockFn).toHaveBeenCalled())
 ## §network-mocking — ネットワークモック境界（Axis 3）
 
 ```typescript
-// ❌ Bad: vi.mock でネットワーク層をモック（統合契約が壊れても気づかない）
+// Bad: vi.mock でネットワーク層をモック（統合契約が壊れても気づかない）
 vi.mock('../api/user', () => ({
   getUser: vi.fn().mockResolvedValue({ id: 1 })
 }))
 
-// ✅ Good: MSW で HTTP 境界のみモック
+// Good: MSW で HTTP 境界のみモック
 server.use(
   http.get('/api/user', () => HttpResponse.json({ id: 1 }))
 )
@@ -82,11 +82,11 @@ server.use(
 優先順位: `getByRole` > `getByLabelText` > `getByText` > `getByTestId`
 
 ```typescript
-// ❌ Bad: セマンティクスを無視したクエリ
+// Bad: セマンティクスを無視したクエリ
 container.querySelector('.submit-button')
 screen.getByTestId('submit-btn')
 
-// ✅ Good: セマンティクスを活かしたクエリ
+// Good: セマンティクスを活かしたクエリ
 screen.getByRole('button', { name: /submit/i })
 screen.getByLabelText('Email')
 ```
@@ -96,13 +96,13 @@ screen.getByLabelText('Email')
 ## §coverage-intent — カバレッジの意図（Axis 5）
 
 ```typescript
-// ❌ Bad: レンダリングするだけ（何も検証しない）
+// Bad: レンダリングするだけ（何も検証しない）
 it('renders without error', () => {
   render(<MyComponent />)
   // アサーションなし
 })
 
-// ❌ Bad: 実装のコピー
+// Bad: 実装のコピー
 it('returns the sum', () => {
   expect(add(1, 2)).toBe(1 + 2) // 実装と同じ計算をしている
 })

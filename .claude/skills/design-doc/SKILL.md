@@ -74,7 +74,7 @@ description: "新機能・タスク開始・障害調査に使う — 「Xを作
 ```
 設計ドキュメントを作成しました。
 
-📄 .steering/[date]-[task]/design.md
+.steering/[date]-[task]/design.md
 
 **実装に入る前に design.md をレビューしてください。**
 特に「Open questions」セクションの確認をお願いします。

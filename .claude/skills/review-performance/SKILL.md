@@ -26,11 +26,11 @@ git diff --name-only HEAD | grep -E '\.(ts|tsx)$' | grep -v '\.(test|spec)\.'
 ### Axis 1 — Bundle サイズ
 
 ```typescript
-// ❌ Bad: ライブラリ全体をインポート
+// Bad: ライブラリ全体をインポート
 import _ from 'lodash'
 import * as dateFns from 'date-fns'
 
-// ✅ Good: 必要な関数だけインポート（tree-shaking が効く）
+// Good: 必要な関数だけインポート（tree-shaking が効く）
 import { debounce } from 'lodash-es'
 import { format } from 'date-fns'
 ```
@@ -43,12 +43,12 @@ import { format } from 'date-fns'
 ### Axis 2 — 不要な再レンダリング
 
 ```typescript
-// ❌ Bad: 毎レンダリングで新しいオブジェクト/関数を生成
+// Bad: 毎レンダリングで新しいオブジェクト/関数を生成
 function Parent() {
   return <Child config={{ key: 'value' }} /> // 毎回新しい参照
 }
 
-// ✅ Good: useMemo / useCallback で安定した参照を渡す
+// Good: useMemo / useCallback で安定した参照を渡す
 const config = useMemo(() => ({ key: 'value' }), [])
 return <Child config={config} />
 ```

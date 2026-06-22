@@ -159,10 +159,10 @@ grep "[キーワード]" CLAUDE.md ~/.claude/CLAUDE.md 2>/dev/null
 [パターン・アンチパターン・注意点を記述]
 
 ```typescript
-// ✅ Good
+// Good
 [例]
 
-// ❌ Bad
+// Bad
 [例]
 ```
 
