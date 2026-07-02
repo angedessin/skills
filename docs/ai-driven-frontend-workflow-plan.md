@@ -252,10 +252,10 @@ ADR の「プラグイン化は個人用途には過剰」という判断は正�
 - [x] README のワークフロー図に PR/統合フェーズ（pr-create）と入口分岐（debug）を反映し、feature-pipeline のフェーズ検出・遷移にも同一コミットで反映（2026-07-03 完了: 図 [0]〜[9] + rule-audit 併走、feature-pipeline に Phase 3.5 / Gate 3.5・判定表 1 行・e2e/debug 接続を追加）
 
 ### 持ち運び機構
-- [ ] 全スキル frontmatter に `metadata.version` / `source-commit` を導入（4-B）
-- [ ] `skills-ref validate` をマスターの CI or rule-audit の監査ステップに組み込み（4-C）
-- [ ] スターターキット整備: 推奨構成表（feature-pipeline は拡張セット側）+ references 再生成テンプレート + CLAUDE.md 雛形
-- [ ] 配布方式の段階基準（6-1 の表）を README「横展開」節に追記
+- [x] 全スキル frontmatter に `metadata.version` を導入（2026-07-03 完了: 19 スキル一律 "1.0"。source-commit はマスターに置かず配置時に配置先で追記 — 自己参照の陳腐化を回避する設計判断）
+- [x] validate の機械検証（2026-07-03 完了: skills-ref CLI は導入せず依存ゼロの `scripts/validate_skills.py` を自前実装。rule-audit Step 4 に組み込み。CI 化は push 運用定着後）
+- [x] スターターキット整備（2026-07-03 完了: `docs/starter-kit.md` — 最小/拡張 4 セットの構成表 + 配置 5 手順 + CLAUDE.md 雛形。references 再生成は各スキルの example 明記で対応）
+- [x] 配布方式の段階基準（6-1 の表）を README「横展開」節に追記（2026-07-03 完了）
 
 ### 説明責任・評価
 - [ ] skill-creator baseline 比較を「新スキルのマージ受け入れ基準」として1回試行（コスト記録を残し、以後の実施判断の材料にする）

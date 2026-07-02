@@ -1,6 +1,8 @@
 ---
 name: design-doc
 description: "新機能・タスク開始に使う — 「Xを作ろう」「Zの設計をして」「新しいタスク」などのフレーズが対象。複数セッションにまたがる見込みのタスクには .steering/[YYYYMMDD]-[task-name]/ に design.md・tasklist.md を作成し、design.md 作成後は必ず停止して人間のレビューを待つ（実装に入らない）。1セッションで終わる見込みのタスクは .steering を作らず会話内で設計確認する。「design doc」と言われなくてもタスク開始のシグナルがあれば起動する。現在タスクの .steering/ が既に存在する場合は steering（resume モード）を使う。テスト追加のみや小さなバグ修正では起動しない。バグ・障害の原因調査は debug を使う（原因特定後、構造に触る修正はこのスキルに接続される）。"
+metadata:
+  version: "1.0"
 ---
 
 # Design Doc

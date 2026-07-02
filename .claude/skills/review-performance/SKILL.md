@@ -2,6 +2,8 @@
 name: review-performance
 description: "フロントエンドのパフォーマンスレビューに使うサブスキル。Bundle サイズ・不要な再レンダリング・CWV（Core Web Vitals）の観点で確認する。frontend-code-review オーケストレーターからの並列呼び出しを想定。単独でも使用可。"
 compatibility: "React / TypeScript（SSR・コード分割・CWV 観点はフレームワーク中立。フレームワーク固有の最適化 API があればそれを使う）"
+metadata:
+  version: "1.0"
 ---
 
 # Review — Performance

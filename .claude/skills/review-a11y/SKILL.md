@@ -2,6 +2,8 @@
 name: review-a11y
 description: "フロントエンドのアクセシビリティレビューに使うサブスキル。セマンティクス・ARIA・フォーカス管理・キーボード操作の観点で確認する。frontend-code-review オーケストレーターからの並列呼び出しを想定。単独でも使用可。"
 compatibility: "React / TypeScript（a11y 観点はフレームワーク中立）"
+metadata:
+  version: "1.0"
 ---
 
 # Review — Accessibility

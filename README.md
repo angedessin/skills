@@ -139,8 +139,19 @@
 
 - 配置の取捨選択自体がガードレール（無関係なスキルの誤発動を防ぐ）
 - 改善は必ずマスターに還元し、再コピーで配る。配置先で直接編集しない
-- 配置時にマスターのコミットハッシュを配置先に記録する（ドリフト追跡）
+- 配置時にマスターのコミットハッシュを各スキルの `metadata.source-commit` に記録する（ドリフト追跡は `git diff <hash>` 一発）
 - スキルは CLAUDE.md・docs/・`.steering/` が無くても動く自己完結設計（[skill-design-patterns.md](docs/knowledge/skill-design-patterns.md)）
+
+**推奨構成と配置手順**: [docs/starter-kit.md](docs/starter-kit.md)（最小/拡張セットの選定表・5 ステップの配置手順・CLAUDE.md 雛形）
+**配置前チェック**: `python3 scripts/validate_skills.py`（frontmatter・構造の機械検証）
+
+配布方式の段階基準:
+
+| 段階 | 条件 | 配布方式 |
+|---|---|---|
+| 現在（個人・数プロジェクト） | 配置先 ≤ 3 程度 | 手動コピー + source-commit 記録 |
+| 拡大 | 配置先が増えドリフト管理が手に余る | バージョンタグ付きスターターキット + 配置スクリプト（選択は人・記録は自動） |
+| チーム標準化 | 複数メンバーが同一セットを使う | プラグイン化 or テンプレートリポジトリ（ADR を正式に改訂） |
 
 経緯: [ADR 20260612-manual-copy-skill-distribution](docs/decisions/20260612-manual-copy-skill-distribution.md)
 

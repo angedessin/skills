@@ -1,6 +1,8 @@
 ---
 name: frontend-code-review
 description: "実装後のコードレビューに使う — 「コードをレビューして」「レビューしよう」「コードレビュー」「実装を確認して」などのフレーズが対象。diff トリアージでモードを判定し、ロジック/コンポーネント変更はフルモード（7エージェント並列）、リファクタリング/スタイルのみは軽量モード（直列）で実行。結果を .steering/[task]/review-result.md に書き込む。"
+metadata:
+  version: "1.0"
 ---
 
 # Frontend Code Review

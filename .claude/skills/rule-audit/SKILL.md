@@ -1,6 +1,8 @@
 ---
 name: rule-audit
 description: "CLAUDE.md・ルールファイルを定期監査し、肥大化・陳腐化・曖昧・重複・効果のないルールを検出して剪定する — 「ルールを見直して」「CLAUDE.md を整理して」「ルールを監査して」「ルールの棚卸し」などのフレーズが対象。compound（ルール追加・昇格）と対をなす剪定スキル。新ルールの追加・昇格には起動しない（compound を使う）。"
+metadata:
+  version: "1.0"
 ---
 
 # Rule Audit
@@ -92,16 +94,19 @@ codify-log.md に由来がある場合は「元の失敗が再発しうるか」
 
 ## Step 4 — スキル frontmatter の機械検証
 
-`.claude/skills/` がある場合のみ。**skills-ref CLI があれば使い、無ければ手動で同等チェックする**:
+`.claude/skills/` がある場合のみ。**検証スクリプト → skills-ref CLI → 手動の順で、あるものを使う**:
 
 ```bash
-# CLI がある場合
+# 1. 検証スクリプトがあれば使う（このマスターには scripts/validate_skills.py がある）
+python3 scripts/validate_skills.py 2>/dev/null
+
+# 2. 無ければ skills-ref CLI
 skills-ref validate ./.claude/skills/[skill] 2>/dev/null
 
-# 無い場合の手動同等チェック（各スキルに対して）
+# 3. どちらも無い場合の手動同等チェック（各スキルに対して）
 # - name がディレクトリ名と一致するか
-# - description が 1024 文字以内か
-# - 本文が 500 行以内か
+# - description が引用符付き 1 行で 1024 文字以内か
+# - 本文が 500 行以内か / アストラル面絵文字が無いか / metadata.version があるか
 ```
 
 違反はレポートの「スキル構造」節に列挙する。`.claude/skills/` が無ければこの Step をスキップし、その旨をレポートに明記する。

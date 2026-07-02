@@ -2,6 +2,8 @@
 name: impl-review
 description: "実装コードの品質レビューに使う — 「実装をレビューして」「コードが設計に合っているか確認して」「TypeScript の問題」「React パターンのレビュー」などのフレーズが対象。確認内容: design.md との整合性・docs/knowledge/ のプロジェクト規約・TypeScript 品質・React パターン・基本アクセシビリティ。単独または frontend-code-review の Step 2 として動作。テストコードのレビュー（test-review を使う）やテストインフラの監査には起動しない。"
 compatibility: "React / TypeScript"
+metadata:
+  version: "1.0"
 ---
 
 # Impl Review

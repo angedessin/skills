@@ -2,6 +2,8 @@
 name: test-review
 description: "テストコード品質をレビューする — 「テストをレビューして」「テストの品質を確認して」「このテストは良い？」「実装エコー」「アサーションが悪い」などのフレーズが対象。確認内容: 実装結合・アサーション品質・ネットワークモック境界・クエリ優先順位・カバレッジ意図。単独または frontend-code-review の Step 1 として動作。テストインフラの監査（テストランナー設定・カバレッジツール設定）には起動しない。"
 compatibility: "React / TypeScript / Vitest / React Testing Library / MSW（具体例は references/patterns.md。別スタックは同ファイルを差し替える）"
+metadata:
+  version: "1.0"
 ---
 
 # Test Review

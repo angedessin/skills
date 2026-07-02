@@ -2,6 +2,8 @@
 name: review-correctness
 description: "フロントエンドのロジック正当性レビューに使うサブスキル。境界条件・null/undefined の取りこぼし・非同期レースと stale closure・状態遷移の矛盾とエラー握りつぶしを確認する。frontend-code-review オーケストレーターからの並列呼び出しを想定。単独でも使用可。"
 compatibility: "React / TypeScript（境界条件・null 安全・非同期の観点は言語・フレームワーク中立）"
+metadata:
+  version: "1.0"
 ---
 
 # Review — Correctness

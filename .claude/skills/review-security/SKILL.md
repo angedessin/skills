@@ -2,6 +2,8 @@
 name: review-security
 description: "フロントエンドのセキュリティレビューに使うサブスキル。XSS・型安全・env var 管理・依存関係の脆弱性を確認する。frontend-code-review オーケストレーターからの並列呼び出しを想定。単独でも使用可。"
 compatibility: "React / TypeScript（XSS・env・依存関係の観点はフレームワーク中立）"
+metadata:
+  version: "1.0"
 ---
 
 # Review — Security

@@ -1,0 +1,49 @@
+# スターターキット — 他プロジェクトへのスキル配置手順
+
+対象: このマスターリポジトリから他プロジェクトへスキルを配置する人。
+配布方式は手動コピー（[ADR 20260612](decisions/20260612-manual-copy-skill-distribution.md)）— **どのスキルを持っていくかは人が選ぶ**。それ自体が誤発動を防ぐガードレール。
+
+---
+
+## 推奨構成
+
+| セット | スキル | いつ入れるか |
+|---|---|---|
+| **最小** | design-doc / steering / frontend-code-review / impl-review / test-review / knowledge-capture | まず試すならこれ。設計ゲート + レビュー 2 軸 + 知見保存の最小複利ループ |
+| **拡張 1: レビュー厚み** | review-security / review-a11y / review-performance / review-correctness / review-ui | frontend-code-review のフルモード（7 エージェント並列）を使う場合 |
+| **拡張 2: ワークフロー** | impl-from-design / tdd / e2e / debug | 設計→実装の型・テスト駆動・E2E・障害調査まで揃える場合 |
+| **メタ層** | compound / rule-audit / empirical-prompt-tuning / feature-pipeline | 自己改善ループとオーケストレーションまで運用する場合（このマスター級の運用） |
+
+- frontend-code-review はサブスキル未配置でも動く（未配置分をスキップして報告する縮退動作）
+- feature-pipeline は依存サブスキルが揃っている前提のため最小セットに含めない
+
+## 配置手順（5 ステップ）
+
+1. **選ぶ** — 上の表からプロジェクトに必要なスキルを選ぶ（全部入れない。無関係なスキルは誤発動の種）
+2. **コピー** — 配置先の `.claude/skills/` にディレクトリごとコピーする
+3. **source-commit を記録** — 各スキルの frontmatter の `metadata:` にマスターの配置時点 HEAD を追記する:
+   ```yaml
+   metadata:
+     version: "1.0"
+     source-commit: <マスターで git rev-parse HEAD した値>
+   ```
+   （マスター側には source-commit を書かない — 配置先にだけ意味がある情報）
+4. **references を再生成** — `references/` が example と明記されているスキル（tdd / test-review / e2e / review-ui）は、配置先のスタックに合わせて中身を再生成する。使わない場合は削除してよい — 本文は判断軸のみで縮退動作する
+5. **CLAUDE.md に発動ポリシー節を作る** — 下の雛形から。行動ルールは配置先で育てる（マスターの CLAUDE.md を丸ごとコピーしない）
+
+## ドリフト確認と改善の還元
+
+- **ドリフト確認**: マスターのリポジトリで `git diff <source-commit> -- .claude/skills/<name>` — 配置後にマスター側で入った改善が一覧できる
+- **改善の還元**: 配置先で直接編集しない。改善はマスターに還元し、再コピーで配る（コピー時に source-commit を更新する）
+- **配置前チェック**: マスター側で `python3 scripts/validate_skills.py` が全 PASS であることを確認してからコピーする
+
+## CLAUDE.md 雛形（発動ポリシー節のみ）
+
+```markdown
+## スキル発動ポリシー
+
+- 新しいタスクを開始するときは design-doc を使い、design.md が APPROVED になるまで実装しない
+- 実装後のコードレビューは frontend-code-review を使う
+- セッションで得た知見は knowledge-capture で docs/ に保存する
+<!-- 配置したスキルに合わせて追記・削除する。行動ルール（プロジェクト固有の規約）はこの下に育てていく -->
+```

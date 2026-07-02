@@ -2,6 +2,8 @@
 name: tdd
 description: "テストファースト開発や既存コードへのテスト追加に使う — 「テストを先に書いて」「TDD で」「レッド・グリーン・リファクタリング」「既存コードにテストを追加して」「失敗するテストを書いて」などのフレーズが対象。Red→Green→Refactor を哲学・振る舞い分解・AAA・境界値/異常系チェックリストとともに駆動する。設計ドキュメントなしで既存コードにテストを追加する場合に単独で使う。既存テストのレビューのみの場合は起動しない（test-review を使う）。"
 compatibility: "React / TypeScript / Vitest / React Testing Library / MSW（具体例は references/patterns.md。別スタックは同ファイルを差し替える）"
+metadata:
+  version: "1.0"
 ---
 
 # TDD
