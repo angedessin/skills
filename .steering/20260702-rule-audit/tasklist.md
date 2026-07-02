@@ -19,9 +19,13 @@ Last updated: 20260703
 
 ## Compound
 
-- [ ] compound スキルの実行（実装中の学びの昇格判断）
+- [x] compound スキルの実行（昇格 1 件: @参照の毎セッション展開 → claude-code-config.md。効果検証: 20260702 昇格の初適用が正常動作。compound 自体の分担矛盾を skill-issues.md に記録）
 
 ## Knowledge
 
-- [ ] knowledge-capture スキルの実行
-- [ ] steering archive モードでアーカイブ
+- [x] knowledge-capture スキルの実行（新規保存なし — 唯一の候補は compound で保存済み、設計判断は design.md / new-skills.md が保持）
+- [x] steering archive モードでアーカイブ
+
+---
+
+Archived: 20260703

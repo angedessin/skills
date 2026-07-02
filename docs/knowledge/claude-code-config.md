@@ -62,3 +62,16 @@ touch "$flag" && echo "次回セッションで knowledge-capture をリマイ�
 ---
 
 ※ このファイルは開発が進むにつれ knowledge-capture / compound スキルによって更新される。
+
+---
+
+## CLAUDE.md の @参照は毎セッション展開される
+
+`@docs/knowledge/foo.md` 形式の参照は「必要なときに読む」ではなく、
+**セッション開始時に毎回中身がコンテキストへ展開される**（skill-design-patterns.md で実測）。
+
+- 常時読ませたい行動知識だけに `@` を付ける（コンテキスト固定費になる自覚を持つ）
+- 「必要時に読む」を意図するならプレーンなパス表記にする
+  （例: 「settings.json 作業時: docs/knowledge/claude-code-config.md を読む」）
+- 参照切れの `@` は無害に無視される。事前に空ファイルを作る必要はないが、
+  rule-audit の参照整合チェックで検出・掃除する
