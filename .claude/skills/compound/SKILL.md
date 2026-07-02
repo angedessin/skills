@@ -2,7 +2,7 @@
 name: compound
 description: "レビューや実装で得た学びをルール・知識・スキルに昇格させる汎用スキル（福利化）。「福利化して」「codify して」「ルール化して」「パターンを抽出して」などのフレーズが対象。セッション開始時に .codify-needed フラグがあれば起動を促す。frontend-code-review 完了後に自動的に提案される。knowledge-capture（ドキュメント保存）とは別物で、こちらは CLAUDE.md ルール・スキル・lint ルールへの昇格が主眼。"
 metadata:
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Compound（福利化）
@@ -14,9 +14,11 @@ metadata:
 
 ## When NOT to use
 
-- ドキュメントに保存したい（ADR・パターン集） → `knowledge-capture`
+- ドキュメントに保存したい（ADR・新規トピックのパターン集・語彙） → `knowledge-capture`
 - lint ルールや ast-grep ルールとして固めたい場合は、このスキルがその起点になれる
 - 1回限りの事象 → コミットメッセージで十分
+
+**knowledge-capture との境界**: 昇格フローの中で見つけた落とし穴を docs/knowledge/ の**既存トピックへ短く追記**するのは本スキルの担当。**新規トピックの立ち上げ・まとまった集積・ADR・語彙**は knowledge-capture の担当（同スキル側にも同じ境界を明記済み）。
 
 ---
 
@@ -57,9 +59,9 @@ find .steering -maxdepth 2 \( -name "review-result.md" -o -name "decisions.md" -
 
 **昇格候補の優先順位:**
 1. **繰り返し出現する指摘**（複数ファイルで同じ問題）→ CLAUDE.md ルール or lint ルール
-2. **知らなかった仕様・落とし穴**（一度詰まったもの）→ `docs/knowledge/`
-3. **技術的判断の理由**（なぜその設計か）→ `docs/decisions/` (ADR)
-4. **再利用可能な実装パターン**（汎用的な解法）→ `docs/knowledge/` or 新スキルの骨組み
+2. **知らなかった仕様・落とし穴**（一度詰まったもの）→ `docs/knowledge/` の**既存トピックへ短く追記**（新規トピックを立ち上げる分量なら `knowledge-capture` に委譲）
+3. **技術的判断の理由**（なぜその設計か）→ `knowledge-capture` に委譲（ADR は同スキルの担当）
+4. **再利用可能な実装パターン**（汎用的な解法）→ 新スキルの骨組み（ドキュメント集積として残す場合は `knowledge-capture` に委譲）
 5. **スキル自体の不具合**（skill-issues.md 由来）→ 該当スキルの修正 + `empirical-prompt-tuning` の実行提案
 
 **昇格しないもの:**
@@ -144,10 +146,10 @@ find .steering -maxdepth 2 \( -name "review-result.md" -o -name "decisions.md" -
 **制約**: CLAUDE.md は ≤200行 厳守。詳細な説明は `docs/knowledge/` に書いて `@参照` にする。
 CLAUDE.md が存在しないプロジェクトでは、追記先（AGENTS.md 等の相当ファイル）をユーザーに確認する。
 
-### docs/knowledge/[topic].md への追記
+### docs/knowledge/[topic].md への追記（既存トピックのみ）
 
-既存ファイルがあれば追記、なければ新規作成。
-`docs/knowledge/` ディレクトリ自体が無いプロジェクトでは、ディレクトリを新規作成するか別の置き場にするかをユーザーに確認する。
+既存ファイルへ短い節を追記する。**新規トピックの立ち上げは `knowledge-capture` に委譲する**（When NOT to use の境界）。
+`docs/knowledge/` ディレクトリ自体が無いプロジェクトでも同様に knowledge-capture 側で扱う。
 
 ```markdown
 ## [サブトピック]
