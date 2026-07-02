@@ -181,6 +181,13 @@ Status: PENDING | IN_PROGRESS | RESOLVED
 | 設計整合性 | [内容] | [file] | [ ] |
 | TypeScript | [内容] | [file:line] | [ ] |
 
+## Correctness
+
+| Axis | 指摘 | ファイル | 修正状況 |
+|------|------|----------|----------|
+| null・undefined | [内容] | [file:line] | [ ] |
+| 非同期レース | [内容] | [file:line] | [ ] |
+
 ## Security
 
 | 指摘 | ファイル | 修正状況 |
@@ -198,6 +205,13 @@ Status: PENDING | IN_PROGRESS | RESOLVED
 | 指摘 | ファイル | 修正状況 |
 |------|----------|----------|
 | [内容] | [file:line] | [ ] |
+
+## UI
+
+| Axis | 指摘 | ファイル | 修正状況 |
+|------|------|----------|----------|
+| レスポンシブ | [内容] | [file:line] | [ ] |
+| UX 状態網羅 | [内容] | [file] | [ ] |
 
 ## サマリー
 

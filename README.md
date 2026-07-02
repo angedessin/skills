@@ -35,7 +35,7 @@
       ↓
 [3] 実装          impl-from-design  ←→  tdd
       ↓
-[4] コードレビュー  frontend-code-review（フル: 5エージェント並列 / 軽量: 直列）
+[4] コードレビュー  frontend-code-review（フル: 7エージェント並列 / 軽量: 直列）
       ↓
 [5] 指摘修正      修正 → 指摘があった軸のみ差分再レビュー
       ↓
@@ -46,9 +46,17 @@
 [8] アーカイブ    steering archive
 ```
 
+フェーズ全体を一括で進めたい場合は `feature-pipeline` が上記スキルを順に編成する（各フェーズ境界に人間の承認ゲートあり・途中フェーズから再開可）。
+
 ---
 
 ## スキル一覧
+
+### オーケストレーション
+
+| スキル | 役割 |
+|---|---|
+| [`feature-pipeline`](.claude/skills/feature-pipeline/SKILL.md) | メインワークフローを一気通貫で回すエンドツーエンドのオーケストレーター。既存スキル（design-doc → impl-from-design → frontend-code-review → knowledge-capture / compound）を順に呼び出し、各フェーズ境界で人間の承認ゲートを挟む。`.steering/[task]/` の成果物から現在地を検出して途中フェーズから再開できる |
 
 ### 設計・コンテキスト管理
 
@@ -68,12 +76,14 @@
 
 | スキル | 役割 |
 |---|---|
-| [`frontend-code-review`](.claude/skills/frontend-code-review/SKILL.md) | オーケストレーター。コミット済み + 未コミットの diff をトリアージし、ロジック/コンポーネント変更はフルモード（5エージェント並列）、リファクタ/スタイルのみは軽量モード（直列）。結果を `review-result.md` に記録し、修正後は指摘があった軸のみ差分再レビュー |
+| [`frontend-code-review`](.claude/skills/frontend-code-review/SKILL.md) | オーケストレーター。コミット済み + 未コミットの diff をトリアージし、ロジック/コンポーネント変更はフルモード（7エージェント並列）、リファクタ/スタイルのみは軽量モード（直列。CSS 変更を含む場合は review-ui も実行）。結果を `review-result.md` に記録し、修正後は指摘があった軸のみ差分再レビュー |
 | [`test-review`](.claude/skills/test-review/SKILL.md) | テストコード品質。実装エコー・アサーション品質・ネットワークモック境界・クエリ優先順位・カバレッジ意図の5軸 |
 | [`impl-review`](.claude/skills/impl-review/SKILL.md) | 実装コード品質。設計整合性・プロジェクト規約・TypeScript・React・基本 a11y の5軸 |
 | [`review-security`](.claude/skills/review-security/SKILL.md) | XSS・型安全・env var・依存関係の4軸 |
 | [`review-performance`](.claude/skills/review-performance/SKILL.md) | Bundle サイズ・再レンダリング・CWV の3軸 |
 | [`review-a11y`](.claude/skills/review-a11y/SKILL.md) | セマンティクス・ARIA・フォーカス管理・キーボード操作の4軸 |
+| [`review-correctness`](.claude/skills/review-correctness/SKILL.md) | ロジック正当性。境界条件・null/undefined・非同期レース/stale closure・状態遷移/エラー握りつぶしの4軸 |
+| [`review-ui`](.claude/skills/review-ui/SKILL.md) | UI 品質。レイアウト・レスポンシブ / デザイン整合（トークンは references をカートリッジとして配置先で再生成） / UX 状態網羅（loading・error・empty・disabled）の3軸 |
 
 ### ナレッジ管理・自己改善
 
@@ -133,7 +143,7 @@ steering ←──── tdd              compound + knowledge-capture
                                            │
                               ┌────────────┼────────────┐
                          test-review  impl-review  review-*
-                         （テスト）   （実装）    （sec/perf/a11y）
+                         （テスト）   （実装）    （sec/perf/a11y/correctness/ui）
 ```
 
 `empirical-prompt-tuning` は上記スキル自体の品質改善に横断的に使う。

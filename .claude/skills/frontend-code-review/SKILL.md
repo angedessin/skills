@@ -1,6 +1,6 @@
 ---
 name: frontend-code-review
-description: "実装後のコードレビューに使う — 「コードをレビューして」「レビューしよう」「コードレビュー」「実装を確認して」などのフレーズが対象。diff トリアージでモードを判定し、ロジック/コンポーネント変更はフルモード（5エージェント並列）、リファクタリング/スタイルのみは軽量モード（直列）で実行。結果を .steering/[task]/review-result.md に書き込む。"
+description: "実装後のコードレビューに使う — 「コードをレビューして」「レビューしよう」「コードレビュー」「実装を確認して」などのフレーズが対象。diff トリアージでモードを判定し、ロジック/コンポーネント変更はフルモード（7エージェント並列）、リファクタリング/スタイルのみは軽量モード（直列）で実行。結果を .steering/[task]/review-result.md に書き込む。"
 ---
 
 # Frontend Code Review
@@ -14,6 +14,8 @@ diff の変更種別を判定し、適切なモードでレビューを実行す
 - セキュリティのみ → `review-security` を直接使う
 - パフォーマンスのみ → `review-performance` を直接使う
 - アクセシビリティのみ → `review-a11y` を直接使う
+- ロジック正当性（境界条件・null・レース）のみ → `review-correctness` を直接使う
+- UI（レスポンシブ・デザイン整合・UX 状態）のみ → `review-ui` を直接使う
 
 ---
 
@@ -69,14 +71,14 @@ git diff --name-status -M HEAD
 トリアージ結果:
 - ロジック変更: src/hooks/useAuth.ts, src/api/user.ts
 - テストファイル: src/hooks/useAuth.test.ts
-→ フルモード（5エージェント並列）で実行します
+→ フルモード（7エージェント並列）で実行します
 ```
 
 ---
 
 ## Phase 2A — フルモード（並列エージェント）
 
-以下の5エージェントを**単一メッセージ内で同時に**ディスパッチする。
+以下の7エージェントを**単一メッセージ内で同時に**ディスパッチする。
 
 ディスパッチ前にサブスキルの存在を確認する: `ls .claude/skills/[sub-skill名]/SKILL.md`。
 存在しないサブスキルのエージェントはディスパッチせず、Phase 3 のサマリーに「サブスキル未配置」と記載する（このスキル単体を他プロジェクトに配置した場合に起こる）。全サブスキルが未配置の場合はその旨を伝えて終了する。
@@ -122,6 +124,14 @@ subagent はセッション履歴もスキル定義も持たない。**サブス
   - スコープ: `.tsx`（テストファイルを除く）
   - 4軸: セマンティクス・ARIA・フォーカス管理・キーボード操作
 
+- **correctness-agent**: `review-correctness` スキルの全ロジックを実行
+  - スコープ: `.ts`・`.tsx`（テストファイルを除く）
+  - 4軸: 境界条件・null/undefined・非同期レース/stale closure・状態遷移/エラー握りつぶし
+
+- **ui-agent**: `review-ui` スキルの全ロジックを実行
+  - スコープ: `.tsx`・`.css`・`.scss`（テストファイルを除く）
+  - 3軸: レイアウト・レスポンシブ / デザイン整合 / UX 状態網羅
+
 ### スコープが空・スコープ外ファイルの扱い
 
 - スコープに合致するファイルが**ゼロのエージェントはディスパッチしない**。Phase 3 のサマリーに「対象なし」と記載する
@@ -135,7 +145,8 @@ subagent はセッション履歴もスキル定義も持たない。**サブス
 
 1. `test-review` を実行
 2. `impl-review` を実行
-3. Phase 3 に進む（security/perf/a11y はスキップ）
+3. diff に `.css`・`.scss` の変更を含む場合のみ `review-ui` を実行（CSS 破綻・デザイン整合は review-ui の主対象のため。含まない場合はスキップ）
+4. Phase 3 に進む（security/perf/a11y/correctness はスキップ）
 
 サブスキルが配置されていないプロジェクトでは、配置されているものだけ実行し、無いものは Phase 3 のサマリーに「サブスキル未配置」と記載する。
 
@@ -149,7 +160,9 @@ subagent はセッション履歴もスキル定義も持たない。**サブス
 
 - impl-review の「アクセシビリティ（基本）」× review-a11y の指摘 → **review-a11y** に帰属
 - impl-review の「TypeScript 品質」× review-security の型安全指摘 → **review-security** に帰属
-- 同一行でも趣旨が異なる指摘は統合しない（両方残す）
+- impl-review の「TypeScript 品質」× review-correctness の null/undefined 指摘 → **review-correctness** に帰属（型注釈の雑さのみなら impl-review に残す）
+- impl-review の「React パターン」× review-correctness の非同期レース/stale closure 指摘 → **review-correctness** に帰属
+- 同一行でも趣旨が異なる指摘は統合しない（両方残す）。特に: review-correctness の「エラー握りつぶし」× review-ui の「エラー表示なし」、review-a11y のセマンティクス × review-ui のレイアウトは別問題として両方残す
 
 統合した件数は全体サマリーに「重複統合: N件」として記載する。
 
@@ -183,6 +196,16 @@ subagent はセッション履歴もスキル定義も持たない。**サブス
 |------|------|----------|
 
 ### アクセシビリティ（review-a11y）
+重要な問題: N件
+| Axis | 問題 | ファイル |
+|------|------|----------|
+
+### ロジック正当性（review-correctness）
+重要な問題: N件
+| Axis | 問題 | ファイル |
+|------|------|----------|
+
+### UI（review-ui）
 重要な問題: N件
 | Axis | 問題 | ファイル |
 |------|------|----------|
@@ -239,5 +262,7 @@ review-result.md を更新しました。
 - `review-security` — セキュリティ観点のみを審査（単独利用可）
 - `review-performance` — パフォーマンス観点のみを審査（単独利用可）
 - `review-a11y` — アクセシビリティ観点のみを審査（単独利用可）
+- `review-correctness` — ロジック正当性のみを審査（単独利用可）
+- `review-ui` — UI（レスポンシブ・デザイン整合・UX 状態）のみを審査（単独利用可）
 - `compound` — レビュー完了後に学びをルール・知識に昇格
 - `knowledge-capture` — レビューで発見したパターンを docs/ に保存
