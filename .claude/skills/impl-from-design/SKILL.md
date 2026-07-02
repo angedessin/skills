@@ -70,6 +70,8 @@ find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
 
 ## Step 2 — モード選択
 
+**成果物がテスト可能なコードでない場合**（スキル定義・ドキュメント等の Markdown 成果物）はモード選択をスキップする。design.md の Test strategy に定義された検証手順を TDD フェーズの代替とし、tasklist.md を順に処理する。その旨をユーザーに伝えて実装に進む（モードの質問はしない）。
+
 実装開始前にユーザーに確認する:
 
 ```

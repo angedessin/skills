@@ -17,9 +17,14 @@ fi
 # アクティブタスクをすべて処理（archived/ を除外）
 find "$STEERING_DIR" -maxdepth 1 -mindepth 1 -type d ! -name "archived" | while read -r ACTIVE; do
   TASK_NAME=$(basename "$ACTIVE")
+  # 成果物（*.md）が無いタスクディレクトリはスキップ
+  # （knowledge-capture の入力が存在せず、フラグは常にノイズになるため）
+  if ! ls "$ACTIVE"/*.md >/dev/null 2>&1; then
+    continue
+  fi
   if [ ! -f "$ACTIVE/capture_done" ] && [ ! -f "$ACTIVE/.capture-needed" ]; then
     touch "$ACTIVE/.capture-needed" &&
-      echo "📝 [$TASK_NAME] ナレッジ未保存。次回セッションで knowledge-capture を実行してください。"
+      echo "[$TASK_NAME] ナレッジ未保存。次回セッションで knowledge-capture を実行してください。"
   fi
 done
 

@@ -147,6 +147,8 @@ references が無ければ**縮退動作＋その旨を報告**（skill-design-p
 
 ★要判断: ビルトイン `/code-review` が correctness を担う設計か？ そうでなければ `frontend-code-review` のオーケストレーション（5エージェント）に correctness 担当が不在。自前軸を足すか、ビルトインに委ねるかを決める。
 
+> ✅ **解決済み（2026-07-02）**: 自前サブスキル `review-correctness` を新設。ビルトイン `/code-review` は補完的な深掘りレビューとして共存。判断理由は `.steering/20260702-review-axes-coverage/design.md`（Approach / Research）を参照
+
 ### 3-B. UI / ビジュアル / レスポンシブ — フロントエンド特有の明確な欠落
 **観点が完全にゼロ**。フロントエンドなのにビジュアルレビューがない。
 - CSS の破綻、レスポンシブ崩れ、ブレークポイント
@@ -280,7 +282,8 @@ metadata:
 | 6 | README / CLAUDE.md / ワークフロー図のスタック表記更新 | 全体 | ✅ 完了 |
 
 > `metadata`（4-B）・`skills-ref validate`（4-C）は次フェーズ（横展開・CI 整備時）。
-> **未着手の今回スコープ外**: 課題3（correctness/UI 軸の追加）はレビュー網羅性の別問題として保留中。
+> ~~**未着手の今回スコープ外**: 課題3（correctness/UI 軸の追加）はレビュー網羅性の別問題として保留中。~~
+> ✅ **解決済み（2026-07-02）**: `review-correctness`・`review-ui` 新設 + `frontend-code-review` の 7 エージェント化で課題3（3-A/3-B/3-C）を解消。3-D（i18n）はオプトイン設計として引き続き保留。経緯は `.steering/20260702-review-axes-coverage/`（アーカイブ後は archived/ 配下）を参照。
 
 ## 次フェーズ（[new-skills.md](./new-skills.md) で詳細設計）
 | 作業 | 出典課題 |
