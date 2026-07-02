@@ -246,7 +246,7 @@ ADR の「プラグイン化は個人用途には過剰」という判断は正�
 - [ ] 「複利資産 + 定期剪定」への転換を ADR として記録（スクラップ&リビルド前提の廃止。本計画 3-1 が根拠）
 
 ### ワークフローの穴埋め（new-skills.md の設計案を実装に落とす）
-- [ ] `rule-audit` 新設（design-doc で .steering/ を切って着手。compound との棲み分けは new-skills.md 設計案どおり）
+- [x] `rule-audit` 新設（2026-07-03 完了: 監査基準5項目 + 手順7ステップ。初回監査で参照切れ・find の穴など 5 件を適用済み。`.steering/20260702-rule-audit/`）
 - [ ] `debug` 新設 + design-doc の description から「障害調査」を除去
 - [ ] `e2e` 新設（本文 = テストピラミッド判断軸、references = Playwright 具体例）
 - [ ] README のワークフロー図に PR/統合フェーズ（pr-create）と入口分岐（debug）を反映し、**同時に feature-pipeline のフェーズ検出・遷移にも反映**（同一コミット）
