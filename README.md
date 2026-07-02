@@ -48,6 +48,8 @@
 
 フェーズ全体を一括で進めたい場合は `feature-pipeline` が上記スキルを順に編成する（各フェーズ境界に人間の承認ゲートあり・途中フェーズから再開可）。
 
+入口の分岐: 新機能・タスク開始は `design-doc`、バグ・障害の原因調査は `debug`（小さい修正は即修正で完結、構造に触る修正は design-doc に接続して上記フローに合流）。
+
 ---
 
 ## スキル一覧
@@ -63,6 +65,7 @@
 | スキル | 役割 |
 |---|---|
 | [`design-doc`](.claude/skills/design-doc/SKILL.md) | タスク開始時に design.md（Goal/Scope/Acceptance + 設計）と tasklist.md を作成。**design.md 作成後は人間の承認まで実装しない**。1セッションで終わるタスクには .steering を作らない |
+| [`debug`](.claude/skills/debug/SKILL.md) | 障害調査。再現 → 仮説 → 切り分け → 根本原因 → 修正方針。小さい修正（影響が閉じる・巻き戻し容易・テストで再発防止可）は承認を得て即修正、構造に触る修正は design-doc に接続 |
 | [`steering`](.claude/skills/steering/SKILL.md) | `.steering/` のライフサイクル管理（init / resume / status / archive）。ファイル仕様は [references/spec.md](.claude/skills/steering/references/spec.md) |
 
 ### 実装
