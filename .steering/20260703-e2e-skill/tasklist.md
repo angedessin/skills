@@ -22,9 +22,14 @@ Last updated: 20260703
 
 ## Compound
 
-- [ ] compound スキルの実行（実装中の学びの昇格判断）
+- [x] compound スキルの実行（昇格 1 件: エンジン純度の実測パターン → skill-design-patterns.md。効果検証: 境界相互明記 2 度目の適用も機能）
 
 ## Knowledge
 
-- [ ] knowledge-capture スキルの実行
-- [ ] steering archive モードでアーカイブ
+- [x] knowledge-capture スキルの実行（新規保存なし — 昇格分は compound で保存済み、設計判断は design.md が保持）
+- [x] steering archive モードでアーカイブ
+
+---
+
+Archived: 20260703
+繰り越し（配置時作業）: Playwright プロジェクトでの受け入れ試行。E2E 実需が出たら frontend-code-review への e2e-agent 統合を判断
