@@ -100,7 +100,7 @@ Red → Green → Refactor サイクル。単独での使用（既存コード�
 - **配置**: 実装ファイルと同じディレクトリにコロケーション（例: `UserCard.tsx` → `UserCard.test.tsx`）
 - **describe/it か In-source か**: ロジックが重いユーティリティ（分岐・計算が多い）は In-source、それ以外は describe/it。判断基準とコードは `references/patterns.md §unit`。ただし In-source は `includeSource` 設定（§config）が前提 — **テストランナー設定が無い／`src/` 構成でない単独ファイルの場合は describe/it のコロケーションを既定**とする
 - 種類別の具体例: コンポーネント=§component / Hook=§hook / 状態管理=§state / API層=§api-layer / E2E=§e2e
-- セットアップ（設定・MSW）: §config / §setup、カバレッジ目安: §coverage
+- セットアップ（設定・ネットワークモック）: §config / §setup、カバレッジ目安: §coverage
 
 ---
 

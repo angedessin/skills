@@ -2,7 +2,7 @@
 name: impl-from-design
 description: "承認済みデザインドキュメントに基づく実装に使う — 「実装を開始して」「設計から実装して」「設計が承認された、作ろう」などのフレーズが対象。.steering/[task]/design.md の Status が APPROVED である必要がある。design.md がない・DRAFT の場合は design-doc にリダイレクト。.steering/ コンテキストなしの汎用「実装して」リクエストには起動しない。"
 metadata:
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Impl from Design
@@ -100,14 +100,11 @@ find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
 
 **Red — 失敗するテストを書く**
 
-TDD のパターンは `.claude/skills/tdd/references/patterns.md` を参照。
-- ファイルが存在しない場合は Vitest + React Testing Library の標準パターンで書いてよい（`describe/it/expect` + `render/screen`）
-- テストファイルは実装ファイルと同階層にコロケーション配置する（例: `src/components/Foo.tsx` → `src/components/Foo.test.tsx`）
+TDD のパターンと実行コマンドは `.claude/skills/tdd/references/patterns.md`（§run ほか）を参照。
+- 同ファイルが存在しない場合は、プロジェクトのテストランナーの標準パターンで書いてよい（その旨を伝える）
+- テストファイルは実装ファイルと同階層にコロケーション配置する（例: `Foo.[ext]` → `Foo.test.[ext]`。プロジェクトに既存のテスト配置規約があればそちらに従う）
 - テストファイルに失敗するテストを記述
-- 実行して「正しい理由」で失敗することを確認:
-  ```bash
-  npx vitest run [テストファイルパス]
-  ```
+- プロジェクトのテストランナーで実行し「正しい理由」で失敗することを確認する（コマンドは §run。無ければ package.json のスクリプトやタスク定義から特定し、特定できなければユーザーに確認する）
 - **コンパイルエラーで失敗している場合は Red ではない**。次の手順で解消してから再実行する:
   1. 実装ファイルに型だけ通る最小スタブを作成する（関数・コンポーネントをエクスポートするだけで本体は空）
   2. 再実行してアサーション失敗（コンパイルエラーではなく）になることを確認してから Red とみなす
@@ -115,10 +112,7 @@ TDD のパターンは `.claude/skills/tdd/references/patterns.md` を参照。
 **Green — 最小実装でパスさせる**
 
 - テストを通す最小限のコードを書く（過剰実装しない）
-- 実行してグリーンを確認:
-  ```bash
-  npx vitest run [テストファイルパス]
-  ```
+- テストランナーで実行してグリーンを確認する
 
 **Refactor — テストが緑のまま整理する**
 

@@ -128,10 +128,10 @@ grep "[キーワード]" CLAUDE.md ~/.claude/CLAUDE.md 2>/dev/null
 ## Knowledge Capture ドラフト
 
 ### [知見1のラベル]
-保存先: docs/knowledge/testing-patterns.md
+保存先: docs/knowledge/[topic].md
 内容:
 ---
-## MSW vs vi.mock の使い分け
+## [保存する知見の見出し]
 [内容]
 ---
 
