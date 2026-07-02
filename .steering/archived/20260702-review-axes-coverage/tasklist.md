@@ -33,4 +33,9 @@ Last updated: 20260702（Implementation 全完了・構造検証パス）
 ## Knowledge
 
 - [x] knowledge-capture スキルの実行（採用: issues-and-plan.md への解決済み注記。ADR 2 件はユーザー判断で見送り）
-- [ ] steering archive モードでアーカイブ
+- [x] steering archive モードでアーカイブ
+
+---
+
+Archived: 20260702
+繰り越し（配置時作業）: React プロジェクトへの配置時に統合検証（フルモード 1 回）と source-commit 記録を行う

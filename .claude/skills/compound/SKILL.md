@@ -213,5 +213,6 @@ EOF
 ## Related skills
 
 - `knowledge-capture` — ドキュメント保存（ADR・パターン集・語彙）が主眼
+- `rule-audit` — 対をなす剪定スキル（既存ルールの削除・統合・GC）。compound が増やし rule-audit が刈る
 - `frontend-code-review` — このスキルの入力（review-result.md）を生成する
 - `steering` — compound 完了後はアーカイブへ（steering archive モード）

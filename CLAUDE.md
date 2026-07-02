@@ -10,7 +10,7 @@ Tech stack: React / TypeScript / Vitest / React Testing Library / MSW / Playwrig
 3. 作業完了後は必ず `tasklist.md` を更新すること
 
 セッション開始時:
-1. 必ず `find .steering -name '.capture-needed' 2>/dev/null` を Bash で実行して確認
+1. 必ず `find .steering -name '.capture-needed' -not -path '*/archived/*' 2>/dev/null` を Bash で実行して確認
 2. `.capture-needed` があれば「前回セッションのナレッジが未保存です。knowledge-capture を実行しますか？」と確認
 3. `.steering/` のアクティブタスクをすべて読んでから作業開始
 4. 複数のアクティブタスクがある場合はどれを再開するか確認
@@ -41,5 +41,5 @@ CLAUDE.md は行動ルールのみ。知識の倉庫にしない（毎回コン�
 
 ## ドキュメント参照（必要なトピック作業時のみ）
 
-テスト実装時: @docs/knowledge/testing-patterns.md
 スキル作成・改善時: @docs/knowledge/skill-design-patterns.md
+settings.json・hooks 作業時: docs/knowledge/claude-code-config.md を読む（@参照にしない — 毎セッション読み込ませない）
