@@ -29,26 +29,33 @@
 ## メインワークフロー
 
 ```
+[0] 入口分岐      新機能 → design-doc ／ バグ・障害 → debug
+                  （小さい修正は即修正で完結、構造に触る修正は design-doc に接続）
+      ↓
 [1] 設計          design-doc（.steering/ は複数セッションタスクのみ作成）
       ↓
 [2] レビュー      人間がレビュー・承認（design.md: DRAFT → APPROVED）
       ↓
-[3] 実装          impl-from-design  ←→  tdd
+[3] 実装          impl-from-design  ←→  tdd ／ クリティカルパスは e2e
       ↓
 [4] コードレビュー  frontend-code-review（フル: 7エージェント並列 / 軽量: 直列）
       ↓
 [5] 指摘修正      修正 → 指摘があった軸のみ差分再レビュー
       ↓
-[6] 福利化        compound（パターン → ルール・知識・スキル改善）
+[6] PR / 統合     pr-create → CI 確認 → マージ（CI が無いリポジトリはスキップ可）
       ↓
-[7] ナレッジ保存  knowledge-capture（パターン → docs/）
+[7] 福利化        compound（パターン → ルール・知識・スキル改善）
       ↓
-[8] アーカイブ    steering archive
+[8] ナレッジ保存  knowledge-capture（パターン → docs/）
+      ↓
+[9] アーカイブ    steering archive
+
+定期（フェーズ外）: rule-audit — ルールの削除テスト・統合・GC
 ```
 
 フェーズ全体を一括で進めたい場合は `feature-pipeline` が上記スキルを順に編成する（各フェーズ境界に人間の承認ゲートあり・途中フェーズから再開可）。
 
-入口の分岐: 新機能・タスク開始は `design-doc`、バグ・障害の原因調査は `debug`（小さい修正は即修正で完結、構造に触る修正は design-doc に接続して上記フローに合流）。
+**運用ルール**: このワークフロー図と `feature-pipeline` スキルは同一コミットで改訂する（図とオーケストレーターのドリフト防止）。
 
 ---
 

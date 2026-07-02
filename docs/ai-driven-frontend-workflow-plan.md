@@ -240,7 +240,7 @@ ADR の「プラグイン化は個人用途には過剰」という判断は正�
 
 ### ドキュメントドリフトの解消（軽量・即実行可）
 - [x] README のスキル一覧に feature-pipeline を追記（2026-07-02 完了: オーケストレーション節を新設）
-- [ ] 「README ワークフロー図と feature-pipeline は同一コミットで改訂する」運用ルールを CLAUDE.md か README に明記（5-2 の 5）
+- [x] 「README ワークフロー図と feature-pipeline は同一コミットで改訂する」運用ルールを CLAUDE.md と README の両方に明記（2026-07-03 完了）
 
 ### 前提の正式化
 - [ ] 「複利資産 + 定期剪定」への転換を ADR として記録（スクラップ&リビルド前提の廃止。本計画 3-1 が根拠）
@@ -249,7 +249,7 @@ ADR の「プラグイン化は個人用途には過剰」という判断は正�
 - [x] `rule-audit` 新設（2026-07-03 完了: 監査基準5項目 + 手順7ステップ。初回監査で参照切れ・find の穴など 5 件を適用済み。`.steering/20260702-rule-audit/`）
 - [x] `debug` 新設 + design-doc の description から「障害調査」を除去（2026-07-03 完了: 5 ステップフロー + 出口二方向分岐。`.steering/20260703-debug-skill/`）
 - [x] `e2e` 新設（2026-07-03 完了: 本文はエンジン純度 0 件で契約準拠、references = Playwright 具体例。frontend-code-review への統合は E2E 実需が出てから。`.steering/20260703-e2e-skill/`）
-- [ ] README のワークフロー図に PR/統合フェーズ（pr-create）と入口分岐（debug）を反映し、**同時に feature-pipeline のフェーズ検出・遷移にも反映**（同一コミット）
+- [x] README のワークフロー図に PR/統合フェーズ（pr-create）と入口分岐（debug）を反映し、feature-pipeline のフェーズ検出・遷移にも同一コミットで反映（2026-07-03 完了: 図 [0]〜[9] + rule-audit 併走、feature-pipeline に Phase 3.5 / Gate 3.5・判定表 1 行・e2e/debug 接続を追加）
 
 ### 持ち運び機構
 - [ ] 全スキル frontmatter に `metadata.version` / `source-commit` を導入（4-B）

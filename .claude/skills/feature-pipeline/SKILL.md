@@ -1,6 +1,6 @@
 ---
 name: feature-pipeline
-description: "機能開発の複数フェーズ（計画→実装→テスト→レビュー→知見蓄積）を一気通貫で回したいときに使うエンドツーエンドのオーケストレーター。発動の合図は『フロー全体を通して/一括で/最初から最後まで/エンドツーエンドで』のように、単一作業ではなく工程全体をまとめて進めたい意図があること。例:『この機能を設計から実装・テストして最後にナレッジ残すまで通してやって』『新機能を計画から知見蓄積まで一括で面倒みて』『フル開発サイクルで回したい、途中の承認は挟んでいい』。既存スキル（design-doc → impl-from-design → frontend-code-review → knowledge-capture / compound）を順に呼び出し、各フェーズ境界で人間の承認ゲートを挟む半自動フロー。`.steering/[task]/` の成果物から現在地を検出して途中フェーズから再開できるため、複数セッションにまたがる機能開発に向く。**単一フェーズだけの依頼では発動しない** — 設計のみは design-doc、承認済み設計からの実装のみは impl-from-design、レビューのみは frontend-code-review、テスト追加のみは tdd、知見保存のみは knowledge-capture、ルール昇格のみは compound を直接使う。CI/CD・デプロイの『パイプライン』や、小さなバグ修正・タスク状況の確認にも使わない。"
+description: "機能開発の複数フェーズ（計画→実装→テスト→レビュー→統合→知見蓄積）を一気通貫で回したいときに使うエンドツーエンドのオーケストレーター。発動の合図は『フロー全体を通して/一括で/最初から最後まで/エンドツーエンドで』のように、単一作業ではなく工程全体をまとめて進めたい意図があること。例:『この機能を設計から実装・テストして最後にナレッジ残すまで通してやって』『新機能を計画から知見蓄積まで一括で面倒みて』『フル開発サイクルで回したい、途中の承認は挟んでいい』。既存スキル（design-doc → impl-from-design → frontend-code-review → pr-create → knowledge-capture / compound）を順に呼び出し、各フェーズ境界で人間の承認ゲートを挟む半自動フロー。`.steering/[task]/` の成果物から現在地を検出して途中フェーズから再開できるため、複数セッションにまたがる機能開発に向く。**単一フェーズだけの依頼では発動しない** — 設計のみは design-doc、承認済み設計からの実装のみは impl-from-design、レビューのみは frontend-code-review、テスト追加のみは tdd、知見保存のみは knowledge-capture、ルール昇格のみは compound を直接使う。CI/CD・デプロイの『パイプライン』や、小さなバグ修正・タスク状況の確認にも使わない。"
 ---
 
 # Feature Pipeline
@@ -13,9 +13,9 @@ description: "機能開発の複数フェーズ（計画→実装→テスト→
 **フェーズ境界で人間の承認を取る**」ことだけ。
 
 ```
-計画          実装               テスト/レビュー          知見蓄積
-design-doc → impl-from-design → frontend-code-review → knowledge-capture → compound
-   ▣ gate        ▣ gate              ▣ gate                  ▣ gate
+計画          実装               テスト/レビュー          統合            知見蓄積
+design-doc → impl-from-design → frontend-code-review → pr-create/CI → knowledge-capture → compound
+   ▣ gate        ▣ gate              ▣ gate              ▣ gate              ▣ gate
 ```
 
 `▣ gate` = 人間の承認ポイント。承認後は自動で次フェーズへ進む（半自動）。
@@ -28,6 +28,7 @@ design-doc → impl-from-design → frontend-code-review → knowledge-capture �
 - レビューだけ実行したい → `frontend-code-review` を直接使う
 - 既存コードにテストを足すだけ → `tdd` を直接使う
 - 知見保存だけ・ルール昇格だけ → `knowledge-capture` / `compound` を直接使う
+- バグ・障害の原因調査 → `debug` を直接使う（原因特定後、構造に触る修正なら design-doc からこのパイプラインに合流する）
 - 30分以内のバグ修正・typo → 設計フェーズ不要。そのまま直す
 
 このスキルは「**フロー全体を通して回したい**」ときのためのもの。一部だけなら個別スキルが軽い。
@@ -71,6 +72,7 @@ find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
 | `design.md` が `APPROVED` かつ `tasklist.md` の実装タスクに未チェックあり | **Phase 2**（実装） |
 | 実装タスクが全チェック済み かつ `review-result.md` が無い | **Phase 3**（レビュー） |
 | `review-result.md` が存在し Status が `OPEN` | **Gate 3 で停止**（指摘の修正対応待ち） |
+| `review-result.md` の Status が `RESOLVED` または `DEFERRED` かつ `tasklist.md` の Deploy 項目に未チェックあり | **Phase 3.5**（PR / 統合。スキップ可） |
 | `review-result.md` の Status が `RESOLVED` または `DEFERRED` かつ `capture_done` フラグが無い | **Phase 4**（知見蓄積） |
 | `capture_done` フラグあり | **Phase 5**（クローズ） |
 
@@ -132,6 +134,8 @@ Gate 1 を通過したことをユーザーに伝えてから Phase 2 を開始�
 > 「テスト」フェーズは独立したフェーズではなく、impl-from-design の TDD モード内で
 > Red→Green→Refactor として実行される。Impl-first を選んだ場合はコンポーネントごとに
 > テスト追加を確認される。どちらでも実装とテストはこの Phase 2 で完了する。
+> クリティカルパス（認証・決済・主要導線）に触れる機能は `e2e` スキルで E2E テストを
+> 追加する（未配置ならスキップして報告）。
 
 ### ▣ Gate 2 — 実装完了の確認
 
@@ -181,7 +185,26 @@ frontend-code-review はレビュー結果を提示して停止する。ユー�
 
 Gate 3 通過後:
 ```
-レビュー対応完了。知見蓄積フェーズに進みます。
+レビュー対応完了。統合フェーズ（PR / CI）に進みます。
+```
+
+---
+
+## Phase 3.5 — PR / 統合（pr-create）
+
+変更を世に出すフェーズ。`tasklist.md` に Deploy セクションがあればそれに従う。
+
+1. リポジトリの運用を確認する: PR ベース運用（リモート + CI あり）か、main 直コミット運用か
+   - **直コミット運用・CI なし** → このフェーズはコミット済みであることの確認のみでスキップしてよい。`tasklist.md` の Deploy 項目に「スキップ（直コミット運用）」と記録して Phase 4 へ
+2. PR ベース運用の場合: `pr-create` スキル（ビルトイン）で PR を作成する（無ければ `gh pr create`）
+3. CI の結果を確認する（グリーンになるまで Phase 4 へ進まない。失敗したら修正 — 重い修正は Phase 2 の作法に戻る）
+
+### ▣ Gate 3.5 — マージ判断（停止）
+
+CI グリーンを確認したらユーザーにマージ判断を仰ぐ。**マージは外向きの操作 — 承認なしに行わない。**
+マージ完了（またはスキップ判断）後、`tasklist.md` の Deploy 項目を更新して Phase 4 へ:
+```
+統合完了。知見蓄積フェーズに進みます。
 ```
 
 ---
@@ -263,8 +286,11 @@ Gate 3 通過後:
 ## Related skills
 
 - `design-doc` — Phase 1。設計と `.steering/` ブートストラップ
+- `debug` — パイプラインの外の入口。バグ・障害の原因調査（構造修正なら Phase 1 に合流）
 - `impl-from-design` — Phase 2。承認済み設計からの実装（内部で `tdd`）
+- `e2e` — Phase 2。クリティカルパスの E2E テスト
 - `frontend-code-review` — Phase 3。レビューのオーケストレーター
+- `pr-create` — Phase 3.5。PR 作成（ビルトイン。無ければ `gh pr create`）
 - `knowledge-capture` — Phase 4a。知見を docs/ に保存
 - `compound` — Phase 4b。学びをルール・スキル・lint に昇格
 - `steering` — `.steering/` のライフサイクル（resume / archive / status）。Phase 5 のアーカイブで使う
