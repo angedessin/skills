@@ -19,9 +19,14 @@ Last updated: 20260703
 
 ## Compound
 
-- [ ] compound スキルの実行（実装中の学びの昇格判断）
+- [x] compound スキルの実行（昇格候補ゼロ。効果検証: impl-from-design モード分岐が 2 回目の適用でも正常動作）
 
 ## Knowledge
 
-- [ ] knowledge-capture スキルの実行
-- [ ] steering archive モードでアーカイブ
+- [x] knowledge-capture スキルの実行（新規保存なし — 設計判断は design.md / new-skills.md が保持）
+- [x] steering archive モードでアーカイブ
+
+---
+
+Archived: 20260703
+繰り越し（配置時作業）: 実バグでの受け入れ試行は配置先プロジェクトでの初回利用時に行う
