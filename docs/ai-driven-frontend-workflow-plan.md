@@ -248,7 +248,7 @@ ADR の「プラグイン化は個人用途には過剰」という判断は正�
 ### ワークフローの穴埋め（new-skills.md の設計案を実装に落とす）
 - [x] `rule-audit` 新設（2026-07-03 完了: 監査基準5項目 + 手順7ステップ。初回監査で参照切れ・find の穴など 5 件を適用済み。`.steering/20260702-rule-audit/`）
 - [x] `debug` 新設 + design-doc の description から「障害調査」を除去（2026-07-03 完了: 5 ステップフロー + 出口二方向分岐。`.steering/20260703-debug-skill/`）
-- [ ] `e2e` 新設（本文 = テストピラミッド判断軸、references = Playwright 具体例）
+- [x] `e2e` 新設（2026-07-03 完了: 本文はエンジン純度 0 件で契約準拠、references = Playwright 具体例。frontend-code-review への統合は E2E 実需が出てから。`.steering/20260703-e2e-skill/`）
 - [ ] README のワークフロー図に PR/統合フェーズ（pr-create）と入口分岐（debug）を反映し、**同時に feature-pipeline のフェーズ検出・遷移にも反映**（同一コミット）
 
 ### 持ち運び機構

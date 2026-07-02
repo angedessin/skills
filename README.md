@@ -74,6 +74,7 @@
 |---|---|
 | [`impl-from-design`](.claude/skills/impl-from-design/SKILL.md) | APPROVED な design.md から実装。code-explorer による既存パターン調査 → TDD モード（推奨）/ Impl-first モードを選択。設計と乖離したら止まって報告 |
 | [`tdd`](.claude/skills/tdd/SKILL.md) | Red → Green → Refactor サイクルの単独ユーティリティ。テストパターン集は [references/patterns.md](.claude/skills/tdd/references/patterns.md) |
+| [`e2e`](.claude/skills/e2e/SKILL.md) | E2E テストの作成・レビュー。クリティカルパス選定・1テスト1シナリオ・安定性原則（flaky 防止）・実ユーザー視点の4判断軸。Playwright 具体例は [references/patterns.md](.claude/skills/e2e/references/patterns.md)（カートリッジ — 配置先で再生成） |
 
 ### コードレビュー
 

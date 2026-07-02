@@ -13,6 +13,7 @@ compatibility: "React / TypeScript / Vitest / React Testing Library / MSW（具�
 ## When NOT to use
 
 - テストインフラ（テストランナー設定・カバレッジ統合・E2E ランナー設定）の監査 → 本スキルの対象外
+- E2E テストのレビュー → `e2e`（本スキルはユニット/インテグレーションが対象）
 - 新しいテストを書く → `tdd`
 
 ---
@@ -99,5 +100,6 @@ compatibility: "React / TypeScript / Vitest / React Testing Library / MSW（具�
 ## Related skills
 
 - `tdd` — 問題のあるテストを書き直す
+- `e2e` — E2E テストの作成・レビュー（本スキルの対象外領域を担当）
 - `impl-review` — テストコードではなく実装コードをレビューする
 - `frontend-code-review` — test-review と impl-review を順番に実行するオーケストレーター
