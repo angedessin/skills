@@ -48,6 +48,7 @@
    - `.claude/hooks/guard-env-read.sh` をコピーし、settings.json の `hooks.PreToolUse` 登録も移す（deny の前置一致では防げない .env 読み取りの迂回を全文検査で ask に落とす）
    - `session-stop.sh`（Stop hook）は `.steering/` ワークフローを採用する場合のみコピーする
    - `settings.local.json` はコピーしない（マシン固有の承認履歴）
+   - 配置先の `.npmrc` に `ignore-scripts=true` を推奨（install 時の postinstall 実行 = サプライチェーン攻撃の主経路を既定で遮断。ビルドスクリプトが必要なパッケージだけ個別に許可する運用）
 
 ## ドリフト確認と改善の還元
 
