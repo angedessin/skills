@@ -26,6 +26,7 @@ metadata:
 │   ├── decisions.md        (任意 — タスク固有の決定事項)
 │   ├── blockers.md         (任意 — 未解決の問題)
 │   ├── skill-issues.md     (任意 — スキル自体の不具合記録。compound が読む)
+│   ├── investigation.md    (任意 — debug が生成: 障害調査ログ)
 │   ├── review-result.md    (frontend-code-review が生成)
 │   ├── codify-log.md       (compound が生成 — 昇格履歴)
 │   ├── .capture-needed     (フラグ — knowledge-capture 未実行)

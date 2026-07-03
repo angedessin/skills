@@ -201,11 +201,12 @@ Status: Accepted
 
 ### CLAUDE.md への追記
 
-短い命令形のルールのみ。行動ルールの詳細は `docs/knowledge/` に書いて `@` 参照にする:
+短い命令形のルールのみ。行動ルールの詳細は `docs/knowledge/` に書いて参照にする。
+**`@` 参照は毎セッション中身が展開される**（コンテキスト固定費）— 常時読ませたい場合のみ `@` を付け、必要時に読む導線ならプレーンなパス表記にする:
 
 ```markdown
 ## ドキュメント参照（必要なトピック作業時のみ）
-テスト実装時: @docs/knowledge/testing-patterns.md
+[トピック]作業時: @docs/knowledge/[topic].md
 ```
 
 ---

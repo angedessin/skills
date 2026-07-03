@@ -16,6 +16,7 @@
 │   ├── decisions.md           ← 任意: タスク固有の決定事項ログ
 │   ├── blockers.md            ← 任意: 未解決の問題・依存待ち
 │   ├── skill-issues.md        ← 任意: スキル自体の不具合記録（compound が読む）
+│   ├── investigation.md       ← 任意: debug が生成（障害調査ログ: 仮説・検証・棄却理由）
 │   ├── review-result.md       ← frontend-code-review が生成: 指摘と修正追跡
 │   ├── codify-log.md          ← compound が生成: パターン昇格の履歴
 │   ├── .capture-needed        ← フラグ: knowledge-capture 未実行を示す
@@ -160,6 +161,19 @@ compound 実行のたびに「何をどこへ昇格したか」を追記する�
 **期待**: [本来どう動くべきだったか]
 ```
 
+### investigation.md（任意）
+
+`debug` スキルが生成する障害調査ログ。仮説・検証結果・棄却理由を残す（同じ道を二度調べないため）。
+調査が design-doc に接続された場合、結論は design.md の Research セクションに引き継がれる。
+
+```markdown
+## [YYYYMMDD] — [症状の要約]
+
+**再現**: 確認済み（最小再現: ...）/ 未確認
+**仮説と検証**: [仮説] → [裏付け / 棄却理由]
+**根本原因**: [file:line] — [機序]
+```
+
 ### blockers.md（任意）
 
 解決待ちの問題。次のセッションで見逃さないように記録する。
@@ -175,7 +189,7 @@ compound 実行のたびに「何をどこへ昇格したか」を追記する�
 ## セッション開始コントラクト
 
 CLAUDE.md に記述済み。毎セッション:
-1. `find .steering -name '.capture-needed' -o -name '.codify-needed' 2>/dev/null` を実行
+1. `find .steering \( -name '.capture-needed' -o -name '.codify-needed' \) -not -path '*/archived/*' 2>/dev/null` を実行
 2. `.capture-needed` があれば knowledge-capture を促す
 3. `.codify-needed` があれば compound スキルを促す
 4. アクティブタスクの context を読む
