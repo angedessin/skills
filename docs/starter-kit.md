@@ -42,6 +42,7 @@
    ```
    （`version` はコピー元の値を保つ — 上の例の "1.0" で上書きしない。マスター側には source-commit を書かない — 配置先にだけ意味がある情報）
 4. **references を再生成** — `references/` が example と明記されているスキル（tdd / test-review / e2e / review-ui）は、配置先のスタックに合わせて中身を再生成する。使わない場合は削除してよい — 本文は判断軸のみで縮退動作する
+   - **pnpm プロジェクト**: `npm test --` → `pnpm test`、`npm run X --` → `pnpm run X`、そして `npx <bin>` → **`pnpm exec <bin>`** に置き換える。`pnpm exec` はローカル導入済みバイナリしか実行しない（未導入なら失敗 — npx と違い fetch 実行が起きない安全なセマンティクス。fetch 系の `pnpm dlx` は deny 済み）。また pnpm v10+ は依存の lifecycle スクリプトを既定でブロックするため `.npmrc` の ignore-scripts 相当も標準装備
 5. **CLAUDE.md に発動ポリシー節を作る** — 下の雛形から。行動ルールは配置先で育てる（マスターの CLAUDE.md を丸ごとコピーしない）
 6. **ガードレールも同送する（サプライチェーン対策）** — スキルだけコピーすると、references が指示する `npx` 実行等に対する防御が配置先に存在しない状態になる:
    - マスターの `.claude/settings.json` から **permissions（allow / ask / deny）セクション**を配置先の settings.json に取り込む（パッケージインストール deny・npx / rm -r の ask・env / 鍵ファイルの Read deny・ガードレール自己改変の ask）
