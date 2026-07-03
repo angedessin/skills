@@ -3,7 +3,7 @@ name: review-security
 description: "フロントエンドのセキュリティレビューに使うサブスキル。XSS・型安全・env var 管理・依存関係の脆弱性を確認する。frontend-code-review オーケストレーターからの並列呼び出しを想定。単独でも使用可。"
 compatibility: "React / TypeScript（XSS・env・依存関係の観点はフレームワーク中立）"
 metadata:
-  version: "1.1"
+  version: "1.2"
 ---
 
 # Review — Security
@@ -20,7 +20,7 @@ BASE=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^o
 { git diff --name-only "$(git merge-base "$BASE" HEAD)..HEAD" 2>/dev/null; git diff --name-only HEAD; } | sort -u | grep -E '\.(ts|tsx)$' | grep -v '\.(test|spec)\.'
 ```
 
-上記の結果が **空の場合**: Axis 1〜3 は「対象ファイルなし」としてスキップし、Axis 4（npm audit）のみ実施する。`package.json` の変更もない場合は「セキュリティレビューの対象ファイルがありません」とユーザーに伝えて終了する。
+上記の結果が **空の場合**: Axis 1〜3 は「対象ファイルなし」としてスキップし、Axis 4（依存関係 audit）のみ実施する。`package.json` の変更もない場合は「セキュリティレビューの対象ファイルがありません」とユーザーに伝えて終了する。
 
 ---
 
@@ -77,18 +77,18 @@ const apiUrl = process.env.VITE_API_URL
 
 ```bash
 # 既知の CVE がある依存関係を確認
-npm audit --audit-level=high 2>/dev/null || true
+pnpm audit --audit-level=high 2>/dev/null || true   # npm プロジェクトでは npm audit
 ```
 
 **チェック項目**:
 - `package.json` の変更に high/critical CVE のある新規依存関係がないか
-- `npm audit` の high 以上の出力
+- `pnpm audit`（npm プロジェクトでは `npm audit`）の high 以上の出力
 
 **Axis 4 判定順**:
-1. `package.json` に変更なし → 「（npm audit 対象変更なし）」と記載してスキップ
-2. `package.json` に変更あり → `npm audit --audit-level=high` を実行:
+1. `package.json` に変更なし → 「（audit 対象変更なし）」と記載してスキップ
+2. `package.json` に変更あり → `pnpm audit --audit-level=high` を実行:
    - 実行できた → その結果を記載
-   - 実行できない（シミュレーション環境、CI 外など）→ 「npm audit 実行不可 — 手動での確認を推奨: `npm audit --audit-level=high`」と記載
+   - 実行できない（シミュレーション環境、CI 外など）→ 「audit 実行不可 — 手動での確認を推奨: `pnpm audit --audit-level=high`」と記載
 
 ---
 
@@ -107,7 +107,7 @@ npm audit --audit-level=high 2>/dev/null || true
 - [config.ts:L8] API_SECRET をクライアントコードで参照している
 
 ### Axis 4 — 依存関係
-- （npm audit 実行不可またはクリーン）
+- （audit 実行不可またはクリーン）
 
 ### サマリー
 - 確認したファイル: N件

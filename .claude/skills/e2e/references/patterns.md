@@ -14,13 +14,12 @@ git diff --name-only HEAD | grep -E '^(e2e|tests?)/.*\.spec\.ts$'
 
 ```bash
 # 第一候補: package.json スクリプト経由（fetch セマンティクスなし。例: "e2e": "playwright test"）
-npm run e2e -- [file]
-npm run e2e -- --repeat-each=3 [file]    # 同一テストを繰り返して flaky 検出
-npm run e2e -- --trace=on [file]         # 失敗調査用トレース
+pnpm run e2e [file]
+pnpm run e2e --repeat-each=3 [file]    # 同一テストを繰り返して flaky 検出
+pnpm run e2e --trace=on [file]         # 失敗調査用トレース
 
-# スクリプト未定義で Playwright がローカル導入済みのときのみ npx を使う
-# （未導入だとレジストリ取得 → 即実行が走る。導入済みバイナリの実行にのみ使う）
-npx playwright test [file]
+# スクリプト未定義のときは pnpm exec（ローカル限定実行・未導入なら失敗。取得系の pnpm dlx は使わない）
+pnpm exec playwright test [file]
 ```
 
 ## §locators — ロケータ優先順位ラダー

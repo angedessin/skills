@@ -12,13 +12,12 @@
 ```bash
 # 第一候補: package.json スクリプト経由（fetch セマンティクスが無く、リポジトリに定義された
 # コマンドしか動かない — サプライチェーン的に安全な導線）
-npm test -- run path/to/the.test.ts     # "test": "vitest" 定義の場合。単一ファイルを1回実行
-npm test                                # 全テスト
+pnpm test run path/to/the.test.ts       # "test": "vitest" 定義の場合。単一ファイルを1回実行
+pnpm test                               # 全テスト
 
-# スクリプト未定義で、vitest がローカル導入済みのときのみ npx を使う
-# 注意: npx は対象が未導入だとレジストリ取得 → 即実行が走る（typosquat・侵害版の混入経路）。
-# 導入済みバイナリの実行にのみ使い、取得目的では使わない
-npx vitest run path/to/the.test.ts
+# スクリプト未定義のときは pnpm exec（ローカル導入済みバイナリのみ実行。未導入なら失敗 —
+# fetch 実行が起きない安全なセマンティクス。取得系の pnpm dlx は使わない）
+pnpm exec vitest run path/to/the.test.ts
 ```
 
 Red 確認時: コンパイル/import エラーでの失敗は Red ではない。型・import を直してから「正しい理由での失敗」を確認する。
