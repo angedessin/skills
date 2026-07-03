@@ -2,7 +2,7 @@
 name: knowledge-capture
 description: "セッション終了時のプロジェクト知識保存に使うメタスキル。「ナレッジを保存して」「学んだことを記録して」「この決定をドキュメント化して」「セッション終了」「ドキュメントを更新して」と明示的に言われた場合のみ起動。セッション開始時に .capture-needed ファイルがあれば起動。decisions.md・review-result.md・会話コンテキストから知見を抽出し docs/knowledge/・docs/decisions/・.steering/decisions.md・CLAUDE.md に分類する。タスク完了のたびに自動起動しない。lint ルール・スキルを作成する compound とは別物。"
 metadata:
-  version: "1.1"
+  version: "1.2"
 ---
 
 # Knowledge Capture
@@ -46,6 +46,7 @@ find .steering -maxdepth 2 \( -name "decisions.md" -o -name "review-result.md" -
   （compound = ルール・スキルへの昇格、knowledge-capture = ドキュメント保存、両方を順に実施推奨）
   - ユーザーが **Yes** → knowledge-capture をここで中断し、compound スキルを先に実行するよう案内する。compound 完了後にもう一度 knowledge-capture を呼び出してもらう。
   - ユーザーが **No** → そのまま続行する（入力の確認へ進む）。
+- `capture_done` が既に存在する → このタスクの knowledge-capture は完了済み。再実行の必要はない旨を伝え、追加の知見保存が目的かをユーザーに確認する（目的が無ければここで終了する）
 
 **知見の入力（フラグ確認の後で行う）。入力源は3つで、あるものをすべて使う:**
 
@@ -77,7 +78,8 @@ git の変更履歴を確認したい場合は `git log --oneline -20` と `git 
 
 複数回再利用できるパターン・アンチパターン・ハマりどころ?
   YES → docs/knowledge/[topic].md（トピックごとに集積）
-        + CLAUDE.md に @docs/knowledge/[topic].md を追記（参照ルールとして）
+        + 常時参照させたい知識のみ CLAUDE.md に @参照を追記
+          （@ は毎セッション展開される固定費。必要時に読む導線ならプレーンなパス表記 — Step 5 と同基準）
 
 Claude Code の短い常時ルール（1行の命令形）?
   YES → CLAUDE.md（project）or ~/.claude/CLAUDE.md（global）

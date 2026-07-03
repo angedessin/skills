@@ -3,7 +3,7 @@ name: impl-review
 description: "実装コードの品質レビューに使う — 「実装をレビューして」「コードが設計に合っているか確認して」「TypeScript の問題」「React パターンのレビュー」などのフレーズが対象。確認内容: design.md との整合性・docs/knowledge/ のプロジェクト規約・TypeScript 品質・React パターン・基本アクセシビリティ。単独または frontend-code-review の Step 2 として動作。テストコードのレビュー（test-review を使う）やテストインフラの監査には起動しない。"
 compatibility: "React / TypeScript"
 metadata:
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Impl Review
@@ -21,10 +21,11 @@ metadata:
 
 ## スコープの決定
 
-デフォルト: `git diff --name-only HEAD` の `.ts`・`.tsx`（テストファイルを除く）。
+デフォルト: 未コミット + コミット済み（ベースブランチとの分岐点から）を合算した diff の `.ts`・`.tsx`（テストファイルを除く）。未コミットだけを見ると、タスクごとにコミットする実装フローで対象を取りこぼす。
 
 ```bash
-git diff --name-only HEAD | grep -E '\.(ts|tsx)$' | grep -v '\.(test|spec)\.'
+BASE=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||'); BASE=${BASE:-main}
+{ git diff --name-only "$(git merge-base "$BASE" HEAD)..HEAD" 2>/dev/null; git diff --name-only HEAD; } | sort -u | grep -E '\.(ts|tsx)$' | grep -v '\.(test|spec)\.'
 ```
 
 スコープが空の場合は「レビュー対象の実装ファイルがありません（変更はテストのみまたは非 TS ファイルです）」と出力して終了する。
@@ -102,22 +103,8 @@ useEffect(() => {
 }, [userId])
 ```
 
-**Server / Client Component の境界**:
-
-```typescript
-// Bad: Server Component で useEffect を使用
-// app/users/page.tsx
-'use server' // または宣言なし
-export default function Page() {
-  const [data, setData] = useState([]) // エラー: Server Component で state 不可
-}
-
-// Good: Client Component に分離
-'use client'
-export function UserList({ users }: { users: User[] }) {
-  const [selected, setSelected] = useState<string | null>(null)
-}
-```
+**Server/Client 境界（プロジェクトが RSC / SSR を使う場合のみ）**:
+サーバー側で実行されるコンポーネントに state・ブラウザ API・イベントハンドラが混入していないか、境界の宣言はプロジェクトのフレームワーク規約に従っているかを確認する。RSC を使わないプロジェクトではこの観点をスキップする。
 
 **過剰な state**:
 

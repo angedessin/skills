@@ -3,7 +3,7 @@ name: tdd
 description: "テストファースト開発や既存コードへのテスト追加に使う — 「テストを先に書いて」「TDD で」「レッド・グリーン・リファクタリング」「既存コードにテストを追加して」「失敗するテストを書いて」などのフレーズが対象。Red→Green→Refactor を哲学・振る舞い分解・AAA・境界値/異常系チェックリストとともに駆動する。設計ドキュメントなしで既存コードにテストを追加する場合に単独で使う。既存テストのレビューのみの場合は起動しない（test-review を使う）。"
 compatibility: "React / TypeScript / Vitest / React Testing Library / MSW（具体例は references/patterns.md。別スタックは同ファイルを差し替える）"
 metadata:
-  version: "1.0"
+  version: "1.1"
 ---
 
 # TDD
@@ -99,7 +99,7 @@ Red → Green → Refactor サイクル。単独での使用（既存コード�
 
 - **配置**: 実装ファイルと同じディレクトリにコロケーション（例: `UserCard.tsx` → `UserCard.test.tsx`）
 - **describe/it か In-source か**: ロジックが重いユーティリティ（分岐・計算が多い）は In-source、それ以外は describe/it。判断基準とコードは `references/patterns.md §unit`。ただし In-source は `includeSource` 設定（§config）が前提 — **テストランナー設定が無い／`src/` 構成でない単独ファイルの場合は describe/it のコロケーションを既定**とする
-- 種類別の具体例: コンポーネント=§component / Hook=§hook / 状態管理=§state / API層=§api-layer / E2E=§e2e
+- 種類別の具体例: コンポーネント=§component / Hook=§hook / 状態管理=§state / API層=§api-layer（E2E は `e2e` スキルが担当 — When NOT to use 参照）
 - セットアップ（設定・ネットワークモック）: §config / §setup、カバレッジ目安: §coverage
 
 ---

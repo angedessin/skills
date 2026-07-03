@@ -3,7 +3,7 @@ name: review-security
 description: "フロントエンドのセキュリティレビューに使うサブスキル。XSS・型安全・env var 管理・依存関係の脆弱性を確認する。frontend-code-review オーケストレーターからの並列呼び出しを想定。単独でも使用可。"
 compatibility: "React / TypeScript（XSS・env・依存関係の観点はフレームワーク中立）"
 metadata:
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Review — Security
@@ -13,10 +13,11 @@ metadata:
 
 ## スコープ
 
-デフォルト: `git diff --name-only HEAD` の `.ts`・`.tsx`（テストファイルを除く）。
+デフォルト: 未コミット + コミット済み（ベースブランチとの分岐点から）を合算した diff の `.ts`・`.tsx`（テストファイルを除く）。未コミットだけを見ると、タスクごとにコミットする実装フローで対象を取りこぼす。
 
 ```bash
-git diff --name-only HEAD | grep -E '\.(ts|tsx)$' | grep -v '\.(test|spec)\.'
+BASE=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||'); BASE=${BASE:-main}
+{ git diff --name-only "$(git merge-base "$BASE" HEAD)..HEAD" 2>/dev/null; git diff --name-only HEAD; } | sort -u | grep -E '\.(ts|tsx)$' | grep -v '\.(test|spec)\.'
 ```
 
 上記の結果が **空の場合**: Axis 1〜3 は「対象ファイルなし」としてスキップし、Axis 4（npm audit）のみ実施する。`package.json` の変更もない場合は「セキュリティレビューの対象ファイルがありません」とユーザーに伝えて終了する。
@@ -59,15 +60,16 @@ const id = z.string().uuid().parse(new URLSearchParams(location.search).get('id'
 ### Axis 3 — env var・シークレット管理
 
 ```typescript
-// Bad: NEXT_PUBLIC_ なしのシークレットをクライアントで参照
-const secret = process.env.API_SECRET // クライアントバンドルに含まれる
+// Bad: クライアントコードでシークレットを参照（ビルド成果物に埋め込まれ配布される）
+const secret = process.env.API_SECRET
 
-// Good: クライアントには NEXT_PUBLIC_ のみ公開
-const apiUrl = process.env.NEXT_PUBLIC_API_URL
+// Good: クライアントに公開してよいのは、ビルドツールが公開用と定めた
+// プレフィックス付きの変数のみ（例: VITE_ / NEXT_PUBLIC_ / REACT_APP_）
+const apiUrl = process.env.VITE_API_URL
 ```
 
 **チェック項目**:
-- `NEXT_PUBLIC_` プレフィックスなしの env var がクライアントコードで使われていないか
+- 公開プレフィックス（プロジェクトのビルドツールが定めるもの。例: VITE_ / NEXT_PUBLIC_）の無い env var がクライアントコードで使われていないか
 - シークレット・トークンがハードコードされていないか（`Bearer xxx`・API key など）
 - `.env.local` に入るべき値がソースに直書きされていないか
 

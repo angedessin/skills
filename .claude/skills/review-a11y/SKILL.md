@@ -3,7 +3,7 @@ name: review-a11y
 description: "フロントエンドのアクセシビリティレビューに使うサブスキル。セマンティクス・ARIA・フォーカス管理・キーボード操作の観点で確認する。frontend-code-review オーケストレーターからの並列呼び出しを想定。単独でも使用可。"
 compatibility: "React / TypeScript（a11y 観点はフレームワーク中立）"
 metadata:
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Review — Accessibility
@@ -13,10 +13,11 @@ metadata:
 
 ## スコープ
 
-デフォルト: `git diff --name-only HEAD` の `.tsx`（テストファイルを除く）。
+デフォルト: 未コミット + コミット済み（ベースブランチとの分岐点から）を合算した diff の `.tsx`（テストファイルを除く）。未コミットだけを見ると、タスクごとにコミットする実装フローで対象を取りこぼす。
 
 ```bash
-git diff --name-only HEAD | grep -E '\.tsx$' | grep -v '\.(test|spec)\.'
+BASE=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||'); BASE=${BASE:-main}
+{ git diff --name-only "$(git merge-base "$BASE" HEAD)..HEAD" 2>/dev/null; git diff --name-only HEAD; } | sort -u | grep -E '\.tsx$' | grep -v '\.(test|spec)\.'
 ```
 
 上記の結果が **空の場合**（対象ファイルなし）→ 「アクセシビリティレビューの対象ファイルがありません（.tsx の変更なし）」とユーザーに伝えて終了する。スコープを拡張する場合はユーザーが明示的にファイルパスを指定する。

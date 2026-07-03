@@ -3,7 +3,7 @@ name: review-ui
 description: "フロントエンドの UI レビューに使うサブスキル。レイアウト・レスポンシブの破綻、デザイン整合（トークン遵守・一貫性）、UX 状態網羅（loading・error・empty・disabled）を確認する。frontend-code-review オーケストレーターからの並列呼び出しを想定。単独でも使用可。"
 compatibility: "React / TypeScript / CSS（レスポンシブ・UX 状態の観点はフレームワーク中立。デザイントークンの実体は references/tokens.md を配置先プロジェクトで再生成する）"
 metadata:
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Review — UI
@@ -15,10 +15,11 @@ metadata:
 
 ## スコープ
 
-デフォルト: `git diff --name-only HEAD` の `.tsx`・`.css`・`.scss`（テストファイルを除く）。
+デフォルト: 未コミット + コミット済み（ベースブランチとの分岐点から）を合算した diff の `.tsx`・`.css`・`.scss`（テストファイルを除く）。未コミットだけを見ると、タスクごとにコミットする実装フローで対象を取りこぼす。
 
 ```bash
-git diff --name-only HEAD | grep -E '\.(tsx|css|scss)$' | grep -v '\.(test|spec)\.'
+BASE=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||'); BASE=${BASE:-main}
+{ git diff --name-only "$(git merge-base "$BASE" HEAD)..HEAD" 2>/dev/null; git diff --name-only HEAD; } | sort -u | grep -E '\.(tsx|css|scss)$' | grep -v '\.(test|spec)\.'
 ```
 
 上記の結果が **空の場合** → 「UI レビューの対象ファイルがありません（.tsx/.css/.scss の変更なし）」とユーザーに伝えて終了する。スコープを拡張する場合はユーザーが明示的にファイルパスを指定する。

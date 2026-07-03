@@ -3,7 +3,7 @@ name: review-performance
 description: "フロントエンドのパフォーマンスレビューに使うサブスキル。Bundle サイズ・不要な再レンダリング・CWV（Core Web Vitals）の観点で確認する。frontend-code-review オーケストレーターからの並列呼び出しを想定。単独でも使用可。"
 compatibility: "React / TypeScript（SSR・コード分割・CWV 観点はフレームワーク中立。フレームワーク固有の最適化 API があればそれを使う）"
 metadata:
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Review — Performance
@@ -13,10 +13,11 @@ metadata:
 
 ## スコープ
 
-デフォルト: `git diff --name-only HEAD` の `.ts`・`.tsx`（テストファイルを除く）。
+デフォルト: 未コミット + コミット済み（ベースブランチとの分岐点から）を合算した diff の `.ts`・`.tsx`（テストファイルを除く）。未コミットだけを見ると、タスクごとにコミットする実装フローで対象を取りこぼす。
 
 ```bash
-git diff --name-only HEAD | grep -E '\.(ts|tsx)$' | grep -v '\.(test|spec)\.'
+BASE=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||'); BASE=${BASE:-main}
+{ git diff --name-only "$(git merge-base "$BASE" HEAD)..HEAD" 2>/dev/null; git diff --name-only HEAD; } | sort -u | grep -E '\.(ts|tsx)$' | grep -v '\.(test|spec)\.'
 ```
 
 上記の結果が **空の場合**: `.ts/.tsx` の変更がなくても `package.json` が変更されている場合は **Axis 1（Bundle サイズ）のみ** を実施する。`package.json` も変更がなければ「パフォーマンスレビューの対象ファイルがありません」とユーザーに伝えて終了する。
