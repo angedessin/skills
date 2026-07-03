@@ -10,6 +10,8 @@
     ],
     "ask": [
       "Bash(git push*)",
+      "Bash(npx *)",
+      "Bash(rm -r*)",
       "Edit(./.claude/settings.json)",
       "Write(./.claude/settings.json)",
       "Edit(./.claude/settings.local.json)",

@@ -43,6 +43,11 @@
    （`version` はコピー元の値を保つ — 上の例の "1.0" で上書きしない。マスター側には source-commit を書かない — 配置先にだけ意味がある情報）
 4. **references を再生成** — `references/` が example と明記されているスキル（tdd / test-review / e2e / review-ui）は、配置先のスタックに合わせて中身を再生成する。使わない場合は削除してよい — 本文は判断軸のみで縮退動作する
 5. **CLAUDE.md に発動ポリシー節を作る** — 下の雛形から。行動ルールは配置先で育てる（マスターの CLAUDE.md を丸ごとコピーしない）
+6. **ガードレールも同送する（サプライチェーン対策）** — スキルだけコピーすると、references が指示する `npx` 実行等に対する防御が配置先に存在しない状態になる:
+   - マスターの `.claude/settings.json` から **permissions（allow / ask / deny）セクション**を配置先の settings.json に取り込む（パッケージインストール deny・npx / rm -r の ask・env / 鍵ファイルの Read deny・ガードレール自己改変の ask）
+   - `.claude/hooks/guard-env-read.sh` をコピーし、settings.json の `hooks.PreToolUse` 登録も移す（deny の前置一致では防げない .env 読み取りの迂回を全文検査で ask に落とす）
+   - `session-stop.sh`（Stop hook）は `.steering/` ワークフローを採用する場合のみコピーする
+   - `settings.local.json` はコピーしない（マシン固有の承認履歴）
 
 ## ドリフト確認と改善の還元
 

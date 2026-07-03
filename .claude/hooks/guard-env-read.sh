@@ -4,6 +4,14 @@
 # コマンド全文を検査して dotfile 形式の .env 参照を検出する。
 # 注意: process.env や *.env（prod.env 等）には反応しない設計（誤検知防止とのトレードオフ）。
 
+# jq が無い環境ではコマンドを検査できない → フェイルクローズ（無言で素通しにしない）
+if ! command -v jq >/dev/null 2>&1; then
+  cat <<'EOF'
+{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"guard-env-read hook: jq が未導入のためコマンドを検査できません（フェイルクローズ）。jq を導入するか、このコマンドが .env に触れないことを確認して承認してください。"}}
+EOF
+  exit 0
+fi
+
 cmd=$(jq -r '.tool_input.command // empty' 2>/dev/null)
 [ -z "$cmd" ] && exit 0
 

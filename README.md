@@ -132,8 +132,9 @@
 ## インフラ・設定
 
 - **Stop Hook** (`.claude/hooks/session-stop.sh`): アクティブタスクに `capture_done` がなければ `.capture-needed` フラグを作成するだけの軽量フック（セッション記録は git が持つ）。成果物（*.md）の無いタスクディレクトリはスキップする
+- **PreToolUse Guard** (`.claude/hooks/guard-env-read.sh`): Bash コマンド全文を検査し、`.env` 系に触れるものを ask に落とす（deny の前置一致では防げない head/sed/base64 等の迂回対策）。jq 未導入環境ではフェイルクローズ
 - **検証スクリプト** (`scripts/validate_skills.py`): name 一致・description・行数・アストラル面絵文字・metadata.version の 5 項目を機械検証。スキル改訂時と配置前に実行する
-- **settings.json**: パッケージインストール・`.env` 読み取り（Bash / Read 両方）・破壊的 git 操作・`rm -rf` を deny
+- **settings.json**: パッケージインストール（dlx / bunx / npx -y 含む）・`.env` / 鍵ファイル読み取り（Bash / Read 両方）・破壊的 git 操作・`rm -rf` を deny。素の `npx` / `rm -r` / `git push` / ガードレール自身（settings・hooks）の変更は ask。配置先への同送手順は [docs/starter-kit.md](docs/starter-kit.md) 手順 6
 
 ---
 
