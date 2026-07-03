@@ -1,7 +1,7 @@
 # AI駆動フロントエンド開発ワークフロー改善計画
 
 作成日: 2026-07-02（同日改訂: 実リポジトリとの突合で事実ドリフト3件を修正し、feature-pipeline を計画に組み込んだ）
-ステータス: **計画（承認済みの分析に基づく）**
+ステータス: **完了・アーカイブ（2026-07-03）** — チェックリストは skill-creator baseline 試行（任意）と実需待ち 3 件（i18n / explore / prompt-lint）を除き消化済み
 関連: [issues-and-plan.md](./skillset-improvement/issues-and-plan.md) / [new-skills.md](./skillset-improvement/new-skills.md) / [evaluation-system.md](./skillset-improvement/evaluation-system.md)
 
 > 本計画は README と docs/ の実読に基づく。依頼時の前提のうち実態と異なるものは「現状認識」で訂正し、覆す前提は理由を明記した。
@@ -55,7 +55,7 @@ test-review（198→103行）と tdd（206→117行）はこの契約で改修�
 correctness（ロジックバグ）/ UI・ビジュアル・レスポンシブ / UX状態網羅の 3 観点が不在（issues-and-plan.md 課題3）。対応タスク `.steering/20260622-review-axes-coverage/` は 2026-06-22 に着手されたが**成果物が残っておらず、design-doc からの再起動が必要**。設計判断の素材（3-A の「ビルトイン /code-review 委譲か自前軸か」等）は issues-and-plan.md 課題3 に揃っている。
 
 ### 課題B: 持ち運び機構が半完成
-- 手動コピー ADR（[20260612](./decisions/20260612-manual-copy-skill-distribution.md)）は確立しているが、規律を支える機構が未整備: `metadata.source-commit` によるドリフト追跡（4-B）、`skills-ref validate` による機械検証（4-C）がいずれも「次フェーズ」のまま
+- 手動コピー ADR（[20260612](../decisions/20260612-manual-copy-skill-distribution.md)）は確立しているが、規律を支える機構が未整備: `metadata.source-commit` によるドリフト追跡（4-B）、`skills-ref validate` による機械検証（4-C）がいずれも「次フェーズ」のまま
 - 新規プロジェクトに配置するときの**スターターキット**（最小推奨セット + references 再生成テンプレート + CLAUDE.md 雛形）がなく、配置のたびに取捨選択と生成を頭から考える必要がある
 
 ### 課題C: ワークフローの穴
