@@ -26,9 +26,14 @@ Last updated: 20260703
 
 ## Compound
 
-- [ ] compound スキルの実行（「片側修正」アンチパターンの昇格判断）
+- [x] compound スキルの実行（昇格 1 件: 片側修正の禁止 → skill-design-patterns.md。効果検証: 相互明記ルールが監査基準として機能）
 
 ## Knowledge
 
-- [ ] knowledge-capture スキルの実行
-- [ ] steering archive モードでアーカイブ
+- [x] knowledge-capture スキルの実行（新規保存なし — 監査所見と修正内容は design.md / tasklist / コミットが保持）
+- [x] steering archive モードでアーカイブ
+
+---
+
+Archived: 20260703
+繰り越し（記録のみ・Out of scope 確定分）: マルチマシンでのフラグ喪失（環境前提が変わるまで不要）/ Playwright spec のフルモードレビュー空白（e2e-agent は実需時に判断 — 意思決定済み）
