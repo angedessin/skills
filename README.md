@@ -19,7 +19,10 @@
 │   │   └── session-stop.sh            # セッション終了時に .capture-needed フラグを作成
 │   └── skills/                        # スキル定義（下の一覧を参照）
 ├── .steering/                         # クロスセッション コンテキスト（複数セッションタスクのみ）
+├── scripts/
+│   └── validate_skills.py             # スキル frontmatter・構造の機械検証（マスター専用）
 └── docs/
+    ├── starter-kit.md                 # 他プロジェクトへの配置手順・推奨構成
     ├── knowledge/                     # 経験・パターン集
     └── decisions/                     # ADR（設計判断）
 ```
@@ -65,7 +68,7 @@
 
 | スキル | 役割 |
 |---|---|
-| [`feature-pipeline`](.claude/skills/feature-pipeline/SKILL.md) | メインワークフローを一気通貫で回すエンドツーエンドのオーケストレーター。既存スキル（design-doc → impl-from-design → frontend-code-review → knowledge-capture / compound）を順に呼び出し、各フェーズ境界で人間の承認ゲートを挟む。`.steering/[task]/` の成果物から現在地を検出して途中フェーズから再開できる |
+| [`feature-pipeline`](.claude/skills/feature-pipeline/SKILL.md) | メインワークフローを一気通貫で回すエンドツーエンドのオーケストレーター。既存スキル（design-doc → impl-from-design → frontend-code-review → pr-create → knowledge-capture / compound）を順に呼び出し、各フェーズ境界で人間の承認ゲートを挟む。`.steering/[task]/` の成果物から現在地を検出して途中フェーズから再開できる |
 
 ### 設計・コンテキスト管理
 
@@ -128,7 +131,8 @@
 
 ## インフラ・設定
 
-- **Stop Hook** (`.claude/hooks/session-stop.sh`): アクティブタスクに `capture_done` がなければ `.capture-needed` フラグを作成するだけの軽量フック（セッション記録は git が持つ）
+- **Stop Hook** (`.claude/hooks/session-stop.sh`): アクティブタスクに `capture_done` がなければ `.capture-needed` フラグを作成するだけの軽量フック（セッション記録は git が持つ）。成果物（*.md）の無いタスクディレクトリはスキップする
+- **検証スクリプト** (`scripts/validate_skills.py`): name 一致・description・行数・アストラル面絵文字・metadata.version の 5 項目を機械検証。スキル改訂時と配置前に実行する
 - **settings.json**: パッケージインストール・`.env` 読み取り（Bash / Read 両方）・破壊的 git 操作・`rm -rf` を deny
 
 ---
@@ -160,14 +164,14 @@
 ## スキル間の関係図
 
 ```
-design-doc ──→ impl-from-design ──→ frontend-code-review
-    │                │                      │
-    ↓                ↓                      ↓
-steering ←──── tdd              compound + knowledge-capture
-                                           │
-                              ┌────────────┼────────────┐
-                         test-review  impl-review  review-*
-                         （テスト）   （実装）    （sec/perf/a11y/correctness/ui）
+debug（障害調査。小さい修正は即完結）─┐
+                                      ↓
+design-doc ──→ impl-from-design ──→ frontend-code-review ──→ pr-create ──→ compound ＋ knowledge-capture
+    │              │                        │                                  ↕
+    ↓              ├─←→ tdd                 ↓                             rule-audit
+steering           └─── e2e     test-review / impl-review / review-*     （剪定の対・定期）
+（ライフサイクル）               （テスト / 実装 / sec・perf・a11y・correctness・ui）
 ```
 
-`empirical-prompt-tuning` は上記スキル自体の品質改善に横断的に使う。
+- `feature-pipeline` が上記の一連を承認ゲート付きで編成する（オーケストレーター）
+- `empirical-prompt-tuning` は上記スキル自体の品質改善に横断的に使う
