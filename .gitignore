@@ -1,6 +1,9 @@
 # Node / JS
 node_modules/
 
+# スキル配置テスト環境（コミットしない）
+_test/
+
 # Editor / OS
 .DS_Store
 .tmp/

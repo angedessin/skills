@@ -1,0 +1,61 @@
+diff --git a/.claude/skills/feature-pipeline/SKILL.md b/.claude/skills/feature-pipeline/SKILL.md
+index 7ae9568..a9ca15b 100644
+--- a/.claude/skills/feature-pipeline/SKILL.md
++++ b/.claude/skills/feature-pipeline/SKILL.md
+@@ -127,6 +127,11 @@ Gate 1 を通過したことをユーザーに伝えてから Phase 2 を開始
+ 
+ 進む前に `design.md` の Status が `APPROVED` であることを再確認する（DRAFT なら Gate 1 に戻る）。
+ 
++**`.steering/` が作られなかった場合（Phase 1 で design-doc が会話内フォールバックを選んだ場合）**:
++`impl-from-design` は `design.md` ファイルを前提にしているため、そのまま「実装して」とだけ呼び出すと `.steering/` が無い汎用リクエストとして design-doc へリダイレクトされてしまう。
++これを避けるため、Gate 1 で会話内承認された設計内容（Goal / Scope / Key components / Acceptance criteria 等）を**引数としてそのまま `impl-from-design` に渡す**。`impl-from-design` 側はこのパターンを検出すると `.steering/` 前提のファイル操作（tasklist 更新・decisions.md 追記）をスキップし、会話内で進行を報告するフォールバックに切り替える（詳細は `impl-from-design/SKILL.md` の「`.steering/` が無い場合のフォールバック」を参照）。
++この場合、以降の Phase 3〜5 の `.steering/` 簿記（review-result.md・tasklist.md 等）もタスクディレクトリが無い前提で会話内フォールバックに統一する。ユーザーが途中で `.steering/` の作成を求めた場合は、それまでの会話内容をバックフィルして通常フローに合流してよい。
++
+ `impl-from-design` スキルを起動する。これは:
+ - `tasklist.md` の実装スコープを確認（無ければユーザーに確認）
+ - 必要なら既存コード調査（code-explorer）
+diff --git a/.claude/skills/impl-from-design/SKILL.md b/.claude/skills/impl-from-design/SKILL.md
+index 688d890..960b7c4 100644
+--- a/.claude/skills/impl-from-design/SKILL.md
++++ b/.claude/skills/impl-from-design/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: impl-from-design
+-description: "承認済みデザインドキュメントに基づく実装に使う — 「実装を開始して」「設計から実装して」「設計が承認された、作ろう」などのフレーズが対象。.steering/[task]/design.md の Status が APPROVED である必要がある。design.md がない・DRAFT の場合は design-doc にリダイレクト。.steering/ コンテキストなしの汎用「実装して」リクエストには起動しない。"
++description: "承認済みデザインドキュメントに基づく実装に使う — 「実装を開始して」「設計から実装して」「設計が承認された、作ろう」などのフレーズが対象。.steering/[task]/design.md の Status が APPROVED である必要がある。design.md がない・DRAFT の場合は design-doc にリダイレクト。.steering/ コンテキストなしの汎用「実装して」リクエストには起動しない（例外: feature-pipeline 等の呼び出し元が会話内で承認済みの設計内容を引数として明示的に渡した場合は、.steering/ が無くても会話内フォールバックで進める）。"
+ metadata:
+   version: "1.1"
+ ---
+@@ -12,10 +12,20 @@ TDD（デフォルト・推奨）と Impl-first モードの両方に対応。
+ 
+ ## When NOT to use
+ 
+-- `.steering/` が存在しない → `design-doc` スキルから始める
++- `.steering/` が存在せず、かつ呼び出し元から承認済み設計内容も渡されていない汎用の「実装して」依頼 → `design-doc` スキルから始める
+ - `design.md` の Status が `DRAFT` → 設計レビューを先に完了させる
+ - テストのみを追加したい → `tdd` スキルを直接使う
+ 
++## `.steering/` が無い場合のフォールバック（会話内で設計承認済みの場合）
++
++`feature-pipeline` のような呼び出し元は、`design-doc` が「1セッションで完結する」と判断して `.steering/` を作らなかった場合、承認済みの設計内容（Goal / Scope / Key components / Acceptance criteria 等）を**このスキルの引数として直接渡す**ことがある。
++このパターンを検出したら（= 引数に設計内容がまとまって渡されており、`.steering/` にタスクディレクトリが無い）、`design-doc` へのリダイレクトは行わず、以下の代替動作で進める:
++
++- Step 1 の `design.md` Status チェックは「引数として承認済み設計が渡されているか」に読み替える（無ければ通常どおり `design-doc` へリダイレクト）
++- Step 1.5（既存コードベース調査）・モード選択・TDD/Impl-first サイクルはそのまま実行する
++- `tasklist.md` のチェック更新・`decisions.md` への追記など `.steering/` 前提のファイル操作はスキップし、代わりに会話内でタスクの完了を都度報告する
++- 「完了後」の案内も `.steering/` に触れず、会話内で「実装が完了しました。次は frontend-code-review で確認してください」と伝える
++
+ ---
+ 
+ ## Step 1 — 前提チェック
+@@ -25,7 +35,9 @@ TDD（デフォルト・推奨）と Impl-first モードの両方に対応。
+ find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
+ ```
+ 
+-対象タスクの `design.md` を読み、Status を確認する:
++**`.steering/` にアクティブタスクが無く、引数に承認済み設計内容が渡されている場合** → 上記フォールバックに従って Step 1.5 に進む（`design.md` ファイルは存在しないので Status チェックは行わない）。
++
++**`.steering/` にアクティブタスクがある場合**、対象タスクの `design.md` を読み、Status を確認する:
+ - `APPROVED` → 続行
+ - `DRAFT` → **ここで止まる**。`design-doc` スキルは起動しない（案内のみ）:
+   ```
