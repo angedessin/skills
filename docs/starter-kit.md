@@ -16,6 +16,7 @@
 
 - frontend-code-review はサブスキル未配置でも動く（未配置分をスキップして報告する縮退動作）
 - feature-pipeline は依存サブスキルが揃っている前提のため最小セットに含めない
+- compound の `.codify-needed` フラグによる自動起動は frontend-code-review 配置時のみ有効（フラグを立てるのが frontend-code-review のため）。メタ層を単独で配置した場合は明示呼び出しで使う
 
 ## フロントエンド以外・別ワークフローのプロジェクトへの導入
 
@@ -30,7 +31,7 @@
 
 既存の開発ワークフロー（レビュー体制・ブランチ運用・チケット管理）があるプロジェクトでは、**スキル本文を書き換えず**、配置先 CLAUDE.md の発動ポリシー側で接続を定義する（例:「PR 作成は既存のチーム運用に従い、feature-pipeline の Phase 3.5 はスキップする」「設計レビューは design.md ではなく既存の Design Doc プロセスに読み替える」）。
 
-## 配置手順（5 ステップ）
+## 配置手順（6 ステップ）
 
 1. **選ぶ** — 上の表からプロジェクトに必要なスキルを選ぶ（全部入れない。無関係なスキルは誤発動の種）
 2. **コピー** — 配置先の `.claude/skills/` にディレクトリごとコピーする
@@ -41,16 +42,17 @@
      source-commit: <マスターで git rev-parse HEAD した値>
    ```
    （`version` はコピー元の値を保つ — 上の例の "1.0" で上書きしない。マスター側には source-commit を書かない — 配置先にだけ意味がある情報）
-4. **references を再生成** — `references/` が example と明記されているスキル（tdd / test-review / e2e / review-ui）は、配置先のスタックに合わせて中身を再生成する。使わない場合は削除してよい — 本文は判断軸のみで縮退動作する
+4. **references を再生成** — `references/` が example と明記されているスキル（tdd / test-review / e2e / review-ui）は、配置先のスタックに合わせて中身を再生成する。対象スキルを含まない配置ではこの手順はスキップ。使わない場合は削除してよい — 本文は判断軸のみで縮退動作する
    - **マスターの references は pnpm 前提**（`pnpm test` / `pnpm run` / `pnpm exec` — exec はローカル限定実行で fetch が起きない安全なセマンティクス。pnpm v10+ は lifecycle スクリプトも既定ブロック）
    - **npm プロジェクト**では `pnpm test` → `npm test --`、`pnpm run X` → `npm run X --`、`pnpm exec <bin>` → `npx <bin>` に置き換える。**npx は対象が未導入だとレジストリ取得 → 即実行が走る**ため、ローカル導入済みバイナリの実行にのみ使い、`.npmrc` に `ignore-scripts=true` を設定する（手順 6 参照）
-5. **CLAUDE.md に発動ポリシー節を作る** — 下の雛形から。行動ルールは配置先で育てる（マスターの CLAUDE.md を丸ごとコピーしない）
+5. **CLAUDE.md に発動ポリシー節を作る** — 下の雛形から。雛形は最小セット前提なので、他のセット構成では各スキルの description の発動フレーズを元に 1 行ずつ書き換える。行動ルールは配置先で育てる（マスターの CLAUDE.md を丸ごとコピーしない）
 6. **ガードレールも同送する（サプライチェーン対策）** — スキルだけコピーすると、references が指示する `npx` 実行等に対する防御が配置先に存在しない状態になる:
    - マスターの `.claude/settings.json` から **permissions（allow / ask / deny）セクション**を配置先の settings.json に取り込む（パッケージインストール deny・npx / rm -r の ask・env / 鍵ファイルの Read deny・ガードレール自己改変の ask）
    - `.claude/hooks/guard-env-read.sh` をコピーし、settings.json の `hooks.PreToolUse` 登録も移す（deny の前置一致では防げない .env 読み取りの迂回を全文検査で ask に落とす）
-   - `session-stop.sh`（Stop hook）は `.steering/` ワークフローを採用する場合のみコピーする
+   - `session-stop.sh`（Stop hook）は **knowledge-capture を配置する場合のみ**コピーする（settings.json の `hooks.Stop` 登録も同時に移す）。この hook が立てる `.capture-needed` は knowledge-capture の起動を促すフラグなので、未配置のまま同送すると「存在しないスキルの実行を促す」実行不能な指示になる
    - `settings.local.json` はコピーしない（マシン固有の承認履歴）
    - 配置先の `.npmrc` に `ignore-scripts=true` を推奨（install 時の postinstall 実行 = サプライチェーン攻撃の主経路を既定で遮断。ビルドスクリプトが必要なパッケージだけ個別に許可する運用）
+   - **配置後、配置先で一度対話セッションを起動して信頼ダイアログを承認する** — 未信頼のワークスペースでは settings.json の permissions.allow が無効化される（deny / hooks は有効）。headless 運用（`claude -p`）を始める前に必須
 
 ## ドリフト確認と改善の還元
 
