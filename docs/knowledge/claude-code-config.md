@@ -75,3 +75,14 @@ touch "$flag" && echo "次回セッションで knowledge-capture をリマイ�
   （例: 「settings.json 作業時: docs/knowledge/claude-code-config.md を読む」）
 - 参照切れの `@` は無害に無視される。事前に空ファイルを作る必要はないが、
   rule-audit の参照整合チェックで検出・掃除する
+
+---
+
+## headless（claude -p）でのスキル・ガードレール検証
+
+配置先のスキル読み込み・permissions・hooks は `claude -p` で安価に検証できる（モデルは haiku で十分。20260703 の初回配置検証で実施）。
+
+- **未信頼ワークスペースでは permissions.allow が無効化される**（deny / hooks は有効）。一度対話セッションを起動して信頼ダイアログを承認するか、`~/.claude.json` の `projects[<path>].hasTrustDialogAccepted: true` を設定してから検証する
+- `--allowedTools` は可変長引数で**後続のプロンプトを引数として飲み込む** — `--allowedTools=Bash` の `=` 区切りで書く
+- 非対話モードでは hook の `ask` 判定は deny に落ちる。「Bash を明示 allow した上で、対象コマンドだけが拒否されること」で hook の発火を確認できる
+- 対照実験を必ず入れる: allow 済みコマンド（`git log` 等）が通ることを確認して「全拒否ではなくルール駆動のブロック」だと判別する
