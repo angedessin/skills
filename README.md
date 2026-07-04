@@ -35,7 +35,7 @@
 [0] 入口分岐      新機能 → design-doc ／ バグ・障害 → debug
                   （小さい修正は即修正で完結、構造に触る修正は design-doc に接続）
       ↓
-[1] 設計          design-doc（.steering/ は複数セッションタスクのみ作成）
+[1] 設計          design-doc（.steering/ は複数セッションタスクのみ作成。feature-pipeline 配下では常に作成）
       ↓
 [2] レビュー      人間がレビュー・承認（design.md: DRAFT → APPROVED）
       ↓

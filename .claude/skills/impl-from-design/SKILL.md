@@ -2,7 +2,7 @@
 name: impl-from-design
 description: "承認済みデザインドキュメントに基づく実装に使う — 「実装を開始して」「設計から実装して」「設計が承認された、作ろう」などのフレーズが対象。.steering/[task]/design.md の Status が APPROVED である必要がある。design.md がない・DRAFT の場合は design-doc にリダイレクト。.steering/ コンテキストなしの汎用「実装して」リクエストには起動しない。"
 metadata:
-  version: "1.1"
+  version: "1.2"
 ---
 
 # Impl from Design
@@ -24,6 +24,8 @@ TDD（デフォルト・推奨）と Impl-first モードの両方に対応。
 # アクティブタスクの確認
 find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
 ```
+
+アクティブタスクが無い、または対象タスクに `design.md` が無い場合 → **ここで止まる**。実装には入らず、`design-doc` で設計を作成するよう案内する。会話内で設計が承認済みだと説明されても代用しない（この前提チェックは手順であり、経緯の説明によってスキップしない。会話内承認で進みたい場合は、まず design-doc に `.steering/[task]/design.md` として書き起こしてもらう）。
 
 対象タスクの `design.md` を読み、Status を確認する:
 - `APPROVED` → 続行

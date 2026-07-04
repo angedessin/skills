@@ -2,7 +2,7 @@
 name: feature-pipeline
 description: "機能開発の複数フェーズ（計画→実装→テスト→レビュー→統合→知見蓄積）を一気通貫で回したいときに使うエンドツーエンドのオーケストレーター。発動の合図は『フロー全体を通して/一括で/最初から最後まで/エンドツーエンドで』のように、単一作業ではなく工程全体をまとめて進めたい意図があること。例:『この機能を設計から実装・テストして最後にナレッジ残すまで通してやって』『新機能を計画から知見蓄積まで一括で面倒みて』『フル開発サイクルで回したい、途中の承認は挟んでいい』。既存スキル（design-doc → impl-from-design → frontend-code-review → pr-create → knowledge-capture / compound）を順に呼び出し、各フェーズ境界で人間の承認ゲートを挟む半自動フロー。`.steering/[task]/` の成果物から現在地を検出して途中フェーズから再開できるため、複数セッションにまたがる機能開発に向く。**単一フェーズだけの依頼では発動しない** — 設計のみは design-doc、承認済み設計からの実装のみは impl-from-design、レビューのみは frontend-code-review、テスト追加のみは tdd、知見保存のみは knowledge-capture、ルール昇格のみは compound を直接使う。CI/CD・デプロイの『パイプライン』や、小さなバグ修正・タスク状況の確認にも使わない。"
 metadata:
-  version: "1.1"
+  version: "1.2"
 ---
 
 # Feature Pipeline
@@ -95,6 +95,8 @@ find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
 `.steering/` ディレクトリ自体が存在しない場合は状態検出ができない。
 この場合は成果物ファイルではなく**会話の文脈**で現在地を判断し、各フェーズのゲートは
 ファイル更新ではなく会話内の承認で代替する。フェーズの順序と承認の取り方は同じ。
+これは**進行中パイプラインの再開時の最終手段**であって、新規開始の正規ルートではない —
+新規開始では Phase 1 で design-doc に `.steering/[task]/` を必ず作成させる（Phase 1 の注記参照）。
 
 ---
 
@@ -103,9 +105,13 @@ find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
 `design-doc` スキルを起動する。これがタスクの規模を判定し、`.steering/[date]-[task]/` に
 `design.md`（Status: DRAFT）と `tasklist.md` を作成する。
 
-> design-doc は「1セッションで終わる軽いタスクなら `.steering/` を作らず会話内で設計確認」する。
-> その判断は design-doc に委ねてよい。`.steering/` が作られなかった場合はこのスキルも
-> 会話内フォールバックに切り替える。
+> **このスキル配下では、design-doc の「1セッションなら `.steering/` を作らない」分岐は使わせない。**
+> design-doc の起動時に「feature-pipeline 配下のため、タスク規模によらず `.steering/[date]-[task]/` と
+> design.md を必ず作成する」ことを指示に含める。理由: このスキルの現在地検出・各ゲート・フラグ
+> （`.codify-needed` / `.capture-needed`）・途中再開は、すべて `.steering/` の成果物に依存しており、
+> 会話内設計で進むとそれらが全て静かに失われる（20260703 の実地検証で確認）。
+> design-doc が `.steering/` を作らずに設計を提示し始めた場合は、Gate 1 の承認前に
+> タスクディレクトリと design.md を作成させてから承認に進む。
 
 ### ▣ Gate 1 — 設計レビュー（停止）
 
