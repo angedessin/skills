@@ -1,9 +1,9 @@
 ---
 name: impl-review
-description: "実装コードの品質レビューに使う — 「実装をレビューして」「コードが設計に合っているか確認して」「TypeScript の問題」「React パターンのレビュー」などのフレーズが対象。確認内容: design.md との整合性・docs/knowledge/ のプロジェクト規約・TypeScript 品質・React パターン・基本アクセシビリティ。単独または frontend-code-review の Step 2 として動作。テストコードのレビュー（test-review を使う）やテストインフラの監査には起動しない。"
+description: "実装コードの品質レビューに使う — 「実装をレビューして」「コードが設計に合っているか確認して」「TypeScript の問題」「React パターンのレビュー」などのフレーズが対象。確認内容: design.md との整合性・docs/knowledge/ のプロジェクト規約・TypeScript 品質・React パターン。アクセシビリティは対象外（review-a11y の担当）。単独または frontend-code-review の Step 2 として動作。テストコードのレビュー（test-review を使う）やテストインフラの監査には起動しない。"
 compatibility: "React / TypeScript"
 metadata:
-  version: "1.1"
+  version: "1.2"
 ---
 
 # Impl Review
@@ -14,6 +14,7 @@ metadata:
 ## When NOT to use
 
 - テストコードのレビュー → `test-review`
+- アクセシビリティのレビュー → `review-a11y`（基本セマンティクス・aria-label 等を含む。単独利用時もこのスキルでは見ない）
 - テストインフラ（vitest 設定・カバレッジ設定）の監査 → 本スキルの対象外
 - 深いレビューが必要 → `/code-review high` または `/code-review ultra` を追加で使う
 
@@ -32,7 +33,7 @@ BASE=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^o
 
 ---
 
-## 5つのレビュー軸
+## 4つのレビュー軸
 
 ### Axis 1 — 設計整合性（最重要・このスキル固有）
 
@@ -120,26 +121,13 @@ function Card({ title }: { title: string }) {
 
 ---
 
-### Axis 5 — アクセシビリティ（基本）
+### 担当外 — アクセシビリティ
 
-```tsx
-// Bad: インタラクティブな div
-<div onClick={handleSubmit} className="btn">送信</div>
-
-// Good: セマンティックな要素
-<button type="button" onClick={handleSubmit}>送信</button>
-
-// Bad: aria-label なしのアイコンボタン
-<button onClick={handleClose}><XIcon /></button>
-
-// Good
-<button onClick={handleClose} aria-label="閉じる"><XIcon /></button>
-```
-
-**チェック項目**:
-- `<div onClick>` → `<button>` への置き換え候補
-- インタラクティブ要素に `aria-label` or `aria-labelledby` があるか
-- `<img>` に `alt` があるか
+アクセシビリティ（`<div onClick>` のセマンティクス・aria-label・alt などの基本項目を含む）は
+**review-a11y の単独担当**。このスキルでは指摘しない — 並列実行時に同一指摘が重複し、
+統合コストと越境の温床になるため（20260705 に境界を修正。実測で本スキルの a11y 指摘は
+全件 review-a11y と重複していた）。単独利用でアクセシビリティも見たい場合は
+review-a11y をあわせて実行する。
 
 ---
 
@@ -160,9 +148,6 @@ function Card({ title }: { title: string }) {
 
 ### Axis 4 — React
 - [components/Form.tsx:L34] useEffect の deps に `userId` が抜けている
-
-### Axis 5 — アクセシビリティ
-- [components/Modal.tsx:L8] `<div onClick={close}>` → `<button>` に変更
 
 ### サマリー
 - 確認したファイル: N件

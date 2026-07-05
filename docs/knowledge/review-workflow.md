@@ -20,8 +20,9 @@
 
 **改善候補（A/B を待たず確定でやれるもの）:**
 
-1. impl-review と review-a11y の境界修正 — impl-review の担当から「基本アクセシビリティ」を外し、
-   両 SKILL.md に相互明記する（skill-design-patterns の「境界の相互明記」パターン適用）
+1. ~~impl-review と review-a11y の境界修正~~ — **実施済み（20260705）**。impl-review の担当から
+   「基本アクセシビリティ」を外し、両 SKILL.md に相互明記した（skill-design-patterns の「境界の相互明記」パターン適用。
+   impl-review は 4 軸になり、オーケストレーターの a11y 重複統合ルールも削除）
 2. 軸条件付き dispatch — フル/軽量の 2 択に「diff 内容で dispatch する軸を選ぶ」中間段階を追加。
    ただし security は無害に見える diff に潜むため、事前フィルタで漏らすリスクとのトレードオフ
 3. 受動的にサンプルを貯める — 実レビューのたびに review-result.md が増える。N≥3 で本ファイルを更新して再判定

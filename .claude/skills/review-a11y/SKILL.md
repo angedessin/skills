@@ -3,13 +3,15 @@ name: review-a11y
 description: "フロントエンドのアクセシビリティレビューに使うサブスキル。セマンティクス・ARIA・フォーカス管理・キーボード操作の観点で確認する。frontend-code-review オーケストレーターからの並列呼び出しを想定。単独でも使用可。"
 compatibility: "React / TypeScript（a11y 観点はフレームワーク中立）"
 metadata:
-  version: "1.1"
+  version: "1.2"
 ---
 
 # Review — Accessibility
 
 フロントエンドのアクセシビリティ観点からコードを審査する。
 `frontend-code-review` のフルモードで並列実行されるサブスキル。
+
+アクセシビリティは**このスキルの単独担当**（`<div onClick>` のセマンティクス・aria-label・alt などの基本項目を含む）。impl-review はアクセシビリティを見ない（20260705 に境界を修正 — 以前は「基本 a11y」が重複していた）。逆に、TypeScript 品質・React パターン・設計整合性は impl-review の担当で、このスキルでは見ない。
 
 ## スコープ
 

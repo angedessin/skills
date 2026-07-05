@@ -2,7 +2,7 @@
 name: frontend-code-review
 description: "実装後のコードレビューに使う — 「コードをレビューして」「レビューしよう」「コードレビュー」「実装を確認して」などのフレーズが対象。diff トリアージでモードを判定し、ロジック/コンポーネント変更はフルモード（7エージェント並列）、リファクタリング/スタイルのみは軽量モード（直列）で実行。結果を .steering/[task]/review-result.md に書き込む。"
 metadata:
-  version: "1.1"
+  version: "1.2"
 ---
 
 # Frontend Code Review
@@ -118,7 +118,7 @@ subagent はセッション履歴もスキル定義も持たない。**サブス
 
 - **impl-agent**: `impl-review` スキルの全ロジックを実行
   - スコープ: `.ts`・`.tsx`（テストファイルを除く）
-  - 5軸: 設計整合性・プロジェクト規約・TypeScript・React・基本 a11y
+  - 4軸: 設計整合性・プロジェクト規約・TypeScript・React（a11y は a11y-agent の単独担当）
 
 - **security-agent**: `review-security` スキルの全ロジックを実行
   - スコープ: `.ts`・`.tsx`（テストファイルを除く）
@@ -166,7 +166,6 @@ subagent はセッション履歴もスキル定義も持たない。**サブス
 
 複数エージェントが**同一 file:line** に対して同趣旨の指摘を返した場合は1件に統合し、最も専門的なサブスキルの軸に帰属させる:
 
-- impl-review の「アクセシビリティ（基本）」× review-a11y の指摘 → **review-a11y** に帰属
 - impl-review の「TypeScript 品質」× review-security の型安全指摘 → **review-security** に帰属
 - impl-review の「TypeScript 品質」× review-correctness の null/undefined 指摘 → **review-correctness** に帰属（型注釈の雑さのみなら impl-review に残す）
 - impl-review の「React パターン」× review-correctness の非同期レース/stale closure 指摘 → **review-correctness** に帰属
