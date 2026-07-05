@@ -18,16 +18,16 @@ Last updated: 20260705
 - [x] lint 違反編集 → 差し戻し → 自己修正 → 通過のループ確認（スクリプト直接実行で機構検証済み。整形通知 A / 差し戻し B / 修正後通過も確認）
 - [x] 一時 tsconfig + 一時 TS ファイルで型エラー → Stop 差し戻し → 修正 → 通過の確認 → 撤去（tsc 実測約 1 秒）
 - [x] stop_hook_active ガードの動作確認（true 時は警告のみで exit 0 を確認）
-- [ ] セッション再起動後、実 hook 発火での生ループ確認（settings.json の hook はセッション開始時に読まれるため今セッションでは発火しない）
+- [x] セッション再起動後、実 hook 発火での生ループ確認（20260705 実施: PostToolUse 差し戻し / reformatted 通知 / Stop 差し戻し・通過の3点とも実 hook 発火で確認済み）
 
 ## Docs / Deploy
 
 - [x] docs/knowledge/claude-code-config.md に配布手順（コピー対象・settings スニペット・tsc 閾値ルール）を追記（design.md 承認済みスコープ）
-- [ ] コミット（hook 2 本 + settings + biome/package/lockfile + docs）— ユーザー指示待ち
+- [x] コミット（276dcad — hook 2 本 + settings + biome/package/lockfile + docs + .steering）
 
 ## Compound
 
-- [ ] compound スキルの実行（hook 作成で得たパターンの昇格判断）
+- [x] compound スキルの実行（hook 作成で得たパターンの昇格判断。20260705: Stop hook 発火特性を docs/knowledge/claude-code-config.md に追記、他2件は既存反映済みのため見送り）
 
 ## Knowledge
 
