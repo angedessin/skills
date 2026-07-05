@@ -1,4 +1,4 @@
-1# Tasklist: lint-verification-loop
+# Tasklist: lint-verification-loop
 
 Last updated: 20260705
 
@@ -31,5 +31,5 @@ Last updated: 20260705
 
 ## Knowledge
 
-- [ ] knowledge-capture スキルの実行
-- [ ] steering archive モードでアーカイブ
+- [x] knowledge-capture スキルの実行（20260705: hook 出力の AI 向け設計原則 → claude-code-config.md、Biome 採用 ADR → docs/decisions/、レビュー軸重複分析 → docs/knowledge/review-workflow.md 新規）
+- [x] steering archive モードでアーカイブ
