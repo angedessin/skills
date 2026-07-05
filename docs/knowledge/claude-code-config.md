@@ -59,6 +59,12 @@ echo "次回セッションで knowledge-capture をリマインドします"
 touch "$flag" && echo "次回セッションで knowledge-capture をリマインドします"
 ```
 
+**hook の出力は AI が消費する前提で設計する。**
+lint 検証ループの実装（20260705）で確立した 2 原則:
+
+- **無音の自動修正をしない**: hook がファイルを書き換えたら「reformatted: [file]」の 1 行を `additionalContext`（PostToolUse の JSON 出力）で AI に返す。無音の書き換えは AI のファイル状態の記憶を古くし、次の Edit の old_string 不一致（二次被害）を招く
+- **人間向けの装飾出力を AI に流さない**: 進捗バー・罫線・カラー・サマリはコンテキストの浪費。診断行（ファイル:行:ルール:メッセージ）だけを grep で抽出して stderr に返す。診断行ゼロの失敗（設定エラー等）のみ生出力にフォールバック
+
 ---
 
 ※ このファイルは開発が進むにつれ knowledge-capture / compound スキルによって更新される。
