@@ -78,6 +78,48 @@ touch "$flag" && echo "次回セッションで knowledge-capture をリマイ�
 
 ---
 
+## lint 検証ループ hook の配布（post-edit-lint / stop-typecheck）
+
+AI の編集を機械が検証して差し戻す「閉じたループ」の配布物（20260704-lint-verification-loop で作成・検証済み）。
+このリポジトリがマスター。配置先で直接編集せず、改善はマスターに還元して再コピーで配る。
+
+**コピーするファイル（2 本）:**
+
+- `.claude/hooks/post-edit-lint.sh` — Edit/Write のたびに編集ファイルだけを lint。Biome（`biome.json(c)`）→ ESLint（`eslint.config.*`、Biome 不在時のみ）→ Stylelint（scss/css）を自動検出。自動修正で残る違反を exit 2 + stderr で AI に差し戻す
+- `.claude/hooks/stop-typecheck.sh` — 終了宣言時に `tsc --noEmit --incremental`（`tsconfig.json` がある場合のみ）。`stop_hook_active` ガード付き
+
+**settings.json スニペット:**
+
+```jsonc
+"hooks": {
+  "PostToolUse": [
+    {
+      "matcher": "Edit|Write",
+      "hooks": [
+        { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-edit-lint.sh", "timeout": 30 }
+      ]
+    }
+  ],
+  "Stop": [
+    {
+      "hooks": [
+        { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/stop-typecheck.sh", "timeout": 120 }
+      ]
+    }
+  ]
+}
+```
+
+**配置時の注意:**
+
+- 両 hook はフェイルオープン設計: jq・設定ファイル・`node_modules/.bin/` のツールが無ければ無音で素通し。未整備プロジェクトにコピーしても編集を阻害しない（lint は品質ゲートでありセキュリティゲートではないため。guard 系 hook のフェイルクローズとは方針が逆）
+- 配置時に `time pnpm exec tsc --noEmit --incremental` の 2 回目（キャッシュ有効）を計測し、**20〜30 秒を超えるプロジェクトでは stop-typecheck を settings.json から外して CI に移す**（終了のたびに待たされる体感悪化がループの利益を上回る）
+- `tsc --incremental` は `*.tsbuildinfo` を生成する — .gitignore に追加する
+- ツール検出は `node_modules/.bin/` の存在チェック（pnpm 起動オーバーヘッドを毎編集で払わない）。依存をルート以外に置くモノレポでは検出されない
+- settings.json の hook 変更はセッション開始時に読まれる — 配線後は `/hooks` で確認するかセッションを再起動してから検証する
+
+---
+
 ## headless（claude -p）でのスキル・ガードレール検証
 
 配置先のスキル読み込み・permissions・hooks は `claude -p` で安価に検証できる（モデルは haiku で十分。20260703 の初回配置検証で実施）。
