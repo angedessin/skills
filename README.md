@@ -99,6 +99,12 @@
 | [`review-correctness`](.claude/skills/review-correctness/SKILL.md) | ロジック正当性。境界条件・null/undefined・非同期レース/stale closure・状態遷移/エラー握りつぶしの4軸 |
 | [`review-ui`](.claude/skills/review-ui/SKILL.md) | UI 品質。レイアウト・レスポンシブ / デザイン整合（トークンは references をカートリッジとして配置先で再生成） / UX 状態網羅（loading・error・empty・disabled）の3軸 |
 
+### 統合
+
+| スキル | 役割 |
+|---|---|
+| [`pr-create`](.claude/skills/pr-create/SKILL.md) | 変更を PR として提出。コミット状態の確認 → デフォルトブランチ直を避けるブランチ作成 → 差分からタイトル/本文作成 → **プッシュ/PR 作成前に明示承認**（外向き操作）→ CI 追跡。**マージはしない**（人間の判断）。具体コマンドは [references/commands.md](.claude/skills/pr-create/references/commands.md)（カートリッジ — 別ホストは差し替え）。リモート/PR ホストが無ければ案内して停止 |
+
 ### ナレッジ管理・自己改善
 
 | スキル | 役割 |

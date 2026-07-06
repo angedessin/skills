@@ -9,12 +9,11 @@ Tech stack: React / TypeScript / Vitest / React Testing Library / MSW / Playwrig
 2. `design.md` 作成後は人間のレビュー待ちで止まること（実装に入らない）
 3. 作業完了後は必ず `tasklist.md` を更新すること
 
-セッション開始時:
-1. 必ず `find .steering \( -name '.capture-needed' -o -name '.codify-needed' \) -not -path '*/archived/*' 2>/dev/null` を Bash で実行して確認
-2. `.capture-needed` があれば「前回セッションのナレッジが未保存です。knowledge-capture を実行しますか？」と確認
-3. `.codify-needed` があれば「compound 未実行の学びがあります。compound を実行しますか？」と確認
-4. `.steering/` のアクティブタスクをすべて読んでから作業開始
-5. 複数のアクティブタスクがある場合はどれを再開するか確認
+セッション開始時（未処理フラグ `.capture-needed` / `.codify-needed` とアクティブタスク一覧は SessionStart hook `session-start-check.sh` が検出して context に注入する。手動 find は不要）:
+1. `.capture-needed` が注入されたら「knowledge-capture を実行しますか？」と確認
+2. `.codify-needed` が注入されたら「compound を実行しますか？」と確認
+3. `.steering/` のアクティブタスクをすべて読んでから作業開始
+4. 複数のアクティブタスクがある場合はどれを再開するか確認
 
 ## スキル管理ルール
 

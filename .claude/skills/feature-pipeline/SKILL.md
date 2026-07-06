@@ -205,7 +205,7 @@ Gate 3 通過後:
 
 1. リポジトリの運用を確認する: PR ベース運用（リモート + CI あり）か、main 直コミット運用か
    - **直コミット運用・CI なし** → このフェーズはコミット済みであることの確認のみでスキップしてよい。`tasklist.md` の Deploy 項目に「スキップ（直コミット運用）」と記録して Phase 4 へ
-2. PR ベース運用の場合: `pr-create` スキル（ビルトイン）で PR を作成する（無ければ `gh pr create`）
+2. PR ベース運用の場合: `pr-create` スキルで PR を作成する（未配置なら `gh pr create` で代替）
 3. CI の結果を確認する（グリーンになるまで Phase 4 へ進まない。失敗したら修正 — 重い修正は Phase 2 の作法に戻る）
 
 ### ▣ Gate 3.5 — マージ判断（停止）
@@ -299,7 +299,7 @@ CI グリーンを確認したらユーザーにマージ判断を仰ぐ。**マ
 - `impl-from-design` — Phase 2。承認済み設計からの実装（内部で `tdd`）
 - `e2e` — Phase 2。クリティカルパスの E2E テスト
 - `frontend-code-review` — Phase 3。レビューのオーケストレーター
-- `pr-create` — Phase 3.5。PR 作成（ビルトイン。無ければ `gh pr create`）
+- `pr-create` — Phase 3.5。PR 作成（未配置なら `gh pr create`）。マージはしない（Gate 3.5 は人間）
 - `knowledge-capture` — Phase 4a。知見を docs/ に保存
 - `compound` — Phase 4b。学びをルール・スキル・lint に昇格
 - `steering` — `.steering/` のライフサイクル（resume / archive / status）。Phase 5 のアーカイブで使う

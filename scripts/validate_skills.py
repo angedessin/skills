@@ -9,8 +9,9 @@
   5. metadata.version がある
 
 使い方:
-  python3 scripts/validate_skills.py            # .claude/skills/ 全体
-  python3 scripts/validate_skills.py <dir>      # 指定ディレクトリ配下の各スキル
+  python3 scripts/validate_skills.py                 # .claude/skills/ 全体
+  python3 scripts/validate_skills.py <dir>           # 指定ディレクトリ配下の各スキル
+  python3 scripts/validate_skills.py --skill <dir>   # 単一スキル（そのディレクトリ自体）のみ
 終了コード: 0 = 全 PASS / 1 = FAIL あり
 """
 import re
@@ -59,7 +60,23 @@ def validate(skill_dir: Path) -> list[str]:
 
 
 def main() -> None:
-    root = Path(sys.argv[1]) if len(sys.argv) > 1 else (
+    args = sys.argv[1:]
+    # 単一スキルモード（PostToolUse hook が編集された 1 スキルだけを検証する用途）
+    if args and args[0] == "--skill":
+        if len(args) < 2:
+            print("--skill にはスキルディレクトリのパスが必要です")
+            sys.exit(1)
+        d = Path(args[1])
+        errs = validate(d)
+        if errs:
+            print(f"FAIL  {d.name}")
+            for e in errs:
+                print(f"      - {e}")
+            sys.exit(1)
+        print(f"PASS  {d.name}")
+        sys.exit(0)
+
+    root = Path(args[0]) if args else (
         Path(__file__).resolve().parent.parent / ".claude" / "skills"
     )
     dirs = sorted(d for d in root.iterdir() if d.is_dir())
