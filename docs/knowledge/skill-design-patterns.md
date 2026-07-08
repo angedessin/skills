@@ -130,4 +130,23 @@ description・When NOT to use・出口分岐の一句として書かれた「承
 
 ---
 
+## リポジトリ構成: スキル・スキル内リソース・マスター専用ツールを区別する
+
+配置の基準は Agent Skills 公式仕様（Anthropic 発のオープン標準・Claude Code が準拠）に沿う。
+一次情報: https://agentskills.io（クロスベンダー仕様）/ https://code.claude.com/docs/en/skills（Claude Code 固有の配置パス）。
+
+| 種類 | 置き場所 | 例 |
+|---|---|---|
+| スキル本体 | `.claude/skills/[kebab-name]/SKILL.md` | 各スキル |
+| スキルが実行時に使うリソース | そのスキルフォルダ内 `references/`・`scripts/`・`assets/` | カートリッジ・参照 |
+| マスター専用ツール（非配布・作成/検証用） | リポジトリ**ルート直下** | `scripts/validate_skills.py`・`templates/SKILL.template.md` |
+
+- 新規スキルの作成雛形は**スキルではない**ので `.claude/skills/_template/` に置かない
+  （validator の走査対象・スキル一覧の誤認を招く）。`scripts/` と同じルート直下が正しい。
+- **用語の重なりに注意**: 仕様上 `templates/` は「各スキルがスキルフォルダ内に持つファイル雛形」を指す。
+  ルート直下の `templates/`（＝スキル作成用のメタ雛形）とは意味が別。README でスコープを明記して混同を防ぐ。
+- 「スキルフォルダ内に README.md を置かない」は**スキルフォルダ内**の規約。ルート直下の `templates/README.md` は対象外。
+
+---
+
 ※ このファイルは開発が進むにつれ knowledge-capture / compound スキルによって更新される。

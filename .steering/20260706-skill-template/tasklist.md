@@ -23,5 +23,5 @@ Last updated: 20260708
 
 ## Knowledge
 
-- [ ] knowledge-capture スキルの実行
+- [x] knowledge-capture スキルの実行（skill-design-patterns.md にリポジトリ構成の節を追記）
 - [ ] steering archive モードでアーカイブ
