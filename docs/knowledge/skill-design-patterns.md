@@ -77,6 +77,7 @@ review-ui:          「エラーが握りつぶされる問題は review-correct
 - 新規スキルの受け入れ基準に「本文（frontmatter 除く）のツール固有 API 出現数」の実測を入れる。目標はほぼゼロ
 - 計測は機械的に行う（ツール名・API 名のリストを文字列カウントで当てる）
 - ツール語彙を置いてよいのは compatibility frontmatter と references/ のみ
+- 新規スキルは `templates/SKILL.template.md` から書き始める（frontmatter 骨格・When NOT to use・手順 Step のフォールバック・ハードストップ雛形・並列サブスキルの境界相互明記プレースホルダを最初から構造として持つ）。この節・`validate_skills.py` を更新したらテンプレも同一コミットで直す（下記「片側修正の禁止」）
 
 ---
 
