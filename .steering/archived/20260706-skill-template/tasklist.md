@@ -19,9 +19,11 @@ Last updated: 20260708
 
 ## Deploy
 
-- [ ] コミット（テンプレ + CLAUDE.md + skill-design-patterns.md + compound を同一コミットで）
+- [x] コミット 87d0ac5（テンプレ + CLAUDE.md + skill-design-patterns.md + compound を同一コミットで）
 
 ## Knowledge
 
 - [x] knowledge-capture スキルの実行（skill-design-patterns.md にリポジトリ構成の節を追記）
-- [ ] steering archive モードでアーカイブ
+- [x] steering archive モードでアーカイブ
+
+Archived: 20260708
