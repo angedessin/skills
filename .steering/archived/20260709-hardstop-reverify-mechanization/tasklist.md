@@ -32,9 +32,12 @@ Last updated: 20260709
 
 ## Compound
 
-- [ ] compound スキルの実行（検証結果からルール・知識への昇格候補を判断）
+- [-] compound スキルの実行 — 見送り（ユーザー選択。機械化は既存「説明文→hook/script」パターンの
+      横展開で新ルール昇格の必要が薄い。将来 compound を回す場合はドリフト検出/テンプレ検証の運用知見を候補に）
 
 ## Knowledge
 
-- [ ] knowledge-capture スキルの実行（ハードストップ検証結果は skill-design-patterns.md の既存節に追記候補）
-- [ ] steering archive モードでアーカイブ
+- [x] knowledge-capture 実行（skill-design-patterns.md「ハードストップ」節に再検証結果＋素通り検査手法を追記）
+- [x] steering archive モードでアーカイブ
+
+Archived: 20260709
