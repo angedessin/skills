@@ -12,6 +12,7 @@
   python3 scripts/validate_skills.py                 # .claude/skills/ 全体
   python3 scripts/validate_skills.py <dir>           # 指定ディレクトリ配下の各スキル
   python3 scripts/validate_skills.py --skill <dir>   # 単一スキル（そのディレクトリ自体）のみ
+  python3 scripts/validate_skills.py --template      # templates/SKILL.template.md（プレースホルダ許容）
 終了コード: 0 = 全 PASS / 1 = FAIL あり
 """
 import re
@@ -19,11 +20,17 @@ import sys
 from pathlib import Path
 
 
-def validate(skill_dir: Path) -> list[str]:
+def validate(skill_dir: Path, template_mode: bool = False) -> list[str]:
+    """スキルの frontmatter・構造を検証する。
+
+    template_mode=True は templates/SKILL.template.md 用。値はプレースホルダ（[...] 形式）でも
+    許容し、構造（frontmatter の存在・キー・行数・文字種）だけを検査する。
+    name がディレクトリ名と一致する検査だけはテンプレでは意味を持たないためスキップする。
+    """
     errors = []
-    p = skill_dir / "SKILL.md"
+    p = skill_dir if template_mode else skill_dir / "SKILL.md"
     if not p.exists():
-        return ["SKILL.md が存在しない"]
+        return [f"{p.name} が存在しない"]
     t = p.read_text(encoding="utf-8")
 
     m = re.match(r"^---\n(.*?)\n---\n", t, re.S)
@@ -34,7 +41,7 @@ def validate(skill_dir: Path) -> list[str]:
     nm = re.search(r"^name: (\S+)$", fm, re.M)
     if not nm:
         errors.append("name が無い")
-    elif nm.group(1) != skill_dir.name:
+    elif not template_mode and nm.group(1) != skill_dir.name:
         errors.append(f'name "{nm.group(1)}" がディレクトリ名 "{skill_dir.name}" と不一致')
 
     dm = re.search(r'^description: "(.+)"$', fm, re.M)
@@ -61,6 +68,21 @@ def validate(skill_dir: Path) -> list[str]:
 
 def main() -> None:
     args = sys.argv[1:]
+    # テンプレートモード（templates/SKILL.template.md をプレースホルダ許容で検証）
+    if args and args[0] == "--template":
+        tpl = (
+            Path(args[1]) if len(args) > 1
+            else Path(__file__).resolve().parent.parent / "templates" / "SKILL.template.md"
+        )
+        errs = validate(tpl, template_mode=True)
+        if errs:
+            print(f"FAIL  {tpl.name} (template)")
+            for e in errs:
+                print(f"      - {e}")
+            sys.exit(1)
+        print(f"PASS  {tpl.name} (template)")
+        sys.exit(0)
+
     # 単一スキルモード（PostToolUse hook が編集された 1 スキルだけを検証する用途）
     if args and args[0] == "--skill":
         if len(args) < 2:
