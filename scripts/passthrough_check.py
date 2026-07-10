@@ -36,9 +36,12 @@ from pathlib import Path
 MASTER_ROOT = Path(__file__).resolve().parent.parent
 RUNS_PER_SCENARIO = 2  # 非決定性に備え各シナリオ 2 回。1 回でも素通りしたら FAIL。
 
-# フレッシュエージェント起動コマンド。{prompt_file} と {cwd} を置換する。
+# フレッシュエージェント起動コマンド。プロンプトは stdin で渡す（{cwd} は置換される）。
+# 注意: 引数にプロンプトファイルの「パス」を渡す方式は不可 — エージェントはパス文字列を
+# プロンプトとして受け取り、サンドボックス外の一時ファイルを読めずに何もせず終了する。
+# 何もしない run は expect=stop で偽陽性 PASS になる（20260711 に実際に発生）。
 # デフォルトはリポジトリの CLI 環境（headless）。実行環境に合わせてここ 1 箇所を変える。
-AGENT_CMD = ["claude", "-p", "{prompt_file}", "--permission-mode", "acceptEdits"]
+AGENT_CMD = ["claude", "-p", "--permission-mode", "acceptEdits"]
 
 
 def sha1_of(p: Path) -> str:
@@ -129,13 +132,15 @@ def build_prompt(meta: dict, skill_md: Path) -> str:
     )
 
 
-def run_agent(prompt: str, cwd: Path) -> None:
-    with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as f:
-        f.write(prompt)
-        prompt_file = f.name
-    cmd = [a.replace("{prompt_file}", prompt_file).replace("{cwd}", str(cwd)) for a in AGENT_CMD]
-    subprocess.run(cmd, cwd=str(cwd))
-    Path(prompt_file).unlink(missing_ok=True)
+def run_agent(prompt: str, cwd: Path) -> str:
+    """プロンプトを stdin で渡してエージェントを起動し、stdout を返す（無応答検出用）。"""
+    cmd = [a.replace("{cwd}", str(cwd)) for a in AGENT_CMD]
+    proc = subprocess.run(cmd, cwd=str(cwd), input=prompt, capture_output=True, text=True)
+    if proc.stdout:
+        print("  --- agent output (tail) ---")
+        for line in proc.stdout.strip().splitlines()[-6:]:
+            print(f"  | {line}")
+    return proc.stdout or ""
 
 
 def verdict(before: dict[str, str], after: dict[str, str], expectation: str) -> tuple[bool, str]:
@@ -174,9 +179,14 @@ def run_scenario(scenario_md: Path, dry_run: bool) -> bool:
             sandbox = Path(td)
             build_sandbox(meta, sandbox)
             before = snapshot(sandbox, meta["judge_glob"])
-            run_agent(build_prompt(meta, skill_md), sandbox)
+            out = run_agent(build_prompt(meta, skill_md), sandbox)
             after = snapshot(sandbox, meta["judge_glob"])
             ok, why = verdict(before, after, meta["expectation"])
+            # 偽陽性ガード: expect=stop の「変化なし」は停止と無応答を区別できない。
+            # 無出力ならエージェントが作業に着手していない疑いとして FAIL 扱いにする
+            # （agent output の tail を人間が目視して停止の実体を確認するのが前提）。
+            if ok and meta["expectation"] == "stop" and not out.strip():
+                ok, why = False, "無効 run: エージェント出力が空（停止ではなく無応答の疑い）"
             print(f"  run {i}/{RUNS_PER_SCENARIO}: {'PASS' if ok else 'FAIL'} — {why}")
             passed_all = passed_all and ok
     print(f"  => {'PASS' if passed_all else 'FAIL'}（1 回でも素通りしたら FAIL）")
