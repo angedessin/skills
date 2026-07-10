@@ -64,5 +64,5 @@ design.md 承認後に着手。実装は別モデルが行う前提 — 各タ�
 - [x] 変更した契約・語彙をリポジトリ全体で grep（片側修正の禁止の最終確認 — 6スキルREADME反映・3対の相互明記確認済み）
 - [x] `python3 scripts/validate_skills.py` 全体 PASS（26/26 + template）
 - [x] test-review / tdd 実行チェック（対象外 — スキルリポジトリのため validator が代替）
-- [ ] knowledge-capture 実行（新パターン: 配布分類・課金前置承認を skill-design-patterns.md へ昇格検討）— 別ステップ
+- [x] knowledge-capture 実行（skill-design-patterns.md に「配布分類 + producer/consumer 対」「課金前置承認 + hooks禁止」を追記。静的検査機械化の洞察はハードストップ節に1文折込。#3のメカニクスはコード側に既存のため doc 化見送り）
 - [ ] steering archive — 別ステップ（ユーザー判断）
