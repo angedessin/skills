@@ -9,6 +9,7 @@ metadata:
 
 `.steering/` ディレクトリのライフサイクルを管理するインフラスキル。
 設計・実装ワークフローから独立した独立ツール。
+<!-- validator: no-stop-needed — 本文の「APPROVED」は design.md の Status 値の引用（例示・表示）であり、このスキル自身は承認ゲートを持たない。承認を伴う停止は design-doc / impl-from-design の担当。 -->
 
 ## When NOT to use
 

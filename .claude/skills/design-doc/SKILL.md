@@ -71,6 +71,16 @@ metadata:
 
 ---
 
+## Phase 2.5 — プレモータムの提案（任意・必須にしない）
+
+`design.md` を人間レビュー（Phase 3）に出す前に、`design-premortem` スキルが**存在すれば**敵対的レビューの実行を**提案する**。ユーザーが望めば起動し、所見を `design.md` の `## Premortem` に反映してから Phase 3 に進む。
+
+- **小さなタスクでは重い**ので必須にしない。提案だけして、断られたらそのまま Phase 3 へ。
+- `design-premortem` が無いプロジェクト（配置先で単体利用）ではこの Phase を黙ってスキップする。
+- プレモータムは設計を**承認しない**（承認は Phase 3 の人間ゲート）。設計の穴を洗い出して質を上げるだけ。
+
+---
+
 ## Phase 3 — STOP（必須）
 
 `design.md` を作成したら必ず以下のメッセージを表示して止まる:
@@ -135,5 +145,6 @@ metadata:
 ## Related skills
 
 - `steering` — `.steering/` のライフサイクル全体（resume / archive / status）
+- `design-premortem` — Phase 3 の前に任意で挟む敵対的レビュー（設計の穴出し・承認はしない）
 - `impl-from-design` — 設計承認後の実装フェーズ
 - `knowledge-capture` — セッション終了時の知見保存

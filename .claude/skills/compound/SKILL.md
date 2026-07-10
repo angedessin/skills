@@ -36,7 +36,7 @@ find .steering -maxdepth 2 \( -name "review-result.md" -o -name "decisions.md" -
 |---|---|
 | `.steering/[task]/review-result.md` | レビュー指摘のパターン（繰り返し出現するものを重視） |
 | `.steering/[task]/decisions.md` | 技術的判断とその理由 |
-| `.steering/[task]/skill-issues.md` | スキル自体の不具合（誤発動・曖昧な指示・裁量補完）。Step 2 でスキル改善候補にする |
+| `.steering/[task]/skill-issues.md` | スキル自体の不具合（誤発動・曖昧な指示・裁量補完）。Step 2 でスキル改善候補にする。`session-retrospective` がセッション終盤に採掘・起票する主要な供給元 |
 | `.steering/[task]/codify-log.md` | 過去に昇格したルールの履歴。Step 2 の効果検証（突合）に使う |
 | `docs/knowledge/` | 既存の知識（重複確認のため） |
 | `CLAUDE.md` | 既存ルールとの重複確認（同一ルールへの追記を防ぐ） |
@@ -226,6 +226,7 @@ EOF
 ## Related skills
 
 - `knowledge-capture` — ドキュメント保存（ADR・パターン集・語彙）が主眼
+- `session-retrospective` — このスキルの入力（skill-issues.md）を会話から採掘して供給する原料元
 - `rule-audit` — 対をなす剪定スキル（既存ルールの削除・統合・GC）。compound が増やし rule-audit が刈る
 - `frontend-code-review` — このスキルの入力（review-result.md）を生成する
 - `steering` — compound 完了後はアーカイブへ（steering archive モード）

@@ -7,16 +7,23 @@
 
 ## 推奨構成
 
-| セット | スキル | いつ入れるか |
-|---|---|---|
-| **最小** | design-doc / steering / frontend-code-review / impl-review / test-review / knowledge-capture | まず試すならこれ。設計ゲート + レビュー 2 軸 + 知見保存の最小複利ループ |
-| **拡張 1: レビュー厚み** | review-security / review-a11y / review-performance / review-correctness / review-ui | frontend-code-review のフルモード（7 エージェント並列）を使う場合 |
-| **拡張 2: ワークフロー** | impl-from-design / tdd / e2e / debug | 設計→実装の型・テスト駆動・E2E・障害調査まで揃える場合 |
-| **メタ層** | compound / rule-audit / empirical-prompt-tuning / feature-pipeline | 自己改善ループとオーケストレーションまで運用する場合（このマスター級の運用） |
+全スキルは**配布可**（他プロジェクトへコピー可）と**マスター専用**（このリポジトリの管理ツール・配布しない）に分かれる。下表の配布可否を確認して選ぶ。
+
+| セット | スキル | 配布可否 | いつ入れるか |
+|---|---|---|---|
+| **最小** | design-doc / steering / frontend-code-review / impl-review / test-review / knowledge-capture | 配布可 | まず試すならこれ。設計ゲート + レビュー 2 軸 + 知見保存の最小複利ループ |
+| **拡張 1: レビュー厚み** | review-security / review-a11y / review-performance / review-correctness / review-ui | 配布可 | frontend-code-review のフルモード（7 エージェント並列）を使う場合 |
+| **拡張 2: ワークフロー** | impl-from-design / tdd / e2e / debug / pr-create / pr-feedback | 配布可 | 設計→実装の型・テスト駆動・E2E・障害調査・PR 提出と往復まで揃える場合 |
+| **拡張 3: 設計品質・比較** | design-premortem / impl-tournament | 配布可 | 人間レビュー前の設計の穴出し・リスクの高いアプローチ選択の N 並列比較を使う場合（任意・impl-tournament は課金前置承認あり） |
+| **メタ層** | compound / rule-audit / empirical-prompt-tuning / feature-pipeline / session-retrospective | 配布可 | 自己改善ループとオーケストレーションまで運用する場合（このマスター級の運用） |
+| **マスター専用（配布しない）** | skill-test / skill-harvest | **master-only** | このリポジトリ（スキルのマスター）でのみ使う管理ツール。配置先にはコピーしない |
 
 - frontend-code-review はサブスキル未配置でも動く（未配置分をスキップして報告する縮退動作）
 - feature-pipeline は依存サブスキルが揃っている前提のため最小セットに含めない
 - compound の `.codify-needed` フラグによる自動起動は frontend-code-review 配置時のみ有効（フラグを立てるのが frontend-code-review のため）。メタ層を単独で配置した場合は明示呼び出しで使う
+- **pr-feedback は pr-create とセットで入れる**（提出と往復は対。片方だけでは往復の入口/出口が欠ける）
+- **session-retrospective は skill-harvest への供給側**。配置先に session-retrospective を併配すると、セッション摩擦が配置先の `skill-issues.md` に溜まり、マスターの skill-harvest がそれを還流できる（`.steering/**/skill-issues.md` を書くルールはマスターの CLAUDE.md にしか無いため、この併配が producer/consumer の対を成立させる）。`.steering/` 運用をしない配置先では harvest への供給は成立しない
+- **skill-test / skill-harvest はマスター専用**。配置先にコピーしても意味がない（skill-test はマスターの全スキルを検証対象にし、skill-harvest はマスターから配置先を見に行くツール）
 
 ## フロントエンド以外・別ワークフローのプロジェクトへの導入
 
@@ -31,7 +38,7 @@
 
 既存の開発ワークフロー（レビュー体制・ブランチ運用・チケット管理）があるプロジェクトでは、**スキル本文を書き換えず**、配置先 CLAUDE.md の発動ポリシー側で接続を定義する（例:「PR 作成は既存のチーム運用に従い、feature-pipeline の Phase 3.5 はスキップする」「設計レビューは design.md ではなく既存の Design Doc プロセスに読み替える」）。
 
-## 配置手順（6 ステップ）
+## 配置手順（7 ステップ）
 
 1. **選ぶ** — 上の表からプロジェクトに必要なスキルを選ぶ（全部入れない。無関係なスキルは誤発動の種）
 2. **コピー** — 配置先の `.claude/skills/` にディレクトリごとコピーする
@@ -53,11 +60,12 @@
    - `settings.local.json` はコピーしない（マシン固有の承認履歴）
    - 配置先の `.npmrc` に `ignore-scripts=true` を推奨（install 時の postinstall 実行 = サプライチェーン攻撃の主経路を既定で遮断。ビルドスクリプトが必要なパッケージだけ個別に許可する運用）
    - **配置後、配置先で一度対話セッションを起動して信頼ダイアログを承認する** — 未信頼のワークスペースでは settings.json の permissions.allow が無効化される（deny / hooks は有効）。headless 運用（`claude -p`）を始める前に必須
+7. **マスターの `deployments.md` に配置先を登録する** — 配置先プロジェクトの絶対パスを 1 行追記する（マスターのリポジトリルート `deployments.md`）。これで `skill-harvest`（および `check_deploy_drift.py` のレジストリモード）が、この配置先の再コピー候補・ドリフト・溜まった `skill-issues.md` を巡回できるようになる。スキル単位の記録は不要（どのスキルが入っているかは配置先の `source-commit` から発見される）
 
 ## ドリフト確認と改善の還元
 
-- **ドリフト確認**: マスターのリポジトリで `git diff <source-commit> -- .claude/skills/<name>` — 配置後にマスター側で入った改善が一覧できる
-- **改善の還元**: 配置先で直接編集しない。改善はマスターに還元し、再コピーで配る（コピー時に source-commit を更新する）
+- **ドリフト確認**: マスターのリポジトリで `git diff <source-commit> -- .claude/skills/<name>` — 配置後にマスター側で入った改善が一覧できる。複数配置先をまとめて巡回するなら `skill-harvest` スキル（`deployments.md` レジストリを読む）を使う
+- **改善の還元**: 配置先で直接編集しない。改善はマスターに還元し、再コピーで配る（コピー時に source-commit を更新する）。配置先に溜まった `skill-issues.md` は skill-harvest がマスターへ還流する（session-retrospective を併配していれば供給が続く）
 - **配置前チェック**: マスター側で `python3 scripts/validate_skills.py` が全 PASS であることを確認してからコピーする
 
 ## CLAUDE.md 雛形（発動ポリシー節のみ）

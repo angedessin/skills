@@ -19,6 +19,13 @@ diff の変更種別を判定し、適切なモードでレビューを実行す
 - ロジック正当性（境界条件・null・レース）のみ → `review-correctness` を直接使う
 - UI（レスポンシブ・デザイン整合・UX 状態）のみ → `review-ui` を直接使う
 
+## When NOT to use
+
+- 単一軸のレビューだけでよいとき → 上記の各 `review-*` / `test-review` / `impl-review` を直接使う（オーケストレーターは複数軸を並列で回すためのもの）。
+- テストの新規追加 → `tdd` の担当。
+- 新機能の設計 → `design-doc` の担当。
+- 提出済み PR のコメント・CI 失敗への対応 → `pr-feedback` の担当。
+
 ---
 
 ## Phase 1 — diff トリアージ

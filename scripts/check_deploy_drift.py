@@ -15,8 +15,13 @@ frontmatter の metadata.source-commit（配置時に記録されるマスター
 再生成される（starter-kit 手順4）ため意図的に差分が出る。比較に含めると誤検出になる。
 source-commit 行自体は配置時に付与されるため比較前に除去する。
 
+加えて、配置先に溜まった skill-issues.md を回収対象として報告する（読み取り専用）:
+回収済みマーカー <!-- harvested: YYYYMMDD --> より後に追記された項目だけを「新規」として
+報告する。マーカーの書き込みは行わない（承認後に skill-harvest スキルが行う）。
+
 使い方:
-  python3 scripts/check_deploy_drift.py <配置先プロジェクトのパス>
+  python3 scripts/check_deploy_drift.py                    # deployments.md の全配置先をループ
+  python3 scripts/check_deploy_drift.py <配置先パス>       # 単一配置先（既存互換）
 終了コード: 0 = ドリフトなし / 1 = ドリフトあり / 2 = 実行エラー
 """
 from __future__ import annotations
@@ -27,6 +32,8 @@ import sys
 from pathlib import Path
 
 MASTER_ROOT = Path(__file__).resolve().parent.parent
+REGISTRY = MASTER_ROOT / "deployments.md"
+HARVEST_MARKER = re.compile(r"<!--\s*harvested:\s*\d{8}\s*-->")
 
 
 def git(args: list[str]) -> subprocess.CompletedProcess:
@@ -83,27 +90,43 @@ def check_skill(name: str, deployed_skill_md: Path) -> list[str]:
     return flags
 
 
-def main() -> None:
-    args = sys.argv[1:]
-    if len(args) != 1:
-        print(__doc__)
-        sys.exit(2)
+def new_issues_after_marker(text: str) -> str:
+    """skill-issues.md 本文のうち、最後の回収済みマーカーより後の部分を返す。
 
-    if git(["rev-parse", "--git-dir"]).returncode != 0:
-        print(f"エラー: マスター {MASTER_ROOT} が git リポジトリではない")
-        sys.exit(2)
+    マーカーが無ければ全文が新規。マーカー以降が空白のみなら空文字（新規なし）。
+    このスクリプトは読み取り専用 — マーカーの書き込みはしない。
+    """
+    matches = list(HARVEST_MARKER.finditer(text))
+    tail = text[matches[-1].end():] if matches else text
+    return tail.strip()
 
-    deploy_root = Path(args[0]).expanduser()
+
+def collect_issues(deploy_root: Path) -> list[tuple[Path, str]]:
+    """配置先の .steering/**/skill-issues.md（archived 含む）から新規項目を集める。"""
+    steering = deploy_root / ".steering"
+    if not steering.is_dir():
+        return []
+    found: list[tuple[Path, str]] = []
+    for p in sorted(steering.rglob("skill-issues.md")):
+        new = new_issues_after_marker(p.read_text(encoding="utf-8"))
+        if new:
+            found.append((p, new))
+    return found
+
+
+def report_deploy(deploy_root: Path) -> int:
+    """1 配置先のドリフト + issues 回収を報告し、ドリフト件数を返す（-1 = 実行不能）。"""
     skills_dir = deploy_root / ".claude" / "skills"
     if not skills_dir.is_dir():
         print(f"エラー: 配置先にスキルディレクトリが無い: {skills_dir}")
-        sys.exit(2)
+        return -1
 
     skill_dirs = sorted(d for d in skills_dir.iterdir() if d.is_dir())
     if not skill_dirs:
         print(f"エラー: スキルが 1 つも無い: {skills_dir}")
-        sys.exit(2)
+        return -1
 
+    print(f"# 配置先: {deploy_root}")
     drifted = 0
     for d in skill_dirs:
         skill_md = d / "SKILL.md"
@@ -119,8 +142,70 @@ def main() -> None:
         else:
             print(f"OK    {d.name}")
 
-    print(f"\n{len(skill_dirs) - drifted}/{len(skill_dirs)} ドリフトなし")
-    sys.exit(1 if drifted else 0)
+    issues = collect_issues(deploy_root)
+    if issues:
+        print(f"\nISSUES 未回収の skill-issues.md（マーカー以降の新規項目）: {len(issues)} ファイル")
+        for path, _ in issues:
+            print(f"      - {path}")
+    else:
+        print("\nISSUES 新規の未回収項目なし")
+
+    print(f"{len(skill_dirs) - drifted}/{len(skill_dirs)} ドリフトなし\n")
+    return drifted
+
+
+def read_registry() -> list[Path]:
+    """deployments.md を読み、配置先パスの一覧を返す（# コメント・空行を無視）。"""
+    paths: list[Path] = []
+    for ln in REGISTRY.read_text(encoding="utf-8").splitlines():
+        s = ln.split("#", 1)[0].strip()
+        if s:
+            paths.append(Path(s).expanduser())
+    return paths
+
+
+def main() -> None:
+    args = sys.argv[1:]
+    if len(args) > 1:
+        print(__doc__)
+        sys.exit(2)
+
+    if git(["rev-parse", "--git-dir"]).returncode != 0:
+        print(f"エラー: マスター {MASTER_ROOT} が git リポジトリではない")
+        sys.exit(2)
+
+    # 単一配置先モード（既存互換）
+    if len(args) == 1:
+        deploy_root = Path(args[0]).expanduser()
+        drifted = report_deploy(deploy_root)
+        sys.exit(2 if drifted < 0 else (1 if drifted else 0))
+
+    # レジストリモード（引数なし）— deployments.md の全配置先をループ
+    if not REGISTRY.exists():
+        print(f"エラー: レジストリが無い: {REGISTRY}")
+        print("配置先の絶対パスを 1 行 1 件で列挙した deployments.md を作成してください。")
+        sys.exit(2)
+
+    roots = read_registry()
+    if not roots:
+        print(f"エラー: {REGISTRY} に配置先が 1 件も無い")
+        sys.exit(2)
+
+    total_drift = 0
+    errors = 0
+    for root in roots:
+        if not root.exists():
+            print(f"# 配置先: {root}\nエラー: パスが存在しない\n")
+            errors += 1
+            continue
+        d = report_deploy(root)
+        if d < 0:
+            errors += 1
+        else:
+            total_drift += d
+
+    print(f"=== 配置先 {len(roots)} 件 / ドリフト合計 {total_drift} / 実行不能 {errors} ===")
+    sys.exit(2 if errors else (1 if total_drift else 0))
 
 
 if __name__ == "__main__":

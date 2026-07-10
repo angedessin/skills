@@ -75,6 +75,7 @@ find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
 | 実装タスクが全チェック済み かつ `review-result.md` が無い | **Phase 3**（レビュー） |
 | `review-result.md` が存在し Status が `OPEN` | **Gate 3 で停止**（指摘の修正対応待ち） |
 | `review-result.md` の Status が `RESOLVED` または `DEFERRED` かつ `tasklist.md` の Deploy 項目に未チェックあり | **Phase 3.5**（PR / 統合。スキップ可） |
+| Deploy 項目に PR URL があり、レビューコメント/CI 失敗が返っている（ユーザーが往復対応を求めた・pr-create が返送を報告した） | **Phase 3.7**（PR 往復 = pr-feedback） |
 | `review-result.md` の Status が `RESOLVED` または `DEFERRED` かつ `capture_done` フラグが無い | **Phase 4**（知見蓄積） |
 | `capture_done` フラグあり | **Phase 5**（クローズ） |
 
@@ -208,9 +209,15 @@ Gate 3 通過後:
 2. PR ベース運用の場合: `pr-create` スキルで PR を作成する（未配置なら `gh pr create` で代替）
 3. CI の結果を確認する（グリーンになるまで Phase 4 へ進まない。失敗したら修正 — 重い修正は Phase 2 の作法に戻る）
 
+### Phase 3.7 — PR 往復（pr-feedback・フィードバックが返っている場合のみ）
+
+PR にレビューコメント・CI 失敗が返っている場合、`pr-feedback` スキルで対応する（未配置なら手動で: コメント/CI を収集 → トリアージ → 承認 → 修正 → 返信）。pr-feedback は内部に 2 つの承認 STOP（対応計画・外向き操作）を持つので、そのゲートを尊重する。フィードバックが無ければこの Phase をスキップして Gate 3.5 へ。
+
+CI 失敗の原因が PR の差分外にあると判明したら `debug` に接続する（pr-feedback の担当外）。
+
 ### ▣ Gate 3.5 — マージ判断（停止）
 
-CI グリーンを確認したらユーザーにマージ判断を仰ぐ。**マージは外向きの操作 — 承認なしに行わない。**
+CI グリーン・レビュー承認を確認したら **ここで止まり**、ユーザーにマージ判断を仰ぐ。**マージは外向きの操作 — 承認なしに行わない。**
 マージ完了（またはスキップ判断）後、`tasklist.md` の Deploy 項目を更新して Phase 4 へ:
 ```
 統合完了。知見蓄積フェーズに進みます。
@@ -300,6 +307,7 @@ CI グリーンを確認したらユーザーにマージ判断を仰ぐ。**マ
 - `e2e` — Phase 2。クリティカルパスの E2E テスト
 - `frontend-code-review` — Phase 3。レビューのオーケストレーター
 - `pr-create` — Phase 3.5。PR 作成（未配置なら `gh pr create`）。マージはしない（Gate 3.5 は人間）
+- `pr-feedback` — Phase 3.7。提出済み PR に返ったコメント・CI 失敗の往復対応（2 つの承認 STOP を持つ）
 - `knowledge-capture` — Phase 4a。知見を docs/ に保存
 - `compound` — Phase 4b。学びをルール・スキル・lint に昇格
 - `steering` — `.steering/` のライフサイクル（resume / archive / status）。Phase 5 のアーカイブで使う
