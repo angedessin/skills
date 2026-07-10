@@ -65,4 +65,7 @@ design.md 承認後に着手。実装は別モデルが行う前提 — 各タ�
 - [x] `python3 scripts/validate_skills.py` 全体 PASS（26/26 + template）
 - [x] test-review / tdd 実行チェック（対象外 — スキルリポジトリのため validator が代替）
 - [x] knowledge-capture 実行（skill-design-patterns.md に「配布分類 + producer/consumer 対」「課金前置承認 + hooks禁止」を追記。静的検査機械化の洞察はハードストップ節に1文折込。#3のメカニクスはコード側に既存のため doc 化見送り）
-- [ ] steering archive — 別ステップ（ユーザー判断）
+- [x] steering archive
+- 未着手のまま持ち越し（任意）: skill-test の残シナリオ整備（impl-from-design / debug / pr-create / 新設4スキル分）。design で「任意・デフォルトで回さない」と確定済み。必要になったら別タスクで。
+
+Archived: 20260711
