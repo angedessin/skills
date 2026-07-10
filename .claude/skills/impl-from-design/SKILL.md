@@ -2,7 +2,7 @@
 name: impl-from-design
 description: "承認済みデザインドキュメントに基づく実装に使う — 「実装を開始して」「設計から実装して」「設計が承認された、作ろう」などのフレーズが対象。.steering/[task]/design.md の Status が APPROVED である必要がある。design.md がない・DRAFT の場合は design-doc にリダイレクト。.steering/ コンテキストなしの汎用「実装して」リクエストには起動しない。"
 metadata:
-  version: "1.2"
+  version: "1.3"
 ---
 
 # Impl from Design
@@ -114,7 +114,7 @@ TDD のパターンと実行コマンドは `.claude/skills/tdd/references/patte
 **Green — 最小実装でパスさせる**
 
 - テストを通す最小限のコードを書く（過剰実装しない）
-- テストランナーで実行してグリーンを確認する
+- テストランナーで実行してグリーンを確認する。**新しいテストだけでなく既存の全テストが緑**であることを確認する（別の箇所を壊していないことまで含めて Green）
 
 **Refactor — テストが緑のまま整理する**
 
