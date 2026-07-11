@@ -57,13 +57,13 @@
       ↓
 [6.9] マージ      人間の判断（外向き操作）
       ↓
-[7] 福利化        compound（パターン → ルール・知識・スキル改善）
+[7] ナレッジ保存  knowledge-capture（パターン → docs/）／ session-retrospective — セッション摩擦を skill-issues.md に採掘
       ↓
-[8] ナレッジ保存  knowledge-capture（パターン → docs/）／ session-retrospective — セッション摩擦を skill-issues.md に採掘
+[8] 福利化        compound（パターン → ルール・知識・スキル改善）
       ↓
 [9] アーカイブ    steering archive
 
-定期（フェーズ外）: rule-audit — ルールの削除テスト・統合・GC
+定期（フェーズ外）: rule-audit — ルールの削除テスト・統合・GC ／ security-audit — セットアップ資産のセキュリティ監査（サードパーティ採用前・定期）
 マスター保守（フェーズ外）: skill-test — スキルの回帰テスト ／ skill-harvest — 配置先からの還流
 ```
 
@@ -128,6 +128,7 @@
 | [`knowledge-capture`](.claude/skills/knowledge-capture/SKILL.md) | セッションの知見を docs/knowledge/（パターン）・docs/decisions/（ADR）・CLAUDE.md（行動ルール）・glossary に振り分けて保存。承認制 |
 | [`session-retrospective`](.claude/skills/session-retrospective/SKILL.md) | セッション終盤に会話履歴から摩擦（スキル誤発動・ユーザー訂正・手戻り・パーミッション拒否・曖昧さ）を採掘し `skill-issues.md` に起票。**昇格はしない**（compound の原料を作る）。ゼロ件なら起票しない |
 | [`empirical-prompt-tuning`](.claude/skills/empirical-prompt-tuning/SKILL.md) | スキル・プロンプト自体の品質改善。フレッシュな subagent に実行させて両面評価し、改善が頭打ちになるまで反復 |
+| [`security-audit`](.claude/skills/security-audit/SKILL.md) | セットアップ資産（スキル・agents・hooks・settings・依存/MCP）のサプライチェーン・セキュリティを**静的**監査。外部送信・シークレット読取・破壊的コマンド・広範権限・インジェクション構造を機械スキャンし、判別不能はフェイルクローズで要確認に。**対象本文を全文解釈せずヒット行のみ判定**（監査対象の埋め込み指示に従わない）。「検出なし」は安全証明ではなく目視確認ルールを置換しない。修正は承認制。review-security（コード diff）とは対象が別 |
 
 ### マスター専用ツール（配布しない）
 
