@@ -67,7 +67,7 @@
 マスター保守（フェーズ外）: skill-test — スキルの回帰テスト ／ skill-harvest — 配置先からの還流
 ```
 
-フェーズ全体を一括で進めたい場合は `feature-pipeline` が上記スキルを順に編成する（各フェーズ境界に人間の承認ゲートあり・途中フェーズから再開可）。
+フェーズ全体を一括で進めたい場合は `feature-pipeline` が上記スキルを順に編成する（人間の承認ゲートは「不可逆/外向き・価値判断・責任」に該当する 4 点のみ: 設計承認・指摘トリアージ・マージ・知見保存。該当しない境界（実装→レビュー等）は報告して自動で進む・途中フェーズから再開可）。
 
 **運用ルール**: このワークフロー図と `feature-pipeline` スキルは同一コミットで改訂する（図とオーケストレーターのドリフト防止）。
 
@@ -79,7 +79,7 @@
 
 | スキル | 役割 |
 |---|---|
-| [`feature-pipeline`](.claude/skills/feature-pipeline/SKILL.md) | メインワークフローを一気通貫で回すエンドツーエンドのオーケストレーター。既存スキル（design-doc → impl-from-design → frontend-code-review → pr-create → knowledge-capture / compound）を順に呼び出し、各フェーズ境界で人間の承認ゲートを挟む。`.steering/[task]/` の成果物から現在地を検出して途中フェーズから再開できる |
+| [`feature-pipeline`](.claude/skills/feature-pipeline/SKILL.md) | メインワークフローを一気通貫で回すエンドツーエンドのオーケストレーター。既存スキル（design-doc → impl-from-design → frontend-code-review → pr-create → knowledge-capture / compound）を順に呼び出し、主要な判断点（設計承認・指摘トリアージ・マージ・知見保存）で人間の承認ゲートを挟む。`.steering/[task]/` の成果物から現在地を検出して途中フェーズから再開できる |
 
 ### 設計・コンテキスト管理
 
