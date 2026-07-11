@@ -171,3 +171,4 @@ Step 5 のレポート（判定と理由）を提示したら **ここで止ま�
 - `compound` — 対をなす追加・昇格スキル。compound が増やし rule-audit が刈る
 - `knowledge-capture` — ルールから docs/knowledge/ へ移す先の保存フォーマットを持つ
 - `empirical-prompt-tuning` — スキル本文の内容品質・挙動の検証（本スキルの構造検証と補完関係）
+- `security-audit` — セットアップ資産の**危険性**（送信・シークレット・破壊的コマンド・インジェクション構造）を見る。本スキルは frontmatter/構造の規約と肥大化・陳腐化を見る。「安全性を棚卸し」はあちらの担当
