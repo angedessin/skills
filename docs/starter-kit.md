@@ -74,9 +74,9 @@ CLAUDE.md のポリシー側を調整する（スキル本文は触らない）�
 
 | セット | スキル | 配布可否 | いつ入れるか |
 |---|---|---|---|
-| **最小** | design-doc / steering / frontend-code-review / impl-review / test-review / knowledge-capture | 配布可 | まず試すならこれ。設計ゲート + レビュー 2 軸 + 知見保存の最小複利ループ |
+| **最小** | design-doc / steering / impl-from-design / tdd / frontend-code-review / impl-review / test-review / knowledge-capture | 配布可 | まず試すならこれ。基本フロー（計画→実装→レビュー→知見）を一周できる最小セット。設計承認ゲートが実装を拘束する規律（impl-from-design の前提チェック）まで含む |
 | **拡張 1: レビュー厚み** | review-security / review-a11y / review-performance / review-correctness / review-ui | 配布可 | frontend-code-review のフルモード（7 エージェント並列）を使う場合 |
-| **拡張 2: ワークフロー** | impl-from-design / tdd / e2e / debug / pr-create / pr-feedback | 配布可 | 設計→実装の型・テスト駆動・E2E・障害調査・PR 提出と往復まで揃える場合 |
+| **拡張 2: 統合・運用** | e2e / debug / pr-create / pr-feedback | 配布可 | E2E テスト・障害調査・PR 提出と往復まで揃える場合 |
 | **拡張 3: 設計品質・比較** | design-premortem / impl-tournament | 配布可 | 人間レビュー前の設計の穴出し・リスクの高いアプローチ選択の N 並列比較を使う場合（任意・impl-tournament は課金前置承認あり） |
 | **メタ層** | compound / rule-audit / empirical-prompt-tuning / feature-pipeline / session-retrospective | 配布可 | 自己改善ループとオーケストレーションまで運用する場合（このマスター級の運用） |
 | **拡張 4: セキュリティ** | security-audit | 配布可 | サードパーティスキルの採用前・定期の棚卸しで、セットアップ資産（スキル・hooks・settings・依存）の危険性を静的監査する場合（任意・オンデマンド・hooks 自動起動しない） |
@@ -139,6 +139,8 @@ CLAUDE.md のポリシー側を調整する（スキル本文は触らない）�
 ## スキル発動ポリシー
 
 - 新しいタスクを開始するときは design-doc を使い、design.md が APPROVED になるまで実装しない
+- 承認済み design.md からの実装は impl-from-design を使う（実装モードは TDD 推奨）
+- 既存コードへのテスト追加・テストファーストの実装は tdd を使う
 - 実装後のコードレビューは frontend-code-review を使う
 - セッションで得た知見は knowledge-capture で docs/ に保存する
 <!-- 配置したスキルに合わせて追記・削除する。行動ルール（プロジェクト固有の規約）はこの下に育てていく -->

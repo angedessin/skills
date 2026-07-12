@@ -179,7 +179,7 @@
 - 配置時にマスターのコミットハッシュを各スキルの `metadata.source-commit` に記録する（ドリフト追跡は `git diff <hash>` 一発）
 - スキルは CLAUDE.md・docs/・`.steering/` が無くても動く自己完結設計（[skill-design-patterns.md](docs/knowledge/skill-design-patterns.md)）
 
-**推奨構成と配置手順**: [docs/starter-kit.md](docs/starter-kit.md)（最小/拡張セットの選定表・6 ステップの配置手順・CLAUDE.md 雛形）
+**推奨構成と配置手順**: [docs/starter-kit.md](docs/starter-kit.md)（最小/拡張セットの選定表・7 ステップの配置手順・CLAUDE.md 雛形）
 **配置前チェック**: `python3 scripts/validate_skills.py`（frontmatter・構造の機械検証）
 
 配布方式の段階基準:
