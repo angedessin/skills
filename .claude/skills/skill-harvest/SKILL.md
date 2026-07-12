@@ -17,7 +17,7 @@ metadata:
 - 新規スキルの作成 → `templates/SKILL.template.md` から作成する。
 - ルール・知見の昇格 → `compound`（回収した skill-issues.md の昇格はそちら）。
 - 配置先が 1 件も無い / まだ横展開していないとき → 収集対象が無いので使わない。
-- **新規の配置**（deployments.md 未登録のプロジェクトへの初回コピー） → `skill-deploy` の担当。このスキルが行う「再コピー」は登録済み配置先への還元のみ。
+- **新規配置・追加配置**（未登録プロジェクトへの初回コピー、および登録済み配置先へ**まだ無い**スキルを足すこと） → `skill-deploy` の担当。このスキルが行う「再コピー」は**配置済みスキル**への還元のみ。
 
 ---
 
@@ -100,7 +100,7 @@ deployments.md が無い（または配置先が未登録）です。
 
 ## Related skills
 
-- `skill-deploy` — 逆方向の対。新規配置（deployments.md への登録まで）はあちら、登録済み配置先の更新・回収はこちら
+- `skill-deploy` — 逆方向の対。新規・追加配置（deployments.md への登録まで）はあちら、配置済みスキルの更新・回収はこちら
 - `session-retrospective` — 配置先での供給側。配置先に併配すると skill-issues.md が溜まり、このスキルが回収できる
 - `compound` — 回収した skill-issues.md をルール・スキルへ昇格させる（このスキルは還流まで）
 - `rule-audit` — 還流した内容でルールが増えたら対で剪定する
