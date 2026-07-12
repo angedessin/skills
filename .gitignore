@@ -5,6 +5,10 @@ node_modules/
 # スキル配置テスト環境（コミットしない）
 _test/
 
+# 配置先レジストリ（ローカル限定。中身は絶対パス＝ユーザー名/ローカル構造を含む）
+# 雛形は deployments.example.md を追跡する
+/deployments.md
+
 # Editor / OS
 .DS_Store
 .tmp/

@@ -183,7 +183,7 @@ def main() -> None:
     # レジストリモード（引数なし）— deployments.md の全配置先をループ
     if not REGISTRY.exists():
         print(f"エラー: レジストリが無い: {REGISTRY}")
-        print("配置先の絶対パスを 1 行 1 件で列挙した deployments.md を作成してください。")
+        print("`cp deployments.example.md deployments.md` してから配置先の絶対パスを 1 行 1 件で追記してください。")
         sys.exit(2)
 
     roots = read_registry()

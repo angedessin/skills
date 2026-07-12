@@ -19,7 +19,7 @@
 │   │   └── session-stop.sh            # セッション終了時に .capture-needed フラグを作成
 │   └── skills/                        # スキル定義（下の一覧を参照）
 ├── .steering/                         # クロスセッション コンテキスト（複数セッションタスクのみ）
-├── deployments.md                     # 配置先レジストリ（マスター専用・skill-harvest が読む）
+├── deployments.example.md             # 配置先レジストリの雛形（追跡。実体 deployments.md は .gitignore＝ローカル限定）
 ├── scripts/
 │   ├── validate_skills.py             # スキル frontmatter・構造の機械検証（マスター専用）
 │   ├── passthrough_check.py           # 素通り検査（ハードストップの実地検証・課金・任意）

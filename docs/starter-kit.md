@@ -149,7 +149,7 @@ CLAUDE.md のポリシー側を調整する（スキル本文は触らない）�
    - `settings.local.json` はコピーしない（マシン固有の承認履歴）
    - 配置先の `.npmrc` に `ignore-scripts=true` を推奨（install 時の postinstall 実行 = サプライチェーン攻撃の主経路を既定で遮断。ビルドスクリプトが必要なパッケージだけ個別に許可する運用）
    - **配置後、配置先で一度対話セッションを起動して信頼ダイアログを承認する** — 未信頼のワークスペースでは settings.json の permissions.allow が無効化される（deny / hooks は有効）。headless 運用（`claude -p`）を始める前に必須
-7. **マスターの `deployments.md` に配置先を登録する** — 配置先プロジェクトの絶対パスを 1 行追記する（マスターのリポジトリルート `deployments.md`）。これで `skill-harvest`（および `check_deploy_drift.py` のレジストリモード）が、この配置先の再コピー候補・ドリフト・溜まった `skill-issues.md` を巡回できるようになる。スキル単位の記録は不要（どのスキルが入っているかは配置先の `source-commit` から発見される）
+7. **マスターの `deployments.md` に配置先を登録する** — 配置先プロジェクトの絶対パスを 1 行追記する（マスターのリポジトリルート `deployments.md`）。`deployments.md` はローカル限定で `.gitignore` 済み（絶対パス＝ユーザー名/ローカル構造を含むため git 追跡しない）。初回は雛形からコピーして作る（`cp deployments.example.md deployments.md`。`deploy_skills.py` 経由なら未存在時に自動作成される）。これで `skill-harvest`（および `check_deploy_drift.py` のレジストリモード）が、この配置先の再コピー候補・ドリフト・溜まった `skill-issues.md` を巡回できるようになる。スキル単位の記録は不要（どのスキルが入っているかは配置先の `source-commit` から発見される）
 8. **スモークテスト** — 配置先で対話セッションを起動し、配置セットに応じて確認する:
    - 「どのスキルが使える？」→ 配置したスキルが一覧に出る（出ない場合は配置パス・frontmatter の破損を疑う）
    - design-doc 配置時: 小さなタスク（例:「◯◯ボタンを追加したい」）を投げ、設計の提示後に**承認待ちで停止する**こと（勝手に実装が始まったら FAIL — 配置先で直さず、事象をマスターの `skill-issues.md` 経路で報告する）
