@@ -83,7 +83,7 @@ CLAUDE.md のポリシー側を調整する（スキル本文は触らない）�
 | **拡張 3: 設計品質・比較** | design-premortem / impl-tournament | 配布可 | 人間レビュー前の設計の穴出し・リスクの高いアプローチ選択の N 並列比較を使う場合（任意・impl-tournament は課金前置承認あり） |
 | **メタ層** | compound / rule-audit / empirical-prompt-tuning / feature-pipeline / session-retrospective | 配布可 | 自己改善ループとオーケストレーションまで運用する場合（このマスター級の運用） |
 | **拡張 4: セキュリティ** | security-audit | 配布可 | サードパーティスキルの採用前・定期の棚卸しで、セットアップ資産（スキル・hooks・settings・依存）の危険性を静的監査する場合（任意・オンデマンド・hooks 自動起動しない） |
-| **マスター専用（配布しない）** | skill-test / skill-harvest | **master-only** | このリポジトリ（スキルのマスター）でのみ使う管理ツール。配置先にはコピーしない |
+| **マスター専用（配布しない）** | skill-test / skill-harvest / skill-deploy | **master-only** | このリポジトリ（スキルのマスター）でのみ使う管理ツール。配置先にはコピーしない |
 
 - feature-pipeline は依存サブスキルが揃っている前提のため最小セットに含めない
 - **session-retrospective は skill-harvest への供給側**。配置先に session-retrospective を併配すると、セッション摩擦が配置先の `skill-issues.md` に溜まり、マスターの skill-harvest がそれを還流できる（`.steering/**/skill-issues.md` を書くルールはマスターの CLAUDE.md にしか無いため、この併配が producer/consumer の対を成立させる）。`.steering/` 運用をしない配置先では harvest への供給は成立しない
@@ -119,6 +119,8 @@ CLAUDE.md のポリシー側を調整する（スキル本文は触らない）�
 既存の開発ワークフロー（レビュー体制・ブランチ運用・チケット管理）があるプロジェクトでは、**スキル本文を書き換えず**、配置先 CLAUDE.md の発動ポリシー側で接続を定義する（例:「PR 作成は既存のチーム運用に従い、feature-pipeline の Phase 3.5 はスキップする」「設計レビューは design.md ではなく既存の Design Doc プロセスに読み替える」）。
 
 ## 配置手順（8 ステップ）
+
+> **マスターで作業する場合は `skill-deploy` スキルが手順 1〜7 を駆動する**（セット選択 → dry-run 提示 → 明示承認 → `scripts/deploy_skills.py` 実行。手順 8 のスモークテストは配置先で人間が行う）。以下はその一次情報であり手動でも実行できる。**この手順・skill-deploy・deploy_skills.py は同一コミットで改訂する**（片側修正の禁止）。
 
 1. **選ぶ** — 上の表からプロジェクトに必要なスキルを選ぶ（全部入れない。無関係なスキルは誤発動の種）
 2. **コピー** — マスターのスキルは `.claude/skills/<name>/` にある。配置先の `.claude/skills/` にディレクトリごとコピーする:

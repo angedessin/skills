@@ -136,6 +136,7 @@
 |---|---|
 | [`skill-test`](.claude/skills/skill-test/SKILL.md) | スキルの回帰テストを2層で編成。静的層（`validate_skills.py`・無料・毎回）+ 実行層（`passthrough_check.py`・課金・任意）。**実行層はコスト明示 + 承認必須・hooks 接続禁止** |
 | [`skill-harvest`](.claude/skills/skill-harvest/SKILL.md) | 配置先からの還流。`deployments.md` の各配置先の再コピー候補・ドリフト・溜まった skill-issues.md を `check_deploy_drift.py`（読み取り専用）で収集。**配置先への書き込みは承認制** |
+| [`skill-deploy`](.claude/skills/skill-deploy/SKILL.md) | 新規配置の実行版（starter-kit 配置手順 1〜7 を駆動）。セット選択 → dry-run 提示 → 明示承認 → `deploy_skills.py` 実行 → 残タスク案内。**配置先への書き込みは承認制**。既存配置先の更新・回収は skill-harvest |
 
 ---
 
@@ -211,4 +212,4 @@ design-premortem   impl-tournament                          session-retrospectiv
 
 - `feature-pipeline` が上記の一連を承認ゲート付きで編成する（オーケストレーター）
 - `empirical-prompt-tuning` は上記スキル自体の品質改善に横断的に使う
-- マスター専用: `skill-test`（回帰テスト）/ `skill-harvest`（配置先の還流）は配布せずマスターで保守に使う
+- マスター専用: `skill-test`（回帰テスト）/ `skill-deploy`（新規配置）/ `skill-harvest`（配置先の還流）は配布せずマスターで保守に使う
