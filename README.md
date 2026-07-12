@@ -181,6 +181,7 @@
 
 **推奨構成と配置手順**: [docs/starter-kit.md](docs/starter-kit.md)（最小/拡張セットの選定表・8 ステップの配置手順・CLAUDE.md 雛形）
 **配置前チェック**: `python3 scripts/validate_skills.py`（frontmatter・構造の機械検証）
+**配置後チェック**: スモークテスト（[starter-kit 手順 8](docs/starter-kit.md)。スキル一覧の確認・design-doc の承認ゲート停止・ガードレールの ask 落ち）
 
 配布方式の段階基準:
 
