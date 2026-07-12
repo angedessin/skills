@@ -82,13 +82,25 @@ CLAUDE.md のポリシー側を調整する（スキル本文は触らない）�
 | **拡張 4: セキュリティ** | security-audit | 配布可 | サードパーティスキルの採用前・定期の棚卸しで、セットアップ資産（スキル・hooks・settings・依存）の危険性を静的監査する場合（任意・オンデマンド・hooks 自動起動しない） |
 | **マスター専用（配布しない）** | skill-test / skill-harvest | **master-only** | このリポジトリ（スキルのマスター）でのみ使う管理ツール。配置先にはコピーしない |
 
-- frontend-code-review はサブスキル未配置でも動く（未配置分をスキップして報告する縮退動作）
 - feature-pipeline は依存サブスキルが揃っている前提のため最小セットに含めない
-- compound の `.codify-needed` フラグによる自動起動は frontend-code-review 配置時のみ有効（フラグを立てるのが frontend-code-review のため）。メタ層を単独で配置した場合は明示呼び出しで使う
-- **pr-feedback は pr-create とセットで入れる**（提出と往復は対。片方だけでは往復の入口/出口が欠ける）
 - **session-retrospective は skill-harvest への供給側**。配置先に session-retrospective を併配すると、セッション摩擦が配置先の `skill-issues.md` に溜まり、マスターの skill-harvest がそれを還流できる（`.steering/**/skill-issues.md` を書くルールはマスターの CLAUDE.md にしか無いため、この併配が producer/consumer の対を成立させる）。`.steering/` 運用をしない配置先では harvest への供給は成立しない
 - **skill-test / skill-harvest はマスター専用**。配置先にコピーしても意味がない（skill-test はマスターの全スキルを検証対象にし、skill-harvest はマスターから配置先を見に行くツール）
 - **security-audit は配布可**。サードパーティ製 SKILL.md を採用する配置先で特に有用（採用前の静的スキャン）。ただし「検出なし」は安全証明ではなく、CLAUDE.md の「採用前に目視確認する」ルールを置換しない補助ツールとして入れる。frontend-code-review の review-security（コード diff の XSS 等）とは対象が別
+
+## スキル間の依存関係（配置の組み合わせ判断用）
+
+本文に散在する依存情報の要約。一次情報は各 SKILL.md — この表と食い違ったら SKILL.md が正:
+
+| スキル | 依存先 | 欠けている場合の挙動 |
+|---|---|---|
+| impl-from-design | design-doc が作る `design.md`（APPROVED） | 止まって design-doc を案内する（実装に入らない） |
+| impl-from-design（TDD モード） | tdd の `references/patterns.md` | パターン参照なしの縮退（本文の判断軸のみでテストを書く） |
+| frontend-code-review | review-* 7 軸 / impl-review / test-review | 未配置分をスキップして報告する（縮退動作） |
+| compound の自動起動 | frontend-code-review が立てる `.codify-needed` | フラグ起動が効かないだけ。明示呼び出しで使える |
+| knowledge-capture の自動起動 | `session-stop.sh`（Stop hook）が立てる `.capture-needed` | フラグ起動が効かないだけ。明示呼び出しで使える |
+| pr-feedback | pr-create | **対で入れる**（提出と往復は対。片方だけでは往復の入口/出口が欠ける） |
+| feature-pipeline | 各フェーズのサブスキル（design-doc / impl-from-design / frontend-code-review / pr-create / pr-feedback / knowledge-capture / compound / e2e / steering） | フェーズごとにディスパッチ前に存在確認し、無いフェーズはスキップして「手動で行ってください」と報告する |
+| session-retrospective | （マスター側の）skill-harvest が回収 | 単独でも動くが、還流先が無ければ `skill-issues.md` は配置先に溜まるだけ |
 
 ## フロントエンド以外・別ワークフローのプロジェクトへの導入
 
@@ -106,7 +118,10 @@ CLAUDE.md のポリシー側を調整する（スキル本文は触らない）�
 ## 配置手順（7 ステップ）
 
 1. **選ぶ** — 上の表からプロジェクトに必要なスキルを選ぶ（全部入れない。無関係なスキルは誤発動の種）
-2. **コピー** — 配置先の `.claude/skills/` にディレクトリごとコピーする
+2. **コピー** — マスターのスキルは `.claude/skills/<name>/` にある。配置先の `.claude/skills/` にディレクトリごとコピーする:
+   ```bash
+   cp -r <マスターのパス>/.claude/skills/<name> <配置先のパス>/.claude/skills/
+   ```
 3. **source-commit を記録** — 各スキルの frontmatter の `metadata:` にマスターの配置時点 HEAD を追記する:
    ```yaml
    metadata:
@@ -116,11 +131,14 @@ CLAUDE.md のポリシー側を調整する（スキル本文は触らない）�
    （`version` はコピー元の値を保つ — 上の例の "1.0" で上書きしない。マスター側には source-commit を書かない — 配置先にだけ意味がある情報）
 4. **references を再生成** — `references/` が example と明記されているスキル（tdd / test-review / e2e / review-ui）は、配置先のスタックに合わせて中身を再生成する。対象スキルを含まない配置ではこの手順はスキップ。使わない場合は削除してよい — 本文は判断軸のみで縮退動作する
    - **マスターの references は pnpm 前提**（`pnpm test` / `pnpm run` / `pnpm exec` — exec はローカル限定実行で fetch が起きない安全なセマンティクス。pnpm v10+ は lifecycle スクリプトも既定ブロック）
+   - 再生成は配置先で Claude に依頼するのが手軽。プロンプト例: 「`.claude/skills/tdd/references/patterns.md` をこのプロジェクトのテストスタック（pytest 等）に合わせて書き直して。SKILL.md 本文は変更しない」
    - **npm プロジェクト**では `pnpm test` → `npm test --`、`pnpm run X` → `npm run X --`、`pnpm exec <bin>` → `npx <bin>` に置き換える。**npx は対象が未導入だとレジストリ取得 → 即実行が走る**ため、ローカル導入済みバイナリの実行にのみ使い、`.npmrc` に `ignore-scripts=true` を設定する（手順 6 参照）
 5. **CLAUDE.md に発動ポリシー節を作る** — 下の雛形から。雛形は最小セット前提なので、他のセット構成では各スキルの description の発動フレーズを元に 1 行ずつ書き換える。行動ルールは配置先で育てる（マスターの CLAUDE.md を丸ごとコピーしない）
 6. **ガードレールも同送する（サプライチェーン対策）** — スキルだけコピーすると、references が指示する `npx` 実行等に対する防御が配置先に存在しない状態になる:
    - マスターの `.claude/settings.json` から **permissions（allow / ask / deny）セクション**を配置先の settings.json に取り込む（パッケージインストール deny・npx / rm -r の ask・env / 鍵ファイルの Read deny・ガードレール自己改変の ask）
+   - 配置先に**既存の settings.json / permissions がある場合は手動マージ**する（丸ごと上書きしない）。方針: マスター由来の deny / ask は削らずに追加する。既存の allow とマスターの deny が同じ操作で衝突したら **deny を優先**（安全側に倒す。緩めたい場合は配置先の判断で個別に外す）
    - `.claude/hooks/guard-env-read.sh` をコピーし、settings.json の `hooks.PreToolUse` 登録も移す（deny の前置一致では防げない .env 読み取りの迂回を全文検査で ask に落とす）
+   - hooks のコマンド登録は `"$CLAUDE_PROJECT_DIR"` 起点の相対参照なので、`.claude/hooks/` に同じ配置でコピーすれば**パスの書き換えは不要**
    - `session-stop.sh`（Stop hook）は **knowledge-capture を配置する場合のみ**コピーする（settings.json の `hooks.Stop` 登録も同時に移す）。この hook が立てる `.capture-needed` は knowledge-capture の起動を促すフラグなので、未配置のまま同送すると「存在しないスキルの実行を促す」実行不能な指示になる
    - `settings.local.json` はコピーしない（マシン固有の承認履歴）
    - 配置先の `.npmrc` に `ignore-scripts=true` を推奨（install 時の postinstall 実行 = サプライチェーン攻撃の主経路を既定で遮断。ビルドスクリプトが必要なパッケージだけ個別に許可する運用）
