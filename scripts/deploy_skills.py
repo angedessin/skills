@@ -9,7 +9,10 @@ starter-kit.md「配置手順」の機械的な部分（手順 2・3・6 の一�
 実行すること:
   1. スキル一式のコピー（.claude/skills/<name> → 配置先）
   2. frontmatter metadata への source-commit 打刻（マスター HEAD を自動取得）
-  3. ガードレール同送: guard-env-read.sh（常に）・session-stop.sh（knowledge-capture 配置時のみ）
+  3. ガードレール同送: guard-env-read.sh（セキュリティ・常に）・
+     post-edit-lint.sh / stop-typecheck.sh（品質ゲート・常に。両方フェイルオープン設計 —
+     lint 設定や tsconfig.json が無いプロジェクトでは素通しなのでスタックを問わず配れる）・
+     session-stop.sh（knowledge-capture 配置時のみ）
      - 配置先に settings.json が無い → permissions + 同送 hooks の登録を持つ settings.json を新規作成
      - 配置先に settings.json が有る → 何も書かず、手動マージ案（JSON 断片）を表示するだけ
   4. 配置先 .gitignore に .steering ランタイムフラグ 3 行を追記（無い場合のみ）
@@ -60,6 +63,31 @@ HOOK_REGISTRATIONS = {
                     "timeout": 10,
                 }
             ],
+        },
+    ),
+    "post-edit-lint.sh": (
+        "PostToolUse",
+        {
+            "matcher": "Edit|Write",
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": 'bash "$CLAUDE_PROJECT_DIR"/.claude/hooks/post-edit-lint.sh',
+                    "timeout": 30,
+                }
+            ],
+        },
+    ),
+    "stop-typecheck.sh": (
+        "Stop",
+        {
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": 'bash "$CLAUDE_PROJECT_DIR"/.claude/hooks/stop-typecheck.sh',
+                    "timeout": 120,
+                }
+            ]
         },
     ),
     "session-stop.sh": (
@@ -121,7 +149,8 @@ def ensure_gitignore(target: Path, dry: bool, log: list[str]) -> None:
 def deploy_guardrails(target: Path, skills: list[str], dry: bool, log: list[str]) -> None:
     hooks_src = MASTER_ROOT / ".claude" / "hooks"
     hooks_dst = target / ".claude" / "hooks"
-    send = ["guard-env-read.sh"]
+    # 品質ゲート 2 本はフェイルオープン（設定が無ければ素通し）なので常に同送する
+    send = ["guard-env-read.sh", "post-edit-lint.sh", "stop-typecheck.sh"]
     if "knowledge-capture" in skills:
         send.append("session-stop.sh")  # .capture-needed を立てる hook。スキル無しで送ると実行不能指示になる
 

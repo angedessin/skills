@@ -2,7 +2,7 @@
 name: skill-deploy
 description: "スキルの新規配置に使うマスター専用スキル — 「スキルを配置して」「◯◯プロジェクトにスキルをデプロイして」「このプロジェクトにスキル一式を入れて」などのフレーズが対象。推奨構成の選択 → 依存補完 → dry-run 提示 → 明示承認 → scripts/deploy_skills.py 実行 → 残タスク案内、を駆動する。配置先への書き込みはリポジトリ外への操作のため明示承認制。登録済み配置先への未配置スキルの追加もこのスキルの担当。配置済みスキルの更新・再コピー・回収には起動しない（skill-harvest を使う）。スキル本文の作成・改善には起動しない（templates から書く / 通常の編集）。"
 metadata:
-  version: "1.1"
+  version: "1.2"
 ---
 
 # Skill Deploy
@@ -74,6 +74,7 @@ starter-kit.md — **このスキル・`scripts/deploy_skills.py`・starter-kit 
 - [ ] references 再生成（tdd / test-review / e2e / review-ui を配置した場合。配置先で Claude に依頼する — プロンプト例は starter-kit 手順 4）
 - [ ] 配置先 CLAUDE.md に発動ポリシー節を作る（starter-kit の雛形から）
 - [ ] settings.json の手動マージ（既存があった場合のみ。Step 2 で提示したマージ案を使う）
+- [ ] TS プロジェクトでは `tsc --noEmit --incremental` の 2 回目（キャッシュ有効）を計測し、20〜30 秒を超えるなら stop-typecheck.sh を settings.json から外して CI に移す（終了のたびの待ち時間が利益を上回るため）
 - [ ] 配置先で対話セッションを起動し、信頼ダイアログを承認する（headless の前に必須）
 - [ ] スモークテスト（starter-kit 手順 8: スキル一覧・design-doc の承認ゲート停止・レビュー実行・guard-env-read の ask 落ち）
 
