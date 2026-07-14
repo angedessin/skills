@@ -8,32 +8,15 @@
 
 ---
 
-## はじめて使う人へ — チートシート
+## ドキュメントの読み分け
 
-スキルは 28 個あるが、**ユーザーが自分から言うフレーズは下の 7 つだけ**。残りは会話の流れやオーケストレーターから自動で接続される（覚えなくてよい）。
-
-| 状況 | 言うこと | 起動するスキル |
-|---|---|---|
-| 新機能・タスクを始める | 「X を作りたい」— 仕様書・要件メモ・参考 URL があれば一緒に貼る（design.md に織り込まれる） | design-doc |
-| バグ・障害を調べる | 「〜が動かない。調べて」 | debug |
-| 進行中タスクを一覧する | 「進行中のタスクは？」 | steering (status) |
-| 途中のタスクを再開する | 「[タスク名] を再開」（複数あるときはこれで指定する） | steering (resume) |
-| タスクを完了する | 「[タスク名] をアーカイブして」 | steering (archive) |
-| PR を出す | 「PR を作って」 | pr-create |
-| セッションを振り返る | 「振り返りして」 | session-retrospective |
-
-それ以外のスキルは 2 種類に分かれる:
-
-- **自動発動・パイプライン内部**（覚えなくてよい）: impl-from-design / tdd / e2e / frontend-code-review / review-* / test-review / impl-review / pr-feedback / knowledge-capture / compound / design-premortem / impl-tournament / feature-pipeline — design-doc の承認後や作業の流れから接続される
-- **メンテ・マスター専用**（日常の開発では呼ばない）: 実行タイミングは下表
-
-| スキル | いつ実行するか |
+| あなたは | 読むもの |
 |---|---|
-| rule-audit | CLAUDE.md が肥大化したと感じたとき（compound 数回ごと・月 1 目安の定期剪定） |
-| security-audit | サードパーティのスキル・hooks の採用前、および定期 |
-| skill-test | スキル本文を改変したとき・配布前の回帰テスト（マスター専用） |
-| skill-deploy / skill-harvest | 他プロジェクトへの配置時 / 配置先からの知見回収時（マスター専用） |
-| empirical-prompt-tuning | スキル自体の品質を実測ベースで改善したいとき（任意・課金） |
+| スキルを**使う**人（このリポジトリ・配置先どちらでも） | [docs/user-guide.md](docs/user-guide.md) — チートシート（言うフレーズ全表）・FAQ・使うときのコツ |
+| スキルを他プロジェクトへ**配置する**人 | [docs/starter-kit.md](docs/starter-kit.md) — 推奨構成・配置手順 8 ステップ・CLAUDE.md 雛形 |
+| マスターを**保守する**人・全体像を知りたい人 | この README（ワークフロー図・スキル一覧・自己改善ループ・インフラ） |
+
+最低限の抜粋（一次情報は user-guide のチートシート）: 新機能は「X を作りたい」（仕様書があれば貼る）、バグは「調べて」、タスク再開は「[タスク名] を再開」、完了は「[タスク名] をアーカイブして」。残りのスキルは自動発動かメンテ用で、覚えなくてよい。
 
 ---
 
@@ -57,6 +40,7 @@
 ├── tests/
 │   └── passthrough/[skill]/scenario.md # 素通り検査のシナリオ資産（マスター専用）
 └── docs/
+    ├── user-guide.md                  # スキルを使う人向けガイド（チートシート・FAQ。配布可）
     ├── starter-kit.md                 # 他プロジェクトへの配置手順・推奨構成
     ├── knowledge/                     # 経験・パターン集
     └── decisions/                     # ADR（設計判断）
@@ -99,6 +83,23 @@
 フェーズ全体を一括で進めたい場合は `feature-pipeline` が上記スキルを順に編成する（人間の承認ゲートは「不可逆/外向き・価値判断・責任」に該当する 4 点のみ: 設計承認・指摘トリアージ・マージ・知見保存。該当しない境界（実装→レビュー等）は報告して自動で進む・途中フェーズから再開可）。
 
 **運用ルール**: このワークフロー図と `feature-pipeline` スキルは同一コミットで改訂する（図とオーケストレーターのドリフト防止）。
+
+### スキル間の関係図
+
+```
+debug（障害調査。小さい修正は即完結）─┐
+                                      ↓
+design-doc ──→ impl-from-design ──→ frontend-code-review ──→ pr-create ──→ pr-feedback ──→ compound ＋ knowledge-capture
+    │  ↑           │  ↑                     │                              (PR 往復)              ↕
+    ↓  │(任意)     ├─←→ tdd                 ↓                                                rule-audit
+steering │         └─── e2e     test-review / impl-review / review-*                       （剪定の対・定期）
+（ライフ）│         │(任意)      （テスト / 実装 / sec・perf・a11y・correctness・ui）
+design-premortem   impl-tournament                          session-retrospective → skill-issues.md → compound
+（設計の穴出し）    （N 並列実装の比較）                     （セッション摩擦の採掘）
+```
+
+- `empirical-prompt-tuning` は上記スキル自体の品質改善に横断的に使う
+- マスター専用: `skill-test`（回帰テスト）/ `skill-deploy`（新規・追加配置）/ `skill-harvest`（配置先の還流）は配布せずマスターで保守に使う
 
 ---
 
@@ -222,23 +223,3 @@
 | チーム標準化 | 複数メンバーが同一セットを使う | プラグイン化 or テンプレートリポジトリ（ADR を正式に改訂） |
 
 経緯: [ADR 20260612-manual-copy-skill-distribution](docs/decisions/20260612-manual-copy-skill-distribution.md)
-
----
-
-## スキル間の関係図
-
-```
-debug（障害調査。小さい修正は即完結）─┐
-                                      ↓
-design-doc ──→ impl-from-design ──→ frontend-code-review ──→ pr-create ──→ pr-feedback ──→ compound ＋ knowledge-capture
-    │  ↑           │  ↑                     │                              (PR 往復)              ↕
-    ↓  │(任意)     ├─←→ tdd                 ↓                                                rule-audit
-steering │         └─── e2e     test-review / impl-review / review-*                       （剪定の対・定期）
-（ライフ）│         │(任意)      （テスト / 実装 / sec・perf・a11y・correctness・ui）
-design-premortem   impl-tournament                          session-retrospective → skill-issues.md → compound
-（設計の穴出し）    （N 並列実装の比較）                     （セッション摩擦の採掘）
-```
-
-- `feature-pipeline` が上記の一連を承認ゲート付きで編成する（オーケストレーター）
-- `empirical-prompt-tuning` は上記スキル自体の品質改善に横断的に使う
-- マスター専用: `skill-test`（回帰テスト）/ `skill-deploy`（新規・追加配置）/ `skill-harvest`（配置先の還流）は配布せずマスターで保守に使う
