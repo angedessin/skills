@@ -16,7 +16,7 @@
 | 4. レビュー、テストレビュー | frontend-code-review / impl-review / test-review / review-a11y / review-correctness / review-performance / review-security / review-ui |
 | 5. 知見記録 | knowledge-capture / compound |
 | （横断）オーケストレーター | feature-pipeline |
-| （横断）摩擦の起票（還流の producer） | session-retrospective |
+| （横断）摩擦の起票（会社内の改善ループ用） | session-retrospective |
 
 ## 同梱しなかったもの（必要なら後から追加）
 
@@ -46,7 +46,7 @@
    - 小さなタスクを依頼 → design-doc が設計提示後に**承認待ちで停止する**（勝手に実装が始まったら FAIL）
    - 小さな diff に「コードをレビューして」→ frontend-code-review が指摘（または指摘なし）を返す
    - `.env` の読み取りを依頼 → guard-env-read.sh が確認（ask）に落とす
-10. 気づいた不具合・誤発動は `.steering/[task]/skill-issues.md` に起票する（session-retrospective が拾う）。**配置先でスキル本文を直接編集しない** — 改善点はマスターに持ち帰って反映し、再コピーで配る
+10. 気づいた不具合・誤発動は `.steering/[task]/skill-issues.md` に起票する（session-retrospective が拾う）。改善は**会社リポジトリ内で直接スキルを編集してよい**（下の「独立運用」参照 — このセットは還流経路を持たないため、通常の「配置先で直接編集しない」ルールは適用しない）
 
 ### npx 禁止（このセットの方針）
 
@@ -72,8 +72,11 @@
 - セッション終盤に session-retrospective で摩擦を .steering/[task]/skill-issues.md に起票する
 ```
 
-## 持ち帰り（還流）の運用ルール
+## 独立運用（還流なし）のルール
 
-- 持ち帰ってよいのは**スキルそのものへの汎用的な改善点**のみ（誤発動した・手順が曖昧だった等）
-- 会社のコード・業務文脈を含む内容は持ち帰らない（skill-issues.md の内容は選別してから）
-- マスター側の更新をこのセットに反映する場合は、マスターで `git diff 3f1b595 -- .claude/skills/<name>` で差分を確認して再エクスポートする
+会社環境からマスターへ情報を持ち帰る経路はない（セキュリティ制約）。この配置は**一方向**（マスター → 会社のみ）であり、持ち込み後の会社コピーは**独立したフォーク**として運用する:
+
+- **スキルの改善は会社リポジトリで直接編集する**。skill-issues.md（session-retrospective が起票）は会社内の改善ループの入力として使う（マスターへの供給ではなく、会社内で完結する自己改善の材料）
+- **編集したら目印を残す**: 編集したスキルの frontmatter `metadata:` に `modified: "YYYY-MM-DD 変更概要"` を追記する。`source-commit` は消さない（持ち込み時点の基準として残す）
+- **マスターから再持ち込みする場合は丸ごと上書きしない**: `modified` の付いたスキルは会社側の変更を優先し、必要な差分だけ手動マージする
+- マスター側でこのセットを更新する場合は、マスターで `git diff 3f1b595 -- .claude/skills/<name>` で差分を確認して再エクスポートする（Angular 変換分の再適用を忘れない）
