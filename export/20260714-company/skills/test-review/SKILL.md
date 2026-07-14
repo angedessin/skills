@@ -3,8 +3,8 @@ name: test-review
 description: "テストコード品質をレビューする — 「テストをレビューして」「テストの品質を確認して」「このテストは良い？」「実装エコー」「アサーションが悪い」などのフレーズが対象。確認内容: 実装結合・アサーション品質・ネットワークモック境界・クエリ優先順位・カバレッジ意図。単独または frontend-code-review の Step 1 として動作。テストインフラの監査（テストランナー設定・カバレッジツール設定）には起動しない。"
 compatibility: "Angular / TypeScript / Jasmine（具体例は references/patterns.md — 配置先の実際のテストスタックに合わせて再生成する。同梱の同ファイルは Vitest 前提の example のまま）"
 metadata:
-  source-commit: 3f1b595d88192f0c91a1587dc03a16bec2c65309
   version: "1.1"
+  source-commit: 496a050cfde484237439c1899294042fecc06732
 ---
 
 # Test Review

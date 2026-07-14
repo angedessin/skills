@@ -2,8 +2,8 @@
 name: steering
 description: ".steering/ クロスセッションコンテキスト管理のメタスキル。「new task」「start steering」「[task] を再開」「[task] をアーカイブ」「steering status」「進行中タスクは？」と明示的に言われた場合のみ起動。通常のセッション開始で .steering/ を読むだけの場合や design-doc がコンテキスト設定を担っている場合は自動起動しない。"
 metadata:
-  source-commit: 3f1b595d88192f0c91a1587dc03a16bec2c65309
   version: "1.0"
+  source-commit: 496a050cfde484237439c1899294042fecc06732
 ---
 
 # Steering

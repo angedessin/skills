@@ -6,7 +6,7 @@
 ---
 
 このリポジトリに、外部で作成された Claude Code スキル一式を導入してください。
-セットは `[セットのパス]/` にあります（`skills/` 17 個・`claude-config/`・`MANIFEST.md`）。
+セットは `[セットのパス]/` にあります（`skills/` 18 個・`claude-config/`・`MANIFEST.md`）。
 
 **まず `MANIFEST.md` を全文読んでください。** それが一次情報で、この依頼文は要約です。
 食い違ったら MANIFEST が正です。
@@ -23,7 +23,7 @@
 
 ## 手順（MANIFEST「配置先（会社）でやること」に対応）
 
-1. `skills/` 配下の 17 ディレクトリを `.claude/skills/` にコピーする
+1. `skills/` 配下の 18 ディレクトリを `.claude/skills/` にコピーする
 2. `claude-config/hooks/` の 5 本を `.claude/hooks/` にコピーする（settings の登録は
    `$CLAUDE_PROJECT_DIR` 起点なのでパス書き換え不要）
 3. `claude-config/settings.example.json` を `.claude/settings.json` に**手動マージ**する。
@@ -47,7 +47,7 @@
 8. ここで一度停止し、ユーザーに対話セッションの再起動と信頼ダイアログの承認を依頼する
    （未信頼ワークスペースでは permissions.allow が無効のため）
 9. スモークテストを実行する:
-   - 「どのスキルが使える？」で 17 スキルが一覧に出ること
+   - 「どのスキルが使える？」で 18 スキルが一覧に出ること
    - 小さなタスク依頼で design-doc が設計提示後に**承認待ちで停止する**こと
      （勝手に実装が始まったら FAIL — 結果を報告する）
    - 小さな diff への「コードをレビューして」で frontend-code-review が動くこと

@@ -3,8 +3,8 @@ name: review-ui
 description: "フロントエンドの UI レビューに使うサブスキル。レイアウト・レスポンシブの破綻、デザイン整合（トークン遵守・一貫性）、UX 状態網羅（loading・error・empty・disabled）を確認する。frontend-code-review オーケストレーターからの並列呼び出しを想定。単独でも使用可。"
 compatibility: "Angular / TypeScript / CSS（レスポンシブ・UX 状態の観点はフレームワーク中立。デザイントークンの実体は references/tokens.md を配置先プロジェクトで再生成する）"
 metadata:
-  source-commit: 3f1b595d88192f0c91a1587dc03a16bec2c65309
   version: "1.1"
+  source-commit: 496a050cfde484237439c1899294042fecc06732
 ---
 
 # Review — UI

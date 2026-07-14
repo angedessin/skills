@@ -3,8 +3,8 @@ name: impl-review
 description: "実装コードの品質レビューに使う — 「実装をレビューして」「コードが設計に合っているか確認して」「TypeScript の問題」「Angular パターンのレビュー」などのフレーズが対象。確認内容: design.md との整合性・docs/knowledge/ のプロジェクト規約・TypeScript 品質・Angular パターン。アクセシビリティは対象外（review-a11y の担当）。単独または frontend-code-review の Step 2 として動作。テストコードのレビュー（test-review を使う）やテストインフラの監査には起動しない。"
 compatibility: "Angular / TypeScript"
 metadata:
-  source-commit: 3f1b595d88192f0c91a1587dc03a16bec2c65309
   version: "1.2"
+  source-commit: 496a050cfde484237439c1899294042fecc06732
 ---
 
 # Impl Review

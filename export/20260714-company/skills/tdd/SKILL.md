@@ -3,8 +3,8 @@ name: tdd
 description: "テストファースト開発や既存コードへのテスト追加に使う — 「テストを先に書いて」「TDD で」「レッド・グリーン・リファクタリング」「既存コードにテストを追加して」「失敗するテストを書いて」などのフレーズが対象。Red→Green→Refactor を哲学・テストリスト（振る舞い分解）・AAA・境界値/異常系チェックリストとともに駆動する。設計ドキュメントなしで既存コードにテストを追加する場合に単独で使う。既存テストのレビューのみの場合は起動しない（test-review を使う）。"
 compatibility: "Angular / TypeScript / Jasmine（具体例は references/patterns.md — 配置先の実際のテストスタックに合わせて再生成する。同梱の同ファイルは Vitest 前提の example のまま）"
 metadata:
-  source-commit: 3f1b595d88192f0c91a1587dc03a16bec2c65309
   version: "1.2"
+  source-commit: 496a050cfde484237439c1899294042fecc06732
 ---
 
 # TDD

@@ -2,8 +2,8 @@
 name: compound
 description: "レビューや実装で得た学びをルール・知識・スキルに昇格させる汎用スキル（福利化）。「福利化して」「codify して」「ルール化して」「パターンを抽出して」などのフレーズが対象。セッション開始時に .codify-needed フラグがあれば起動を促す。frontend-code-review 完了後に自動的に提案される。knowledge-capture（ドキュメント保存）とは別物で、こちらは CLAUDE.md ルール・スキル・lint ルール・hook への昇格が主眼。"
 metadata:
-  source-commit: 3f1b595d88192f0c91a1587dc03a16bec2c65309
   version: "1.3"
+  source-commit: 496a050cfde484237439c1899294042fecc06732
 ---
 
 # Compound（福利化）
