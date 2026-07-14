@@ -28,7 +28,7 @@ Status: **DRAFT — awaiting review**
 
 ## Constraints
 
-- Stack: React / TypeScript / Vitest / React Testing Library / MSW / Playwright
+- Stack: Angular / TypeScript / Jasmine
 - [その他の制約]
 
 ## Acceptance criteria
@@ -52,9 +52,8 @@ Status: **DRAFT — awaiting review**
 
 ## Test strategy
 
-- Unit: [何をユニットテストするか、vitest]
-- Integration: [必要な MSW ハンドラー]
-- E2E: [Playwright シナリオ（あれば）]
+- Unit: [何をユニットテストするか、Jasmine]
+- Integration: [HTTP モックの方針（HttpTestingController 等）]
 
 ## Open questions
 

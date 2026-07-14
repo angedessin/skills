@@ -21,7 +21,7 @@
 ## 同梱しなかったもの（必要なら後から追加）
 
 - **pr-create / pr-feedback / debug** — PR 運用・障害調査は会社の既存プロセスとの整合を確認してから。feature-pipeline は未配置フェーズをスキップして報告する縮退動作を持つため、欠けていても壊れない
-- **e2e** — 会社では E2E テストを行っていないため除外。導入することになったらマスターから追加コピーする
+- **e2e** — 会社では E2E テストを行っていないため除外。各スキル本文・references・設計テンプレに残っていた `e2e` スキルへの参照と Playwright の例も除去済み（「E2E は対象外」という境界の記述のみ残している）。導入することになったらマスターから追加コピーする
 - **impl-tournament** — N 並列実装で課金が大きい。必要になったら個別判断
 - **skill-deploy / skill-harvest / skill-test / rule-audit / empirical-prompt-tuning / security-audit** — マスター専用またはメタ運用ツール
 

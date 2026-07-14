@@ -261,31 +261,6 @@ it('正常なユーザー作成', async () => {
 
 ---
 
-## §e2e — E2E（Playwright）— TDD での使い方
-
-> **E2E テストの作成・レビューは `e2e` スキルが担当**（対象選定・粒度・安定性の判断軸はそちらを参照）。この節は Red を E2E シナリオから始める場合の記法例としてのみ残す。
-
-シナリオを先に書いてから実装する。
-
-```typescript
-// tests/e2e/checkout.spec.ts
-import { test, expect } from '@playwright/test'
-
-test('ユーザーがチェックアウトを完了できる', async ({ page }) => {
-  await page.goto('/checkout')
-  await page.getByLabel('カード番号').fill('4111111111111111')
-  await page.getByLabel('有効期限').fill('12/28')
-  await page.getByLabel('CVV').fill('123')
-  await page.getByRole('button', { name: /支払う/i }).click()
-
-  await expect(page.getByText('注文が確定しました')).toBeVisible()
-})
-```
-
-**禁止パターン**: `page.waitForTimeout(1000)` → `expect(locator).toBeVisible()` / CSS セレクタ → `getByRole`/`getByLabel` / `page.locator('#id')` → セマンティクス優先。
-
----
-
 ## §coverage — カバレッジのガイドライン
 
 | 対象 | 目標カバレッジ | 備考 |

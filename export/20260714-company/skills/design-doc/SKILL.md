@@ -59,7 +59,7 @@ metadata:
 - Approach: 核となる技術判断（2〜4文）
 - Key components: コンポーネント・ファイル一覧テーブル
 - Data flow: データ・イベントの流れ
-- Test strategy: Unit / Integration / E2E の方針
+- Test strategy: Unit / Integration の方針
 - Open questions: 人間のレビューが必要な質問（重要）
 - Alternatives considered: 却下した代替案
 

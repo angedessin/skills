@@ -16,7 +16,7 @@ Red → Green → Refactor サイクル。単独での使用（既存コード�
 ## When NOT to use
 
 - 既存テストの品質をレビューしたい → `test-review`
-- E2E テスト（ページ横断のユーザーシナリオ）を書く → `e2e`（本スキルはユニット/インテグレーションが対象）
+- E2E テスト（ページ横断のユーザーシナリオ）を書く → 本スキルの対象外（ユニット/インテグレーションのみが対象。E2E はこのプロジェクトでは運用していない）
 - `impl-from-design` が TDD モードで動いている → そちらに任せる
 
 ---
@@ -117,7 +117,7 @@ Red → Green → Refactor サイクル。単独での使用（既存コード�
 
 - **配置**: 実装ファイルと同じディレクトリにコロケーション（例: `user-card.component.ts` → `user-card.component.spec.ts`）
 - **describe/it か In-source か**: ロジックが重いユーティリティ（分岐・計算が多い）は In-source、それ以外は describe/it。判断基準とコードは `references/patterns.md §unit`。ただし In-source は `includeSource` 設定（§config）が前提 — **テストランナー設定が無い／`src/` 構成でない単独ファイルの場合は describe/it のコロケーションを既定**とする
-- 種類別の具体例: コンポーネント=§component / Hook=§hook / 状態管理=§state / API層=§api-layer（E2E は `e2e` スキルが担当 — When NOT to use 参照）
+- 種類別の具体例: コンポーネント=§component / Hook=§hook / 状態管理=§state / API層=§api-layer（E2E は本スキルの対象外 — When NOT to use 参照）
 - セットアップ（設定・ネットワークモック）: §config / §setup、カバレッジ目安: §coverage
 
 ---
@@ -136,4 +136,3 @@ Red → Green → Refactor サイクル。単独での使用（既存コード�
 
 - `impl-from-design` — TDD モードで実装を進める場合はこちらが主体
 - `test-review` — 書いたテストの品質を確認
-- `e2e` — ページ横断のユーザーシナリオ（クリティカルパス）のテスト作成・レビュー
