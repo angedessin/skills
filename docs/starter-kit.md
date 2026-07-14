@@ -167,7 +167,7 @@ CLAUDE.md のポリシー側を調整する（スキル本文は触らない）�
 ```markdown
 ## スキル発動ポリシー
 
-- 新しいタスクを開始するときは design-doc を使い、design.md が APPROVED になるまで実装しない
+- 新しいタスクを開始するときは design-doc を使う。1 セッション完結の見込みなら会話内設計・複数セッションなら .steering/（どちらにするかは design-doc がユーザーに確認する）。いずれも設計の承認までは実装しない
 - 承認済み design.md からの実装は impl-from-design を使う（実装モードは TDD 推奨）
 - 既存コードへのテスト追加・テストファーストの実装は tdd を使う
 - 実装後のコードレビューは frontend-code-review を使う
