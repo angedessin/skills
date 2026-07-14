@@ -1,0 +1,127 @@
+{
+  "_comment": "配置先の .claude/settings.json に手動マージする雛形（丸ごと上書きしない）。既存 allow と衝突したら deny を優先。マスターとの差分: npx を ask から deny に強化（npx 全面禁止の方針）・validate-skill-edit.sh（マスター専用）を hooks から除外",
+  "permissions": {
+    "allow": [
+      "Bash(ls)",
+      "Bash(ls *)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)"
+    ],
+    "ask": [
+      "Bash(git push*)",
+      "Bash(rm -r*)",
+      "Edit(./.claude/settings.json)",
+      "Write(./.claude/settings.json)",
+      "Edit(./.claude/settings.local.json)",
+      "Write(./.claude/settings.local.json)",
+      "Edit(./.claude/hooks/**)",
+      "Write(./.claude/hooks/**)"
+    ],
+    "deny": [
+      "Bash(npx)",
+      "Bash(npx *)",
+      "Bash(pnpm add *)",
+      "Bash(pnpm remove *)",
+      "Bash(pnpm install)",
+      "Bash(pnpm install *)",
+      "Bash(pnpm i)",
+      "Bash(pnpm i *)",
+      "Bash(pnpm dlx *)",
+      "Bash(npm install)",
+      "Bash(npm install *)",
+      "Bash(npm i)",
+      "Bash(npm i *)",
+      "Bash(npm ci)",
+      "Bash(npm ci *)",
+      "Bash(npm exec *)",
+      "Bash(yarn add *)",
+      "Bash(yarn install)",
+      "Bash(yarn install *)",
+      "Bash(yarn dlx *)",
+      "Bash(bun add *)",
+      "Bash(bun install)",
+      "Bash(bun install *)",
+      "Bash(bunx *)",
+      "Bash(pip install *)",
+      "Bash(pip3 install *)",
+      "Bash(brew install *)",
+      "Bash(cat .env*)",
+      "Bash(cat *.env)",
+      "Bash(grep * .env*)",
+      "Bash(grep * *.env)",
+      "Bash(printenv)",
+      "Bash(printenv *)",
+      "Bash(env)",
+      "Read(./.env*)",
+      "Read(./**/.env*)",
+      "Read(./*.env)",
+      "Read(./**/*.env)",
+      "Read(./**/*.pem)",
+      "Read(./**/*.key)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.claude/.credentials.json)",
+      "Bash(rm -rf *)",
+      "Bash(rm -fr *)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push * +*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -f*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-start-check.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-env-read.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-edit-lint.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/stop-typecheck.sh",
+            "timeout": 120
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-stop.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
