@@ -8,6 +8,35 @@
 
 ---
 
+## はじめて使う人へ — チートシート
+
+スキルは 28 個あるが、**ユーザーが自分から言うフレーズは下の 7 つだけ**。残りは会話の流れやオーケストレーターから自動で接続される（覚えなくてよい）。
+
+| 状況 | 言うこと | 起動するスキル |
+|---|---|---|
+| 新機能・タスクを始める | 「X を作りたい」— 仕様書・要件メモ・参考 URL があれば一緒に貼る（design.md に織り込まれる） | design-doc |
+| バグ・障害を調べる | 「〜が動かない。調べて」 | debug |
+| 進行中タスクを一覧する | 「進行中のタスクは？」 | steering (status) |
+| 途中のタスクを再開する | 「[タスク名] を再開」（複数あるときはこれで指定する） | steering (resume) |
+| タスクを完了する | 「[タスク名] をアーカイブして」 | steering (archive) |
+| PR を出す | 「PR を作って」 | pr-create |
+| セッションを振り返る | 「振り返りして」 | session-retrospective |
+
+それ以外のスキルは 2 種類に分かれる:
+
+- **自動発動・パイプライン内部**（覚えなくてよい）: impl-from-design / tdd / e2e / frontend-code-review / review-* / test-review / impl-review / pr-feedback / knowledge-capture / compound / design-premortem / impl-tournament / feature-pipeline — design-doc の承認後や作業の流れから接続される
+- **メンテ・マスター専用**（日常の開発では呼ばない）: 実行タイミングは下表
+
+| スキル | いつ実行するか |
+|---|---|
+| rule-audit | CLAUDE.md が肥大化したと感じたとき（compound 数回ごと・月 1 目安の定期剪定） |
+| security-audit | サードパーティのスキル・hooks の採用前、および定期 |
+| skill-test | スキル本文を改変したとき・配布前の回帰テスト（マスター専用） |
+| skill-deploy / skill-harvest | 他プロジェクトへの配置時 / 配置先からの知見回収時（マスター専用） |
+| empirical-prompt-tuning | スキル自体の品質を実測ベースで改善したいとき（任意・課金） |
+
+---
+
 ## ディレクトリ構成
 
 ```

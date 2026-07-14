@@ -15,6 +15,8 @@ Tech stack: React / TypeScript / Vitest / React Testing Library / MSW / Playwrig
 3. `.steering/` のアクティブタスクをすべて読んでから作業開始
 4. 複数のアクティブタスクがある場合はどれを再開するか確認
 
+worktree・ブランチ上で開始したタスクは、main へのマージ前にアーカイブまで済ませる（`.steering/` がブランチ間で分岐すると、他のセッションからタスクが見えない・アーカイブ済みがアクティブに見える等の対応漏れが起きる）
+
 ## スキル管理ルール
 
 - 新規スキルは `templates/SKILL.template.md` をコピーして書き始める（契約準拠を最初から構造として渡す。使い方は `templates/README.md`）
