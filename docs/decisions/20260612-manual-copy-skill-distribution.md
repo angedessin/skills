@@ -1,7 +1,7 @@
 # Decision: スキルの横展開は人が選んで手動コピーする
 
 Date: 20260612
-Status: Accepted
+Status: Accepted (Amended 20260715 — 末尾の Amendments 参照)
 
 ## Context
 
@@ -36,3 +36,12 @@ Claude Code がスキルを読み込むのは `~/.claude/skills/`（全プロジ
 | `~/.claude/skills/` へ symlink | 全プロジェクトに自動反映され、プロジェクトごとの取捨選択ができない |
 | プラグイン化（git からインストール） | 個人の複数プロジェクト用途には配布インフラが過剰 |
 | 自動同期スクリプト | ドリフトのゼロ化を目指すとプラグイン化と同じ複雑さに逆戻りする |
+
+## Amendments
+
+**20260715**: `deploy_skills.py` + skill-deploy スキルの導入により、実態は starter-kit
+「配布方式の段階基準」の**拡大**段階（配置スクリプト — 選択は人・記録は自動）に移行した。
+本 ADR が却下した「自動同期スクリプト」とは異なり、スキルの選択とコピー実行の承認は
+人が行い、スクリプトが自動化するのは機械的な部分（コピー・source-commit 打刻・
+deployments.md 登録）のみ。決定の核（人が選ぶ・承認制・改善はマスターに還元）は不変。
+関連: [20260704-master-feedback-via-proposal](20260704-master-feedback-via-proposal.md)（還元運用の精緻化）

@@ -2,7 +2,7 @@
 name: design-doc
 description: "新機能・タスク開始に使う — 「Xを作ろう」「Zの設計をして」「新しいタスク」などのフレーズが対象。複数セッションにまたがる見込みのタスクには .steering/[YYYYMMDD]-[task-name]/ に design.md・tasklist.md を作成し、design.md 作成後は必ず停止して人間のレビューを待つ（実装に入らない）。1セッションで終わる見込みのタスクは、縮退の可否をユーザーに確認し、会話内設計が選ばれた場合のみ .steering を作らず会話内で設計確認する。「design doc」と言われなくてもタスク開始のシグナルがあれば起動する。現在タスクの .steering/ が既に存在する場合は steering（resume モード）を使う。テスト追加のみや小さなバグ修正では起動しない。環境構築・ツール導入・設定整備のタスクは設計フローに乗せず、会話内でセットアップ計画を確認して進める。バグ・障害の原因調査は debug を使う（原因特定後、構造に触る修正はこのスキルに接続される）。"
 metadata:
-  version: "1.3"
+  version: "1.4"
 ---
 
 # Design Doc
@@ -33,7 +33,9 @@ metadata:
    - **タスク名**: kebab-case、≤5 words（例: `user-auth-refresh-flow`）
    - **日付**: 今日（YYYYMMDD 形式）
 
-2. `.steering/` の既存アクティブタスクを確認:
+2. 仕様書・参考資料の有無を確認する: 依頼に仕様書・要件メモ・参考 URL・関連ファイルの指定が含まれていなければ、「仕様書や参考資料はありますか？あれば design.md に織り込みます」と一度だけ確認する。提供されたら Phase 2 の design.md（Goal / Scope / Approach / Constraints）に反映する。「ない」なら依頼文だけで進む（資料なしを理由に止まらない）
+
+3. `.steering/` の既存アクティブタスクを確認:
    ```bash
    find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
    ```

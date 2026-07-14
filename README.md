@@ -8,6 +8,18 @@
 
 ---
 
+## ドキュメントの読み分け
+
+| あなたは | 読むもの |
+|---|---|
+| スキルを**使う**人（このリポジトリ・配置先どちらでも） | [docs/user-guide.md](docs/user-guide.md) — チートシート（言うフレーズ全表）・FAQ・使うときのコツ |
+| スキルを他プロジェクトへ**配置する**人 | [docs/starter-kit.md](docs/starter-kit.md) — 推奨構成・配置手順 8 ステップ・CLAUDE.md 雛形 |
+| マスターを**保守する**人・全体像を知りたい人 | この README（ワークフロー図・スキル一覧・自己改善ループ・インフラ） |
+
+最低限の抜粋（一次情報は user-guide のチートシート）: 新機能は「X を作りたい」（仕様書があれば貼る）、バグは「調べて」、タスク再開は「[タスク名] を再開」、完了は「[タスク名] をアーカイブして」。残りのスキルは自動発動かメンテ用で、覚えなくてよい。
+
+---
+
 ## ディレクトリ構成
 
 ```
@@ -28,6 +40,7 @@
 ├── tests/
 │   └── passthrough/[skill]/scenario.md # 素通り検査のシナリオ資産（マスター専用）
 └── docs/
+    ├── user-guide.md                  # スキルを使う人向けガイド（チートシート・FAQ。配布可）
     ├── starter-kit.md                 # 他プロジェクトへの配置手順・推奨構成
     ├── knowledge/                     # 経験・パターン集
     └── decisions/                     # ADR（設計判断）
@@ -70,6 +83,23 @@
 フェーズ全体を一括で進めたい場合は `feature-pipeline` が上記スキルを順に編成する（人間の承認ゲートは「不可逆/外向き・価値判断・責任」に該当する 4 点のみ: 設計承認・指摘トリアージ・マージ・知見保存。該当しない境界（実装→レビュー等）は報告して自動で進む・途中フェーズから再開可）。
 
 **運用ルール**: このワークフロー図と `feature-pipeline` スキルは同一コミットで改訂する（図とオーケストレーターのドリフト防止）。
+
+### スキル間の関係図
+
+```
+debug（障害調査。小さい修正は即完結）─┐
+                                      ↓
+design-doc ──→ impl-from-design ──→ frontend-code-review ──→ pr-create ──→ pr-feedback ──→ compound ＋ knowledge-capture
+    │  ↑           │  ↑                     │                              (PR 往復)              ↕
+    ↓  │(任意)     ├─←→ tdd                 ↓                                                rule-audit
+steering │         └─── e2e     test-review / impl-review / review-*                       （剪定の対・定期）
+（ライフ）│         │(任意)      （テスト / 実装 / sec・perf・a11y・correctness・ui）
+design-premortem   impl-tournament                          session-retrospective → skill-issues.md → compound
+（設計の穴出し）    （N 並列実装の比較）                     （セッション摩擦の採掘）
+```
+
+- `empirical-prompt-tuning` は上記スキル自体の品質改善に横断的に使う
+- マスター専用: `skill-test`（回帰テスト）/ `skill-deploy`（新規・追加配置）/ `skill-harvest`（配置先の還流）は配布せずマスターで保守に使う
 
 ---
 
@@ -124,7 +154,7 @@
 | スキル | 役割 |
 |---|---|
 | [`compound`](.claude/skills/compound/SKILL.md) | 福利化。review-result.md / decisions.md / skill-issues.md からパターンを抽出し、ルール・知識・スキル改善に昇格。codify-log.md と突合して**昇格済みルールの効果検証**（再発検知）も行う。昇格の適用は承認制（昇格ゼロ時のフラグ整理のみ承認不要） |
-| [`rule-audit`](.claude/skills/rule-audit/SKILL.md) | 剪定。CLAUDE.md・ルール・スキル frontmatter を定期監査し、削除テスト・症状診断で**保持/削除/統合/移動/明確化**を判定。compound（追加）と対をなす。適用は承認制 |
+| [`rule-audit`](.claude/skills/rule-audit/SKILL.md) | 剪定。CLAUDE.md・ルール・docs/knowledge/・スキル frontmatter を定期監査し、削除テスト・症状診断・鮮度シグナル（最終更新日・被参照数）で**保持/削除/統合/移動/明確化**を判定。compound（追加）と対をなす。適用は承認制 |
 | [`knowledge-capture`](.claude/skills/knowledge-capture/SKILL.md) | セッションの知見を docs/knowledge/（パターン）・docs/decisions/（ADR）・CLAUDE.md（行動ルール）・glossary に振り分けて保存。承認制 |
 | [`session-retrospective`](.claude/skills/session-retrospective/SKILL.md) | セッション終盤に会話履歴から摩擦（スキル誤発動・ユーザー訂正・手戻り・パーミッション拒否・曖昧さ）を採掘し `skill-issues.md` に起票。**昇格はしない**（compound の原料を作る）。ゼロ件なら起票しない |
 | [`empirical-prompt-tuning`](.claude/skills/empirical-prompt-tuning/SKILL.md) | スキル・プロンプト自体の品質改善。フレッシュな subagent に実行させて両面評価し、改善が頭打ちになるまで反復 |
@@ -173,43 +203,6 @@
 
 ## 横展開（他プロジェクトでの利用）
 
-このリポジトリがマスター。スキルは人が選んで配置先プロジェクトの `.claude/skills/` に手動コピーする（`~/.claude/` への配置・symlink・プラグイン化はしない）。
+このリポジトリがマスター。スキルは人が選んで配置先プロジェクトの `.claude/skills/` に手動コピーし、改善は配置先で直接編集せずマスターに還元して再コピーで配る。
 
-- 配置の取捨選択自体がガードレール（無関係なスキルの誤発動を防ぐ）
-- 改善は必ずマスターに還元し、再コピーで配る。配置先で直接編集しない
-- 配置時にマスターのコミットハッシュを各スキルの `metadata.source-commit` に記録する（ドリフト追跡は `git diff <hash>` 一発）
-- スキルは CLAUDE.md・docs/・`.steering/` が無くても動く自己完結設計（[skill-design-patterns.md](docs/knowledge/skill-design-patterns.md)）
-
-**推奨構成と配置手順**: [docs/starter-kit.md](docs/starter-kit.md)（最小/拡張セットの選定表・8 ステップの配置手順・CLAUDE.md 雛形）
-**配置前チェック**: `python3 scripts/validate_skills.py`（frontmatter・構造の機械検証）
-**配置後チェック**: スモークテスト（[starter-kit 手順 8](docs/starter-kit.md)。スキル一覧の確認・design-doc の承認ゲート停止・ガードレールの ask 落ち）
-
-配布方式の段階基準:
-
-| 段階 | 条件 | 配布方式 |
-|---|---|---|
-| 現在（個人・数プロジェクト） | 配置先 ≤ 3 程度 | 手動コピー + source-commit 記録 |
-| 拡大 | 配置先が増えドリフト管理が手に余る | バージョンタグ付きスターターキット + 配置スクリプト（選択は人・記録は自動） |
-| チーム標準化 | 複数メンバーが同一セットを使う | プラグイン化 or テンプレートリポジトリ（ADR を正式に改訂） |
-
-経緯: [ADR 20260612-manual-copy-skill-distribution](docs/decisions/20260612-manual-copy-skill-distribution.md)
-
----
-
-## スキル間の関係図
-
-```
-debug（障害調査。小さい修正は即完結）─┐
-                                      ↓
-design-doc ──→ impl-from-design ──→ frontend-code-review ──→ pr-create ──→ pr-feedback ──→ compound ＋ knowledge-capture
-    │  ↑           │  ↑                     │                              (PR 往復)              ↕
-    ↓  │(任意)     ├─←→ tdd                 ↓                                                rule-audit
-steering │         └─── e2e     test-review / impl-review / review-*                       （剪定の対・定期）
-（ライフ）│         │(任意)      （テスト / 実装 / sec・perf・a11y・correctness・ui）
-design-premortem   impl-tournament                          session-retrospective → skill-issues.md → compound
-（設計の穴出し）    （N 並列実装の比較）                     （セッション摩擦の採掘）
-```
-
-- `feature-pipeline` が上記の一連を承認ゲート付きで編成する（オーケストレーター）
-- `empirical-prompt-tuning` は上記スキル自体の品質改善に横断的に使う
-- マスター専用: `skill-test`（回帰テスト）/ `skill-deploy`（新規・追加配置）/ `skill-harvest`（配置先の還流）は配布せずマスターで保守に使う
+推奨構成・配置手順（8 ステップ）・配布方式の段階基準・CLAUDE.md 雛形の一次情報: [docs/starter-kit.md](docs/starter-kit.md)
