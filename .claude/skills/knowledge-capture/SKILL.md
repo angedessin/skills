@@ -2,7 +2,7 @@
 name: knowledge-capture
 description: "セッション終了時のプロジェクト知識保存に使うメタスキル。「ナレッジを保存して」「学んだことを記録して」「この決定をドキュメント化して」「セッション終了」「ドキュメントを更新して」と明示的に言われた場合のみ起動。セッション開始時に .capture-needed ファイルがあれば起動。decisions.md・review-result.md・会話コンテキストから知見を抽出し docs/knowledge/・docs/decisions/・.steering/decisions.md・CLAUDE.md に分類する。タスク完了のたびに自動起動しない。lint ルール・スキルを作成する compound とは別物。"
 metadata:
-  version: "1.2"
+  version: "1.3"
 ---
 
 # Knowledge Capture
@@ -196,6 +196,12 @@ Status: Accepted
 |-------------|-----------------|
 | [代替案] | [却下理由] |
 ```
+
+**既存 ADR の決定を変更・進化させる場合**: 新規 ADR を書くだけで終えず、旧 ADR の Status を
+`Superseded by [新ADRファイル名]`（決定を置き換えた）または `Accepted (Amended [YYYYMMDD])` +
+末尾に `## Amendments` 節追記（核は不変で運用が進化した）に更新し、新旧を相互リンクする。
+ADR は行動には配線されず pull でのみ読まれるため、この印が無いと後から読んだ人（AI 含む）が
+古い決定を現行と誤読する。Step 3 の重複チェックで近縁 ADR が見つかったら、この更新が要るかを確認する。
 
 ### docs/glossary.md（語彙・用語集）
 

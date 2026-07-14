@@ -45,7 +45,7 @@
 
 | スキル | いつ実行するか |
 |---|---|
-| rule-audit | CLAUDE.md が肥大化したと感じたとき（compound 数回ごと・月 1 目安の定期剪定） |
+| rule-audit | CLAUDE.md が肥大化したと感じたとき（compound 数回ごと・月 1 目安の定期剪定。docs/knowledge/ の鮮度点検も兼ねる） |
 | security-audit | サードパーティのスキル・hooks の採用前、および定期 |
 | empirical-prompt-tuning | スキル自体の品質を実測ベースで改善したいとき（任意・課金） |
 | skill-test / skill-deploy / skill-harvest | **マスター専用**（スキル改変時の回帰テスト / 配置 / 還流回収。配置先には入っていない） |

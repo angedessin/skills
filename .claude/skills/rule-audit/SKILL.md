@@ -1,8 +1,8 @@
 ---
 name: rule-audit
-description: "CLAUDE.md・ルールファイルを定期監査し、肥大化・陳腐化・曖昧・重複・効果のないルールを検出して剪定する — 「ルールを見直して」「CLAUDE.md を整理して」「ルールを監査して」「ルールの棚卸し」などのフレーズが対象。compound（ルール追加・昇格）と対をなす剪定スキル。新ルールの追加・昇格には起動しない（compound を使う）。"
+description: "CLAUDE.md・ルールファイル・docs/knowledge/ を定期監査し、肥大化・陳腐化・曖昧・重複・効果のないルールや知識を検出して剪定する — 「ルールを見直して」「CLAUDE.md を整理して」「ルールを監査して」「ルールの棚卸し」「knowledge を点検して」などのフレーズが対象。compound（ルール追加・昇格）と対をなす剪定スキル。新ルールの追加・昇格には起動しない（compound を使う）。"
 metadata:
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Rule Audit
@@ -25,7 +25,7 @@ metadata:
 |---|---|---|
 | 方向 | **追加・昇格**（学びを新ルールに） | **剪定・整理**（既存ルールの健全性監査） |
 | 入力 | review-result.md / decisions.md / skill-issues.md | CLAUDE.md / docs/knowledge/ / スキル frontmatter そのもの |
-| 出力 | 新ルール・知識・スキルのドラフト | 各ルールの「保持/削除/統合/移動/明確化」判定 |
+| 出力 | 新ルール・知識・スキルのドラフト | 各ルール・knowledge 節の「保持/削除/統合/移動/明確化」判定 + 鮮度レポート |
 | 再発検知 | 担当（codify-log と突合） | しない（compound に委譲、再実装しない） |
 
 **両輪の関係**: compound がルールを増やす → 埋もれる → rule-audit が刈る。セットで初めて健全。
@@ -38,7 +38,7 @@ metadata:
 
 1. プロジェクトの `CLAUDE.md` — **存在しない場合**: `AGENTS.md`・`.cursorrules` 等の相当ファイルを探し、見つかればそれを監査対象にしてよいかユーザーに確認する。相当ファイルも無ければ「監査対象のルールファイルがありません」と伝え、スキル frontmatter 検証（Step 4）のみ実施するか確認する
 2. `~/.claude/CLAUDE.md`（グローバルルール。読めない場合はスキップ）
-3. `docs/knowledge/` 配下（あれば。CLAUDE.md からの `@参照` の整合確認に使う）
+3. `docs/knowledge/` 配下（あれば。監査対象 — Step 2 の削除テストと Step 3 の鮮度チェックにかける。CLAUDE.md からの `@参照` の整合確認にも使う）
 4. `.claude/skills/*/SKILL.md` の frontmatter（あれば。Step 4 の機械検証対象）
 5. `.steering/**/codify-log.md`（あれば。ルールの由来＝どの失敗から昇格したかの突合に使う。無ければ由来突合をスキップ）
 
@@ -51,11 +51,17 @@ ls .claude/skills/*/SKILL.md 2>/dev/null
 
 ## Step 2 — 各ルールを 5 基準で判定
 
-CLAUDE.md（および相当ファイル）の各ルールに以下を順に適用する:
+CLAUDE.md（および相当ファイル）の各ルールに以下を順に適用する。
+**基準 1 の削除テストは `docs/knowledge/` のトピック（見出し単位）にも適用する** —
+knowledge はレビュー基準・@参照として AI の行動に配線されており、腐った記述は
+誤った指摘や廃止済み規約の強制として行動品質に直接跳ね返るため、ルールと同格の監査対象とする
+（段階基準は docs/decisions/20260715-docs-lifecycle-tiers.md — 無いプロジェクトではこの参照をスキップしてよい）。
+**docs/decisions/（ADR）は削除テストの対象外** — 不変の記録として剪定しない（決定の変更は
+Superseded / Amended 印で扱う。knowledge-capture の担当）。
 
 ### 基準 1 — 削除テスト（最重要）
 
-「このルールを削除すると Claude が間違いを犯すか？」→ **No なら削除候補**。
+「このルール（または knowledge の節）を削除すると Claude が間違いを犯すか？」→ **No なら削除候補**。
 codify-log.md に由来がある場合は「元の失敗が再発しうるか」で判断する。
 
 ### 基準 2 — 症状ベースの診断
@@ -84,11 +90,19 @@ codify-log.md に由来がある場合は「元の失敗が再発しうるか」
 
 ---
 
-## Step 3 — 行数・重複・参照整合チェック
+## Step 3 — 行数・重複・参照整合・鮮度チェック
 
 - ルールファイルの行数を構造制約と突き合わせる
 - 同義・近縁ルールの統合候補を挙げる
 - `@docs/...` 参照の**参照切れ**（ファイルが存在しない）と、docs/knowledge/ 側の**孤立ファイル**（どこからも参照されず存在も知らされない）を検出する
+- docs/knowledge/ の**鮮度シグナル**をファイルごとに機械出力する（git が無い・浅い clone の場合はスキップしてレポートに明記）:
+
+```bash
+# ファイルごとの最終更新日と被参照数（判定材料。古い＝即削除ではなく Step 2 の削除テストにかける）
+for f in docs/knowledge/*.md; do
+  echo "$f | 最終更新: $(git log -1 --format=%as -- "$f") | 被参照: $(grep -rl "$(basename "$f")" --include='*.md' . | grep -v "^$f" | wc -l) 箇所"
+done
+```
 
 ---
 
@@ -131,6 +145,11 @@ skills-ref validate ./.claude/skills/[skill] 2>/dev/null
 
 ### 参照整合
 - [参照切れ・孤立ファイル]
+
+### knowledge 鮮度
+| ファイル | 最終更新 | 被参照 | 判定 |
+|---|---|---|---|
+| [topic].md | [日付] | [N 箇所] | [保持 / 節の削除候補: 理由 / 孤立] |
 
 ### スキル構造
 - [violation または「全スキル準拠」]
