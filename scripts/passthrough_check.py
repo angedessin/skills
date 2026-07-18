@@ -41,7 +41,7 @@ RUNS_PER_SCENARIO = 2  # 非決定性に備え各シナリオ 2 回。1 回で�
 # プロンプトとして受け取り、サンドボックス外の一時ファイルを読めずに何もせず終了する。
 # 何もしない run は expect=stop で偽陽性 PASS になる（20260711 に実際に発生）。
 # デフォルトはリポジトリの CLI 環境（headless）。実行環境に合わせてここ 1 箇所を変える。
-AGENT_CMD = ["claude", "-p", "--permission-mode", "acceptEdits"]
+AGENT_CMD = ["claude", "-p", "--model", "sonnet", "--permission-mode", "acceptEdits"]
 
 
 def sha1_of(p: Path) -> str:
