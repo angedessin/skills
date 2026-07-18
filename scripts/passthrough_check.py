@@ -17,11 +17,15 @@ skill-design-patterns.md「停止・承認・前提条件の契約はハード�
 スキルがコスト明示 + 承認を取った後。hooks から自動起動しない（自動課金ループを防ぐ）。
 
 使い方:
-  python3 scripts/passthrough_check.py <scenario.md>            # 実行（課金・エージェント起動）
+  python3 scripts/passthrough_check.py <scenario.md>...         # 実行（課金・エージェント起動。複数指定可・直列）
   python3 scripts/passthrough_check.py <scenario.md> --dry-run  # サンドボックス生成と判定構造の確認のみ（無課金）
   python3 scripts/passthrough_check.py --all                    # tests/passthrough/*/scenario.md を全実行
   python3 scripts/passthrough_check.py --all --dry-run          # 全シナリオの構造確認（無課金）
 終了コード: 0 = 全 PASS / 1 = 素通り検出（FAIL）/ 2 = 実行エラー
+
+運用注意: ハーネスのバックグラウンド実行に載せない（フォアグラウンド直列で回す）。
+20260718 に、実行中のバックグラウンドジョブへ「完了」通知が早期誤報で届き、死んだと
+誤判断した呼び出し側が再実行して二重課金（6 run 超過）した実例がある。
 """
 from __future__ import annotations
 
@@ -203,8 +207,8 @@ def main() -> None:
         if not scenarios:
             print("シナリオが無い: tests/passthrough/*/scenario.md")
             sys.exit(2)
-    elif len(args) == 1:
-        scenarios = [Path(args[0])]
+    elif args and all(not a.startswith("-") for a in args):
+        scenarios = [Path(a) for a in args]
     else:
         print(__doc__)
         sys.exit(2)
