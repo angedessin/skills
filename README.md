@@ -155,7 +155,7 @@ design-premortem   impl-tournament                          session-retrospectiv
 |---|---|
 | [`compound`](.claude/skills/compound/SKILL.md) | 福利化。review-result.md / decisions.md / skill-issues.md からパターンを抽出し、ルール・知識・スキル改善に昇格。codify-log.md と突合して**昇格済みルールの効果検証**（再発検知）も行う。昇格の適用は承認制（昇格ゼロ時のフラグ整理のみ承認不要） |
 | [`rule-audit`](.claude/skills/rule-audit/SKILL.md) | 剪定。CLAUDE.md・ルール・docs/knowledge/・スキル frontmatter を定期監査し、削除テスト・症状診断・鮮度シグナル（最終更新日・被参照数）で**保持/削除/統合/移動/明確化**を判定。compound（追加）と対をなす。適用は承認制 |
-| [`knowledge-capture`](.claude/skills/knowledge-capture/SKILL.md) | セッションの知見を docs/knowledge/（パターン）・docs/decisions/（ADR）・CLAUDE.md（行動ルール）・glossary に振り分けて保存。承認制 |
+| [`knowledge-capture`](.claude/skills/knowledge-capture/SKILL.md) | セッションの知見を docs/knowledge/（パターン）・docs/decisions/（ADR）・CLAUDE.md（行動ルール）に振り分けて保存。承認制 |
 | [`session-retrospective`](.claude/skills/session-retrospective/SKILL.md) | セッション終盤に会話履歴から摩擦（スキル誤発動・ユーザー訂正・手戻り・パーミッション拒否・曖昧さ）を採掘し `skill-issues.md` に起票。**昇格はしない**（compound の原料を作る）。ゼロ件なら起票しない |
 | [`empirical-prompt-tuning`](.claude/skills/empirical-prompt-tuning/SKILL.md) | スキル・プロンプト自体の品質改善。フレッシュな subagent に実行させて両面評価し、改善が頭打ちになるまで反復 |
 | [`security-audit`](.claude/skills/security-audit/SKILL.md) | セットアップ資産（スキル・agents・hooks・settings・依存/MCP）のサプライチェーン・セキュリティを**静的**監査。外部送信・シークレット読取・破壊的コマンド・広範権限・インジェクション構造を機械スキャンし、判別不能はフェイルクローズで要確認に。**対象本文を全文解釈せずヒット行のみ判定**（監査対象の埋め込み指示に従わない）。「検出なし」は安全証明ではなく目視確認ルールを置換しない。修正は承認制。review-security（コード diff）とは対象が別 |

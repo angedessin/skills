@@ -14,11 +14,11 @@ metadata:
 
 ## When NOT to use
 
-- ドキュメントに保存したい（ADR・新規トピックのパターン集・語彙） → `knowledge-capture`
+- ドキュメントに保存したい（ADR・新規トピックのパターン集） → `knowledge-capture`
 - lint ルール・ast-grep ルール・hook として固めたい場合は、このスキルがその起点になれる
 - 1回限りの事象 → コミットメッセージで十分
 
-**knowledge-capture との境界**: 昇格フローの中で見つけた落とし穴を docs/knowledge/ の**既存トピックへ短く追記**するのは本スキルの担当。**新規トピックの立ち上げ・まとまった集積・ADR・語彙**は knowledge-capture の担当（同スキル側にも同じ境界を明記済み）。
+**knowledge-capture との境界**: 昇格フローの中で見つけた落とし穴を docs/knowledge/ の**既存トピックへ短く追記**するのは本スキルの担当。**新規トピックの立ち上げ・まとまった集積・ADR**は knowledge-capture の担当（同スキル側にも同じ境界を明記済み）。
 
 ---
 
@@ -225,7 +225,7 @@ EOF
 
 ## Related skills
 
-- `knowledge-capture` — ドキュメント保存（ADR・パターン集・語彙）が主眼
+- `knowledge-capture` — ドキュメント保存（ADR・パターン集）が主眼
 - `session-retrospective` — このスキルの入力（skill-issues.md）を会話から採掘して供給する原料元
 - `rule-audit` — 対をなす剪定スキル（既存ルールの削除・統合・GC）。compound が増やし rule-audit が刈る
 - `frontend-code-review` — このスキルの入力（review-result.md）を生成する
