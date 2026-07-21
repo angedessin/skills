@@ -4,7 +4,7 @@ description: "フロントエンドのロジック正当性レビューに使う
 compatibility: "Angular / TypeScript（境界条件・null 安全・非同期の観点は言語・フレームワーク中立）"
 metadata:
   version: "1.1"
-  source-commit: df027219393941e5a3e80cd2a9e8a4baa26f0b19
+  source-commit: e90165507d319933f2c07f9538b0a0040e67842e
 ---
 
 # Review — Correctness

@@ -4,7 +4,7 @@ description: "フロントエンドのセキュリティレビューに使うサ
 compatibility: "Angular / TypeScript（XSS・シークレット・依存関係の観点はフレームワーク中立）"
 metadata:
   version: "1.2"
-  source-commit: df027219393941e5a3e80cd2a9e8a4baa26f0b19
+  source-commit: e90165507d319933f2c07f9538b0a0040e67842e
 ---
 
 # Review — Security

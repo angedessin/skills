@@ -3,7 +3,7 @@ name: rule-audit
 description: "CLAUDE.md・ルールファイル・docs/knowledge/ を定期監査し、肥大化・陳腐化・曖昧・重複・効果のないルールや知識を検出して剪定する — 「ルールを見直して」「CLAUDE.md を整理して」「ルールを監査して」「ルールの棚卸し」「knowledge を点検して」などのフレーズが対象。compound（ルール追加・昇格）と対をなす剪定スキル。新ルールの追加・昇格には起動しない（compound を使う）。"
 metadata:
   version: "1.1"
-  source-commit: df027219393941e5a3e80cd2a9e8a4baa26f0b19
+  source-commit: e90165507d319933f2c07f9538b0a0040e67842e
 ---
 
 # Rule Audit
