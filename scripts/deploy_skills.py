@@ -42,7 +42,7 @@ SKILLS_DIR = MASTER_ROOT / ".claude" / "skills"
 REGISTRY = MASTER_ROOT / "deployments.md"
 
 # 配布分類の一次情報は starter-kit.md の選定表。ここは誤配置を機械的に弾く安全弁のみ
-MASTER_ONLY = {"skill-test", "skill-harvest", "skill-deploy"}
+MASTER_ONLY = {"skill-test", "skill-harvest", "skill-deploy", "adr"}
 
 GITIGNORE_LINES = [
     "# .steering ランタイムフラグ（セッション状態。知識は md が持つ）",

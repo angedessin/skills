@@ -48,6 +48,7 @@
 | rule-audit | CLAUDE.md が肥大化したと感じたとき（compound 数回ごと・月 1 目安の定期剪定。docs/knowledge/ の鮮度点検も兼ねる） |
 | security-audit | サードパーティのスキル・hooks の採用前、および定期 |
 | empirical-prompt-tuning | スキル自体の品質を実測ベースで改善したいとき（任意・課金） |
+| adr | **マスター専用**。却下した代替案がある決定を ADR として起票したいとき（手動起動。knowledge-capture が decisions.md に残した決定を見て人が呼ぶ） |
 | skill-test / skill-deploy / skill-harvest | **マスター専用**（スキル改変時の回帰テスト / 配置 / 還流回収。配置先には入っていない） |
 
 ---

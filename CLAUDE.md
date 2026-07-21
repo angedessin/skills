@@ -40,7 +40,7 @@ CLAUDE.md は行動ルールのみ。知識の倉庫にしない（毎回コン�
 |---|---|
 | 行動ルール（短い命令形） | このファイル or `~/.claude/CLAUDE.md` |
 | 経験・パターン・アンチパターン | `docs/knowledge/[topic].md`（@参照で読む） |
-| 設計判断（ADR） | `docs/decisions/[date]-[slug].md` |
+| 設計判断（ADR） | `docs/decisions/[date]-[slug].md`（`adr` スキルで起票。却下した代替案がある決定のみ） |
 | タスク固有の決定 | `.steering/[task]/decisions.md` |
 
 ## ドキュメント参照（必要なトピック作業時のみ）

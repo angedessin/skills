@@ -16,7 +16,7 @@ metadata:
 ## When NOT to use
 
 - 学び・パターンを新ルールに昇格したい → `compound`
-- ドキュメント（ADR・パターン集）として保存したい → `knowledge-capture`
+- ドキュメント（パターン集・決定の記録）として保存したい → `knowledge-capture`
 - スキル本文の内容品質・挙動を検証したい → `empirical-prompt-tuning`（本スキルが見るのは frontmatter・構造・規約まで）
 
 ## compound との棲み分け
@@ -56,8 +56,8 @@ CLAUDE.md（および相当ファイル）の各ルールに以下を順に適�
 knowledge はレビュー基準・@参照として AI の行動に配線されており、腐った記述は
 誤った指摘や廃止済み規約の強制として行動品質に直接跳ね返るため、ルールと同格の監査対象とする
 （段階基準は docs/decisions/20260715-docs-lifecycle-tiers.md — 無いプロジェクトではこの参照をスキップしてよい）。
-**docs/decisions/（ADR）は削除テストの対象外** — 不変の記録として剪定しない（決定の変更は
-Superseded / Amended 印で扱う。knowledge-capture の担当）。
+**docs/decisions/（決定の記録）は削除テストの対象外** — 不変の記録として剪定しない
+（決定の変更は Superseded / Amended 印で扱う。このリポジトリの決定記録の運用に従う）。
 
 ### 基準 1 — 削除テスト（最重要）
 

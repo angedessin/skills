@@ -48,7 +48,7 @@ starter-kit.md — **このスキル・`scripts/deploy_skills.py`・starter-kit 
 選択後、同ドキュメントの「スキル間の依存関係」表に基づいて補完を**提案**する（勝手に足さない）:
 - pr-feedback を含み pr-create が無い → 対で入れることを提案
 - 還流（skill-issues の供給）を残すなら session-retrospective の併配を提案
-- master-only（skill-test / skill-harvest / skill-deploy）が指定されたら除外する（スクリプトも機械的に拒否する）
+- master-only（skill-test / skill-harvest / skill-deploy / adr）が指定されたら除外する（スクリプトも機械的に拒否する）
 
 **starter-kit.md が無い場合**（異常 — マスターの必須ドキュメント）→ ここで止まり、リポジトリ状態の確認を促す。
 

@@ -13,7 +13,7 @@ metadata:
 
 ## When NOT to use
 
-- コード・設計・意思決定の知見保存（`docs/knowledge/`・`docs/decisions/`・CLAUDE.md への保存）→ `knowledge-capture` の担当。
+- コード・設計・意思決定の知見保存（`docs/knowledge/`・CLAUDE.md への保存）→ `knowledge-capture` の担当。
 - 摩擦をルール・lint・hook・スキルへ**昇格**させる → `compound` の担当（このスキルはその原料を作る）。
 - CLAUDE.md 自体の肥大化・陳腐化の監査 → `rule-audit` の担当。
 - タスク完了のたびに自動起動しない（明示依頼かセッション終盤の合図で起動する）。

@@ -237,7 +237,7 @@ CI グリーン・レビュー承認を確認したら **ここで止まり**、
 ### Step 4a — knowledge-capture
 
 `knowledge-capture` スキルを起動する。これは `decisions.md`・`review-result.md`・会話から
-知見を抽出し、`docs/knowledge/`・`docs/decisions/`・`CLAUDE.md` に振り分けて保存し、
+知見を抽出し、`docs/knowledge/`・`.steering/[task]/decisions.md`・`CLAUDE.md` に振り分けて保存し、
 完了時に `capture_done` フラグを立てる。
 
 > CLAUDE.md・docs/ への書き込みは承認制。knowledge-capture が保存内容を提示するので、
