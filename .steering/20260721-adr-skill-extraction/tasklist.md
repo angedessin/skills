@@ -66,6 +66,9 @@
 
 ## Compound
 
-- [ ] `compound` スキルの実行（`.codify-needed` の判断）
-- [ ] `knowledge-capture` スキルの実行（`.capture-needed` の判断）
+- [x] `compound` スキルの実行（昇格 3 件: design-doc に 2 件・CLAUDE.md に 1 件。
+      skill-design-patterns への追記 2 件は「説明文であって手順ではない」として却下。詳細は codify-log.md）
+- [x] `knowledge-capture` スキルの実行（`docs/knowledge/review-workflow.md` に
+      design-premortem の費用対効果を追記。あわせて design-premortem v1.1 で
+      「渡す情報の切り分け」を明文化 — 遮断するのは会話履歴でありリポジトリ参照は許可する）
 - [ ] `steering` スキルの archive モードでアーカイブ
