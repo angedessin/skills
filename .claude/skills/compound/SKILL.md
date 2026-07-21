@@ -219,7 +219,7 @@ cat >> .steering/[task]/codify-log.md << 'EOF'
 EOF
 ```
 
-`tasklist.md` の Compound チェックボックスをチェック済みにする（tasklist.md が無ければスキップ）。
+`tasklist.md` の「福利化」セクションの compound チェックボックスをチェック済みにする（tasklist.md が無ければスキップ）。
 
 ---
 
