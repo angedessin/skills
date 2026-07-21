@@ -1,7 +1,7 @@
 # Decision: ドキュメントの鮮度管理は段階基準で運用する（当面は rule-audit の手動起動）
 
 Date: 20260715
-Status: Accepted
+Status: Accepted (Amended 20260721 — 末尾の Amendments 参照)
 
 ## Context
 
@@ -61,3 +61,15 @@ decisions は不変の記録として剪定しない。代わりに、決定を�
 | owner + 最終検証日を今から全ファイルに付ける | 個人開発では owner が常に自分で情報量ゼロ。frontmatter 維持の摩擦だけ残る |
 | rule-audit を cron で定期実行 | スケジュール起動はセッション実行の課金が発生する。手動運用の摩擦が実証されてから再検討 |
 | decisions も削除テストで剪定する | ADR は「その時点の判断の記録」であり、古さ自体に価値がある。剪定ではなく Superseded 印で対応 |
+
+## Amendments
+
+### 20260721 — Superseded / Amended 運用の担当スキルを `adr` に移した
+
+[20260721-adr-as-master-only-skill](20260721-adr-as-master-only-skill.md) により、ADR の起票と
+Superseded / Amended の印付けは master-only スキル `adr` の担当になった。本 ADR の
+Decision 節にある「knowledge-capture の ADR 手順に明記」は、現在は `adr` スキルの Step 4 を指す。
+
+**核は不変**: 段階基準による鮮度管理、decisions は剪定せず不変の記録として扱うこと、
+決定の変更は Superseded / Amended 印と相互リンクで表すこと — いずれも変更していない。
+変わったのはその運用を実行するスキルの所在のみ。
