@@ -2,8 +2,8 @@
 name: compound
 description: "レビューや実装で得た学びをルール・知識・スキルに昇格させる汎用スキル（福利化）。「福利化して」「codify して」「ルール化して」「パターンを抽出して」などのフレーズが対象。セッション開始時に .codify-needed フラグがあれば起動を促す。frontend-code-review 完了後に自動的に提案される。knowledge-capture（ドキュメント保存）とは別物で、こちらは CLAUDE.md ルール・スキル・lint ルール・hook への昇格が主眼。"
 metadata:
-  version: "1.3"
-  source-commit: 1dfa5081509eda8173e713c54ff6d390563352cd
+  version: "1.4"
+  source-commit: df027219393941e5a3e80cd2a9e8a4baa26f0b19
 ---
 
 # Compound（福利化）
@@ -15,11 +15,11 @@ metadata:
 
 ## When NOT to use
 
-- ドキュメントに保存したい（ADR・新規トピックのパターン集・語彙） → `knowledge-capture`
+- ドキュメントに保存したい（新規トピックのパターン集・設計判断の記録） → `knowledge-capture`
 - lint ルール・ast-grep ルール・hook として固めたい場合は、このスキルがその起点になれる
 - 1回限りの事象 → コミットメッセージで十分
 
-**knowledge-capture との境界**: 昇格フローの中で見つけた落とし穴を docs/knowledge/ の**既存トピックへ短く追記**するのは本スキルの担当。**新規トピックの立ち上げ・まとまった集積・ADR・語彙**は knowledge-capture の担当（同スキル側にも同じ境界を明記済み）。
+**knowledge-capture との境界**: 昇格フローの中で見つけた落とし穴を docs/knowledge/ の**既存トピックへ短く追記**するのは本スキルの担当。**新規トピックの立ち上げ・まとまった集積・設計判断の記録**は knowledge-capture の担当（同スキル側にも同じ境界を明記済み）。
 
 ---
 
@@ -62,9 +62,9 @@ find .steering -maxdepth 2 \( -name "review-result.md" -o -name "decisions.md" -
 1. **繰り返し出現する指摘**（複数ファイルで同じ問題）→ CLAUDE.md ルール or lint ルール
 2. **繰り返す操作ミス・実行時の失敗**（危険コマンドの実行未遂・「できました（できてない）」・書式崩れなど、スキルの内容と無関係なミスパターン）→ **hook 化**（PreToolUse でブロック / PostToolUse で自動検証・差し戻し / Stop で差し戻し）。実装パターンと配布手順は docs/knowledge/claude-code-config.md を参照（無い場合は既存 hook の流儀に合わせて提案する）
 3. **知らなかった仕様・落とし穴**（一度詰まったもの）→ `docs/knowledge/` の**既存トピックへ短く追記**（新規トピックを立ち上げる分量なら `knowledge-capture` に委譲）
-4. **技術的判断の理由**（なぜその設計か）→ `knowledge-capture` に委譲（ADR は同スキルの担当）
+4. **技術的判断の理由**（なぜその設計か）→ `knowledge-capture` に委譲（決定の記録は同スキルの担当）
 5. **再利用可能な実装パターン**（汎用的な解法）→ 新スキルの骨組み（ドキュメント集積として残す場合は `knowledge-capture` に委譲）
-6. **スキル自体の不具合**（skill-issues.md 由来）→ 該当スキルの修正 + `empirical-prompt-tuning` の実行提案
+6. **スキル自体の不具合**（skill-issues.md 由来）→ 該当スキルの修正（修正後、同じ状況を再現させて挙動が直ったかを実地で確認する）
 
 **昇格しないもの:**
 - 1回限りのバグ修正 → コミットメッセージで十分
@@ -88,7 +88,7 @@ find .steering -maxdepth 2 \( -name "review-result.md" -o -name "decisions.md" -
 **昇格候補が 1 件以上ある場合:**
 
 ```
-## Compound ドラフト
+## 福利化ドラフト
 
 ### [パターン1のラベル]
 昇格先: CLAUDE.md ルール
@@ -99,11 +99,11 @@ find .steering -maxdepth 2 \( -name "review-result.md" -o -name "decisions.md" -
 ───
 
 ### [パターン2のラベル]（skill-issues.md 由来の例）
-昇格先: .claude/skills/[skill]/SKILL.md の修正 + empirical-prompt-tuning 実行
+昇格先: .claude/skills/[skill]/SKILL.md の修正
 理由: skill-issues.md に「[事象]」の記録
 内容:
 ───
-[SKILL.md の修正案。適用後に empirical-prompt-tuning での検証を提案する]
+[SKILL.md の修正案。適用後に同じ状況を再現させて挙動が直ったかを確認する]
 ───
 
 ### [パターン3のラベル]（効果検証で再発を検知した例）
@@ -126,7 +126,7 @@ find .steering -maxdepth 2 \( -name "review-result.md" -o -name "decisions.md" -
 承認は求めない。以下を報告し、そのまま Step 5（フラグ更新）を実行する:
 
 ```
-## Compound ドラフト
+## 福利化ドラフト
 
 新規昇格候補はありませんでした。
 （理由: [重複 / 1回限りの事象など]）
@@ -141,10 +141,6 @@ find .steering -maxdepth 2 \( -name "review-result.md" -o -name "decisions.md" -
 ## Step 4 — 実行
 
 ユーザーが承認した項目のみを実行する。
-
-### 昇格先がマスター（スキルの配置元リポジトリ）の場合
-
-配置先プロジェクトのセッションから、マスターのファイル（SKILL.md・docs/ 等）を**直接編集しない**。承認を得ていても、昇格案は patch または配置先 `skill-issues.md` への記録として残し、「マスター側のセッションでレビューして適用してください」と案内する。「改善はマスターに還元して再コピーで配る」の還元とは**提案の受け渡し**であって、配置先セッションによる直接編集ではない（マスター側の作業ツリーに未レビューの変更が静かに混入する）。現在のセッションがマスター自身で動いている場合は通常どおり編集してよい。
 
 ### CLAUDE.md ルール追記
 
@@ -220,13 +216,13 @@ cat >> .steering/[task]/codify-log.md << 'EOF'
 EOF
 ```
 
-`tasklist.md` の Compound チェックボックスをチェック済みにする（tasklist.md が無ければスキップ）。
+`tasklist.md` の「福利化」チェックボックスをチェック済みにする（tasklist.md が無ければスキップ）。
 
 ---
 
 ## Related skills
 
-- `knowledge-capture` — ドキュメント保存（ADR・パターン集・語彙）が主眼
+- `knowledge-capture` — ドキュメント保存（パターン集・決定の記録）が主眼
 - `session-retrospective` — このスキルの入力（skill-issues.md）を会話から採掘して供給する原料元
 - `rule-audit` — 対をなす剪定スキル（既存ルールの削除・統合・GC）。compound が増やし rule-audit が刈る
 - `frontend-code-review` — このスキルの入力（review-result.md）を生成する

@@ -4,7 +4,7 @@ description: "フロントエンドのセキュリティレビューに使うサ
 compatibility: "Angular / TypeScript（XSS・シークレット・依存関係の観点はフレームワーク中立）"
 metadata:
   version: "1.2"
-  source-commit: 1dfa5081509eda8173e713c54ff6d390563352cd
+  source-commit: df027219393941e5a3e80cd2a9e8a4baa26f0b19
 ---
 
 # Review — Security
@@ -104,7 +104,7 @@ pnpm audit --audit-level=high 2>/dev/null || true   # npm プロジェクトで�
 ## 出力形式
 
 ```
-## Security Review: [スコープ]
+## セキュリティレビュー: [スコープ]
 
 ### Axis 1 — XSS
 - [comment.component.ts:L42] bypassSecurityTrustHtml に userComment を直接渡している

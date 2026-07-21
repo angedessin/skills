@@ -1,10 +1,10 @@
 ---
 name: test-review
 description: "テストコード品質をレビューする — 「テストをレビューして」「テストの品質を確認して」「このテストは良い？」「実装エコー」「アサーションが悪い」などのフレーズが対象。確認内容: 実装結合・アサーション品質・ネットワークモック境界・クエリ優先順位・カバレッジ意図。単独または frontend-code-review の Step 1 として動作。テストインフラの監査（テストランナー設定・カバレッジツール設定）には起動しない。"
-compatibility: "Angular / TypeScript / Jasmine（具体例は references/patterns.md — 配置先の実際のテストスタックに合わせて再生成する。同梱の同ファイルは Vitest 前提の example のまま）"
+compatibility: "Angular / TypeScript / Jasmine（具体例は references/patterns.md — このプロジェクトの実際のテストスタックに合わせて再生成する。同梱の同ファイルは Vitest 前提の example のまま）"
 metadata:
   version: "1.1"
-  source-commit: 1dfa5081509eda8173e713c54ff6d390563352cd
+  source-commit: df027219393941e5a3e80cd2a9e8a4baa26f0b19
 ---
 
 # Test Review
@@ -73,7 +73,7 @@ metadata:
 ## 出力形式
 
 ```
-## Test Review: [スコープ（ファイルまたはディレクトリ）]
+## テストレビュー: [スコープ（ファイルまたはディレクトリ）]
 
 ### Axis 1 — 実装エコー
 - [file.test.ts:L42] 内部 dispatch 引数をアサート → 結果の表示を確認すべき **[implementation bug]**

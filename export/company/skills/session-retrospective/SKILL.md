@@ -3,7 +3,7 @@ name: session-retrospective
 description: "セッション終盤にそのセッションの摩擦を棚卸しするメタスキル — 「振り返りして」「レトロして」「セッションの摩擦を記録して」「今日引っかかった点をまとめて」などのフレーズが対象。スキルの誤発動・不発動、ユーザーによる訂正、手戻り・リトライ、パーミッション拒否、指示の曖昧さを会話履歴から抽出し、.steering/[task]/skill-issues.md に起票する。コード・設計の知見保存には起動しない（knowledge-capture を使う）。ルールへの昇格もしない（compound の原料を作るのが役割）。タスク完了のたびに自動起動しない。"
 metadata:
   version: "1.0"
-  source-commit: 1dfa5081509eda8173e713c54ff6d390563352cd
+  source-commit: df027219393941e5a3e80cd2a9e8a4baa26f0b19
 ---
 
 # Session Retrospective
@@ -14,7 +14,7 @@ metadata:
 
 ## When NOT to use
 
-- コード・設計・意思決定の知見保存（`docs/knowledge/`・`docs/decisions/`・CLAUDE.md への保存）→ `knowledge-capture` の担当。
+- コード・設計・意思決定の知見保存（`docs/knowledge/`・CLAUDE.md への保存）→ `knowledge-capture` の担当。
 - 摩擦をルール・lint・hook・スキルへ**昇格**させる → `compound` の担当（このスキルはその原料を作る）。
 - CLAUDE.md 自体の肥大化・陳腐化の監査 → `rule-audit` の担当。
 - タスク完了のたびに自動起動しない（明示依頼かセッション終盤の合図で起動する）。
@@ -48,8 +48,8 @@ metadata:
 
 **書き込み先の決定**:
 - **アクティブタスクがある**（`.steering/[task]/` が存在する）→ その `skill-issues.md` に追記する。この追記は**承認不要**（このリポジトリの CLAUDE.md の自律実行境界に該当: git で巻き戻せる・失敗に気づける・影響がタスク内に閉じる）。
-  - **CLAUDE.md にこの自律実行境界が無いプロジェクト**（配置先で単体利用）→ 追記前に一言確認してから書く。
-- **アクティブタスクが無い**場合 → `.steering/[YYYYMMDD]-retrospective/skill-issues.md` の作成を**提案して、ここで止まる**。ユーザーの承認を待ってから作成・起票する。これは skill-harvest の回収経路を 1 本（`.steering/**/skill-issues.md`）に保つため。**断られたら**抽出結果を会話に提示するだけで、ファイルは作らない。
+  - **CLAUDE.md にこの自律実行境界が明文化されていない場合** → 追記前に一言確認してから書く。
+- **アクティブタスクが無い**場合 → `.steering/[YYYYMMDD]-retrospective/skill-issues.md` の作成を**提案して、ここで止まる**。ユーザーの承認を待ってから作成・起票する。これは `compound` の回収経路を 1 本（`.steering/**/skill-issues.md`）に保つため。**断られたら**抽出結果を会話に提示するだけで、ファイルは作らない。
 
 ---
 
@@ -78,4 +78,3 @@ metadata:
 
 - `compound` — このスキルが書いた skill-issues.md を回収してルール・スキルへ昇格させる（このスキルは原料の供給元）
 - `knowledge-capture` — コード・設計の知見保存（こちらはスキル自体の摩擦を扱う）
-- `skill-harvest` — 配置先に溜まった skill-issues.md をマスターへ還流する（このスキルが配置先での供給側）

@@ -3,7 +3,7 @@ name: frontend-code-review
 description: "実装後のコードレビューに使う — 「コードをレビューして」「レビューしよう」「コードレビュー」「実装を確認して」などのフレーズが対象。diff トリアージでモードを判定し、ロジック/コンポーネント変更はフルモード（7エージェント並列）、リファクタリング/スタイルのみは軽量モード（直列）で実行。結果を .steering/[task]/review-result.md に書き込む。"
 metadata:
   version: "1.2"
-  source-commit: 1dfa5081509eda8173e713c54ff6d390563352cd
+  source-commit: df027219393941e5a3e80cd2a9e8a4baa26f0b19
 ---
 
 # Frontend Code Review
@@ -25,7 +25,7 @@ diff の変更種別を判定し、適切なモードでレビューを実行す
 - 単一軸のレビューだけでよいとき → 上記の各 `review-*` / `test-review` / `impl-review` を直接使う（オーケストレーターは複数軸を並列で回すためのもの）。
 - テストの新規追加 → `tdd` の担当。
 - 新機能の設計 → `design-doc` の担当。
-- 提出済み PR のコメント・CI 失敗への対応 → `pr-feedback` の担当。
+- 提出済み PR のコメント・CI 失敗への対応 → 本スキルの対象外（レビューするのはローカルの diff）。
 
 ---
 
@@ -186,7 +186,7 @@ subagent はセッション履歴もスキル定義も持たない。**サブス
 統合後の結果をまとめて出力する:
 
 ```
-## Code Review Summary
+## レビュー結果サマリー
 
 ### テスト（test-review）
 重要な問題: N件
@@ -236,7 +236,7 @@ subagent はセッション履歴もスキル定義も持たない。**サブス
 ### review-result.md への書き込み
 
 `.steering/[task]/` タスクディレクトリが存在する場合のみ `review-result.md` を書き込む。タスクディレクトリが存在しない場合は出力のみで書き込みを行わない。
-`.claude/skills/design-doc/references/templates.md` の review-result.md テンプレートの形式に従う。テンプレートファイルが存在しない場合は「## Code Review Result\n\n### 指摘事項\n- [ ] [Axis] [内容] [file:line]」の形式で合理的に生成してよい。修正状況チェックボックスはすべて未チェックで初期化する。
+`.claude/skills/design-doc/references/templates.md` の review-result.md テンプレートの形式に従う。テンプレートファイルが存在しない場合は「## レビュー結果\n\n### 指摘事項\n- [ ] [Axis] [内容] [file:line]」の形式で合理的に生成してよい。修正状況チェックボックスはすべて未チェックで初期化する。
 
 書き込み後に `.codify-needed` フラグを作成する（タスクディレクトリが無く書き込みをスキップした場合はフラグも作成しない）:
 ```bash
@@ -250,7 +250,7 @@ review-result.md を更新しました。
 次のステップ:
 - [ ] 指摘事項を修正する（review-result.md を参照）
 - [ ] 修正後に再確認
-- [ ] Deploy（PR 作成 → CI → マージ）
+- [ ] デプロイ（PR 作成 → CI → マージ）
 - [ ] compound スキルで学びをルール・知識に昇格（.codify-needed が作成されました）
 ```
 

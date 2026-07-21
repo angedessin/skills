@@ -1,10 +1,10 @@
 ---
 name: review-ui
 description: "フロントエンドの UI レビューに使うサブスキル。レイアウト・レスポンシブの破綻、デザイン整合（トークン遵守・一貫性）、UX 状態網羅（loading・error・empty・disabled）を確認する。frontend-code-review オーケストレーターからの並列呼び出しを想定。単独でも使用可。"
-compatibility: "Angular / TypeScript / CSS（レスポンシブ・UX 状態の観点はフレームワーク中立。デザイントークンの実体は references/tokens.md を配置先プロジェクトで再生成する）"
+compatibility: "Angular / TypeScript / CSS（レスポンシブ・UX 状態の観点はフレームワーク中立。デザイントークンの実体は references/tokens.md をこのプロジェクトのトークン定義に合わせて再生成する）"
 metadata:
   version: "1.1"
-  source-commit: 1dfa5081509eda8173e713c54ff6d390563352cd
+  source-commit: df027219393941e5a3e80cd2a9e8a4baa26f0b19
 ---
 
 # Review — UI
@@ -98,7 +98,7 @@ BASE=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^o
 ## 出力形式
 
 ```
-## UI Review: [スコープ]
+## UI レビュー: [スコープ]
 
 ### Axis 1 — レイアウト・レスポンシブ
 - [card.component.scss:L4] width: 480px 固定 — max-width への変更候補

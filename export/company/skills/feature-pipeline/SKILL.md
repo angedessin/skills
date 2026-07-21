@@ -1,9 +1,9 @@
 ---
 name: feature-pipeline
-description: "機能開発の複数フェーズ（計画→実装→テスト→レビュー→統合→知見蓄積）を一気通貫で回したいときに使うエンドツーエンドのオーケストレーター。発動の合図は『フロー全体を通して/一括で/最初から最後まで/エンドツーエンドで』のように、単一作業ではなく工程全体をまとめて進めたい意図があること。例:『この機能を設計から実装・テストして最後にナレッジ残すまで通してやって』『新機能を計画から知見蓄積まで一括で面倒みて』『フル開発サイクルで回したい、途中の承認は挟んでいい』。既存スキル（design-doc → impl-from-design → frontend-code-review → pr-create → knowledge-capture / compound）を順に呼び出し、主要な判断点（設計承認・指摘トリアージ・マージ・知見保存）で人間の承認ゲートを挟む半自動フロー。`.steering/[task]/` の成果物から現在地を検出して途中フェーズから再開できるため、複数セッションにまたがる機能開発に向く。**単一フェーズだけの依頼では発動しない** — 設計のみは design-doc、承認済み設計からの実装のみは impl-from-design、レビューのみは frontend-code-review、テスト追加のみは tdd、知見保存のみは knowledge-capture、ルール昇格のみは compound を直接使う。CI/CD・デプロイの『パイプライン』や、小さなバグ修正・タスク状況の確認にも使わない。"
+description: "機能開発の複数フェーズ（計画→実装→テスト→レビュー→統合→知見蓄積）を一気通貫で回したいときに使うエンドツーエンドのオーケストレーター。発動の合図は『フロー全体を通して/一括で/最初から最後まで/エンドツーエンドで』のように、単一作業ではなく工程全体をまとめて進めたい意図があること。例:『この機能を設計から実装・テストして最後にナレッジ残すまで通してやって』『新機能を計画から知見蓄積まで一括で面倒みて』『フル開発サイクルで回したい、途中の承認は挟んでいい』。既存スキル（design-doc → impl-from-design → frontend-code-review → knowledge-capture / compound）を順に呼び出し、主要な判断点（設計承認・指摘トリアージ・マージ・知見保存）で人間の承認ゲートを挟む半自動フロー。`.steering/[task]/` の成果物から現在地を検出して途中フェーズから再開できるため、複数セッションにまたがる機能開発に向く。**単一フェーズだけの依頼では発動しない** — 設計のみは design-doc、承認済み設計からの実装のみは impl-from-design、レビューのみは frontend-code-review、テスト追加のみは tdd、知見保存のみは knowledge-capture、ルール昇格のみは compound を直接使う。CI/CD・デプロイの『パイプライン』や、小さなバグ修正・タスク状況の確認にも使わない。"
 metadata:
   version: "1.3"
-  source-commit: 1dfa5081509eda8173e713c54ff6d390563352cd
+  source-commit: df027219393941e5a3e80cd2a9e8a4baa26f0b19
 ---
 
 # Feature Pipeline
@@ -17,7 +17,7 @@ metadata:
 
 ```
 計画          実装               テスト/レビュー          統合            知見蓄積
-design-doc → impl-from-design → frontend-code-review → pr-create/CI → knowledge-capture → compound
+design-doc → impl-from-design → frontend-code-review → PR / CI → knowledge-capture → compound
    ▣ gate                           ▣ gate              ▣ gate              ▣ gate
 ```
 
@@ -34,7 +34,7 @@ Gate 4（恒久ルールへの書き込み）。該当しないフェーズ境�
 - レビューだけ実行したい → `frontend-code-review` を直接使う
 - 既存コードにテストを足すだけ → `tdd` を直接使う
 - 知見保存だけ・ルール昇格だけ → `knowledge-capture` / `compound` を直接使う
-- バグ・障害の原因調査 → `debug` を直接使う（原因特定後、構造に触る修正なら design-doc からこのパイプラインに合流する）
+- バグ・障害の原因調査 → このパイプラインに乗せない（再現確認と原因特定が先。構造に触る修正が必要と分かったら Phase 1 から合流する）
 - 30分以内のバグ修正・typo → 設計フェーズ不要。そのまま直す
 
 このスキルは「**フロー全体を通して回したい**」ときのためのもの。一部だけなら個別スキルが軽い。
@@ -78,8 +78,8 @@ find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
 | `design.md` が `APPROVED` かつ `tasklist.md` の実装タスクに未チェックあり | **Phase 2**（実装） |
 | 実装タスクが全チェック済み かつ `review-result.md` が無い | **Phase 3**（レビュー） |
 | `review-result.md` が存在し Status が `OPEN` | **Gate 3 で停止**（指摘の修正対応待ち） |
-| `review-result.md` の Status が `RESOLVED` または `DEFERRED` かつ `tasklist.md` の Deploy 項目に未チェックあり | **Phase 3.5**（PR / 統合。スキップ可） |
-| Deploy 項目に PR URL があり、レビューコメント/CI 失敗が返っている（ユーザーが往復対応を求めた・pr-create が返送を報告した） | **Phase 3.7**（PR 往復 = pr-feedback） |
+| `review-result.md` の Status が `RESOLVED` または `DEFERRED` かつ `tasklist.md` の「デプロイ」項目に未チェックあり | **Phase 3.5**（PR / 統合。スキップ可） |
+| 「デプロイ」項目に PR URL があり、レビューコメント/CI 失敗が返っている | **Phase 3.7**（PR 往復） |
 | `review-result.md` の Status が `RESOLVED` または `DEFERRED` かつ `capture_done` フラグが無い | **Phase 4**（知見蓄積） |
 | `capture_done` フラグあり | **Phase 5**（クローズ） |
 
@@ -206,25 +206,25 @@ Gate 3 通過後:
 
 ---
 
-## Phase 3.5 — PR / 統合（pr-create）
+## Phase 3.5 — PR / 統合
 
-変更を世に出すフェーズ。`tasklist.md` に Deploy セクションがあればそれに従う。
+変更を世に出すフェーズ。`tasklist.md` に「デプロイ」セクションがあればそれに従う。
 
 1. リポジトリの運用を確認する: PR ベース運用（リモート + CI あり）か、main 直コミット運用か
-   - **直コミット運用・CI なし** → このフェーズはコミット済みであることの確認のみでスキップしてよい。`tasklist.md` の Deploy 項目に「スキップ（直コミット運用）」と記録して Phase 4 へ
-2. PR ベース運用の場合: `pr-create` スキルで PR を作成する（未配置なら `gh pr create` で代替）
+   - **直コミット運用・CI なし** → このフェーズはコミット済みであることの確認のみでスキップしてよい。`tasklist.md` の「デプロイ」項目に「スキップ（直コミット運用）」と記録して Phase 4 へ
+2. PR ベース運用の場合: コミット状態を確認し、デフォルトブランチ直での作業を避けてブランチを切り、差分から PR タイトル・本文を作成する。**プッシュと PR 作成の前にユーザーの明示承認を取る**（外向きの操作）。作成には `gh pr create` を使う。**マージはしない**（マージは Gate 3.5 の人間の判断）
 3. CI の結果を確認する（グリーンになるまで Phase 4 へ進まない。失敗したら修正 — 重い修正は Phase 2 の作法に戻る）
 
-### Phase 3.7 — PR 往復（pr-feedback・フィードバックが返っている場合のみ）
+### Phase 3.7 — PR 往復（フィードバックが返っている場合のみ）
 
-PR にレビューコメント・CI 失敗が返っている場合、`pr-feedback` スキルで対応する（未配置なら手動で: コメント/CI を収集 → トリアージ → 承認 → 修正 → 返信）。pr-feedback は内部に 2 つの承認 STOP（対応計画・外向き操作）を持つので、そのゲートを尊重する。フィードバックが無ければこの Phase をスキップして Gate 3.5 へ。
+PR にレビューコメント・CI 失敗が返っている場合、次の順で対応する: コメントと CI 失敗を収集 → must-fix / 要議論 / nit にトリアージ → **対応計画をユーザーに提示して承認を得る** → 修正 → 差分を再レビュー → **返信・プッシュの前にもう一度承認を得る**（外向きの操作）。この 2 つの承認は省略しない。フィードバックが無ければこの Phase をスキップして Gate 3.5 へ。
 
-CI 失敗の原因が PR の差分外にあると判明したら `debug` に接続する（pr-feedback の担当外）。
+CI 失敗の原因が PR の差分外にあると判明したら、PR 往復から切り離して原因調査を先に行う。
 
 ### ▣ Gate 3.5 — マージ判断（停止）
 
 CI グリーン・レビュー承認を確認したら **ここで止まり**、ユーザーにマージ判断を仰ぐ。**マージは外向きの操作 — 承認なしに行わない。**
-マージ完了（またはスキップ判断）後、`tasklist.md` の Deploy 項目を更新して Phase 4 へ:
+マージ完了（またはスキップ判断）後、`tasklist.md` の「デプロイ」項目を更新して Phase 4 へ:
 ```
 統合完了。知見蓄積フェーズに進みます。
 ```
@@ -236,7 +236,7 @@ CI グリーン・レビュー承認を確認したら **ここで止まり**、
 ### Step 4a — knowledge-capture
 
 `knowledge-capture` スキルを起動する。これは `decisions.md`・`review-result.md`・会話から
-知見を抽出し、`docs/knowledge/`・`docs/decisions/`・`CLAUDE.md` に振り分けて保存し、
+知見を抽出し、`docs/knowledge/`・`.steering/[task]/decisions.md`・`CLAUDE.md` に振り分けて保存し、
 完了時に `capture_done` フラグを立てる。
 
 > CLAUDE.md・docs/ への書き込みは承認制。knowledge-capture が保存内容を提示するので、
@@ -275,7 +275,7 @@ CI グリーン・レビュー承認を確認したら **ここで止まり**、
    - 実装: [実装したファイル/コンポーネント数]、モード: [TDD / Impl-first]
    - レビュー: 重要指摘 [N] 件 / 対応 [済 / 一部後回し（内容）]
    - 知見: [保存先 docs/knowledge/... ] / 福利化: [実施 / 見送り]
-   - 残課題: [後回しにした指摘・Open questions があれば列挙]
+   - 残課題: [後回しにした指摘・未解決の論点があれば列挙]
    ```
 3. タスクの締め方を確認する:
    ```
@@ -309,11 +309,8 @@ CI グリーン・レビュー承認を確認したら **ここで止まり**、
 ## Related skills
 
 - `design-doc` — Phase 1。設計と `.steering/` ブートストラップ
-- `debug` — パイプラインの外の入口。バグ・障害の原因調査（構造修正なら Phase 1 に合流）
 - `impl-from-design` — Phase 2。承認済み設計からの実装（内部で `tdd`）
 - `frontend-code-review` — Phase 3。レビューのオーケストレーター
-- `pr-create` — Phase 3.5。PR 作成（未配置なら `gh pr create`）。マージはしない（Gate 3.5 は人間）
-- `pr-feedback` — Phase 3.7。提出済み PR に返ったコメント・CI 失敗の往復対応（2 つの承認 STOP を持つ）
 - `knowledge-capture` — Phase 4a。知見を docs/ に保存
 - `compound` — Phase 4b。学びをルール・スキル・lint に昇格
 - `steering` — `.steering/` のライフサイクル（resume / archive / status）。Phase 5 のアーカイブで使う

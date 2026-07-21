@@ -3,7 +3,7 @@ name: steering
 description: ".steering/ クロスセッションコンテキスト管理のメタスキル。「new task」「start steering」「[task] を再開」「[task] をアーカイブ」「steering status」「進行中タスクは？」と明示的に言われた場合のみ起動。通常のセッション開始で .steering/ を読むだけの場合や design-doc がコンテキスト設定を担っている場合は自動起動しない。"
 metadata:
   version: "1.0"
-  source-commit: 1dfa5081509eda8173e713c54ff6d390563352cd
+  source-commit: df027219393941e5a3e80cd2a9e8a4baa26f0b19
 ---
 
 # Steering
@@ -23,12 +23,12 @@ metadata:
 ```
 .steering/
 ├── [YYYYMMDD]-[task-name]/
-│   ├── design.md           (必須 — Goal/Scope/Acceptance を含む。APPROVED になるまで実装禁止)
+│   ├── design.md           (必須 — 目的/スコープ/完了条件を含む。APPROVED になるまで実装禁止)
 │   ├── tasklist.md         (必須 — セッションごとに更新)
 │   ├── decisions.md        (任意 — タスク固有の決定事項)
 │   ├── blockers.md         (任意 — 未解決の問題)
 │   ├── skill-issues.md     (任意 — スキル自体の不具合記録。compound が読む)
-│   ├── investigation.md    (任意 — debug が生成: 障害調査ログ)
+│   ├── investigation.md    (任意 — 障害調査ログ: 仮説・検証・棄却理由)
 │   ├── review-result.md    (frontend-code-review が生成)
 │   ├── codify-log.md       (compound が生成 — 昇格履歴)
 │   ├── .capture-needed     (フラグ — knowledge-capture 未実行)
@@ -52,7 +52,7 @@ metadata:
 2. 日付は今日（YYYYMMDD 形式）
 3. `.steering/[YYYYMMDD]-[task-name]/` を作成
 4. 以下のファイルをテンプレートから生成:
-   - `design.md`（Status: DRAFT — Goal/Scope/Acceptance criteria を含む）
+   - `design.md`（Status: DRAFT — 目的 / スコープ / 完了条件を含む）
    - `tasklist.md`
 5. 作成したパスを報告
 
@@ -67,18 +67,18 @@ metadata:
 
 1. `.steering/` のアクティブタスク一覧（`archived/` 除外）を確認
 2. 対象タスクの以下を読む:
-   - `design.md`（Goal・設計と Status。旧構造で `requirements.md` があればそれも読む）
+   - `design.md`（目的・設計と Status。旧構造で `requirements.md` があればそれも読む）
    - `tasklist.md`（進捗確認）
    - `blockers.md`（なければ「なし」として扱う）
    - `decisions.md`（なければ「記録なし」として扱う）
 3. セッションサマリーを表示:
 
 ```
-## Session Resume: [task-name]
+## セッション再開: [task-name]
 
-**Goal**: [design.md の Goal から一行]
-**Design**: DRAFT / APPROVED
-**Progress**: X/Y tasks チェック済み
+**目的**: [design.md の目的から一行]
+**設計**: DRAFT / APPROVED
+**進捗**: X/Y tasks チェック済み
 
 ### 残タスク
 - [ ] [未チェックの項目]
@@ -101,7 +101,7 @@ metadata:
 アクティブタスクの一覧テーブルを表示:
 
 ```
-## Steering Status
+## ステアリング状況
 
 ### アクティブタスク
 | タスク | 作成日 | Design | 進捗 |

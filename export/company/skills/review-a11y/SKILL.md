@@ -4,7 +4,7 @@ description: "フロントエンドのアクセシビリティレビューに使
 compatibility: "Angular / TypeScript（a11y 観点はフレームワーク中立）"
 metadata:
   version: "1.2"
-  source-commit: 1dfa5081509eda8173e713c54ff6d390563352cd
+  source-commit: df027219393941e5a3e80cd2a9e8a4baa26f0b19
 ---
 
 # Review — Accessibility
@@ -124,7 +124,7 @@ export class ModalComponent {
 ## 出力形式
 
 ```
-## Accessibility Review: [スコープ]
+## アクセシビリティレビュー: [スコープ]
 
 ### Axis 1 — セマンティクス
 - [button.component.html:L8] `<div (click)="onClick()">` → `<button>` に変更

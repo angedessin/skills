@@ -3,7 +3,7 @@ name: rule-audit
 description: "CLAUDE.md・ルールファイル・docs/knowledge/ を定期監査し、肥大化・陳腐化・曖昧・重複・効果のないルールや知識を検出して剪定する — 「ルールを見直して」「CLAUDE.md を整理して」「ルールを監査して」「ルールの棚卸し」「knowledge を点検して」などのフレーズが対象。compound（ルール追加・昇格）と対をなす剪定スキル。新ルールの追加・昇格には起動しない（compound を使う）。"
 metadata:
   version: "1.1"
-  source-commit: 1dfa5081509eda8173e713c54ff6d390563352cd
+  source-commit: df027219393941e5a3e80cd2a9e8a4baa26f0b19
 ---
 
 # Rule Audit
@@ -17,7 +17,7 @@ metadata:
 ## When NOT to use
 
 - 学び・パターンを新ルールに昇格したい → `compound`
-- ドキュメント（ADR・パターン集）として保存したい → `knowledge-capture`
+- ドキュメント（パターン集・決定の記録）として保存したい → `knowledge-capture`
 - スキル本文の内容品質・挙動を検証したい → 本スキルの対象外（見るのは frontmatter・構造・規約まで）
 
 ## compound との棲み分け
@@ -57,8 +57,8 @@ CLAUDE.md（および相当ファイル）の各ルールに以下を順に適�
 knowledge はレビュー基準・@参照として AI の行動に配線されており、腐った記述は
 誤った指摘や廃止済み規約の強制として行動品質に直接跳ね返るため、ルールと同格の監査対象とする
 （段階基準は docs/decisions/20260715-docs-lifecycle-tiers.md — 無いプロジェクトではこの参照をスキップしてよい）。
-**docs/decisions/（ADR）は削除テストの対象外** — 不変の記録として剪定しない（決定の変更は
-Superseded / Amended 印で扱う。knowledge-capture の担当）。
+**docs/decisions/（決定の記録）は削除テストの対象外** — 不変の記録として剪定しない
+（決定の変更は Superseded / Amended 印で扱う。このリポジトリの決定記録の運用に従う）。
 
 ### 基準 1 — 削除テスト（最重要）
 
@@ -87,7 +87,7 @@ codify-log.md に由来がある場合は「元の失敗が再発しうるか」
 
 ### 基準 5 — 構造制約
 
-配置先プロジェクトの運用ルール（CLAUDE.md の行数上限・ナレッジ保存先ルール等）が明文化されていればそれに従う。**明文化された上限が無ければ**「読まれる長さに保つ」を目安とし、基準 2 の埋もれの兆候（守られないルール）を優先指標にする。
+このプロジェクトの運用ルール（CLAUDE.md の行数上限・ナレッジ保存先ルール等）が明文化されていればそれに従う。**明文化された上限が無ければ**「読まれる長さに保つ」を目安とし、基準 2 の埋もれの兆候（守られないルール）を優先指標にする。
 
 ---
 
@@ -131,7 +131,7 @@ skills-ref validate ./.claude/skills/[skill] 2>/dev/null
 ## Step 5 — 監査レポート提示
 
 ```
-## Rule Audit Report
+## ルール監査レポート
 
 対象: CLAUDE.md（N 行・ルール M 件）/ ~/.claude/CLAUDE.md / スキル K 個
 対象外: [スキップした入力と理由]

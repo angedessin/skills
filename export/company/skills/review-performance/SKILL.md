@@ -4,7 +4,7 @@ description: "フロントエンドのパフォーマンスレビューに使う
 compatibility: "Angular / TypeScript（SSR・コード分割・CWV 観点はフレームワーク中立。フレームワーク固有の最適化 API があればそれを使う）"
 metadata:
   version: "1.1"
-  source-commit: 1dfa5081509eda8173e713c54ff6d390563352cd
+  source-commit: df027219393941e5a3e80cd2a9e8a4baa26f0b19
 ---
 
 # Review — Performance
@@ -82,7 +82,7 @@ CWV は特定フレームワーク非依存の観点。フレームワーク固�
 ## 出力形式
 
 ```
-## Performance Review: [スコープ]
+## パフォーマンスレビュー: [スコープ]
 
 ### Axis 1 — Bundle サイズ
 - [utils.ts:L3] `import _ from 'lodash'` → `import { debounce } from 'lodash-es'` に変更

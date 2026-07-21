@@ -4,7 +4,7 @@ description: "フロントエンドのロジック正当性レビューに使う
 compatibility: "Angular / TypeScript（境界条件・null 安全・非同期の観点は言語・フレームワーク中立）"
 metadata:
   version: "1.1"
-  source-commit: 1dfa5081509eda8173e713c54ff6d390563352cd
+  source-commit: df027219393941e5a3e80cd2a9e8a4baa26f0b19
 ---
 
 # Review — Correctness
@@ -112,7 +112,7 @@ try { await save() } catch (e) { setError(toErrorMessage(e)) }
 ## 出力形式
 
 ```
-## Correctness Review: [スコープ]
+## 正当性レビュー: [スコープ]
 
 ### Axis 1 — 境界条件
 - [utils/paginate.ts:L14] 残り 0 件のとき totalPages が 0 になり最終ページ計算が壊れる
