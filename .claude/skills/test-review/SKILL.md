@@ -72,7 +72,7 @@ metadata:
 ## 出力形式
 
 ```
-## Test Review: [スコープ（ファイルまたはディレクトリ）]
+## テストレビュー: [スコープ（ファイルまたはディレクトリ）]
 
 ### Axis 1 — 実装エコー
 - [file.test.ts:L42] 内部 dispatch 引数をアサート → 結果の表示を確認すべき **[implementation bug]**

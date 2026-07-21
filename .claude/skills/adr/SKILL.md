@@ -32,7 +32,7 @@ metadata:
 判定材料は次の順で探す。**あるものを使い、無ければ次へ降りる**:
 
 1. `.steering/[task]/decisions.md`（実装中の技術的判断とその理由）
-2. `.steering/[task]/design.md` の Alternatives considered
+2. `.steering/[task]/design.md` の「検討した代替案」
 3. ユーザーが会話で提示した決定内容
 
 **却下した代替案が見つからない場合** → **ここで止まる**。次を伝えて終了する:

@@ -126,7 +126,7 @@ grep "[キーワード]" CLAUDE.md ~/.claude/CLAUDE.md 2>/dev/null
 
 提示形式:
 ```
-## Knowledge Capture ドラフト
+## 知見保存ドラフト
 
 ### [知見1のラベル]
 保存先: docs/knowledge/[topic].md
@@ -141,9 +141,9 @@ grep "[キーワード]" CLAUDE.md ~/.claude/CLAUDE.md 2>/dev/null
 内容:
 ---
 ## [YYYYMMDD] — [決定の内容]
-**Decision**: [何を決めたか]
-**Reason**: [なぜ]
-**Alternatives**: [却下した代替案とその理由]
+**決定**: [何を決めたか]
+**理由**: [なぜ]
+**代替案**: [却下した代替案とその理由]
 ---
 
 採用するものを番号または名前で教えてください。
@@ -187,10 +187,10 @@ grep "[キーワード]" CLAUDE.md ~/.claude/CLAUDE.md 2>/dev/null
 
 ```markdown
 ## [YYYYMMDD] — [決定の内容]
-**Decision**: [何を決めたか]
-**Reason**: [なぜ]
-**Alternatives**: [却下した代替案とその理由]
-**Impact**: [影響範囲]
+**決定**: [何を決めたか]
+**理由**: [なぜ]
+**代替案**: [却下した代替案とその理由]
+**影響**: [影響範囲]
 ```
 
 タスクディレクトリが存在しない場合はファイルを作らず、内容を会話で提示して終わる。

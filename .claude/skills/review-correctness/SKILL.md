@@ -113,7 +113,7 @@ try { await save() } catch (e) { setError(toErrorMessage(e)) }
 ## 出力形式
 
 ```
-## Correctness Review: [スコープ]
+## 正当性レビュー: [スコープ]
 
 ### Axis 1 — 境界条件
 - [utils/paginate.ts:L14] 残り 0 件のとき totalPages が 0 になり最終ページ計算が壊れる

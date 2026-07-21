@@ -102,7 +102,7 @@ pnpm audit --audit-level=high 2>/dev/null || true   # npm プロジェクトで�
 ## 出力形式
 
 ```
-## Security Review: [スコープ]
+## セキュリティレビュー: [スコープ]
 
 ### Axis 1 — XSS
 - [file.tsx:L42] dangerouslySetInnerHTML に userComment を直接渡している

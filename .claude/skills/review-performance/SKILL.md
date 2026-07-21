@@ -84,7 +84,7 @@ CWV は特定フレームワーク非依存の観点。フレームワーク固�
 ## 出力形式
 
 ```
-## Performance Review: [スコープ]
+## パフォーマンスレビュー: [スコープ]
 
 ### Axis 1 — Bundle サイズ
 - [utils.ts:L3] `import _ from 'lodash'` → `import { debounce } from 'lodash-es'` に変更

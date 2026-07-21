@@ -130,7 +130,7 @@ skills-ref validate ./.claude/skills/[skill] 2>/dev/null
 ## Step 5 — 監査レポート提示
 
 ```
-## Rule Audit Report
+## ルール監査レポート
 
 対象: CLAUDE.md（N 行・ルール M 件）/ ~/.claude/CLAUDE.md / スキル K 個
 対象外: [スキップした入力と理由]

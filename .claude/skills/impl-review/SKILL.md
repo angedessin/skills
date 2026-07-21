@@ -41,15 +41,15 @@ BASE=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^o
 
 **確認項目**:
 
-1. **Key components テーブルと実際のファイル構成**
+1. **「主要コンポーネント」テーブルと実際のファイル構成**
    - テーブルに記載されたコンポーネントが実際に作成されているか
    - 責務が分割されているか
 
-2. **Approach セクションの実装方針**
+2. **「アプローチ」セクションの実装方針**
    - 設計で決めたアプローチが守られているか
    - 勝手に設計変更されていないか
 
-3. **Open questions の解決状況**
+3. **「未解決の論点」の解決状況**
    - レビュー待ちの質問が未解決のまま実装が進んでいないか
 
 **設計がない場合**: このチェックをスキップして次の軸へ。
@@ -134,11 +134,11 @@ review-a11y をあわせて実行する。
 ## 出力形式
 
 ```
-## Implementation Review: [スコープ]
+## 実装レビュー: [スコープ]
 
 ### Axis 1 — 設計整合性
-- [file.ts] design.md の Key components に `AuthService` があるが `src/services/auth.ts` が存在しない
-- Open question "リフレッシュトークンの保存場所" が未解決のまま実装が進んでいる
+- [file.ts] design.md の「主要コンポーネント」に `AuthService` があるが `src/services/auth.ts` が存在しない
+- 「リフレッシュトークンの保存場所」が未解決の論点のまま実装が進んでいる
 
 ### Axis 2 — プロジェクト規約
 （問題なし）

@@ -87,7 +87,7 @@ find .steering -maxdepth 2 \( -name "review-result.md" -o -name "decisions.md" -
 **昇格候補が 1 件以上ある場合:**
 
 ```
-## Compound ドラフト
+## 福利化ドラフト
 
 ### [パターン1のラベル]
 昇格先: CLAUDE.md ルール
@@ -125,7 +125,7 @@ find .steering -maxdepth 2 \( -name "review-result.md" -o -name "decisions.md" -
 承認は求めない。以下を報告し、そのまま Step 5（フラグ更新）を実行する:
 
 ```
-## Compound ドラフト
+## 福利化ドラフト
 
 新規昇格候補はありませんでした。
 （理由: [重複 / 1回限りの事象など]）

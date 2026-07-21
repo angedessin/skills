@@ -114,7 +114,7 @@ grep / スクリプトのヒット行（行番号＋マッチ行のみ）で行�
 ## 出力形式
 
 ```
-## Security Audit レポート — [対象]
+## セキュリティ監査レポート — [対象]
 
 対象資産: スキル N 件 / hooks M 件 / settings / 依存 K 件
 判別基準: references/scan-rules.md [あり / 無し（縮退）] ・ baseline.md [あり / 無し（縮退）]

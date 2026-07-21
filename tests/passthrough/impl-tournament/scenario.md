@@ -18,14 +18,14 @@ Step 1 の STOP（コスト見積 + 無料代替の提示 → 明示承認まで
 
 ### file: .steering/20260705-price-cache/design.md
 ```md
-# Design: 価格キャッシュ層の導入
+# 設計: 価格キャッシュ層の導入
 
 Status: APPROVED
 
-## Goal
+## 目的
 価格 API の呼び出しを削減するキャッシュ層を `src/utils/priceCache.ts` に導入する。
 
-## Alternatives considered
+## 検討した代替案
 - A: TTL つきインメモリ Map
 - B: stale-while-revalidate（SWR パターン自前実装）
 - C: リクエスト単位のメモ化のみ

@@ -77,8 +77,8 @@ find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
 | `design.md` が `APPROVED` かつ `tasklist.md` の実装タスクに未チェックあり | **Phase 2**（実装） |
 | 実装タスクが全チェック済み かつ `review-result.md` が無い | **Phase 3**（レビュー） |
 | `review-result.md` が存在し Status が `OPEN` | **Gate 3 で停止**（指摘の修正対応待ち） |
-| `review-result.md` の Status が `RESOLVED` または `DEFERRED` かつ `tasklist.md` の Deploy 項目に未チェックあり | **Phase 3.5**（PR / 統合。スキップ可） |
-| Deploy 項目に PR URL があり、レビューコメント/CI 失敗が返っている（ユーザーが往復対応を求めた・pr-create が返送を報告した） | **Phase 3.7**（PR 往復 = pr-feedback） |
+| `review-result.md` の Status が `RESOLVED` または `DEFERRED` かつ `tasklist.md` の「デプロイ」項目に未チェックあり | **Phase 3.5**（PR / 統合。スキップ可） |
+| 「デプロイ」項目に PR URL があり、レビューコメント/CI 失敗が返っている（ユーザーが往復対応を求めた・pr-create が返送を報告した） | **Phase 3.7**（PR 往復 = pr-feedback） |
 | `review-result.md` の Status が `RESOLVED` または `DEFERRED` かつ `capture_done` フラグが無い | **Phase 4**（知見蓄積） |
 | `capture_done` フラグあり | **Phase 5**（クローズ） |
 
@@ -209,10 +209,10 @@ Gate 3 通過後:
 
 ## Phase 3.5 — PR / 統合（pr-create）
 
-変更を世に出すフェーズ。`tasklist.md` に Deploy セクションがあればそれに従う。
+変更を世に出すフェーズ。`tasklist.md` に「デプロイ」セクションがあればそれに従う。
 
 1. リポジトリの運用を確認する: PR ベース運用（リモート + CI あり）か、main 直コミット運用か
-   - **直コミット運用・CI なし** → このフェーズはコミット済みであることの確認のみでスキップしてよい。`tasklist.md` の Deploy 項目に「スキップ（直コミット運用）」と記録して Phase 4 へ
+   - **直コミット運用・CI なし** → このフェーズはコミット済みであることの確認のみでスキップしてよい。`tasklist.md` の「デプロイ」項目に「スキップ（直コミット運用）」と記録して Phase 4 へ
 2. PR ベース運用の場合: `pr-create` スキルで PR を作成する（未配置なら `gh pr create` で代替）
 3. CI の結果を確認する（グリーンになるまで Phase 4 へ進まない。失敗したら修正 — 重い修正は Phase 2 の作法に戻る）
 
@@ -225,7 +225,7 @@ CI 失敗の原因が PR の差分外にあると判明したら `debug` に接�
 ### ▣ Gate 3.5 — マージ判断（停止）
 
 CI グリーン・レビュー承認を確認したら **ここで止まり**、ユーザーにマージ判断を仰ぐ。**マージは外向きの操作 — 承認なしに行わない。**
-マージ完了（またはスキップ判断）後、`tasklist.md` の Deploy 項目を更新して Phase 4 へ:
+マージ完了（またはスキップ判断）後、`tasklist.md` の「デプロイ」項目を更新して Phase 4 へ:
 ```
 統合完了。知見蓄積フェーズに進みます。
 ```
@@ -276,7 +276,7 @@ CI グリーン・レビュー承認を確認したら **ここで止まり**、
    - 実装: [実装したファイル/コンポーネント数]、モード: [TDD / Impl-first]
    - レビュー: 重要指摘 [N] 件 / 対応 [済 / 一部後回し（内容）]
    - 知見: [保存先 docs/knowledge/... ] / 福利化: [実施 / 見送り]
-   - 残課題: [後回しにした指摘・Open questions があれば列挙]
+   - 残課題: [後回しにした指摘・未解決の論点があれば列挙]
    ```
 3. タスクの締め方を確認する:
    ```

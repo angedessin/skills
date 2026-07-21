@@ -52,7 +52,7 @@ metadata:
 ## 出力形式
 
 ```
-## Skill Test レポート
+## スキルテストレポート
 
 静的層（validate_skills.py）: 全 N スキル + template  → PASS / FAIL 内訳
 純度（--purity）: 高出現スキルの上位（任意）

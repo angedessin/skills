@@ -81,7 +81,7 @@ deployments.md が無い（または配置先が未登録）です。
 ## 出力形式
 
 ```
-## Harvest レポート
+## 回収レポート
 
 配置先: N 件（deployments.md）
 
