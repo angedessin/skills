@@ -1,8 +1,8 @@
 # 持ち出しセット — 会社ワークフロー用（20260714）
 
-- **マスターコミット**: `496a050cfde484237439c1899294042fecc06732`
-- **作成日**: 2026-07-14（最終更新: 2026-07-15 — マスターの design-doc v1.4「仕様書・参考資料の確認ステップ」と knowledge-capture v1.3「既存 ADR の Superseded / Amended 更新」を反映。rule-audit を追加同梱し 17 → 18 スキルに）
-- **検証**: validate_skills.py 28/28 PASS（コピー元）+ 同梱 18 スキル 18/18 PASS（このセット自体に直接実行・2026-07-15）。ローカルパス・個人情報・外部 URL の混入なし（grep 検査済み）
+- **マスターコミット**: `1dfa5081509eda8173e713c54ff6d390563352cd`
+- **作成日**: 2026-07-14（最終更新: 2026-07-21 — マスターの design-doc v1.6「Phase 1.5 決定インタビュー」を反映。全 18 スキルの source-commit を新基準に更新）
+- **検証**: validate_skills.py 28/28 PASS（コピー元）+ 同梱 18 スキル 18/18 PASS（このセット自体に直接実行・2026-07-21）。ローカルパス・個人情報・外部 URL の混入なし（grep 検査済み）
 - 各スキルの frontmatter `metadata.source-commit` に上記ハッシュを記録済み（配置先での手動追記は不要）
 - **Angular 適用版**: マスター（React / Vitest 前提）から、レビュー系 6 スキル（impl-review・review-a11y / correctness / performance / security / ui）・frontend-code-review・tdd・test-review の本文・コード例・スコープ（.tsx → .ts / .html）を Angular / Jasmine 向けに書き換え済み。書き換え後に React 語彙の残存ゼロを機械確認済み。**マスターとの diff を確認するときはこの変換分を差し引いて見る**（スキルの手順・停止契約は変えていない。変えたのはスタック語彙とコード例のみ）
 
@@ -82,4 +82,4 @@
 - **スキルの改善は会社リポジトリで直接編集する**。skill-issues.md（session-retrospective が起票）は会社内の改善ループの入力として使う（マスターへの供給ではなく、会社内で完結する自己改善の材料）
 - **編集したら目印を残す**: 編集したスキルの frontmatter `metadata:` に `modified: "YYYY-MM-DD 変更概要"` を追記する。`source-commit` は消さない（持ち込み時点の基準として残す）
 - **マスターから再持ち込みする場合は丸ごと上書きしない**: `modified` の付いたスキルは会社側の変更を優先し、必要な差分だけ手動マージする
-- マスター側でこのセットを更新する場合は、マスターで `git diff 496a050 -- .claude/skills/<name>` で差分を確認して再エクスポートする（Angular 変換分の再適用を忘れない）
+- マスター側でこのセットを更新する場合は、マスターで `git diff 1dfa508 -- .claude/skills/<name>` で差分を確認して再エクスポートする（Angular 変換分の再適用を忘れない）

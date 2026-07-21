@@ -4,7 +4,7 @@ description: "フロントエンドのパフォーマンスレビューに使う
 compatibility: "Angular / TypeScript（SSR・コード分割・CWV 観点はフレームワーク中立。フレームワーク固有の最適化 API があればそれを使う）"
 metadata:
   version: "1.1"
-  source-commit: 496a050cfde484237439c1899294042fecc06732
+  source-commit: 1dfa5081509eda8173e713c54ff6d390563352cd
 ---
 
 # Review — Performance

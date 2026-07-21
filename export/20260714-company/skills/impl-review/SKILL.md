@@ -4,7 +4,7 @@ description: "実装コードの品質レビューに使う — 「実装をレ�
 compatibility: "Angular / TypeScript"
 metadata:
   version: "1.2"
-  source-commit: 496a050cfde484237439c1899294042fecc06732
+  source-commit: 1dfa5081509eda8173e713c54ff6d390563352cd
 ---
 
 # Impl Review

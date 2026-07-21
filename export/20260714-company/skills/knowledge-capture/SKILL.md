@@ -3,7 +3,7 @@ name: knowledge-capture
 description: "セッション終了時のプロジェクト知識保存に使うメタスキル。「ナレッジを保存して」「学んだことを記録して」「この決定をドキュメント化して」「セッション終了」「ドキュメントを更新して」と明示的に言われた場合のみ起動。セッション開始時に .capture-needed ファイルがあれば起動。decisions.md・review-result.md・会話コンテキストから知見を抽出し docs/knowledge/・docs/decisions/・.steering/decisions.md・CLAUDE.md に分類する。タスク完了のたびに自動起動しない。lint ルール・スキルを作成する compound とは別物。"
 metadata:
   version: "1.3"
-  source-commit: 496a050cfde484237439c1899294042fecc06732
+  source-commit: 1dfa5081509eda8173e713c54ff6d390563352cd
 ---
 
 # Knowledge Capture

@@ -4,7 +4,7 @@ description: "テストファースト開発や既存コードへのテスト追
 compatibility: "Angular / TypeScript / Jasmine（具体例は references/patterns.md — 配置先の実際のテストスタックに合わせて再生成する。同梱の同ファイルは Vitest 前提の example のまま）"
 metadata:
   version: "1.2"
-  source-commit: 496a050cfde484237439c1899294042fecc06732
+  source-commit: 1dfa5081509eda8173e713c54ff6d390563352cd
 ---
 
 # TDD

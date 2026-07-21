@@ -58,6 +58,7 @@ Status: **DRAFT — awaiting review**
 ## Open questions
 
 - [ ] [人間のレビューが必要な質問や不明点]
+- [ ] [決定インタビュー（Phase 1.5）で先送りした決定・推奨案で仮置きした決定（「推奨案で仮置き」と明記）]
 
 ## Alternatives considered
 

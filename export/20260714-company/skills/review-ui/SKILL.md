@@ -4,7 +4,7 @@ description: "フロントエンドの UI レビューに使うサブスキル�
 compatibility: "Angular / TypeScript / CSS（レスポンシブ・UX 状態の観点はフレームワーク中立。デザイントークンの実体は references/tokens.md を配置先プロジェクトで再生成する）"
 metadata:
   version: "1.1"
-  source-commit: 496a050cfde484237439c1899294042fecc06732
+  source-commit: 1dfa5081509eda8173e713c54ff6d390563352cd
 ---
 
 # Review — UI

@@ -3,7 +3,7 @@ name: design-premortem
 description: "design.md を人間レビューに出す前の敵対的レビューに使う — 「設計をプレモータムして」「設計の穴を探して」「この設計を攻撃して」などのフレーズが対象。エッジケース・状態管理の複雑化・テスト容易性・スコープ妥当性・「3ヶ月後に後悔する理由」の観点で設計を批判し、所見を design.md の Premortem セクションに追記する。設計を承認はしない（人間の承認ゲートは維持）。実装コードのレビューには起動しない（frontend-code-review を使う）。既に実装が始まったコードのバグ調査には起動しない（debug を使う）。"
 metadata:
   version: "1.0"
-  source-commit: 496a050cfde484237439c1899294042fecc06732
+  source-commit: 1dfa5081509eda8173e713c54ff6d390563352cd
 ---
 
 # Design Premortem
