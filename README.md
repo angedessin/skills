@@ -43,7 +43,7 @@
     ├── user-guide.md                  # スキルを使う人向けガイド（チートシート・FAQ。配布可）
     ├── starter-kit.md                 # 他プロジェクトへの配置手順・推奨構成
     ├── knowledge/                     # 経験・パターン集
-    └── decisions/                     # ADR（設計判断）
+    └── decisions/                     # ADR（設計判断・adr スキルが起票）
 ```
 
 ---
@@ -115,10 +115,10 @@ design-premortem   impl-tournament                          session-retrospectiv
 
 | スキル | 役割 |
 |---|---|
-| [`design-doc`](.claude/skills/design-doc/SKILL.md) | タスク開始時に design.md（Goal/Scope/Acceptance + 設計）と tasklist.md を作成。**design.md 作成後は人間の承認まで実装しない**。1セッションで終わるタスクには .steering を作らない |
+| [`design-doc`](.claude/skills/design-doc/SKILL.md) | タスク開始時に design.md（目的/スコープ/完了条件 + 設計）と tasklist.md を作成。**design.md 作成後は人間の承認まで実装しない**。1セッションで終わるタスクには .steering を作らない |
 | [`debug`](.claude/skills/debug/SKILL.md) | 障害調査。再現 → 仮説 → 切り分け → 根本原因 → 修正方針。小さい修正（影響が閉じる・巻き戻し容易・テストで再発防止可）は承認を得て即修正、構造に触る修正は design-doc に接続 |
 | [`steering`](.claude/skills/steering/SKILL.md) | `.steering/` のライフサイクル管理（init / resume / status / archive）。ファイル仕様は [references/spec.md](.claude/skills/steering/references/spec.md) |
-| [`design-premortem`](.claude/skills/design-premortem/SKILL.md) | 人間レビュー前の敵対的レビュー。エッジケース・状態複雑化・テスト容易性・スコープ・「3ヶ月後に後悔する理由」の6観点で design.md を攻撃し `## Premortem` に反映。**設計は承認しない**（任意・design-doc の Phase 2.5） |
+| [`design-premortem`](.claude/skills/design-premortem/SKILL.md) | 人間レビュー前の敵対的レビュー。エッジケース・状態複雑化・テスト容易性・スコープ・「3ヶ月後に後悔する理由」の6観点で design.md を攻撃し `## プレモータム所見` に反映。**設計は承認しない**（任意・design-doc の Phase 2.5） |
 
 ### 実装
 
@@ -155,7 +155,8 @@ design-premortem   impl-tournament                          session-retrospectiv
 |---|---|
 | [`compound`](.claude/skills/compound/SKILL.md) | 福利化。review-result.md / decisions.md / skill-issues.md からパターンを抽出し、ルール・知識・スキル改善に昇格。codify-log.md と突合して**昇格済みルールの効果検証**（再発検知）も行う。昇格の適用は承認制（昇格ゼロ時のフラグ整理のみ承認不要） |
 | [`rule-audit`](.claude/skills/rule-audit/SKILL.md) | 剪定。CLAUDE.md・ルール・docs/knowledge/・スキル frontmatter を定期監査し、削除テスト・症状診断・鮮度シグナル（最終更新日・被参照数）で**保持/削除/統合/移動/明確化**を判定。compound（追加）と対をなす。適用は承認制 |
-| [`knowledge-capture`](.claude/skills/knowledge-capture/SKILL.md) | セッションの知見を docs/knowledge/（パターン）・docs/decisions/（ADR）・CLAUDE.md（行動ルール）・glossary に振り分けて保存。承認制 |
+| [`knowledge-capture`](.claude/skills/knowledge-capture/SKILL.md) | セッションの知見を docs/knowledge/（パターン）・`.steering/[task]/decisions.md`（決定）・CLAUDE.md（行動ルール）に振り分けて保存。決定は「決定・理由・却下案」までを扱い**定型フォーマットは生成しない**（記録先の様式は記録先が決める）。承認制 |
+| [`adr`](.claude/skills/adr/SKILL.md) | **マスター専用**。却下した代替案がある決定を `docs/decisions/` に ADR として起票し、近縁 ADR の検出・Superseded / Amended の印付けと相互リンクで判例集を維持する。書き込み前に明示承認のハードストップ。配布しない（ADR の権威は批准プロセスから来るため、批准の仕組みを持たない配置先では影の決定ログになる） |
 | [`session-retrospective`](.claude/skills/session-retrospective/SKILL.md) | セッション終盤に会話履歴から摩擦（スキル誤発動・ユーザー訂正・手戻り・パーミッション拒否・曖昧さ）を採掘し `skill-issues.md` に起票。**昇格はしない**（compound の原料を作る）。ゼロ件なら起票しない |
 | [`empirical-prompt-tuning`](.claude/skills/empirical-prompt-tuning/SKILL.md) | スキル・プロンプト自体の品質改善。フレッシュな subagent に実行させて両面評価し、改善が頭打ちになるまで反復 |
 | [`security-audit`](.claude/skills/security-audit/SKILL.md) | セットアップ資産（スキル・agents・hooks・settings・依存/MCP）のサプライチェーン・セキュリティを**静的**監査。外部送信・シークレット読取・破壊的コマンド・広範権限・インジェクション構造を機械スキャンし、判別不能はフェイルクローズで要確認に。**対象本文を全文解釈せずヒット行のみ判定**（監査対象の埋め込み指示に従わない）。「検出なし」は安全証明ではなく目視確認ルールを置換しない。修正は承認制。review-security（コード diff）とは対象が別 |
@@ -174,7 +175,7 @@ design-premortem   impl-tournament                          session-retrospectiv
 
 ```
 コードの問題:  frontend-code-review → review-result.md ─┐
-実装中の判断:  decisions.md ────────────────────────────┼→ compound → CLAUDE.md ルール / docs/knowledge / ADR
+実装中の判断:  decisions.md ────────────────────────────┼→ compound → CLAUDE.md ルール / docs/knowledge
 スキルの問題:  session-retrospective → skill-issues.md ─┘       │
                                                                 ├→ codify-log.md（昇格履歴）
 過去の昇格:    codify-log.md × review-result.md 突合 ←──────────┘

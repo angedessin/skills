@@ -39,9 +39,9 @@ find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
 - `tasklist.md` が存在しない場合 → ユーザーに確認する:
   ```
   tasklist.md が見つかりません。
-  design.md の Key components を実装スコープとして進めてよいですか？
+  design.md の「主要コンポーネント」を実装スコープとして進めてよいですか？
   ```
-  ユーザーが Yes → Key components を実装順に並べてスコープとする。
+  ユーザーが Yes → 主要コンポーネントを実装順に並べてスコープとする。
   ユーザーが No → tasklist.md のパスを教えてもらう。
 
 ---
@@ -54,14 +54,14 @@ find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
 
 `feature-dev:code-explorer` を起動して以下を調査する（起動できない場合は自分でファイルを探索して代替する）:
 - 実装対象に近い既存コードのパターン・規約
-- `design.md` の Key components が既存コードとどう繋がるか
+- `design.md` の「主要コンポーネント」が既存コードとどう繋がるか
 - プロジェクト固有の書き方（fetch のラッパー・エラーハンドリング・状態管理など）
 
-**探索結果の記録**: code-explorer のレポートを受け取り、**impl-from-design（呼び出し元）が** `design.md` の `## Research` セクションに追記する。
+**探索結果の記録**: code-explorer のレポートを受け取り、**impl-from-design（呼び出し元）が** `design.md` の `## 調査結果` セクションに追記する。
 セッションをまたいでも参照できるように揮発させない。
 
 ```
-## Research
+## 調査結果
 
 ### 既存パターン調査（[YYYYMMDD]）
 - [パターン名]: [観察した規約・実装場所]
@@ -74,7 +74,7 @@ find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
 
 ## Step 2 — モード選択
 
-**成果物がテスト可能なコードでない場合**（スキル定義・ドキュメント等の Markdown 成果物）はモード選択をスキップする。design.md の Test strategy に定義された検証手順を TDD フェーズの代替とし、tasklist.md を順に処理する。その旨をユーザーに伝えて実装に進む（モードの質問はしない）。
+**成果物がテスト可能なコードでない場合**（スキル定義・ドキュメント等の Markdown 成果物）はモード選択をスキップする。design.md の「テスト方針」に定義された検証手順を TDD フェーズの代替とし、tasklist.md を順に処理する。その旨をユーザーに伝えて実装に進む（モードの質問はしない）。
 
 実装開始前にユーザーに確認する:
 
@@ -127,9 +127,9 @@ TDD のパターンと実行コマンドは `.claude/skills/tdd/references/patte
 
 ## Impl-first モード（モード2）
 
-`design.md` の Key components テーブルを見て実装を進める。
+`design.md` の「主要コンポーネント」テーブルを見て実装を進める。
 
-1. Key components のコンポーネントを上から順に実装
+1. 主要コンポーネントの表の上から順に実装
 2. 各コンポーネント完了後:
    - 「このコンポーネントのテストを書きますか？」と確認
    - Yes → `tdd` スキルのパターン（`.claude/skills/tdd/references/patterns.md`）を参照してテストを追加。同ファイルが存在しない場合（tdd 未配置のプロジェクト）は、プロジェクトのテストランナーの標準パターンで書いてよい（その旨を伝える）
@@ -143,7 +143,7 @@ TDD のパターンと実行コマンドは `.claude/skills/tdd/references/patte
 
 実装中に設計通りに進められないことが判明したら:
 1. 止まってユーザーに報告
-2. `design.md` の Open questions に追記
+2. `design.md` の「未解決の論点」に追記
 3. ユーザーの判断を待つ（勝手に設計変更しない）
 
 ### decisions.md への記録
@@ -151,9 +151,9 @@ TDD のパターンと実行コマンドは `.claude/skills/tdd/references/patte
 実装中に重要な技術的判断をした場合は `.steering/[task]/decisions.md` に追記:
 ```markdown
 ## [YYYYMMDD] — [判断の内容]
-**Decision**: [何を決めたか]
-**Reason**: [なぜ]
-**Impact**: [影響範囲]
+**決定**: [何を決めたか]
+**理由**: [なぜ]
+**影響**: [影響範囲]
 ```
 
 追記に承認は不要 — 気づいた時点で記録する。内容の取捨選択は compound / knowledge-capture 時にまとめて行う。

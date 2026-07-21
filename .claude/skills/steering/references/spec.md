@@ -33,55 +33,55 @@
 
 ### design.md（必須）
 
-要求の整理（Goal / Scope / Acceptance criteria）と実装アプローチを1ファイルにまとめる。
+要求の整理（目的 / スコープ / 完了条件）と実装アプローチを1ファイルにまとめる。
 **Status が DRAFT の間は実装に入らない。** 人間の承認後に APPROVED に変更する。
 
 ```markdown
-# Design: [task-name]
+# 設計: [task-name]
 
 Created: [YYYYMMDD]
 Status: **DRAFT — awaiting review**
 
-## Goal
+## 目的
 [一段落: このタスクが達成することと理由]
 
-## Scope
-### In scope
+## スコープ
+### 対象
 - [項目]
 
-### Out of scope
+### 対象外
 - [項目]
 
-## Constraints
+## 制約
 - Stack: React / TypeScript / Vitest / React Testing Library / MSW / Playwright
 - [その他の制約]
 
-## Acceptance criteria
+## 完了条件
 - [ ] [基準1]
 - [ ] [基準2]
 
-## Approach
+## アプローチ
 [2〜4文: 核となる技術的な判断]
 
-## Key components
-| Component | Location | Responsibility |
-|-----------|----------|----------------|
+## 主要コンポーネント
+| コンポーネント | 場所 | 責務 |
+|---------------|------|------|
 | [name] | `src/...` | [役割] |
 
-## Data flow
+## データフロー
 [テキストまたは ASCII ダイアグラム]
 
-## Test strategy
+## テスト方針
 - Unit: [何をユニットテストするか]
 - Integration: [必要な MSW ハンドラー]
 - E2E: [Playwright シナリオ（あれば）]
 
-## Open questions
+## 未解決の論点
 - [ ] [人間のレビューが必要な質問]
 
-## Alternatives considered
-| Alternative | Why rejected |
-|-------------|--------------|
+## 検討した代替案
+| 代替案 | 却下理由 |
+|--------|----------|
 | [代替案] | [却下理由] |
 ```
 
@@ -96,32 +96,32 @@ Approved: [YYYYMMDD]
 セッションのたびに更新する。チェックボックスが Claude の「現在地」を示す。
 
 ```markdown
-# Tasklist: [task-name]
+# タスクリスト: [task-name]
 
 Last updated: [YYYYMMDD]
 
-## Implementation
+## 実装
 - [ ] [設計から導出したタスク]
 - [ ] テスト作成（TDD: Red フェーズ）
 - [ ] 実装（Green フェーズ）
 - [ ] リファクタリング（Refactor フェーズ）
 
-## Review
+## レビュー
 - [ ] frontend-code-review の実行
 - [ ] レビュー指摘の修正（review-result.md を参照）
 - [ ] 修正後の差分再レビュー
 
-## Deploy
+## デプロイ
 <!-- git push してブランチを PR にするフェーズ。CI がないリポジトリはスキップ可。 -->
 - [ ] PR 作成（`pr-create` スキルまたは `gh pr create`）
 - [ ] CI グリーン確認
 - [ ] マージ
 
-## Compound
+## 福利化
 <!-- レビュー・実装で発見したパターンをルール・知識・スキルに昇格するフェーズ。 -->
 - [ ] compound スキルの実行（パターンをルール・知識に昇格）
 
-## Knowledge
+## 知見保存
 <!-- セッションの知見を docs/ に永続保存するフェーズ。 -->
 - [ ] knowledge-capture スキルの実行
 - [ ] steering archive モードでアーカイブ
@@ -140,14 +140,14 @@ compound 実行のたびに「何をどこへ昇格したか」を追記する�
 
 ### decisions.md（任意）
 
-タスク固有の決定事項。ADR（`docs/decisions/`）にする前の中間記録。
+タスク固有の決定事項。決定・理由・却下した代替案を残す。
 
 ```markdown
 ## [YYYYMMDD] — [短いラベル]
 
-**Decision**: [決定内容]
-**Reason**: [なぜ]
-**Impact**: [今後に影響すること]
+**決定**: [決定内容]
+**理由**: [なぜ]
+**影響**: [今後に影響すること]
 ```
 
 ### skill-issues.md（任意）
@@ -165,7 +165,7 @@ compound 実行のたびに「何をどこへ昇格したか」を追記する�
 ### investigation.md（任意）
 
 `debug` スキルが生成する障害調査ログ。仮説・検証結果・棄却理由を残す（同じ道を二度調べないため）。
-調査が design-doc に接続された場合、結論は design.md の Research セクションに引き継がれる。
+調査が design-doc に接続された場合、結論は design.md の「調査結果」セクションに引き継がれる。
 
 ```markdown
 ## [YYYYMMDD] — [症状の要約]
@@ -183,8 +183,8 @@ compound 実行のたびに「何をどこへ昇格したか」を追記する�
 ## [YYYYMMDD] — [ブロッカーの内容]
 
 **Status**: OPEN / RESOLVED
-**Waiting for**: [誰・何を待っているか]
-**Resolution**: [解決したら記入]
+**待ち先**: [誰・何を待っているか]
+**解決**: [解決したら記入]
 ```
 
 ## セッション開始コントラクト

@@ -122,7 +122,7 @@ function Modal({ isOpen, onClose }) {
 ## 出力形式
 
 ```
-## Accessibility Review: [スコープ]
+## アクセシビリティレビュー: [スコープ]
 
 ### Axis 1 — セマンティクス
 - [Button.tsx:L8] `<div onClick={onClick}>` → `<button>` に変更

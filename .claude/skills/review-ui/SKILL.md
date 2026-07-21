@@ -103,7 +103,7 @@ function UserList() {
 ## 出力形式
 
 ```
-## UI Review: [スコープ]
+## UI レビュー: [スコープ]
 
 ### Axis 1 — レイアウト・レスポンシブ
 - [Card.module.css:L4] width: 480px 固定 — max-width への変更候補

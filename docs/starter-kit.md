@@ -28,7 +28,7 @@
 | **拡張 3: 設計品質・比較** | design-premortem / impl-tournament | 配布可 | 人間レビュー前の設計の穴出し・リスクの高いアプローチ選択の N 並列比較を使う場合（任意・impl-tournament は課金前置承認あり） |
 | **メタ層** | compound / rule-audit / empirical-prompt-tuning / feature-pipeline / session-retrospective | 配布可 | 自己改善ループとオーケストレーションまで運用する場合（このマスター級の運用） |
 | **拡張 4: セキュリティ** | security-audit | 配布可 | サードパーティスキルの採用前・定期の棚卸しで、セットアップ資産（スキル・hooks・settings・依存）の危険性を静的監査する場合（任意・オンデマンド・hooks 自動起動しない） |
-| **マスター専用（配布しない）** | skill-test / skill-harvest / skill-deploy | **master-only** | このリポジトリ（スキルのマスター）でのみ使う管理ツール。配置先にはコピーしない |
+| **マスター専用（配布しない）** | skill-test / skill-harvest / skill-deploy / adr | **master-only** | このリポジトリ（スキルのマスター）でのみ使う管理ツール。配置先にはコピーしない。`adr` は ADR の権威が批准プロセスから来るため、批准の仕組みを持たない配置先では影の決定ログになる |
 
 - feature-pipeline は依存サブスキルが揃っている前提のため最小セットに含めない
 - **session-retrospective は skill-harvest への供給側**。配置先に session-retrospective を併配すると、セッション摩擦が配置先の `skill-issues.md` に溜まり、マスターの skill-harvest がそれを還流できる（`.steering/**/skill-issues.md` を書くルールはマスターの CLAUDE.md にしか無いため、この併配が producer/consumer の対を成立させる）。`.steering/` 運用をしない配置先では harvest への供給は成立しない

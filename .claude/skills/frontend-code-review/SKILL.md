@@ -185,7 +185,7 @@ subagent はセッション履歴もスキル定義も持たない。**サブス
 統合後の結果をまとめて出力する:
 
 ```
-## Code Review Summary
+## レビュー結果サマリー
 
 ### テスト（test-review）
 重要な問題: N件
@@ -235,7 +235,7 @@ subagent はセッション履歴もスキル定義も持たない。**サブス
 ### review-result.md への書き込み
 
 `.steering/[task]/` タスクディレクトリが存在する場合のみ `review-result.md` を書き込む。タスクディレクトリが存在しない場合は出力のみで書き込みを行わない。
-`.claude/skills/design-doc/references/templates.md` の review-result.md テンプレートの形式に従う。テンプレートファイルが存在しない場合は「## Code Review Result\n\n### 指摘事項\n- [ ] [Axis] [内容] [file:line]」の形式で合理的に生成してよい。修正状況チェックボックスはすべて未チェックで初期化する。
+`.claude/skills/design-doc/references/templates.md` の review-result.md テンプレートの形式に従う。テンプレートファイルが存在しない場合は「## レビュー結果\n\n### 指摘事項\n- [ ] [Axis] [内容] [file:line]」の形式で合理的に生成してよい。修正状況チェックボックスはすべて未チェックで初期化する。
 
 書き込み後に `.codify-needed` フラグを作成する（タスクディレクトリが無く書き込みをスキップした場合はフラグも作成しない）:
 ```bash
@@ -249,7 +249,7 @@ review-result.md を更新しました。
 次のステップ:
 - [ ] 指摘事項を修正する（review-result.md を参照）
 - [ ] 修正後に再確認
-- [ ] Deploy（PR 作成 → CI → マージ）
+- [ ] デプロイ（PR 作成 → CI → マージ）
 - [ ] compound スキルで学びをルール・知識に昇格（.codify-needed が作成されました）
 ```
 
