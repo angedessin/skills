@@ -146,18 +146,30 @@ def ensure_gitignore(target: Path, dry: bool, log: list[str]) -> None:
         gi.write_text(existing.rstrip("\n") + ("\n\n" if existing else "") + block + "\n", encoding="utf-8")
 
 
-def deploy_guardrails(target: Path, skills: list[str], dry: bool, log: list[str]) -> None:
-    hooks_src = MASTER_ROOT / ".claude" / "hooks"
-    hooks_dst = target / ".claude" / "hooks"
-    # 品質ゲート 2 本はフェイルオープン（設定が無ければ素通し）なので常に同送する
+def expected_hooks(skills: list[str] | set[str]) -> list[str]:
+    """配置スキル一式に対して同送すべき hooks を返す。
+
+    check_deploy_drift.py がこの関数を import して「配るべきなのに配置先に無い hook」を
+    検出する。**同送リストの単一情報源** — ここを直せば配置側と検出側が同時に追随する
+    （両者に同じリストを書くと片側修正で腐る。20260723 の敵対レビューで実際に起きた系統）。
+    """
+    # 品質ゲート 2 本 + env ガードはフェイルオープン / 自己完結なので常に同送する
     send = ["guard-env-read.sh", "post-edit-lint.sh", "stop-typecheck.sh"]
+    skills = set(skills)
     if "knowledge-capture" in skills:
         send.append("session-stop.sh")  # .capture-needed を立てる hook。スキル無しで送ると実行不能指示になる
     # フラグを「読む側」。これが無いと .capture-needed / .codify-needed は立つだけで誰も拾わず、
     # knowledge-capture / compound の「セッション開始時にフラグがあれば起動」が配置先で永久に発火しない
     # （producer だけ配って consumer が欠ける片欠け）。.steering/ が無い環境では素通しするので同送して安全。
-    if {"knowledge-capture", "compound", "steering", "design-doc"} & set(skills):
+    if {"knowledge-capture", "compound", "steering", "design-doc"} & skills:
         send.append("session-start-check.sh")
+    return send
+
+
+def deploy_guardrails(target: Path, skills: list[str], dry: bool, log: list[str]) -> None:
+    hooks_src = MASTER_ROOT / ".claude" / "hooks"
+    hooks_dst = target / ".claude" / "hooks"
+    send = expected_hooks(skills)
 
     for name in send:
         src = hooks_src / name

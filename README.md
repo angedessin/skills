@@ -209,7 +209,7 @@ design-premortem   impl-tournament                          session-retrospectiv
 - **敵対的スキルレビュー** (`prompts/adversarial-skill-review.md`): スキル**本文の中身**を敵対的に精読するプロンプト（人が貼って使う・フレッシュな subagent 推奨）。境界の重複と空白・オーケストレーターとの契約ズレ・片側修正・死んだ参照・迂回経路・配布分類違反を、静的検査と素通り検査の**間**の層として拾う。ファイルは一切変更せず、証拠つきの指摘と方向性1行だけを提示して止まる
 - **品質ゲート hooks** (`.claude/hooks/post-edit-lint.sh` / `stop-typecheck.sh` / `validate-skill-edit.sh`): 編集ごとの lint 差し戻し・終了宣言時の tsc・SKILL.md 編集時の `validate_skills.py` 自動実行。前 2 本はフェイルオープン（設定が無ければ素通し）なのでスタックを問わず配れる
 - **配置スクリプト** (`scripts/deploy_skills.py`): 配置先へのスキル本体とガードレール（hooks・permissions・.gitignore）の同送。`--dry-run` / `--overwrite`。master-only スキルは配置対象から除外される。編成は `skill-deploy` スキル
-- **ドリフト検出** (`scripts/check_deploy_drift.py`): 配置先の直接編集・マスター先行・記録なしの3分類 + 溜まった skill-issues.md を収集（読み取り専用）。引数なしで `deployments.md` の全配置先をループ。編成は `skill-harvest` スキル
+- **ドリフト検出** (`scripts/check_deploy_drift.py`): 配置先スキルの直接編集・マスター先行・記録なしの3分類 + **hooks の未配置 / 内容差分**（同送すべき hook が配置先に無い・内容がずれている）+ 溜まった skill-issues.md を収集（読み取り専用）。同送すべき hook の判定は `deploy_skills.py` の `expected_hooks()` を import して単一情報源にしている。引数なしで `deployments.md` の全配置先をループ。編成は `skill-harvest` スキル
 - **settings.json**: パッケージインストール（dlx / bunx / npx -y 含む）・`.env` / 鍵ファイル読み取り（Bash / Read 両方）・破壊的 git 操作・`rm -rf` を deny。素の `npx` / `rm -r` / `git push` / ガードレール自身（settings・hooks）の変更は ask。配置先への同送手順は [docs/starter-kit.md](docs/starter-kit.md) 手順 6
 
 ---
