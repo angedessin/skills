@@ -230,4 +230,3 @@ touch .steering/[task]/capture_done
 
 - `steering` — フラグ更新後はアーカイブへ（steering archive モード）
 - `compound` — lint ルール・スキル・行動ルールとして固めたい場合
-- `frontend-code-review` — レビューで発見したパターンをここで保存

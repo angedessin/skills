@@ -5,7 +5,7 @@
 **`.steering/` は複数セッションにまたがる見込みのタスクのみ作成する。**
 1セッションで完了する見込みのタスクは、ユーザーに「会話内設計で進めるか、`.steering/` を作るか」を確認し、会話内設計が選ばれた場合のみ会話内で設計方針を確認して進める（Claude の見積もりだけで省略を確定しない。次セッションの自分が読まないファイルは作らない、が縮退の趣旨）。
 途中で複数セッションにまたがると判明したら、その時点で作成して会話内の設計内容を design.md に転記する。
-例外: `feature-pipeline` 等のオーケストレーター配下では、タスク規模によらず常に作成する（現在地検出・ゲート・フラグが成果物に依存するため。design-doc 側にも同じ例外を明記済み）。
+例外: 複数フェーズを通して回すオーケストレーター配下では、タスク規模によらず常に作成する（現在地検出・ゲート・フラグが成果物に依存するため。design-doc 側にも同じ例外を明記済み）。
 
 ## ディレクトリ構造
 
@@ -18,7 +18,7 @@
 │   ├── blockers.md            ← 任意: 未解決の問題・依存待ち
 │   ├── skill-issues.md        ← 任意: スキル自体の不具合記録（compound が読む）
 │   ├── investigation.md       ← 任意: 障害調査ログ（仮説・検証・棄却理由）
-│   ├── review-result.md       ← frontend-code-review が生成: 指摘と修正追跡
+│   ├── review-result.md       ← 任意: コードレビューの指摘と修正追跡（生成元は問わない）
 │   ├── codify-log.md          ← compound が生成: パターン昇格の履歴
 │   ├── .capture-needed        ← フラグ: knowledge-capture 未実行を示す
 │   ├── .codify-needed         ← フラグ: compound スキル未実行を示す
@@ -106,8 +106,8 @@ Last updated: [YYYYMMDD]
 - [ ] リファクタリング（Refactor フェーズ）
 
 ## レビュー
-- [ ] frontend-code-review の実行
-- [ ] レビュー指摘の修正（review-result.md を参照）
+- [ ] コードレビューの実施（実装コード・テストコードの両方）
+- [ ] レビュー指摘の修正（review-result.md があれば参照）
 - [ ] 修正後の差分再レビュー
 
 ## デプロイ
@@ -126,11 +126,12 @@ Last updated: [YYYYMMDD]
 - [ ] steering archive モードでアーカイブ
 ```
 
-### review-result.md（frontend-code-review が生成）
+### review-result.md（任意）
 
-`frontend-code-review` スキルがレビュー完了後に書き込む。
+コードレビューの結果を残すファイル。**このスキルセットはレビューを実行しない** — レビューは
+別途用意された手段（レビュー用のプラグイン・人間のレビュー等）で行い、その結果をここに置く。
 修正状況のチェックボックスで「何が直ったか」を追跡する。
-`compound` スキルはこのファイルを入力として使う。
+`compound` / `knowledge-capture` はこのファイルがあれば入力として使う（無ければ会話の文脈で代替する）。
 
 ### codify-log.md（compound が生成）
 

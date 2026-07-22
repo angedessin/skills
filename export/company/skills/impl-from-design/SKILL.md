@@ -170,8 +170,7 @@ TDD のパターンと実行コマンドは `.claude/skills/tdd/references/patte
    ```
    実装が完了しました。
 
-   次: `frontend-code-review` スキルでレビューを実行してください。
-   （test-review + impl-review を順番に実行します）
+   次: コードレビューを実施してください（実装コード・テストコードの両方）。
    ```
 
 ---
@@ -180,5 +179,4 @@ TDD のパターンと実行コマンドは `.claude/skills/tdd/references/patte
 
 - `design-doc` — この前に実行する設計フェーズ
 - `tdd` — TDD パターンの単独ユーティリティ（既存コードへのテスト追加など）
-- `frontend-code-review` — 実装完了後のレビュー（オーケストレーター）
 - `steering` — tasklist.md の更新・セッション管理

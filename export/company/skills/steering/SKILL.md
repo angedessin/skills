@@ -29,7 +29,7 @@ metadata:
 │   ├── blockers.md         (任意 — 未解決の問題)
 │   ├── skill-issues.md     (任意 — スキル自体の不具合記録。compound が読む)
 │   ├── investigation.md    (任意 — 障害調査ログ: 仮説・検証・棄却理由)
-│   ├── review-result.md    (frontend-code-review が生成)
+│   ├── review-result.md    (任意: コードレビューの指摘と修正追跡)
 │   ├── codify-log.md       (compound が生成 — 昇格履歴)
 │   ├── .capture-needed     (フラグ — knowledge-capture 未実行)
 │   ├── .codify-needed      (フラグ — compound 未実行)
