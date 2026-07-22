@@ -4,7 +4,7 @@
 - **作成日**: 2026-07-14（最終更新: 2026-07-22 — レビュー系 8 スキルと feature-pipeline を除外し、同梱を 9 スキルに縮小。コードレビューは会社のレビュープラグインを使う方針に変更したため）
 - **検証**: 同梱 9 スキル 9/9 PASS（このセット自体に直接実行・2026-07-22）。ローカルパス・個人情報・外部 URL の混入なし（grep 検査済み）
 - 各スキルの frontmatter `metadata.source-commit` に上記ハッシュを記録済み（配置先での手動追記は不要）
-- **Angular 適用版**: マスター（React / Vitest 前提）から、tdd の本文・コード例・スコープ（.tsx → .ts / .html）を Angular / Jasmine 向けに書き換え済み。書き換え後に React 語彙の残存ゼロを機械確認済み。**マスターとの diff を確認するときはこの変換分を差し引いて見る**（スキルの手順・停止契約は変えていない。変えたのはスタック語彙とコード例のみ）
+- **Angular 適用版**: マスター（React / Vitest 前提）から、tdd の本文・スコープ（.tsx → .ts / .html）を Angular / Jasmine 向けに書き換え済み。**スキル本文に React / Vitest / pnpm 等の個人スタック語彙は 1 件も残っていない**（機械確認済み。React 前提のコード例を集めた tdd のカートリッジは同梱から外した — 下記「同梱しなかったもの」参照）。**マスターとの diff を確認するときはこの変換分を差し引いて見る**（スキルの手順・停止契約は変えていない。変えたのはスタック語彙とコード例のみ）
 
 ## 2026-07-22 更新の要点（レビュー系の除外）
 
@@ -41,6 +41,7 @@
 
 - **レビュー系 8 スキル（frontend-code-review / impl-review / test-review / review-a11y / review-correctness / review-performance / review-security / review-ui）** — 会社のレビュープラグインを使う方針のため除外。方針が変わったらマスターから追加コピーする（その際は残るスキルの「コードレビューを実施する」等の一般記述をスキル名に戻すか、そのままにするか判断する）
 - **feature-pipeline** — レビューフェーズを含むオーケストレーターだったため、レビュー系の除外に伴って外した。工程は各スキルを順に使う（design-doc → impl-from-design → knowledge-capture / compound）
+- **tdd の `references/patterns.md`（カートリッジ）** — 中身が React / Vitest / RTL / MSW / Jotai / pnpm の 272 行で、Angular / Jasmine の本文と矛盾していた（`§hook`・`§state` は Angular に対応物すら無い）。誤ったスタックのコード例を持ち込む害が、雛形としての価値を上回るため削除。**tdd は無くても動く**（本文の判断軸は言語非依存で、スキル側にフォールバックを明記済み）。作る場合は上記「配置先でやること」の手順 4 に従う
 - **pr-create / pr-feedback / debug** — PR 運用・障害調査は会社の既存プロセスとの整合を確認してから。これらのスキル名への参照は本文から全廃済み
 - **e2e** — 会社では E2E テストを行っていないため除外。各スキル本文・references・設計テンプレに残っていた `e2e` スキルへの参照と Playwright の例も除去済み（「E2E は対象外」という境界の記述のみ残している）。導入することになったらマスターから追加コピーする
 - **impl-tournament** — N 並列実装で課金が大きい。必要になったら個別判断
@@ -60,7 +61,9 @@
    - **通る** → そのまま配置する
    - **通らない** → このフックは**配置しない**（settings.json の `PreToolUse` ブロックごと削除する）。jq が無いと検査できず**フェイルクローズで全 Bash 呼び出しが確認プロンプトになる**ため、実運用に耐えない。jq を導入できるならそれが最善（`settings.example.json` は `brew install *` を deny しているので、導入は人が手動で行う）
 3. **settings をマージする** — `claude-config/settings.example.json` を配置先の `.claude/settings.json` に**手動マージ**する（丸ごと上書きしない）。既存の allow と deny が同じ操作で衝突したら **deny を優先**（安全側）。マスターとの差分として **npx は全面 deny** に強化済み（下の「npx 禁止」参照）
-4. **references の再生成（配置先の AI に依頼する）** — tdd の `references/patterns.md` は **Vitest / RTL / MSW 前提の example のまま**同梱している（本文は Jasmine 前提に書き換え済み）。配置先で AI に実際のテスト環境（Jasmine の実行方法・TestBed の使い方・既存テストの慣習）を確認させてから再生成を依頼する（例:「このプロジェクトの実際のテスト構成を確認して、`.claude/skills/tdd/references/patterns.md` を Jasmine / TestBed に合わせて書き直して。SKILL.md 本文は変更しない。npx は使わない」）
+4. **tdd のカートリッジを作る（任意・配置先の AI に依頼する）** — tdd は「エンジン（本文の判断軸）＋カートリッジ（`references/patterns.md` のスタック固有例）」構成だが、**カートリッジは同梱していない**（元は React / Vitest / RTL / MSW 前提の中身で、Angular / Jasmine の本文と矛盾し、誤ったコード例を持ち込む害の方が大きいため削除した）。**無いままでも tdd は動く** — 本文の判断軸は言語非依存で、スキル側にその旨のフォールバックが書いてある。具体例を効かせたければ、配置先で AI に実際のテスト環境（Jasmine の実行基盤・TestBed の使い方・既存 spec の慣習）を調べさせてから作成を依頼する
+   - 見出しは本文が参照する §名にする: `§run`（実行コマンド）/ `§config`（ランナー設定）/ `§setup`（共通セットアップ）/ `§unit` / `§component` / `§query-ladder`（クエリ優先順位）/ `§network`（ネットワークモック）/ `§hook` / `§state` / `§api-layer` / `§coverage`。Angular に対応物が無い節は省いてよい
+   - 依頼例:「このプロジェクトの実際のテスト構成を確認して、`.claude/skills/tdd/references/patterns.md` を Jasmine / TestBed 向けに新規作成して。見出しは SKILL.md が参照する §名に合わせる。SKILL.md 本文は変更しない。npx は使わない」
 5. **CLAUDE.md に発動ポリシー節を作る**（下の雛形を貼って調整）
 6. **`.gitignore` に 3 行追加**: `.steering/**/.capture-needed` / `.steering/**/.codify-needed` / `.steering/**/capture_done`
 7. **`.npmrc` に `ignore-scripts=true` を設定**（install 時の postinstall 実行＝サプライチェーン攻撃の主経路を既定で遮断）

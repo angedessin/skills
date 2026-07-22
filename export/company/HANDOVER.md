@@ -42,11 +42,14 @@
 3. `claude-config/settings.example.json` を `.claude/settings.json` に**手動マージ**する。
    既存の settings を丸ごと上書きしない。既存 allow と deny が衝突したら deny を優先。
    **マージ結果の全文を提示して、承認を得てから書き込む**
-4. references を再生成する:
+4. tdd のカートリッジを作る（任意 — 無くても tdd は動く）:
    - 先に**このリポジトリの実際のテスト環境を調べる**（テストの実行コマンド・Jasmine の
      実行基盤（Karma か jest-preset-angular か等）・TestBed の使い方・既存 spec の慣習）
-   - 調べた結果に合わせて `.claude/skills/tdd/references/patterns.md` を書き直す
-     （現在は Vitest 前提の example）。**SKILL.md 本文は変更しない**
+   - 調べた結果に合わせて `.claude/skills/tdd/references/patterns.md` を**新規作成**する
+     （同梱していない。誤ったスタックの例を持ち込まないため意図的に外してある）。
+     見出しは SKILL.md が参照する §名（§run / §config / §setup / §unit / §component /
+     §query-ladder / §network / §hook / §state / §api-layer / §coverage）に合わせ、
+     Angular に対応物が無い節は省く。**SKILL.md 本文は変更しない**
 5. `CLAUDE.md` に発動ポリシー節を追加する（MANIFEST 末尾の雛形をベースに、この
    プロジェクトの運用に合わせて調整。**追加内容を提示して承認を得てから書き込む**）
 6. `.gitignore` に次の 3 行を追加する:

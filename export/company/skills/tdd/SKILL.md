@@ -1,9 +1,9 @@
 ---
 name: tdd
 description: "テストファースト開発や既存コードへのテスト追加に使う — 「テストを先に書いて」「TDD で」「レッド・グリーン・リファクタリング」「既存コードにテストを追加して」「失敗するテストを書いて」などのフレーズが対象。Red→Green→Refactor を哲学・テストリスト（振る舞い分解）・AAA・境界値/異常系チェックリストとともに駆動する。設計ドキュメントなしで既存コードにテストを追加する場合に単独で使う。既存テストのレビューのみの場合は起動しない（テストを書くのが役割）。"
-compatibility: "Angular / TypeScript / Jasmine（具体例は references/patterns.md — このプロジェクトの実際のテストスタックに合わせて再生成する。同梱の同ファイルは Vitest 前提の example のまま）"
+compatibility: "Angular / TypeScript / Jasmine（具体例は references/patterns.md に置く。同梱していないので、このプロジェクトの実際のテストスタックを調べて作成する。無いままでも本文の判断軸だけで動作する）"
 metadata:
-  version: "1.2"
+  version: "1.3"
   source-commit: e90165507d319933f2c07f9538b0a0040e67842e
 ---
 
@@ -11,7 +11,9 @@ metadata:
 
 Red → Green → Refactor サイクル。単独での使用（既存コードへのテスト追加）と `impl-from-design` からの参照の両方に対応。
 
-このスキルは「エンジン＋カートリッジ」構成: 本文はスタック非依存の判断軸（哲学・進め方・チェックリスト）、具体的な API・コード例は `references/patterns.md`（カートリッジ）に §名で置く。**`references/patterns.md` が無い場合**は、具体例は出せないが下記の判断軸は言語非依存なので**そのまま適用してテストを書き進める**（その旨を伝える）。
+このスキルは「エンジン＋カートリッジ」構成: 本文はスタック非依存の判断軸（哲学・進め方・チェックリスト）、具体的な API・コード例は `references/patterns.md`（カートリッジ）に §名で置く。
+
+**`references/patterns.md` は同梱していない。** 無い状態が既定で、下記の判断軸は言語非依存なので**そのまま適用してテストを書き進めてよい**（具体例が出せない旨を一言伝える）。実行コマンドやテンプレートが必要になったら、このプロジェクトの既存テスト・設定ファイル・タスク定義を読んで判断する（推測で書かない）。同ファイルを作る場合は、本文が参照する §名（§run / §config / §setup / §unit / §component / §query-ladder / §network / §hook / §state / §api-layer / §coverage）を見出しにして、このプロジェクトの実際のスタックで書く。
 
 ## When NOT to use
 
