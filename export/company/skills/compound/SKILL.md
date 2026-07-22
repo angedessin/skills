@@ -149,7 +149,7 @@ find .steering -maxdepth 2 \( -name "review-result.md" -o -name "decisions.md" -
 - [新しい1行ルール]
 ```
 
-**制約**: CLAUDE.md は ≤200行 厳守。詳細な説明は `docs/knowledge/` に書いて `@参照` にする。
+**制約**: CLAUDE.md は「読まれる長さ」に保つ。**このプロジェクトに行数上限が明文化されていればそれに従い、無ければ勝手な数値を持ち込まない**。詳細な説明は `docs/knowledge/` に書いて `@参照` にする。
 CLAUDE.md が存在しないプロジェクトでは、追記先（AGENTS.md 等の相当ファイル）をユーザーに確認する。
 
 ### docs/knowledge/[topic].md への追記（既存トピックのみ）

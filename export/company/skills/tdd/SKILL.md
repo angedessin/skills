@@ -13,7 +13,7 @@ Red → Green → Refactor サイクル。単独での使用（既存コード�
 
 このスキルは「エンジン＋カートリッジ」構成: 本文はスタック非依存の判断軸（哲学・進め方・チェックリスト）、具体的な API・コード例は `references/patterns.md`（カートリッジ）に §名で置く。
 
-**`references/patterns.md` は任意ファイル。** 無い場合でも、下記の判断軸は言語非依存なので**そのまま適用してテストを書き進めてよい**（具体例が出せない旨を一言伝える）。実行コマンドやテンプレートが必要になったら、このプロジェクトの既存テスト・設定ファイル・タスク定義を読んで判断する（推測で書かない）。同ファイルを作る場合は、本文が参照する §名（§run / §config / §setup / §unit / §component / §query-ladder / §network / §hook / §state / §api-layer / §coverage）を見出しにして、このプロジェクトの実際のスタックで書く。
+**`references/patterns.md` は任意ファイル。** 無い場合でも、下記の判断軸は言語非依存なので**そのまま適用してテストを書き進めてよい**（具体例が出せない旨を一言伝える）。実行コマンドやテンプレートが必要になったら、このプロジェクトの既存テスト・設定ファイル・タスク定義を読んで判断する（推測で書かない）。同ファイルを作る場合は、本文が参照する §名（§run / §config / §setup / §unit / §component / §query-ladder / §network / §state / §api-layer / §coverage）を見出しにして、このプロジェクトの実際のスタックで書く。
 
 ## When NOT to use
 
@@ -108,7 +108,7 @@ Red → Green → Refactor サイクル。単独での使用（既存コード�
 「実装を変えても振る舞いが同じならテストは緑のまま」が理想。これが崩れるテストは実装に結合している。
 
 ### コンポーネントのクエリ
-セマンティクス（ユーザーに見える意味）を優先してクエリする。具体的な優先順位ラダーは `references/patterns.md §query-ladder`。「存在しない」ことの確認は `queryBy*` + `.not.toBeInTheDocument()`。
+セマンティクス（ユーザーに見える意味）を優先してクエリする。役割・ラベル・テキストで引き、CSS クラスや DOM 構造には依存しない。具体的な優先順位ラダーは `references/patterns.md §query-ladder`。**「存在しない」ことの確認**は、要素が見つからないと例外を投げる取得方法ではなく、**見つからなければ空・null を返す取得方法**を使って否定アサーションを書く（このプロジェクトのテスト API でどちらがどれかを既存テストで確認してから使う）。
 
 ### ネットワークモック境界
 内部モジュールをモックせず、**HTTP 境界**でモックする（統合契約を守るため）。DB・ファイルシステム・日時/乱数など*非ネットワークかつ非決定的*なものはモジュールレベルのモックで可。API 例は `references/patterns.md §network` / `§api-layer`。
@@ -118,8 +118,8 @@ Red → Green → Refactor サイクル。単独での使用（既存コード�
 ## テストの種類と配置
 
 - **配置**: 実装ファイルと同じディレクトリにコロケーション（例: `user-card.component.ts` → `user-card.component.spec.ts`）
-- **describe/it か In-source か**: ロジックが重いユーティリティ（分岐・計算が多い）は In-source、それ以外は describe/it。判断基準とコードは `references/patterns.md §unit`。ただし In-source は `includeSource` 設定（§config）が前提 — **テストランナー設定が無い／`src/` 構成でない単独ファイルの場合は describe/it のコロケーションを既定**とする
-- 種類別の具体例: コンポーネント=§component / Hook=§hook / 状態管理=§state / API層=§api-layer（E2E は本スキルの対象外 — When NOT to use 参照）
+- **命名**: このプロジェクトのテストランナーが収集する命名に必ず合わせる。**既存のテストファイルを 1 つ開いて命名規則を確認してから作る**（規則を外すとテストが収集されず、1 件も実行されないまま緑に見える）。判断基準とコードは `references/patterns.md §unit`
+- 種類別の具体例: コンポーネント=§component / 状態管理=§state / API層=§api-layer（E2E は本スキルの対象外 — When NOT to use 参照）
 - セットアップ（設定・ネットワークモック）: §config / §setup、カバレッジ目安: §coverage
 
 ---

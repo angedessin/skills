@@ -12,7 +12,22 @@
 - **`feature-pipeline` を除外** — レビューフェーズを失ったオーケストレーターを維持しない判断。計画→実装→統合→知見蓄積は、各スキル（design-doc → impl-from-design → knowledge-capture / compound）を順に使う運用にする
 - **`review-result.md` は残す（生成元を問わない）** — 会社のレビュープラグイン・人間のレビューなど、どの手段で作られたものでも `.steering/[task]/review-result.md` に置いてあれば `compound` / `knowledge-capture` が知見抽出の入力として読む。テンプレート（design-doc の `references/templates.md`）は旧レビュー軸に依存しない汎用形に書き換え済み。レビュー手段が独自の出力形式を持つならそちらを優先してよい
 - **hook `stop-typecheck.sh` を除外（5 本 → 4 本）** — Angular ではテンプレートの型エラーを検出できず CI・IDE と重複するため。詳細は「マスターから同梱しなかった hook」参照。`guard-env-read.sh` は残すが、**`jq` 必須**の前提を配置手順に明記した（無い環境では配置しない）
-- **`.codify-needed` フラグは手動で立てる前提に変更** — 従来は frontend-code-review が自動生成していた。福利化を見送るときに自分で立てておくと、次セッション開始時に `session-start-check.sh` が拾って compound を再提案する（hook 側の変更は不要）
+- **`.codify-needed` フラグの生成を knowledge-capture に移した** — 従来は frontend-code-review が自動生成していたため、そのまま外すと**フラグを立てる主体が消えて福利化ループが二度と回らなくなる**（読み手だけが残る）。knowledge-capture の最終 Step に「福利化の要否を確認し、見送るならフラグを立てる」手順を追加して閉じた。hook 側の変更は不要
+
+## 2026-07-23 更新の要点（敵対レビューでの指摘対応）
+
+配布前に第三者視点の敵対レビューを実施し、確認された指摘を全件修正した。
+
+- **tdd 本文から別スタック固有の API を除去** — `queryBy*` + `.not.toBeInTheDocument()`（Testing Library / jest-dom）・`includeSource`（Vitest 専用の in-source testing）・`§hook`（React Hooks）が本文に残っており、**Jasmine では実行できないテストを書かせる**状態だった。判断軸（否定アサーションの選び方・種類別の使い分け）だけを残してスタック非依存の記述に置換
+- **テストファイル命名の片側修正を解消** — tdd は `*.spec.ts` を例示していたのに impl-from-design は `Foo.test.[ext]` のままで、**Angular のテストランナーに収集されず「1 件も実行されないまま緑」になる**危険があった。両方を「既存テストを 1 つ開いて命名規則を確認してから作る」に統一
+- **福利化ループの断線を修復** — `.codify-needed` を立てる主体（frontend-code-review）を除外したまま読み手だけ 14 箇所残っており、**compound が二度と自動提案されない**状態だった。生成を knowledge-capture の最終 Step に移設（上記参照）
+- **jq 依存の説明を実体に合わせた** — 依存するのは guard-env-read だけでなく **4 本中 3 本**で、うち 2 本は**無言で無効化される**。手順 2 に hook ごとの挙動表を追加し、jq 不在時の報告義務を明記
+- **スモークテストを検証になる形に修正** — `.env` 読み取りは settings の deny だけで止まるため hook の動作確認にならなかった。deny の前置一致をすり抜ける `head .env.local` に変更し、hook 未配置時の期待結果も明記
+- **マスターの運用値の持ち込みを除去** — 「CLAUDE.md は ≤200行 厳守」（compound / knowledge-capture）を「明文化された上限があればそれに従う」に条件化。会社の CLAUDE.md に対して根拠のない削除提案が出るのを防ぐ
+- **design.md テンプレのドリフトを解消** — steering 側のテンプレに `## 調査結果` 節が無く、実装スキルが書き込む対象が存在しない状態だった
+- **tasklist テンプレの GitHub 前提を除去** — `gh pr create` / GitHub Actions を、ホスティングに依存しない表記に変更
+- **非同梱スキル前提の記述を削除** — 「オーケストレーターから呼ばれた場合」の例外分岐（該当スキルは非同梱）
+- **knowledge-capture の誤発動を抑制** — description の起動フレーズから「ドキュメントを更新して」を外した（README 更新等の日常語で知見保存フローが起動していた）
 
 ## 2026-07-22 更新の要点（マスター取り込み分 + 自己完結化）
 
@@ -41,7 +56,7 @@
 
 - **レビュー系 8 スキル（frontend-code-review / impl-review / test-review / review-a11y / review-correctness / review-performance / review-security / review-ui）** — 会社のレビュープラグインを使う方針のため除外。方針が変わったらマスターから追加コピーする（その際は残るスキルの「コードレビューを実施する」等の一般記述をスキル名に戻すか、そのままにするか判断する）
 - **feature-pipeline** — レビューフェーズを含むオーケストレーターだったため、レビュー系の除外に伴って外した。工程は各スキルを順に使う（design-doc → impl-from-design → knowledge-capture / compound）
-- **tdd の `references/patterns.md`（カートリッジ）** — 中身が React / Vitest / RTL / MSW / Jotai / pnpm の 272 行で、Angular / Jasmine の本文と矛盾していた（`§hook`・`§state` は Angular に対応物すら無い）。誤ったスタックのコード例を持ち込む害が、雛形としての価値を上回るため削除。**tdd は無くても動く**（本文の判断軸は言語非依存で、スキル側にフォールバックを明記済み）。作る場合は上記「配置先でやること」の手順 4 に従う
+- **tdd の `references/patterns.md`（カートリッジ）** — 中身が React / Vitest / RTL / MSW / Jotai / pnpm の 272 行で、Angular / Jasmine の本文と矛盾していた（`§hook` は React Hooks 専用で Angular に対応物が無いため、本文の §名リストからも削除した）。誤ったスタックのコード例を持ち込む害が、雛形としての価値を上回るため削除。**tdd は無くても動く**（本文の判断軸は言語非依存で、スキル側にフォールバックを明記済み）。作る場合は上記「配置先でやること」の手順 4 に従う
 - **pr-create / pr-feedback / debug** — PR 運用・障害調査は会社の既存プロセスとの整合を確認してから。これらのスキル名への参照は本文から全廃済み
 - **e2e** — 会社では E2E テストを行っていないため除外。各スキル本文・references・設計テンプレに残っていた `e2e` スキルへの参照と Playwright の例も除去済み（「E2E は対象外」という境界の記述のみ残している）。導入することになったらマスターから追加コピーする
 - **impl-tournament** — N 並列実装で課金が大きい。必要になったら個別判断
@@ -57,21 +72,34 @@
    - `guard-env-read.sh`（PreToolUse）: deny の前置一致をすり抜ける .env 読み取りを全文検査で ask に落とす。**`jq` に依存する** — 下記の前提確認を先に行う
    - `post-edit-lint.sh`（PostToolUse）: 編集ごとの lint 差し戻し（Biome / ESLint / Stylelint を自動検出）。**フェイルオープン**（lint 設定が無ければ素通し）なのでスタックを問わず置いてよい
 
-   **guard-env-read.sh の前提: `jq` が必要**（コマンド全文を JSON から取り出して検査するため）。配置前に `jq --version` が通ることを確認する。
-   - **通る** → そのまま配置する
-   - **通らない** → このフックは**配置しない**（settings.json の `PreToolUse` ブロックごと削除する）。jq が無いと検査できず**フェイルクローズで全 Bash 呼び出しが確認プロンプトになる**ため、実運用に耐えない。jq を導入できるならそれが最善（`settings.example.json` は `brew install *` を deny しているので、導入は人が手動で行う）
+   **前提: 4 本中 3 本が `jq` に依存する**（Claude Code は hook に JSON を標準入力で渡すため）。**配置前に必ず `jq --version` を実行する。** jq が無いときの挙動は本ごとに違い、しかも 2 本は**無言で止まる**ので、入っていないことに気づかないまま「導入できた」と誤認しやすい。
+
+   | hook | jq 不在時の挙動 | 失われるもの |
+   |---|---|---|
+   | `guard-env-read.sh` | フェイルクローズ（**全 Bash 呼び出しが確認プロンプト**） | 実運用に耐えない |
+   | `session-start-check.sh` | **無言で終了** | 未処理フラグ・アクティブタスクの注入。knowledge-capture / compound の自動提案が起きなくなる |
+   | `post-edit-lint.sh` | **無言で終了** | 編集ごとの lint 差し戻し |
+   | `session-stop.sh` | 影響なし（jq 非依存） | — |
+
+   - **`jq --version` が通る** → 4 本ともそのまま配置する
+   - **通らない** → **jq の導入を先に検討する**（3 本が死ぬので、入れる価値が最も高い。`settings.example.json` は `brew install *` を deny しているため、導入は人が手動で行う）。導入できない場合は `guard-env-read.sh` を配置せず settings の `PreToolUse` ブロックも削除し、**残り 2 本が黙って無効化されている状態であることをユーザーに明示的に報告する**（黙って配置しない）
 3. **settings をマージする** — `claude-config/settings.example.json` を配置先の `.claude/settings.json` に**手動マージ**する（丸ごと上書きしない）。既存の allow と deny が同じ操作で衝突したら **deny を優先**（安全側）。マスターとの差分として **npx は全面 deny** に強化済み（下の「npx 禁止」参照）
 4. **tdd のカートリッジを作る（任意・配置先の AI に依頼する）** — tdd は「エンジン（本文の判断軸）＋カートリッジ（`references/patterns.md` のスタック固有例）」構成だが、**カートリッジは同梱していない**（元は React / Vitest / RTL / MSW 前提の中身で、Angular / Jasmine の本文と矛盾し、誤ったコード例を持ち込む害の方が大きいため削除した）。**無いままでも tdd は動く** — 本文の判断軸は言語非依存で、スキル側にその旨のフォールバックが書いてある。具体例を効かせたければ、配置先で AI に実際のテスト環境（Jasmine の実行基盤・TestBed の使い方・既存 spec の慣習）を調べさせてから作成を依頼する
-   - 見出しは本文が参照する §名にする: `§run`（実行コマンド）/ `§config`（ランナー設定）/ `§setup`（共通セットアップ）/ `§unit` / `§component` / `§query-ladder`（クエリ優先順位）/ `§network`（ネットワークモック）/ `§hook` / `§state` / `§api-layer` / `§coverage`。Angular に対応物が無い節は省いてよい
+   - 見出しは本文が参照する §名にする: `§run`（実行コマンド）/ `§config`（ランナー設定）/ `§setup`（共通セットアップ）/ `§unit` / `§component` / `§query-ladder`（クエリ優先順位）/ `§network`（ネットワークモック）/ `§state` / `§api-layer` / `§coverage`。Angular に対応物が無い節は省いてよい
    - 依頼例:「このプロジェクトの実際のテスト構成を確認して、`.claude/skills/tdd/references/patterns.md` を Jasmine / TestBed 向けに新規作成して。見出しは SKILL.md が参照する §名に合わせる。SKILL.md 本文は変更しない。npx は使わない」
 5. **CLAUDE.md に発動ポリシー節を作る**（下の雛形を貼って調整）
 6. **`.gitignore` に 3 行追加**: `.steering/**/.capture-needed` / `.steering/**/.codify-needed` / `.steering/**/capture_done`
 7. **`.npmrc` に `ignore-scripts=true` を設定**（install 時の postinstall 実行＝サプライチェーン攻撃の主経路を既定で遮断）
 8. **一度対話セッションを起動して信頼ダイアログを承認する** — 未信頼のワークスペースでは settings.json の permissions.allow が無効化される（deny / hooks は有効）
-9. **スモークテスト**:
-   - 「どのスキルが使える？」→ 配置したスキルが一覧に出る
+9. **スモークテスト**（各項目、期待どおりでなければ FAIL として報告する）:
+   - 「どのスキルが使える？」→ 配置した 9 スキルが一覧に出る
    - 小さなタスクを依頼 → design-doc が設計提示後に**承認待ちで停止する**（勝手に実装が始まったら FAIL）
-   - `.env` の読み取りを依頼 → guard-env-read.sh が確認（ask）に落とす
+   - `.claude/hooks/` を編集 → settings の `ask` により確認が出る（hook 登録が効いていることの確認）
+   - **guard-env-read.sh を配置した場合のみ**: `head .env.local` の実行を依頼 → 確認（ask）に落ちる。
+     **`cat .env` で試さない** — それは settings の deny だけで止まるため、hook が動いていなくても
+     同じ結果になり検証にならない（`head` は deny の前置一致をすり抜けるので hook しか止められない）
+   - **配置しなかった場合**: 上の項目は ask にならないのが正しい。代わりに「.env 保護は settings の
+     deny のみで、`head .env` 等はすり抜ける」ことをユーザーに伝える
 10. 気づいた不具合・誤発動は `.steering/[task]/skill-issues.md` に起票する（session-retrospective が拾う）。改善は**会社リポジトリ内で直接スキルを編集してよい**（下の「独立運用」参照 — このセットは還流経路を持たないため、通常の「配置先で直接編集しない」ルールは適用しない）
 
 ### npx 禁止（このセットの方針）
