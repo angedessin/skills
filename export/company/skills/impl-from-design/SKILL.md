@@ -149,7 +149,7 @@ TDD のパターンと実行コマンドは `.claude/skills/tdd/references/patte
 1. 主要コンポーネントの表の上から順に実装
 2. 各コンポーネント完了後:
    - 「このコンポーネントのテストを書きますか？」と確認
-   - Yes → `tdd` スキルのパターン（`.claude/skills/tdd/references/patterns.md`）を参照してテストを追加。同ファイルが存在しない場合（tdd 未配置のプロジェクト）は、プロジェクトのテストランナーの標準パターンで書いてよい（その旨を伝える）
+   - Yes → `tdd` スキルのパターン（`.claude/skills/tdd/references/patterns.md`）を参照してテストを追加。同ファイルが存在しない場合は、プロジェクトのテストランナーの標準パターンで書いてよい（その旨を伝える）
 3. `tasklist.md` を更新
 
 ---
