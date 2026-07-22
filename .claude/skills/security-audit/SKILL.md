@@ -24,9 +24,9 @@ grep / スクリプトのヒット行（行番号＋マッチ行のみ）で行�
 ## When NOT to use
 
 - フロントエンドのコード diff のセキュリティ（XSS・型安全・env var・依存脆弱性の**コードレビュー**）→ `review-security` の担当。あちらは実装コードの diff を見る。こちらはセットアップ資産（スキル・hooks・settings）の実行時危険性を見る。
-- CLAUDE.md・ルールの肥大化・陳腐化・重複の剪定 → `rule-audit` の担当。frontmatter・構造の**規約検証**もあちら（と `validate_skills.py`）。こちらは frontmatter/構造の是非ではなく「危険な指示・権限・URL があるか」だけを見る。
+- CLAUDE.md・ルールの肥大化・陳腐化・重複の剪定 → `rule-audit` の担当。frontmatter・構造の**規約検証**もあちら（と `scripts/validate_skills.py`）。こちらは frontmatter/構造の是非ではなく「危険な指示・権限・URL があるか」だけを見る。**`validate_skills.py` はマスター専用でこのプロジェクトには無い場合がある** — 存在確認し、無ければ「マスターで実施」と案内する。
 - スキルの回帰テスト（停止契約が実地で守られるか）→ `skill-test`（マスター専用）。**配置先には存在しないので、リダイレクト時は存在確認し無ければ「マスターで実施」と案内する。**
-- 新規スキルの作成・改善 → `templates/SKILL.template.md` から書く / 通常の編集。
+- 新規スキルの作成・改善 → `templates/SKILL.template.md` から書く / 通常の編集。**`templates/` はマスター専用でこのプロジェクトには無い場合がある** — 存在確認し、無ければ既存スキルの書式に倣って書くよう案内する。
 
 ---
 

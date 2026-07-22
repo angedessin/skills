@@ -1,6 +1,6 @@
 ---
 name: impl-review
-description: "実装コードの品質レビューに使う — 「実装をレビューして」「コードが設計に合っているか確認して」「TypeScript の問題」「React パターンのレビュー」などのフレーズが対象。確認内容: design.md との整合性・docs/knowledge/ のプロジェクト規約・TypeScript 品質・React パターン。アクセシビリティは対象外（review-a11y の担当）。単独または frontend-code-review の Step 2 として動作。テストコードのレビュー（test-review を使う）やテストインフラの監査には起動しない。"
+description: "実装コードの品質レビューに使う — 「実装をレビューして」「コードが設計に合っているか確認して」「TypeScript の問題」「React パターンのレビュー」などのフレーズが対象。確認内容: design.md との整合性・docs/knowledge/ のプロジェクト規約・TypeScript 品質・React パターン。アクセシビリティは対象外（review-a11y の担当）。単独または frontend-code-review のサブスキルとして動作。テストコードのレビュー（test-review を使う）やテストインフラの監査には起動しない。"
 compatibility: "React / TypeScript"
 metadata:
   version: "1.2"
@@ -58,7 +58,7 @@ BASE=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^o
 
 ### Axis 2 — プロジェクト規約
 
-`docs/knowledge/` の antipatterns.md が存在すれば読んで照合する。
+`docs/knowledge/` が存在すれば**ディレクトリを走査し、実装規約に関わるファイル**（アンチパターン集・パターン集・レビュー観点など）を読んで照合する。ファイル名を決め打ちしない（プロジェクトごとに名前が違い、決め打ちすると蓄積した知識が一度も読まれない）。ディレクトリが無ければこのチェックを飛ばす。
 CLAUDE.md が存在すればスタック制約も確認する。
 
 **デフォルトチェック**（docs/knowledge/・CLAUDE.md がないプロジェクトでも実施）:
@@ -165,5 +165,5 @@ review-a11y をあわせて実行する。
 ## Related skills
 
 - `test-review` — テストコードのレビュー（こちらは実装コードのみ）
-- `frontend-code-review` — test-review + impl-review を順番に実行するオーケストレーター
+- `frontend-code-review` — レビューのオーケストレーター（フルモード: 7 軸を並列実行 / 軽量モード: test-review・impl-review・review-ui を直列実行）
 - `knowledge-capture` — レビューで発見したパターンを `docs/knowledge/` に保存

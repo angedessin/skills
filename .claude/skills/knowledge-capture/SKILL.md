@@ -45,6 +45,7 @@ find .steering -maxdepth 2 \( -name "decisions.md" -o -name "review-result.md" -
   （compound = ルール・スキルへの昇格、knowledge-capture = ドキュメント保存、両方を順に実施推奨）
   - ユーザーが **Yes** → knowledge-capture をここで中断し、compound スキルを先に実行するよう案内する。compound 完了後にもう一度 knowledge-capture を呼び出してもらう。
   - ユーザーが **No** → そのまま続行する（入力の確認へ進む）。
+  - **例外: `feature-pipeline` 等のオーケストレーターから呼ばれた場合は、この確認を行わず中断もしない。** そのまま続行する（`.codify-needed` はレビューフェーズで必ず立つため、パイプライン配下では毎回この分岐に入ってしまう）。オーケストレーターは knowledge-capture の後に compound を提案する順序を自前で持っており、ここで中断すると承認ゲートと `capture_done` を飛ばしたまま順序が入れ替わる。
 - `capture_done` が既に存在する → このタスクの knowledge-capture は完了済み。再実行の必要はない旨を伝え、追加の知見保存が目的かをユーザーに確認する（目的が無ければここで終了する）
 
 **知見の入力（フラグ確認の後で行う）。入力源は3つで、あるものをすべて使う:**

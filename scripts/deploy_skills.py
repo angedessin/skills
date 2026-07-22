@@ -153,6 +153,11 @@ def deploy_guardrails(target: Path, skills: list[str], dry: bool, log: list[str]
     send = ["guard-env-read.sh", "post-edit-lint.sh", "stop-typecheck.sh"]
     if "knowledge-capture" in skills:
         send.append("session-stop.sh")  # .capture-needed を立てる hook。スキル無しで送ると実行不能指示になる
+    # フラグを「読む側」。これが無いと .capture-needed / .codify-needed は立つだけで誰も拾わず、
+    # knowledge-capture / compound の「セッション開始時にフラグがあれば起動」が配置先で永久に発火しない
+    # （producer だけ配って consumer が欠ける片欠け）。.steering/ が無い環境では素通しするので同送して安全。
+    if {"knowledge-capture", "compound", "steering", "design-doc"} & set(skills):
+        send.append("session-start-check.sh")
 
     for name in send:
         src = hooks_src / name

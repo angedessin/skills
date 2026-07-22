@@ -28,14 +28,22 @@
 ├── .claude/
 │   ├── settings.json                  # パーミッション・フック設定
 │   ├── hooks/
-│   │   └── session-stop.sh            # セッション終了時に .capture-needed フラグを作成
+│   │   ├── session-start-check.sh     # 開始時に未処理フラグ・アクティブタスクを context へ注入
+│   │   ├── session-stop.sh            # セッション終了時に .capture-needed フラグを作成
+│   │   ├── guard-env-read.sh          # .env 系に触れる Bash を ask に落とす（全文検査）
+│   │   ├── post-edit-lint.sh          # 編集ごとの lint 差し戻し（フェイルオープン）
+│   │   ├── stop-typecheck.sh          # 終了宣言時の tsc（フェイルオープン）
+│   │   └── validate-skill-edit.sh     # SKILL.md 編集時に validate_skills.py を自動実行
 │   └── skills/                        # スキル定義（下の一覧を参照）
 ├── .steering/                         # クロスセッション コンテキスト（複数セッションタスクのみ）
 ├── deployments.example.md             # 配置先レジストリの雛形（追跡。実体 deployments.md は .gitignore＝ローカル限定）
 ├── scripts/
 │   ├── validate_skills.py             # スキル frontmatter・構造の機械検証（マスター専用）
 │   ├── passthrough_check.py           # 素通り検査（ハードストップの実地検証・課金・任意）
+│   ├── deploy_skills.py               # 配置先へのスキル・ガードレール同送（skill-deploy が使う）
 │   └── check_deploy_drift.py          # 配置先ドリフト検出・issues 還流（読み取り専用）
+├── prompts/                           # 人が貼って使うマスター専用プロンプト（非配布）
+│   └── adversarial-skill-review.md    # スキル本文の敵対的レビュー（横断／個別の二層）
 ├── templates/                         # スキル作成用メタ雛形（SKILL.template.md・README.md）
 ├── tests/
 │   └── passthrough/[skill]/scenario.md # 素通り検査のシナリオ資産（マスター専用）
@@ -193,10 +201,14 @@ design-premortem   impl-tournament                          session-retrospectiv
 
 ## インフラ・設定
 
+- **SessionStart Hook** (`.claude/hooks/session-start-check.sh`): `.steering/` を走査し、未処理フラグ（`.capture-needed` / `.codify-needed`）とアクティブタスク一覧を context に注入する。フラグの**読む側** — これが無いと Stop hook が立てたフラグは誰にも拾われない。`.steering/` が無い環境・jq 不在時はフェイルオープン
 - **Stop Hook** (`.claude/hooks/session-stop.sh`): アクティブタスクに `capture_done` がなければ `.capture-needed` フラグを作成するだけの軽量フック（セッション記録は git が持つ）。成果物（*.md）の無いタスクディレクトリはスキップする
 - **PreToolUse Guard** (`.claude/hooks/guard-env-read.sh`): Bash コマンド全文を検査し、`.env` 系に触れるものを ask に落とす（deny の前置一致では防げない head/sed/base64 等の迂回対策）。jq 未導入環境ではフェイルクローズ
 - **検証スクリプト** (`scripts/validate_skills.py`): name 一致・description・行数・アストラル面絵文字・metadata.version・When NOT to use 見出し・停止契約の構造（承認語彙 → ハードストップ）の 7 項目を機械検証。`--purity` でツール純度レポート（本文のツール固有語彙の出現数・FAIL にしない）。スキル改訂時と配置前に実行する（PostToolUse hook でも自動実行）
 - **素通り検査** (`scripts/passthrough_check.py`): ハードストップが実地で守られるかを、フレッシュエージェントの実行前後の SHA1 差分で機械判定（課金・任意・デフォルトでは回さない）。シナリオは `tests/passthrough/[skill]/scenario.md`。`--dry-run` で無課金の構造確認。編成は `skill-test` スキル
+- **敵対的スキルレビュー** (`prompts/adversarial-skill-review.md`): スキル**本文の中身**を敵対的に精読するプロンプト（人が貼って使う・フレッシュな subagent 推奨）。境界の重複と空白・オーケストレーターとの契約ズレ・片側修正・死んだ参照・迂回経路・配布分類違反を、静的検査と素通り検査の**間**の層として拾う。ファイルは一切変更せず、証拠つきの指摘と方向性1行だけを提示して止まる
+- **品質ゲート hooks** (`.claude/hooks/post-edit-lint.sh` / `stop-typecheck.sh` / `validate-skill-edit.sh`): 編集ごとの lint 差し戻し・終了宣言時の tsc・SKILL.md 編集時の `validate_skills.py` 自動実行。前 2 本はフェイルオープン（設定が無ければ素通し）なのでスタックを問わず配れる
+- **配置スクリプト** (`scripts/deploy_skills.py`): 配置先へのスキル本体とガードレール（hooks・permissions・.gitignore）の同送。`--dry-run` / `--overwrite`。master-only スキルは配置対象から除外される。編成は `skill-deploy` スキル
 - **ドリフト検出** (`scripts/check_deploy_drift.py`): 配置先の直接編集・マスター先行・記録なしの3分類 + 溜まった skill-issues.md を収集（読み取り専用）。引数なしで `deployments.md` の全配置先をループ。編成は `skill-harvest` スキル
 - **settings.json**: パッケージインストール（dlx / bunx / npx -y 含む）・`.env` / 鍵ファイル読み取り（Bash / Read 両方）・破壊的 git 操作・`rm -rf` を deny。素の `npx` / `rm -r` / `git push` / ガードレール自身（settings・hooks）の変更は ask。配置先への同送手順は [docs/starter-kit.md](docs/starter-kit.md) 手順 6
 
