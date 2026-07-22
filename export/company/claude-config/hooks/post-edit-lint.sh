@@ -8,11 +8,23 @@
 # 出力は AI が消費する前提: 簡潔形式・カラー無効。
 # 自動修正でファイルが書き換わった場合は additionalContext で 1 行通知する
 # （無音の書き換えは AI のファイル状態を古くし、次の Edit 失敗を招くため）。
-# 品質ゲートでありセキュリティゲートではないため、jq / ツール不在時はフェイルオープン（素通し）。
+# 品質ゲートでありセキュリティゲートではないため、ツール不在時はフェイルオープン（素通し）。
+#
+# 外部コマンドに依存しない（grep / sed など POSIX 標準ユーティリティのみ。BSD sed でも動くよう
+# GNU 拡張の \| を使わない）。入力 JSON から file_path を取り出すのに解析器を使わず、
+# 最初に現れる "file_path": "..." の値だけを切り出す。
+# 制約: パス自体が二重引用符を含む場合は切り出しに失敗する（実運用では起きない）。ただし
+# 直後の [ -f "$FILE" ] で実在を確認するため、失敗しても素通しになるだけで、
+# 誤ったファイルに lint を走らせることはない（安全側に倒れる）。
 
-command -v jq >/dev/null 2>&1 || exit 0
+payload=$(cat)
+[ -z "$payload" ] && exit 0
 
-FILE=$(jq -r '.tool_input.file_path // empty' 2>/dev/null)
+FILE=$(printf '%s' "$payload" \
+  | grep -oE '"file_path"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 \
+  | sed -e 's/^"file_path"[[:space:]]*:[[:space:]]*"//' -e 's/"$//' \
+        -e 's/\\\//\//g' -e 's/\\\\/\\/g')
+
 [ -z "$FILE" ] && exit 0
 [ -f "$FILE" ] || exit 0
 
@@ -93,8 +105,8 @@ fi
 
 if [ "$before" != "$after" ]; then
   # 違反ゼロだが自動修正で書き換えあり -> AI のファイル状態同期のため 1 行通知
-  jq -cn --arg msg "reformatted by lint hook: $FILE (re-read this file before further edits to it)" \
-    '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$msg}}'
+  esc=$(printf '%s' "$FILE" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g')
+  printf '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"reformatted by lint hook: %s (re-read this file before further edits to it)"}}\n' "$esc"
 fi
 
 exit 0

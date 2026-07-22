@@ -36,12 +36,7 @@
 1. `skills/` 配下の 9 ディレクトリを `.claude/skills/` にコピーする
 2. `claude-config/hooks/` の 4 本を `.claude/hooks/` にコピーする（settings の登録は
    `$CLAUDE_PROJECT_DIR` 起点なのでパス書き換え不要）
-   - **先に `jq --version` を実行する。4 本中 3 本が jq に依存する**（MANIFEST 手順 2 の表を見る）。
-     通らない場合、`session-start-check.sh` と `post-edit-lint.sh` は**無言で無効化される**ので、
-     配置しても動かない。まず jq 導入の可否をユーザーに確認する
-   - jq が使えない場合は `guard-env-read.sh` を配置せず settings の `PreToolUse` ブロックも
-     入れない（フェイルクローズで全 Bash 呼び出しが確認プロンプトになるため）。**残り 2 本が
-     黙って無効になっている状態であることを明示的に報告する**（黙って次の手順に進まない）
+   - 4 本とも POSIX 標準ユーティリティのみで動く。**追加のツールをインストールしない**
 3. `claude-config/settings.example.json` を `.claude/settings.json` に**手動マージ**する。
    既存の settings を丸ごと上書きしない。既存 allow と deny が衝突したら deny を優先。
    **マージ結果の全文を提示して、承認を得てから書き込む**
@@ -66,9 +61,9 @@
    - 「どのスキルが使える？」で 9 スキルが一覧に出ること
    - 小さなタスク依頼で design-doc が設計提示後に**承認待ちで停止する**こと
      （勝手に実装が始まったら FAIL — 結果を報告する）
-   - guard-env-read.sh を配置した場合のみ: **`head .env.local`** の実行依頼が確認（ask）に
+   - **`head .env.local`** の実行依頼が確認（ask）に
      落ちること。**`cat .env` では検証にならない**（settings の deny だけで止まるため、hook が
-     動いていなくても同じ結果になる）。配置しなかった場合は ask にならないのが正しい
+     動いていなくても同じ結果になる）
 
 ## 進め方の規律
 

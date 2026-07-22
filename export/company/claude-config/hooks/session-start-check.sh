@@ -3,10 +3,12 @@
 # （.capture-needed / .codify-needed）とアクティブタスク一覧を additionalContext で注入する。
 # CLAUDE.md「セッション開始時: find を実行して確認」という説明文ルールの機械保証版。
 # 根拠: 「停止・前提条件の契約は説明文では守られない」（skill-design-patterns.md の実証知見）。
-# .steering/ が無いプロジェクトでは素通し（配置先自己完結）。jq 不在時もフェイルオープン。
+# .steering/ が無いプロジェクトでは素通し（配置先自己完結）。
 # compact 後（matcher: compact）にも発火するため .steering 再読リマインドを兼ねる。
-
-command -v jq >/dev/null 2>&1 || exit 0
+#
+# 外部コマンドに依存しない（find / sed / sort など POSIX 標準ユーティリティのみ）。
+# 出力 JSON のエスケープは json_escape() で行う。注入する文字列はこのスクリプトが組み立てた
+# 固定文言とタスクのディレクトリ名だけなので、対象は " と \ と改行に限られる。
 
 PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null)}"
 [ -z "$PROJECT_ROOT" ] && exit 0
@@ -45,6 +47,14 @@ fi
 
 [ -z "$msg" ] && exit 0
 
-jq -cn --arg msg "$msg" \
-  '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:$msg}}'
+# JSON 文字列本体へのエスケープ（囲みの " は付けない）:
+# \ と " をエスケープし、タブと改行を \t / \n に畳む。
+json_escape() {
+  printf '%s' "$1" \
+    | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/	/\\t/g' \
+    | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\n/g'
+}
+
+printf '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"%s"}}\n' \
+  "$(json_escape "$msg")"
 exit 0
