@@ -34,8 +34,11 @@
 ## 手順（MANIFEST「配置先（会社）でやること」に対応）
 
 1. `skills/` 配下の 9 ディレクトリを `.claude/skills/` にコピーする
-2. `claude-config/hooks/` の 5 本を `.claude/hooks/` にコピーする（settings の登録は
+2. `claude-config/hooks/` の 4 本を `.claude/hooks/` にコピーする（settings の登録は
    `$CLAUDE_PROJECT_DIR` 起点なのでパス書き換え不要）
+   - **先に `jq --version` を実行する。** 通らない場合は `guard-env-read.sh` を配置せず、
+     settings の `PreToolUse` ブロックも入れない（jq 無しでは検査できずフェイルクローズで
+     全 Bash 呼び出しが確認プロンプトになる）。結果をユーザーに報告する
 3. `claude-config/settings.example.json` を `.claude/settings.json` に**手動マージ**する。
    既存の settings を丸ごと上書きしない。既存 allow と deny が衝突したら deny を優先。
    **マージ結果の全文を提示して、承認を得てから書き込む**

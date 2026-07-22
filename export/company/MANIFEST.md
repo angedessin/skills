@@ -11,6 +11,7 @@
 - **レビュー系 8 スキルを除外** — `frontend-code-review` / `impl-review` / `test-review` / `review-a11y` / `review-correctness` / `review-performance` / `review-security` / `review-ui`。コードレビューは**会社のレビュープラグインを使う**方針に決まったため、このセットからは外した。残るスキルがこれらを名指ししていた箇所（Related skills・When NOT to use の振り先・description・tasklist テンプレ）は、スキル名に依存しない記述（「コードレビューを実施する」等）に置き換え済み
 - **`feature-pipeline` を除外** — レビューフェーズを失ったオーケストレーターを維持しない判断。計画→実装→統合→知見蓄積は、各スキル（design-doc → impl-from-design → knowledge-capture / compound）を順に使う運用にする
 - **`review-result.md` は残す（生成元を問わない）** — 会社のレビュープラグイン・人間のレビューなど、どの手段で作られたものでも `.steering/[task]/review-result.md` に置いてあれば `compound` / `knowledge-capture` が知見抽出の入力として読む。テンプレート（design-doc の `references/templates.md`）は旧レビュー軸に依存しない汎用形に書き換え済み。レビュー手段が独自の出力形式を持つならそちらを優先してよい
+- **hook `stop-typecheck.sh` を除外（5 本 → 4 本）** — Angular ではテンプレートの型エラーを検出できず CI・IDE と重複するため。詳細は「マスターから同梱しなかった hook」参照。`guard-env-read.sh` は残すが、**`jq` 必須**の前提を配置手順に明記した（無い環境では配置しない）
 - **`.codify-needed` フラグは手動で立てる前提に変更** — 従来は frontend-code-review が自動生成していた。福利化を見送るときに自分で立てておくと、次セッション開始時に `session-start-check.sh` が拾って compound を再提案する（hook 側の変更は不要）
 
 ## 2026-07-22 更新の要点（マスター取り込み分 + 自己完結化）
@@ -49,13 +50,15 @@
 ## 配置先（会社）でやること
 
 1. `.claude/skills/` に `skills/` 配下のディレクトリをそのままコピーする
-2. **hooks を配置する** — `claude-config/hooks/` の 5 本を配置先の `.claude/hooks/` にコピーする。settings.json のコマンド登録は `"$CLAUDE_PROJECT_DIR"` 起点の相対参照なので、同じ配置ならパスの書き換えは不要
+2. **hooks を配置する** — `claude-config/hooks/` の 4 本を配置先の `.claude/hooks/` にコピーする。settings.json のコマンド登録は `"$CLAUDE_PROJECT_DIR"` 起点の相対参照なので、同じ配置ならパスの書き換えは不要
    - `session-start-check.sh`（SessionStart）: 未処理フラグ・アクティブタスクをセッション開始時に注入
    - `session-stop.sh`（Stop）: `.capture-needed` を立てて knowledge-capture の起動を促す
-   - `guard-env-read.sh`（PreToolUse）: deny の前置一致をすり抜ける .env 読み取りを全文検査で ask に落とす
-   - `post-edit-lint.sh`（PostToolUse）: 編集ごとの lint 差し戻し（Biome / ESLint / Stylelint を自動検出）
-   - `stop-typecheck.sh`（Stop）: 終了宣言時の tsc
-   - post-edit-lint / stop-typecheck は**フェイルオープン**（lint 設定・tsconfig が無ければ素通し）なのでスタックを問わず置いてよい
+   - `guard-env-read.sh`（PreToolUse）: deny の前置一致をすり抜ける .env 読み取りを全文検査で ask に落とす。**`jq` に依存する** — 下記の前提確認を先に行う
+   - `post-edit-lint.sh`（PostToolUse）: 編集ごとの lint 差し戻し（Biome / ESLint / Stylelint を自動検出）。**フェイルオープン**（lint 設定が無ければ素通し）なのでスタックを問わず置いてよい
+
+   **guard-env-read.sh の前提: `jq` が必要**（コマンド全文を JSON から取り出して検査するため）。配置前に `jq --version` が通ることを確認する。
+   - **通る** → そのまま配置する
+   - **通らない** → このフックは**配置しない**（settings.json の `PreToolUse` ブロックごと削除する）。jq が無いと検査できず**フェイルクローズで全 Bash 呼び出しが確認プロンプトになる**ため、実運用に耐えない。jq を導入できるならそれが最善（`settings.example.json` は `brew install *` を deny しているので、導入は人が手動で行う）
 3. **settings をマージする** — `claude-config/settings.example.json` を配置先の `.claude/settings.json` に**手動マージ**する（丸ごと上書きしない）。既存の allow と deny が同じ操作で衝突したら **deny を優先**（安全側）。マスターとの差分として **npx は全面 deny** に強化済み（下の「npx 禁止」参照）
 4. **references の再生成（配置先の AI に依頼する）** — tdd の `references/patterns.md` は **Vitest / RTL / MSW 前提の example のまま**同梱している（本文は Jasmine 前提に書き換え済み）。配置先で AI に実際のテスト環境（Jasmine の実行方法・TestBed の使い方・既存テストの慣習）を確認させてから再生成を依頼する（例:「このプロジェクトの実際のテスト構成を確認して、`.claude/skills/tdd/references/patterns.md` を Jasmine / TestBed に合わせて書き直して。SKILL.md 本文は変更しない。npx は使わない」）
 5. **CLAUDE.md に発動ポリシー節を作る**（下の雛形を貼って調整）
@@ -78,6 +81,7 @@
 ### マスターから同梱しなかった hook
 
 - `validate-skill-edit.sh` — マスター専用（`scripts/validate_skills.py` に依存。スキル編集の機械検証はマスターで行う）
+- `stop-typecheck.sh`（Stop: 終了宣言時の `tsc --noEmit`）— Angular では**テンプレートの型エラーを検出できない**（テンプレートの型チェックは Angular コンパイラの担当で、素の tsc は `.ts` しか見ない）ためカバー範囲が中途半端で、CI と IDE の型チェックと重複する。加えて大きめのコードベースでは実行が 20-30 秒を超え、終了のたびに待たされる。型チェックは CI に任せる方針で除外した
 
 ## CLAUDE.md 雛形（発動ポリシー節）
 

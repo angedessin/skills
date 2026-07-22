@@ -1,5 +1,5 @@
 {
-  "_comment": "配置先の .claude/settings.json に手動マージする雛形（丸ごと上書きしない）。既存 allow と衝突したら deny を優先。マスターとの差分: npx を ask から deny に強化（npx 全面禁止の方針）・validate-skill-edit.sh（マスター専用）を hooks から除外",
+  "_comment": "配置先の .claude/settings.json に手動マージする雛形（丸ごと上書きしない）。既存 allow と衝突したら deny を優先。マスターとの差分: npx を ask から deny に強化（npx 全面禁止の方針）・validate-skill-edit.sh（マスター専用）と stop-typecheck.sh（Angular ではテンプレートを型チェックできず CI と重複）を hooks から除外。guard-env-read.sh は jq に依存するので、配置前に jq --version が通ることを確認する（無い場合はこの PreToolUse ブロックごと削除する。全 Bash 呼び出しが確認プロンプトになるため）",
   "permissions": {
     "allow": [
       "Bash(ls)",
@@ -111,11 +111,6 @@
     "Stop": [
       {
         "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/stop-typecheck.sh",
-            "timeout": 120
-          },
           {
             "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-stop.sh"
