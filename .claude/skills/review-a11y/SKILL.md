@@ -11,7 +11,7 @@ metadata:
 フロントエンドのアクセシビリティ観点からコードを審査する。
 `frontend-code-review` のフルモードで並列実行されるサブスキル。
 
-アクセシビリティは**このスキルの単独担当**（`<div onClick>` のセマンティクス・aria-label・alt などの基本項目を含む）。impl-review はアクセシビリティを見ない（20260705 に境界を修正 — 以前は「基本 a11y」が重複していた）。逆に、TypeScript 品質・React パターン・設計整合性は impl-review の担当で、このスキルでは見ない。
+アクセシビリティは**このスキルの単独担当**（`<div onClick>` のセマンティクス・aria-label・alt などの基本項目を含む）。impl-review はアクセシビリティを見ない（以前は impl-review と「基本 a11y」が重複していたため境界を整理した）。逆に、TypeScript 品質・React パターン・設計整合性は impl-review の担当で、このスキルでは見ない。
 
 ## When NOT to use
 

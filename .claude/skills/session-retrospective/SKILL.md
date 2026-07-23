@@ -77,4 +77,4 @@ metadata:
 
 - `compound` — このスキルが書いた skill-issues.md を回収してルール・スキルへ昇格させる（このスキルは原料の供給元）
 - `knowledge-capture` — コード・設計の知見保存（こちらはスキル自体の摩擦を扱う）
-- `skill-harvest` — 配置先に溜まった skill-issues.md をマスターへ還流する（このスキルが配置先での供給側）
+- `skill-harvest` — このスキルが書いた skill-issues.md を、スキルの管理リポジトリ側が回収する（そういう回収の仕組みがあれば）。回収先が無い環境でも skill-issues.md はローカルに蓄積され、後で改善の材料になる

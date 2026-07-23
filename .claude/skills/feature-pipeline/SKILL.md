@@ -113,7 +113,7 @@ find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
 > design-doc の起動時に「feature-pipeline 配下のため、タスク規模によらず `.steering/[date]-[task]/` と
 > design.md を必ず作成する」ことを指示に含める。理由: このスキルの現在地検出・各ゲート・フラグ
 > （`.codify-needed` / `.capture-needed`）・途中再開は、すべて `.steering/` の成果物に依存しており、
-> 会話内設計で進むとそれらが全て静かに失われる（20260703 の実地検証で確認）。
+> 会話内設計で進むとそれらが全て静かに失われる（実地検証で確認済み）。
 > design-doc が `.steering/` を作らずに設計を提示し始めた場合は、Gate 1 の承認前に
 > タスクディレクトリと design.md を作成させてから承認に進む。
 
