@@ -112,8 +112,8 @@ Last updated: [YYYYMMDD]
 
 ## 福利化
 <!-- レビュー・実装で発見したパターンをルール・知識・スキルに昇格するフェーズ。 -->
-<!-- knowledge-capture の完了時に福利化の要否を確認される。見送ると .codify-needed が立ち、 -->
-<!-- 次セッション開始時に再提案される。 -->
+<!-- knowledge-capture の完了時に .codify-needed が立ち（compound 未実行の場合）、 -->
+<!-- 次セッション開始時に compound が再提案される。 -->
 
 - [ ] compound スキルの実行（パターンをルール・知識に昇格）
 

@@ -15,6 +15,7 @@ Claude の外部記憶を構築・更新する。
 
 - lint ルール・スキル・CLAUDE.md 行動ルールとして固めたい → `compound`
 - 知識がすでにコードのコメント・型・テストとして表現されている → 追加ドキュメント不要
+- **通常のドキュメント編集**（README・仕様書・コメントの更新依頼）→ 起動しない。単なるファイル編集であり、知見保存フロー（`.steering/` 探索 → 入力確認 → ドラフト承認）は不要
 - タスク固有の一回限りの事象 → コミットメッセージで十分
 
 ---
@@ -214,39 +215,26 @@ grep "[キーワード]" CLAUDE.md ~/.claude/CLAUDE.md 2>/dev/null
 
 保存完了後:
 
+**福利化（compound）の producer を担保する**: `.codify-needed` は「次セッション開始時に
+compound を促す」ためのフラグで、これを立てる主体はこのスキルだけ（レビュー工程が別手段のため、
+知見保存が福利化ループの起点になる）。立て損なうと福利化が静かに始まらないので、保存完了後に
+必ず処理する:
+
 ```bash
 # .capture-needed フラグを削除
 rm -f .steering/[task]/.capture-needed
 
 # knowledge-capture 完了フラグを作成
 touch .steering/[task]/capture_done
+
+# compound 未実行（codify-log.md なし）かつフラグ未設定なら .codify-needed を立てる。
+# 次セッション開始時に compound 実行のリマインダーになる。
+[ -e .steering/[task]/codify-log.md ] || [ -e .steering/[task]/.codify-needed ] || touch .steering/[task]/.codify-needed
 ```
+
+（compound 実行済み＝`codify-log.md` が存在する場合は立てない no-op ガード付き。）
 
 `tasklist.md` の knowledge-capture チェックボックスをチェック済みにする（tasklist.md が無ければスキップ）。
-
-### 福利化（compound）への引き継ぎ
-
-知見の保存は「ドキュメントに残す」ところまで。**繰り返し出るパターンをルール・スキル・lint に
-昇格させるのは `compound` の担当**なので、ここで引き継ぎを確定させる。
-
-Step 1 のフラグ確認で `.codify-needed` が無かった場合（＝このタスクで福利化がまだ検討されていない）、
-保存完了の報告に続けて次を確認する:
-
-```
-知見を保存しました。
-今回の判断・つまずきから、ルール／スキル／lint に昇格すべき繰り返しパターンはありますか？
-1. 今すぐ compound を実行する
-2. 今回は見送る（次セッション開始時に再提案されるようフラグを残す）
-3. 昇格するものは無い（フラグを立てない）
-```
-
-- **1** → `compound` スキルを案内する（このスキルは昇格作業を代行しない）
-- **2** → `touch .steering/[task]/.codify-needed` を実行する。**これを実行しないと再提案は永久に起きない**
-  （セッション開始時にこのフラグを検出する仕組みが `compound` の唯一の自動導線のため）
-- **3** → フラグを立てずに終了する
-
-`.steering/` のタスクディレクトリが無い場合は、フラグの代わりに「次のセッションで福利化を
-検討したい場合は `compound` と伝えてください」と口頭で案内して終わる。
 
 ---
 
