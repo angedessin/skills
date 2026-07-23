@@ -191,7 +191,7 @@ TDD のパターンと実行コマンドは `.claude/skills/tdd/references/patte
    2. 指摘の修正 → tasklist.md の「レビュー」節をチェック
    3. MR 作成 → CI グリーン確認 → レビュー承認 → マージ
       → tasklist.md の「デプロイ」節をチェック
-   4. `knowledge-capture` で知見を保存（ここで福利化の要否も確認されます）
+   4. `knowledge-capture` で知見を保存（compound 未実行なら、次セッション開始時に福利化が自動提案されます）
    5. `steering` の archive モードでタスクを締める
    ```
    `tasklist.md` が無い場合（会話内で進めている場合）は、上のリストをそのまま口頭の
