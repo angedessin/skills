@@ -83,6 +83,9 @@ Status: **DRAFT — awaiting review**
 | 代替案 | 却下理由 |
 |--------|----------|
 | [代替案] | [却下理由] |
+
+## 調査結果
+[インシデントや未知の技術を調査した場合、その結果をここに記載。impl-from-design / debug が既存コード調査の結論を追記する書き込み先]
 ```
 
 承認後:
@@ -189,12 +192,17 @@ compound 実行のたびに「何をどこへ昇格したか」を追記する�
 
 ## セッション開始コントラクト
 
-CLAUDE.md に記述済み。毎セッション:
-1. `find .steering \( -name '.capture-needed' -o -name '.codify-needed' \) -not -path '*/archived/*' 2>/dev/null` を実行
-2. `.capture-needed` があれば knowledge-capture を促す
-3. `.codify-needed` があれば compound スキルを促す
+毎セッション:
+1. 未処理フラグ（`.capture-needed` / `.codify-needed`）とアクティブタスク一覧は **SessionStart hook `session-start-check.sh` が検出して context に注入する**（手動の find は不要）
+2. `.capture-needed` が注入されたら knowledge-capture を促す
+3. `.codify-needed` が注入されたら compound スキルを促す
 4. アクティブタスクの context を読む
 5. 複数タスクがあれば優先度を確認
+
+**hook が配置されていないプロジェクト**（SessionStart hook を同送していない場合）は、1 を次のコマンドで代替する:
+```bash
+find .steering \( -name '.capture-needed' -o -name '.codify-needed' \) -not -path '*/archived/*' 2>/dev/null
+```
 
 ## アーカイブポリシー
 

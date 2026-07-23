@@ -1,6 +1,6 @@
 ---
 name: knowledge-capture
-description: "セッション終了時のプロジェクト知識保存に使うメタスキル。「ナレッジを保存して」「学んだことを記録して」「この決定をドキュメント化して」「セッション終了」「ドキュメントを更新して」と明示的に言われた場合のみ起動。セッション開始時に .capture-needed ファイルがあれば起動。decisions.md・review-result.md・会話コンテキストから知見を抽出し docs/knowledge/・.steering/decisions.md・CLAUDE.md に分類する。決定の記録は決定・理由・却下案までを担当し、決定記録の定型フォーマットは生成しない。タスク完了のたびに自動起動しない。lint ルール・スキルを作成する compound とは別物。"
+description: "セッション終了時のプロジェクト知識保存に使うメタスキル。「ナレッジを保存して」「学んだことを記録して」「この決定をドキュメント化して」「セッション終了」と明示的に言われた場合のみ起動。README・仕様書など通常のドキュメント編集には起動しない。セッション開始時に .capture-needed ファイルがあれば起動。decisions.md・review-result.md・会話コンテキストから知見を抽出し docs/knowledge/・.steering/decisions.md・CLAUDE.md に分類する。決定の記録は決定・理由・却下案までを担当し、決定記録の定型フォーマットは生成しない。タスク完了のたびに自動起動しない。lint ルール・スキルを作成する compound とは別物。"
 metadata:
   version: "1.4"
 ---
@@ -14,6 +14,7 @@ Claude の外部記憶を構築・更新する。
 
 - lint ルール・スキル・CLAUDE.md 行動ルールとして固めたい → `compound`
 - 知識がすでにコードのコメント・型・テストとして表現されている → 追加ドキュメント不要
+- **通常のドキュメント編集**（README・仕様書・コメントの更新依頼）→ 起動しない。単なるファイル編集であり、知見保存フロー（`.steering/` 探索 → 入力確認 → ドラフト承認）は不要
 - タスク固有の一回限りの事象 → コミットメッセージで十分
 
 ---
@@ -45,6 +46,7 @@ find .steering -maxdepth 2 \( -name "decisions.md" -o -name "review-result.md" -
   （compound = ルール・スキルへの昇格、knowledge-capture = ドキュメント保存、両方を順に実施推奨）
   - ユーザーが **Yes** → knowledge-capture をここで中断し、compound スキルを先に実行するよう案内する。compound 完了後にもう一度 knowledge-capture を呼び出してもらう。
   - ユーザーが **No** → そのまま続行する（入力の確認へ進む）。
+  - **例外: `feature-pipeline` 等のオーケストレーターから呼ばれた場合は、この確認を行わず中断もしない。** そのまま続行する（`.codify-needed` はレビューフェーズで必ず立つため、パイプライン配下では毎回この分岐に入ってしまう）。オーケストレーターは knowledge-capture の後に compound を提案する順序を自前で持っており、ここで中断すると承認ゲートと `capture_done` を飛ばしたまま順序が入れ替わる。
 - `capture_done` が既に存在する → このタスクの knowledge-capture は完了済み。再実行の必要はない旨を伝え、追加の知見保存が目的かをユーザーに確認する（目的が無ければここで終了する）
 
 **知見の入力（フラグ確認の後で行う）。入力源は3つで、あるものをすべて使う:**
@@ -84,7 +86,7 @@ git の変更履歴を確認したい場合は `git log --oneline -20` と `git 
 Claude Code の短い常時ルール（1行の命令形）?
   YES → CLAUDE.md（project）or ~/.claude/CLAUDE.md（global）
        ※ 行動ルールの詳細化は compound に委譲
-       ※ CLAUDE.md は ≤200行 厳守
+       ※ CLAUDE.md は肥大化させない（明文化された上限があれば従い、無ければ「読まれる長さに保つ」）
 
 上記のどれにも該当しない一回限りのタスク固有の事象?
   YES → コミットメッセージで十分。ドキュメント保存は不要。
@@ -220,6 +222,16 @@ rm -f .steering/[task]/.capture-needed
 # knowledge-capture 完了フラグを作成
 touch .steering/[task]/capture_done
 ```
+
+**福利化（compound）の producer を二重化する**: `.codify-needed` は通常 `frontend-code-review` が立てるが、それが唯一の producer だと、レビューを通さずこのスキルだけを回したセッションでは福利化ループが静かに始まらない。ここで補完する:
+
+```bash
+# compound 未実行（codify-log.md なし）かつフラグ未設定なら .codify-needed を立てる。
+# 次セッション開始時に compound 実行のリマインダーになる。
+[ -e .steering/[task]/codify-log.md ] || [ -e .steering/[task]/.codify-needed ] || touch .steering/[task]/.codify-needed
+```
+
+（compound 実行済み＝`codify-log.md` が存在する場合は立てない。`feature-pipeline` 配下ではフラグはレビューフェーズで既に立っているため、この行は no-op になる。）
 
 `tasklist.md` の knowledge-capture チェックボックスをチェック済みにする（tasklist.md が無ければスキップ）。
 

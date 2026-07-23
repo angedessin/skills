@@ -1,6 +1,6 @@
 # pr-feedback commands — GitHub / gh CLI + git（カートリッジ）
 
-SKILL.md 本文の各 Step に対応する具体コマンド。別ホスト（GitLab 等）に配置する場合はこのファイルを差し替える（本文の手順はそのまま使える）。マスターの pr-create/references/commands.md と重複するコマンドがあっても、各スキルの自己完結性を優先して各自が持つ（配布単位がスキルフォルダのため）。
+SKILL.md 本文の各 Step に対応する具体コマンド。別ホスト（GitLab 等）に配置する場合はこのファイルを差し替える（本文の手順はそのまま使える）。`pr-create` の references/commands.md と重複するコマンドがあっても、各スキルの自己完結性を優先して各自が持つ（配布単位がスキルフォルダのため）。
 
 ## §0 前提チェック — 対象 PR の特定
 

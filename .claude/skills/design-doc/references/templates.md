@@ -162,11 +162,19 @@ Last updated: [YYYYMMDD]
 
 レビュー指摘とその修正状況を追跡する。
 
+`Status` は 3 値。**生成時は必ず `OPEN` で初期化する**（指摘 0 件でも `OPEN` で作り、確認後に `RESOLVED` へ更新する）:
+
+- `OPEN` — 未対応の指摘あり。前進不可
+- `RESOLVED` — 全解消（または指摘なし扱い）
+- `DEFERRED` — 指摘を残したまま前進すると人間が判断した
+
+`feature-pipeline` の現在地検出はこの 3 値を照合する契約値なので、英語のまま維持し、他の値（`PENDING` 等）を書かない。
+
 ```markdown
 # レビュー結果: [task-name]
 
 Date: [YYYYMMDD]
-Status: PENDING | IN_PROGRESS | RESOLVED
+Status: OPEN
 
 ## テスト
 

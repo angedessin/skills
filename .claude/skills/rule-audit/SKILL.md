@@ -111,7 +111,7 @@ done
 `.claude/skills/` がある場合のみ。**検証スクリプト → skills-ref CLI → 手動の順で、あるものを使う**:
 
 ```bash
-# 1. 検証スクリプトがあれば使う（このマスターには scripts/validate_skills.py がある）
+# 1. 検証スクリプト（例: scripts/validate_skills.py）があれば使う
 python3 scripts/validate_skills.py 2>/dev/null
 
 # 2. 無ければ skills-ref CLI

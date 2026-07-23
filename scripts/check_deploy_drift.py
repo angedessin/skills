@@ -15,6 +15,15 @@ frontmatter の metadata.source-commit（配置時に記録されるマスター
 再生成される（starter-kit 手順4）ため意図的に差分が出る。比較に含めると誤検出になる。
 source-commit 行自体は配置時に付与されるため比較前に除去する。
 
+hooks も検査する（SKILL.md だけを見ていると「配るべき hook が配置先に無い」状態を誰も
+検出できない。20260723 に session-start-check.sh の配り忘れが敵対レビューで初めて見つかった）:
+
+  (d) hook 未配置  — 配置スキル一式に対して同送すべき hook が配置先に無い
+  (e) hook 内容差分 — 配置先の hook がマスター HEAD と不一致（配置先で編集 or マスター先行）
+
+同送すべき hook の判定は deploy_skills.expected_hooks() を import して使う（単一情報源。
+両者に同じリストを書くと片側修正で腐るため）。
+
 加えて、配置先に溜まった skill-issues.md を回収対象として報告する（読み取り専用）:
 回収済みマーカー <!-- harvested: YYYYMMDD --> より後に追記された項目だけを「新規」として
 報告する。マーカーの書き込みは行わない（承認後に skill-harvest スキルが行う）。
@@ -34,6 +43,9 @@ from pathlib import Path
 MASTER_ROOT = Path(__file__).resolve().parent.parent
 REGISTRY = MASTER_ROOT / "deployments.md"
 HARVEST_MARKER = re.compile(r"<!--\s*harvested:\s*\d{8}\s*-->")
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from deploy_skills import expected_hooks  # noqa: E402 — 同送リストの単一情報源
 
 
 def git(args: list[str]) -> subprocess.CompletedProcess:
@@ -90,6 +102,29 @@ def check_skill(name: str, deployed_skill_md: Path) -> list[str]:
     return flags
 
 
+def check_hooks(deploy_root: Path, skill_names: list[str]) -> list[str]:
+    """配置スキル一式に対して同送すべき hooks が、配置先に正しく在るかを検査する。
+
+    hook は SKILL.md と違い source-commit を持てない（シェルスクリプト）ため、
+    比較対象はマスターの現在の内容。差分は「配置先で編集」と「マスター先行」を
+    区別できないので、両方の可能性として 1 分類で報告する。
+    """
+    flags: list[str] = []
+    hooks_src = MASTER_ROOT / ".claude" / "hooks"
+    hooks_dst = deploy_root / ".claude" / "hooks"
+    for name in expected_hooks(skill_names):
+        src = hooks_src / name
+        if not src.exists():
+            flags.append(f"(!) {name} がマスターに無い（同送リストと実体の不一致）")
+            continue
+        dst = hooks_dst / name
+        if not dst.exists():
+            flags.append(f"(d) hook 未配置 — {name}（同送対象だが配置先に無い）")
+        elif dst.read_bytes() != src.read_bytes():
+            flags.append(f"(e) hook 内容差分 — {name}（配置先で編集 or マスター先行）")
+    return flags
+
+
 def new_issues_after_marker(text: str) -> str:
     """skill-issues.md 本文のうち、最後の回収済みマーカーより後の部分を返す。
 
@@ -142,6 +177,16 @@ def report_deploy(deploy_root: Path) -> int:
         else:
             print(f"OK    {d.name}")
 
+    # hooks はスキル数の分母に入れない（スキルのドリフト率とは別軸のため）。
+    # 終了コードにだけ効かせる。
+    hook_flags = check_hooks(deploy_root, [d.name for d in skill_dirs])
+    if hook_flags:
+        print("DRIFT hooks")
+        for f in hook_flags:
+            print(f"      - {f}")
+    else:
+        print("OK    hooks")
+
     issues = collect_issues(deploy_root)
     if issues:
         print(f"\nISSUES 未回収の skill-issues.md（マーカー以降の新規項目）: {len(issues)} ファイル")
@@ -150,8 +195,9 @@ def report_deploy(deploy_root: Path) -> int:
     else:
         print("\nISSUES 新規の未回収項目なし")
 
-    print(f"{len(skill_dirs) - drifted}/{len(skill_dirs)} ドリフトなし\n")
-    return drifted
+    print(f"{len(skill_dirs) - drifted}/{len(skill_dirs)} ドリフトなし（スキル）"
+          f" / hooks: {'DRIFT' if hook_flags else 'OK'}\n")
+    return drifted + (1 if hook_flags else 0)
 
 
 def read_registry() -> list[Path]:

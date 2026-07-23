@@ -105,7 +105,7 @@ Red → Green → Refactor サイクル。単独での使用（既存コード�
 「実装を変えても振る舞いが同じならテストは緑のまま」が理想。これが崩れるテストは実装に結合している。
 
 ### コンポーネントのクエリ
-セマンティクス（ユーザーに見える意味）を優先してクエリする。具体的な優先順位ラダーは `references/patterns.md §query-ladder`。「存在しない」ことの確認は `queryBy*` + `.not.toBeInTheDocument()`。
+セマンティクス（ユーザーに見える意味）を優先してクエリする。具体的な優先順位ラダーは `references/patterns.md §query-ladder`。「存在しない」ことの確認は、見つからないと例外を投げる取得方法ではなく、空・null を返す取得方法で否定アサーションを書く（具体的な API 名は §query-ladder）。
 
 ### ネットワークモック境界
 内部モジュールをモックせず、**HTTP 境界**でモックする（統合契約を守るため）。DB・ファイルシステム・日時/乱数など*非ネットワークかつ非決定的*なものはモジュールレベルのモックで可。API 例は `references/patterns.md §network` / `§api-layer`。
@@ -114,8 +114,8 @@ Red → Green → Refactor サイクル。単独での使用（既存コード�
 
 ## テストの種類と配置
 
-- **配置**: 実装ファイルと同じディレクトリにコロケーション（例: `UserCard.tsx` → `UserCard.test.tsx`）
-- **describe/it か In-source か**: ロジックが重いユーティリティ（分岐・計算が多い）は In-source、それ以外は describe/it。判断基準とコードは `references/patterns.md §unit`。ただし In-source は `includeSource` 設定（§config）が前提 — **テストランナー設定が無い／`src/` 構成でない単独ファイルの場合は describe/it のコロケーションを既定**とする
+- **配置**: 実装ファイルと同じディレクトリにコロケーション。命名規則は既存のテストファイルを1つ開いて確認してから作る（規則を外すとテストランナーに収集されず、1件も実行されないまま緑に見える）
+- **describe/it か In-source か**: ロジックが重いユーティリティ（分岐・計算が多い）は In-source、それ以外は describe/it。判断基準とコードは `references/patterns.md §unit`。ただし In-source はテストランナー側の in-source テスト設定（§config）が前提 — **その設定が無い／`src/` 構成でない単独ファイルの場合は describe/it のコロケーションを既定**とする
 - 種類別の具体例: コンポーネント=§component / Hook=§hook / 状態管理=§state / API層=§api-layer（E2E は `e2e` スキルが担当 — When NOT to use 参照）
 - セットアップ（設定・ネットワークモック）: §config / §setup、カバレッジ目安: §coverage
 
