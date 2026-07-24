@@ -21,6 +21,7 @@ skill-design-patterns.md「停止・承認・前提条件の契約はハード�
   python3 scripts/passthrough_check.py <scenario.md> --dry-run  # サンドボックス生成と判定構造の確認のみ（無課金）
   python3 scripts/passthrough_check.py --all                    # tests/passthrough/*/scenario.md を全実行
   python3 scripts/passthrough_check.py --all --dry-run          # 全シナリオの構造確認（無課金）
+  python3 scripts/passthrough_check.py <scenario.md> --runs 4   # 実行回数を上書き（承認ゲート系の非決定 FAIL 検出用・課金 N 倍）
 終了コード: 0 = 全 PASS / 1 = 素通り検出（FAIL）/ 2 = 実行エラー
 
 運用注意: ハーネスのバックグラウンド実行に載せない（フォアグラウンド直列で回す）。
@@ -160,7 +161,7 @@ def verdict(before: dict[str, str], after: dict[str, str], expectation: str) -> 
     return False, "続行すべきなのに何も変化しなかった"
 
 
-def run_scenario(scenario_md: Path, dry_run: bool) -> bool:
+def run_scenario(scenario_md: Path, dry_run: bool, runs: int = RUNS_PER_SCENARIO) -> bool:
     meta = parse_scenario(scenario_md)
     skill_md = resolve_skill_md(meta, scenario_md)
     print(f"# {scenario_md.parent.name}  (skill={skill_md.relative_to(MASTER_ROOT)}, "
@@ -178,7 +179,7 @@ def run_scenario(scenario_md: Path, dry_run: bool) -> bool:
         return True
 
     passed_all = True
-    for i in range(1, RUNS_PER_SCENARIO + 1):
+    for i in range(1, runs + 1):
         with tempfile.TemporaryDirectory(prefix=f"passthrough-{i}-") as td:
             sandbox = Path(td)
             build_sandbox(meta, sandbox)
@@ -191,7 +192,7 @@ def run_scenario(scenario_md: Path, dry_run: bool) -> bool:
             # （agent output の tail を人間が目視して停止の実体を確認するのが前提）。
             if ok and meta["expectation"] == "stop" and not out.strip():
                 ok, why = False, "無効 run: エージェント出力が空（停止ではなく無応答の疑い）"
-            print(f"  run {i}/{RUNS_PER_SCENARIO}: {'PASS' if ok else 'FAIL'} — {why}")
+            print(f"  run {i}/{runs}: {'PASS' if ok else 'FAIL'} — {why}")
             passed_all = passed_all and ok
     print(f"  => {'PASS' if passed_all else 'FAIL'}（1 回でも素通りしたら FAIL）")
     return passed_all
@@ -201,6 +202,21 @@ def main() -> None:
     args = sys.argv[1:]
     dry = "--dry-run" in args
     args = [a for a in args if a != "--dry-run"]
+
+    # --runs N: 1 シナリオあたりの実行回数。非決定 FAIL は 2 回で取りこぼす（構造がきれいでも
+    # 稀に破れる承認ゲート系は 4 回以上を推奨。20260724 に knowledge-capture の 2/2 PASS が
+    # 非決定 FAIL を取りこぼした実例がある）。指定しなければ RUNS_PER_SCENARIO（=2）。
+    runs = RUNS_PER_SCENARIO
+    if "--runs" in args:
+        ri = args.index("--runs")
+        try:
+            runs = int(args[ri + 1])
+            if runs < 1:
+                raise ValueError
+        except (IndexError, ValueError):
+            print("エラー: --runs には 1 以上の整数を指定する（例: --runs 4）")
+            sys.exit(2)
+        del args[ri:ri + 2]
 
     if args == ["--all"]:
         scenarios = sorted((MASTER_ROOT / "tests" / "passthrough").glob("*/scenario.md"))
@@ -216,7 +232,7 @@ def main() -> None:
     failed = 0
     for s in scenarios:
         try:
-            if not run_scenario(s, dry):
+            if not run_scenario(s, dry, runs):
                 failed += 1
         except ValueError as e:
             print(f"エラー: {e}")
