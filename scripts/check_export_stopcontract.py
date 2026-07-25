@@ -19,9 +19,10 @@
 うっかり実行すると走査 0 件になる。それを「差分なし」と報告すると偽グリーンになる。
 
 使い方:
-  python3 scripts/check_export_stopcontract.py --export <持ち出しセットの skills ディレクトリ>
-  python3 scripts/check_export_stopcontract.py --export <...> --master <master の skills ディレクトリ>
-  python3 scripts/check_export_stopcontract.py --export <...> --verbose   # 無害差分も行単位で表示
+  python3 scripts/check_export_stopcontract.py                    # git worktree から自動発見
+  python3 scripts/check_export_stopcontract.py --export <skills ディレクトリ>   # 明示指定
+  python3 scripts/check_export_stopcontract.py --master <master の skills ディレクトリ>
+  python3 scripts/check_export_stopcontract.py --verbose          # 無害差分も行単位で表示
 終了コード: 0 = 正常終了（差分の有無を問わない・report-only）/ 2 = 対象不在などの実行エラー
 """
 from __future__ import annotations
@@ -29,6 +30,7 @@ from __future__ import annotations
 import argparse
 import difflib
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -140,6 +142,31 @@ def compare(master_md: Path, export_md: Path, nonbundled: set[str]):
     return substantive, benign
 
 
+def discover_export_roots() -> list[Path]:
+    """git worktree を走査して `export/*/skills` を持つディレクトリを探す。
+
+    持ち出しセットは別ブランチ（worktree）にしか存在せず、その置き場所は
+    環境ごとに違う。パスを package.json 等に固定で書くと環境依存の設定になるため、
+    git に聞いて発見する。見つからなければ呼び出し側がフェイルクローズする。
+    """
+    try:
+        out = subprocess.run(
+            ["git", "worktree", "list", "--porcelain"],
+            cwd=str(MASTER_ROOT), capture_output=True, text=True, check=False,
+        ).stdout
+    except OSError:
+        return []
+    roots: list[Path] = []
+    for ln in out.splitlines():
+        if not ln.startswith("worktree "):
+            continue
+        wt = Path(ln[len("worktree "):].strip())
+        for skills in sorted(wt.glob("export/*/skills")):
+            if skills.is_dir():
+                roots.append(skills)
+    return roots
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(
         description="持ち出しセットと master の停止契約差分を検出する（report-only）",
@@ -148,8 +175,7 @@ def main() -> None:
     )
     ap.add_argument(
         "--export",
-        required=True,
-        help="持ち出しセットの skills ディレクトリ（例: <worktree>/export/company/skills）",
+        help="持ち出しセットの skills ディレクトリ（省略時は git worktree から自動発見）",
     )
     ap.add_argument(
         "--master",
@@ -159,8 +185,26 @@ def main() -> None:
     ap.add_argument("--verbose", action="store_true", help="無害差分も行単位で表示する")
     args = ap.parse_args()
 
-    export_root = Path(args.export)
     master_root = Path(args.master)
+
+    if args.export:
+        export_root = Path(args.export)
+    else:
+        found = discover_export_roots()
+        if not found:
+            print("エラー: 持ち出しセットが見つかりません（--export を指定してください）", file=sys.stderr)
+            print(
+                "  持ち出しセットは別ブランチの worktree にしかありません。"
+                "worktree が無い環境では比較できません。",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+        if len(found) > 1:
+            print(f"エラー: 持ち出しセットが複数見つかりました。--export で選んでください:", file=sys.stderr)
+            for f in found:
+                print(f"  {f}", file=sys.stderr)
+            sys.exit(2)
+        export_root = found[0]
 
     # フェイルクローズ: 対象が無いのに「差分なし」と報告しない
     for label, root in (("--export", export_root), ("--master", master_root)):

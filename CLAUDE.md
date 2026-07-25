@@ -40,11 +40,11 @@ CLAUDE.md は行動ルールのみ。知識の倉庫にしない（毎回コン�
 | 種類 | 保存先 |
 |---|---|
 | 行動ルール（短い命令形） | このファイル or `~/.claude/CLAUDE.md` |
-| 経験・パターン・アンチパターン | `docs/knowledge/[topic].md`（@参照で読む） |
+| 経験・パターン・アンチパターン | `docs/knowledge/[topic].md`（**必要時に読む**。`@` を付けると毎セッション全文が展開され固定費になるため、常時参照が要るものだけに限る） |
 | 設計判断（ADR） | `docs/decisions/[date]-[slug].md`（`adr` スキルで起票。却下した代替案がある決定のみ） |
 | タスク固有の決定 | `.steering/[task]/decisions.md` |
 
 ## ドキュメント参照（必要なトピック作業時のみ）
 
-スキル作成・改善時: @docs/knowledge/skill-design-patterns.md
+スキル作成・改善時: docs/knowledge/skill-design-patterns.md を読む（`@` 参照にしない — 36KB あり、毎セッション読み込ませると全タスクの固定費になる。`templates/SKILL.template.md` の冒頭にも読む指示がある）
 settings.json・hooks 作業時: docs/knowledge/claude-code-config.md を読む（@参照にしない — 毎セッション読み込ませない）

@@ -1,8 +1,9 @@
 ---
 name: impl-from-design
 description: "承認済みデザインドキュメントに基づく実装に使う — 「実装を開始して」「設計から実装して」「設計が承認された、作ろう」などのフレーズが対象。.steering/[task]/design.md の Status が APPROVED である必要がある。design.md がない・DRAFT の場合は design-doc にリダイレクト。.steering/ コンテキストなしの汎用「実装して」リクエストには起動しない。"
+compatibility: "React / TypeScript（TDD モードのテスト配置・命名の例がスタック前提。実装手順と前提チェックは言語非依存で、テストのパターンは tdd の references/patterns.md 側を差し替える）"
 metadata:
-  version: "1.3"
+  version: "1.4"
 ---
 
 # Impl from Design

@@ -183,6 +183,13 @@ def portability_hits(skill_dir: Path) -> list[tuple[str, int, str]]:
 
 def main() -> None:
     args = sys.argv[1:]
+    # --help / -h は使い方を出して正常終了する。これが無いと未知のフラグが
+    # 走査ルートとして解釈され、Path("--help").iterdir() が未捕捉例外で落ちる。
+    # 全面 argparse 化はしない — PostToolUse hook が --skill で呼んでおり、
+    # 引数処理の書き換えは既存 5 経路すべての回帰リスクになる。
+    if args and args[0] in ("--help", "-h"):
+        print(__doc__)
+        sys.exit(0)
     # ポータビリティレポート（配布可スキルにマスター内部前提が無いか・report-only）
     if args and args[0] == "--portability":
         root = Path(args[1]) if len(args) > 1 else (

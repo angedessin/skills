@@ -65,28 +65,33 @@ design.md の「主要コンポーネント」は**暫定**。実装に入る前
 
 ### `@` 常時ロードの解消（producer を止める）
 
-- [ ] `CLAUDE.md:49` の `@` を外し、50行目と同じ書式に統一する
-- [ ] `CLAUDE.md:43` の保存先の表「（@参照で読む）」を条件付き記述に修正（**producer**）
-- [ ] `.claude/skills/knowledge-capture/SKILL.md:214` の出力テンプレからデフォルトの `@` を外す（**producer**）
-- [ ] `.claude/skills/compound/SKILL.md:169` の「`@参照` にする」を条件付きに（**producer**）
-- [ ] `.claude/skills/rule-audit/SKILL.md:85, :172` の「`@参照` に置き換え」を条件付きに（**producer**。97行目の参照切れ検出は consumer なので変更しない）
-- [ ] `templates/SKILL.template.md` の冒頭に skill-design-patterns.md を読む手順を追加（`@` 除去で失われる導線の代替）
-- [ ] `grep -rn "@参照\|@docs/" --include="*.md" .claude/ CLAUDE.md` で producer が残っていないことを確認
+- [x] `CLAUDE.md:49` の `@` を外し、50行目と同じ書式に統一する
+- [x] `CLAUDE.md:43` の保存先の表「（@参照で読む）」を条件付き記述に修正（**producer**）
+- [x] `.claude/skills/knowledge-capture/SKILL.md` の出力テンプレをプレーンなパス表記に変更（**producer**。`@` は常時参照が要る場合の例外として注記）
+- [x] `.claude/skills/compound/SKILL.md` の「`@参照` にする」を条件付きに（**producer**）
+- [x] `.claude/skills/rule-audit/SKILL.md` の2箇所を条件付きに（**producer**。参照切れ検出は consumer なので変更せず）
+- [x] `templates/SKILL.template.md` の冒頭コメントを強化（`@` 除去で失われる導線の代替。読まずに書くと落とす規律まで明記）
+- [x] producer が残っていないことを grep で確認（残るヒットは consumer・条件付き・経緯説明のみ）
 
 ### その他
 
-- [ ] `.claude/skills/skill-test/SKILL.md:36, :48` を `--runs 4`（承認ゲート系）に修正し、コスト見積の文言も倍に直す
-- [ ] `package.json` に `validate` / `validate:portability` / `check:export` を追加
-- [ ] `scripts/check_deploy_drift.py` を argparse 化し、`--help` バグを解消する
-- [ ] argparse 化の前後で既存2経路（引数なしのレジストリ全件 / 配置先パス直指定）が動くことを確認
-- [ ] `scripts/validate_skills.py` に `--help` / `-h` で docstring を表示する分岐を足す（最小修正。全面 argparse 化はしない）
-- [ ] `validate_skills.py` の既存5経路（引数なし / `<dir>` / `--skill` / `--template` / `--purity` / `--portability`）が壊れていないことを確認
-- [ ] `.claude/skills/steering/SKILL.md` の status / resume に `.steering/` 不在時の動作を追記
-- [ ] `.claude/skills/frontend-code-review/SKILL.md` に `compatibility:` を追加
-- [ ] `.claude/skills/impl-from-design/SKILL.md` に `compatibility:` を追加
-- [ ] `README.md` の資産一覧に argparse 化・npm script を反映
-- [ ] 個別検証: `check_deploy_drift.py --help` が使用法を出す / `pnpm validate` が通る / `@` producer が grep で消えている
-- [ ] 無回帰: `validate_skills.py` 29/29 PASS・`--portability` 混入0件
+- [x] `.claude/skills/skill-test/SKILL.md` を `--runs 4`（承認ゲート系）に修正 — **Phase 1 で前倒し実施済み**
+- [x] `package.json` に `validate` / `validate:portability` / `check:export` を追加
+- [x] `scripts/check_deploy_drift.py` を argparse 化し、`--help` バグを解消する
+- [x] argparse 化の前後で既存2経路（引数なしのレジストリ全件 / 配置先パス直指定）が動くことを確認
+- [x] `scripts/validate_skills.py` に `--help` / `-h` で docstring を表示する分岐を足す（最小修正。全面 argparse 化はしない）
+- [x] `validate_skills.py` の既存6経路（引数なし / `<dir>` / `--skill` / `--template` / `--purity` / `--portability`）が壊れていないことを確認
+- [x] `.claude/skills/steering/SKILL.md` の status / resume に `.steering/` 不在時の動作を追記（勝手に作らない旨も明記）
+- [x] `.claude/skills/frontend-code-review/SKILL.md` に `compatibility:` を追加（選定基準は design.md 参照）
+- [x] `.claude/skills/impl-from-design/SKILL.md` に `compatibility:` を追加
+- [x] `README.md` の資産一覧に argparse 化・npm script・差分ガードの自動発見を反映
+- [x] 個別検証: `--help` 3本とも exit 0 で使用法を表示 / `@` producer が grep で消えている
+- [ ] ~~`pnpm validate` が通る~~ — **pnpm のバイナリが壊れており実行不能**（`pnpm --version` も同じエラー。このタスクと無関係な環境問題。`blockers.md` に記録）。package.json の妥当性と各コマンドの直接実行は確認済み
+- [x] 無回帰: `validate_skills.py` 29/29 PASS・`--portability` 混入0件・`--template` PASS
+
+### Phase 3 で追加した改善（設計に無かったもの）
+
+- [x] `check_export_stopcontract.py` に git worktree からの自動発見を追加 — npm script 化にあたり、持ち出しセットのパスが環境依存で `package.json` に固定で書けないため。フェイルクローズは維持（発見できなければ exit 2）
 
 ## 4. Phase 4 — 配布機構の初回実走と修復
 

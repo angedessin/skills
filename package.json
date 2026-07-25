@@ -2,7 +2,10 @@
   "name": "ai-skills",
   "private": true,
   "scripts": {
-    "lint": "biome check ."
+    "lint": "biome check .",
+    "validate": "python3 scripts/validate_skills.py",
+    "validate:portability": "python3 scripts/validate_skills.py --portability",
+    "check:export": "python3 scripts/check_export_stopcontract.py"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.2",
