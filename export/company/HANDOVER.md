@@ -6,7 +6,7 @@
 ---
 
 このリポジトリに、外部で作成された Claude Code スキル一式を導入してください。
-セットは `[セットのパス]/` にあります（`skills/` 9 個・`claude-config/`・`MANIFEST.md`）。
+セットは `[セットのパス]/` にあります（`skills/` 10 個・`claude-config/`・`MANIFEST.md`）。
 
 **まず `MANIFEST.md` を全文読んでください。** それが一次情報で、この依頼文は要約です。
 食い違ったら MANIFEST が正です。
