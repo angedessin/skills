@@ -32,6 +32,7 @@ worktree・ブランチ上で開始したタスクは、main へのマージ前�
 - `.steering/[task]/` 配下のメモ（decisions.md・skill-issues.md・blockers.md）への追記は承認不要。気づいた時点で書く（内容の取捨選択は compound / knowledge-capture 時にまとめて行う）
 - CLAUDE.md・SKILL.md・docs/ への書き込みは承認制を維持する
 - 判断基準: (1) git で巻き戻せる (2) 失敗に気づける (3) 影響がタスク内に閉じる — 3つ全て満たす操作のみ承認なしで実行してよい
+- `git add -A` / `git commit` の前に `git status --short` でステージ内容を確認する（サブエージェントが「変更するな」の指示に反して作ったファイルが混入する。確認せずコミットして検証ゴミを追跡下に入れた実例がある）
 
 ## ナレッジ保存先のルール
 
@@ -40,11 +41,11 @@ CLAUDE.md は行動ルールのみ。知識の倉庫にしない（毎回コン�
 | 種類 | 保存先 |
 |---|---|
 | 行動ルール（短い命令形） | このファイル or `~/.claude/CLAUDE.md` |
-| 経験・パターン・アンチパターン | `docs/knowledge/[topic].md`（@参照で読む） |
+| 経験・パターン・アンチパターン | `docs/knowledge/[topic].md`（**必要時に読む**。`@` を付けると毎セッション全文が展開され固定費になるため、常時参照が要るものだけに限る） |
 | 設計判断（ADR） | `docs/decisions/[date]-[slug].md`（`adr` スキルで起票。却下した代替案がある決定のみ） |
 | タスク固有の決定 | `.steering/[task]/decisions.md` |
 
 ## ドキュメント参照（必要なトピック作業時のみ）
 
-スキル作成・改善時: @docs/knowledge/skill-design-patterns.md
+スキル作成・改善時: docs/knowledge/skill-design-patterns.md を読む（`@` 参照にしない — 36KB あり、毎セッション読み込ませると全タスクの固定費になる。`templates/SKILL.template.md` の冒頭にも読む指示がある）
 settings.json・hooks 作業時: docs/knowledge/claude-code-config.md を読む（@参照にしない — 毎セッション読み込ませない）

@@ -120,7 +120,13 @@ def validate(skill_dir: Path, template_mode: bool = False) -> list[str]:
     has_approval = re.search(r"承認|APPROVED|approved", scan) is not None
     # 逃し弁マーカー。理由をコメント内に書く運用のため、末尾テキストの有無に依らず接頭辞で判定する。
     has_escape = "<!-- validator: no-stop-needed" in body
-    has_hardstop = ("ここで止ま" in body) or (re.search(r"^#+ .*STOP", body, re.M) is not None)
+    # 「ここで止まる」だけの literal 一致だと、「ここで**必ず**止まる」「必ず止まって〜」という
+    # **より強い**表現が不一致で誤 FAIL する（実際に発生した）。語幹 "止ま" まで緩めると
+    # 「行き止まり」等で誤 PASS しうるので、停止を宣言する接頭辞つきの形だけを許容する。
+    has_hardstop = (
+        re.search(r"(ここで|必ず)(必ず)?止ま", body) is not None
+        or re.search(r"^#+ .*STOP", body, re.M) is not None
+    )
     if has_approval and not has_hardstop and not has_escape:
         errors.append(
             "承認語彙があるのにハードストップ表現（「ここで止まる」/ 見出しの STOP）が無い"
@@ -183,6 +189,13 @@ def portability_hits(skill_dir: Path) -> list[tuple[str, int, str]]:
 
 def main() -> None:
     args = sys.argv[1:]
+    # --help / -h は使い方を出して正常終了する。これが無いと未知のフラグが
+    # 走査ルートとして解釈され、Path("--help").iterdir() が未捕捉例外で落ちる。
+    # 全面 argparse 化はしない — PostToolUse hook が --skill で呼んでおり、
+    # 引数処理の書き換えは既存 5 経路すべての回帰リスクになる。
+    if args and args[0] in ("--help", "-h"):
+        print(__doc__)
+        sys.exit(0)
     # ポータビリティレポート（配布可スキルにマスター内部前提が無いか・report-only）
     if args and args[0] == "--portability":
         root = Path(args[1]) if len(args) > 1 else (

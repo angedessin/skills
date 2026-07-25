@@ -35,6 +35,7 @@ hooks も検査する（SKILL.md だけを見ていると「配るべき hook �
 """
 from __future__ import annotations
 
+import argparse
 import re
 import subprocess
 import sys
@@ -211,18 +212,28 @@ def read_registry() -> list[Path]:
 
 
 def main() -> None:
-    args = sys.argv[1:]
-    if len(args) > 1:
-        print(__doc__)
-        sys.exit(2)
+    ap = argparse.ArgumentParser(
+        description="配置先スキルのドリフト検出（読み取り専用）",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "引数なしで deployments.md の全配置先をループする。\n"
+            "終了コード: 0 = ドリフトなし / 1 = ドリフトあり / 2 = 実行エラー"
+        ),
+    )
+    ap.add_argument(
+        "target",
+        nargs="?",
+        help="単一配置先のパス（省略時は deployments.md の全配置先）",
+    )
+    args = ap.parse_args()
 
     if git(["rev-parse", "--git-dir"]).returncode != 0:
         print(f"エラー: マスター {MASTER_ROOT} が git リポジトリではない")
         sys.exit(2)
 
     # 単一配置先モード（既存互換）
-    if len(args) == 1:
-        deploy_root = Path(args[0]).expanduser()
+    if args.target:
+        deploy_root = Path(args.target).expanduser()
         drifted = report_deploy(deploy_root)
         sys.exit(2 if drifted < 0 else (1 if drifted else 0))
 
