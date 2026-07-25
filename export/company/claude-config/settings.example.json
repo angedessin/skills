@@ -20,8 +20,12 @@
       "Write(./.claude/hooks/**)",
       "Edit(./CLAUDE.md)",
       "Write(./CLAUDE.md)",
+      "Edit(./docs/knowledge/*)",
+      "Write(./docs/knowledge/*)",
       "Edit(./docs/knowledge/**)",
-      "Write(./docs/knowledge/**)"
+      "Write(./docs/knowledge/**)",
+      "Edit(./docs/knowledge/**/*)",
+      "Write(./docs/knowledge/**/*)"
     ],
     "deny": [
       "Bash(npx)",
