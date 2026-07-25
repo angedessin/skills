@@ -38,16 +38,25 @@ MASTER_ROOT = Path(__file__).resolve().parent.parent
 
 # 停止契約を構成する語彙。この語を含む行とその見出しを比較対象にする
 STOP_VOCAB = (
-    "ここで止ま",
-    "ここで必ず止ま",
+    # 「止ま」は語幹で持つ。「ここで止まる」だけを見ると「必ず止まって〜を待つ」等の
+    # 活用形を取りこぼし、export 側で消えても「差分なし」と報告してしまう（フェイルオープン）
+    "止ま",
     "停止",
-    "止まる",
+    "中断",
     "承認",
     "APPROVED",
     "ハードストップ",
     "STOP",
     "代用にしない",
     "headless",
+    # 停止の実体は「止まる」以外の語でも書かれる。実測で取りこぼしていた表現:
+    #   design-doc「必ず止まって人間のレビューを待つ」「ユーザーの応答を待つ」
+    #   knowledge-capture「## 知見保存ドラフト（案・未書き込み）」（案D の中核）
+    #   session-retrospective「この時点ではまだ 1 件も書き込まない」
+    "待つ",
+    "未書き込み",
+    "書き込まない",
+    "実装しない",
 )
 
 # マスター固有語 → 持ち出し側での言い換え（無害差分として打ち消す）
@@ -228,8 +237,24 @@ def main() -> None:
 
     export_skills = sorted(d.name for d in export_root.iterdir() if (d / "SKILL.md").exists())
     master_skills = sorted(d.name for d in master_root.iterdir() if (d / "SKILL.md").exists())
-    if not export_skills:
-        print(f"エラー: {export_root} に SKILL.md を持つスキルがありません", file=sys.stderr)
+
+    # フェイルクローズは**両側**に要る。片側だけだと、もう一方が空のときに
+    # 1 ペアも比較しないまま「差分なし」の緑を出す（このスクリプトが防ぐと
+    # 宣言している偽グリーンそのもの）。比較ペアが 0 件のときも同じ。
+    for label, root, names in (
+        ("--export", export_root, export_skills),
+        ("--master", master_root, master_skills),
+    ):
+        if not names:
+            print(f"エラー: {root} に SKILL.md を持つスキルがありません（{label}）", file=sys.stderr)
+            sys.exit(2)
+    if not set(export_skills) & set(master_skills):
+        print(
+            "エラー: 両側に共通するスキルが 1 件もありません。比較が成立しないため中断します",
+            file=sys.stderr,
+        )
+        print(f"  export: {', '.join(export_skills[:5])} …", file=sys.stderr)
+        print(f"  master: {', '.join(master_skills[:5])} …", file=sys.stderr)
         sys.exit(2)
 
     nonbundled = set(master_skills) - set(export_skills)

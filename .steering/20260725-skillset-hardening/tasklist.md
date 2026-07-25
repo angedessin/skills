@@ -6,12 +6,12 @@ design.md: `.steering/20260725-skillset-hardening/design.md`
 
 design.md の「主要コンポーネント」は**暫定**。実装に入る前に、変更対象を表す語で全文検索して対象を機械的に洗い出し、表に挙げ漏れた箇所を潰す。
 
-- [ ] `grep -rn "@参照\|@docs/" --include="*.md" . | grep -v .steering/archived | grep -v docs/archive` で `@` の producer を全て洗い出す（`@docs/knowledge` だけの grep では `@参照` 表記を拾えない）
-- [ ] 洗い出した各ヒットを producer（`@` を書けと指示している）と consumer（参照切れ検出など）に仕分ける。修正対象は producer のみ
-- [ ] `grep -rn "9 個\|10 個\|9 スキル\|10 スキル" export/company/` でスキル数の記述箇所を洗い出す
-- [ ] `grep -rn "sys.argv" scripts/` で argparse 化が必要なスクリプトが check_deploy_drift.py 以外に無いか確認する
-- [ ] `.tmp/20260725-skillset-evaluation-8axes.md` の結論を `decisions.md` に転記する（`.tmp/` は git 追跡外のため根拠が消える）
-- [ ] 洗い出しの結果、design.md の表に無い箇所があれば design.md を先に更新する（実装してから直さない）
+- [x] `grep -rn "@参照\|@docs/" --include="*.md" . | grep -v .steering/archived | grep -v docs/archive` で `@` の producer を全て洗い出す（`@docs/knowledge` だけの grep では `@参照` 表記を拾えない）
+- [x] 洗い出した各ヒットを producer（`@` を書けと指示している）と consumer（参照切れ検出など）に仕分ける。修正対象は producer のみ
+- [x] `grep -rn "9 個\|10 個\|9 スキル\|10 スキル" export/company/` でスキル数の記述箇所を洗い出す
+- [x] `grep -rn "sys.argv" scripts/` で argparse 化が必要なスクリプトが check_deploy_drift.py 以外に無いか確認する
+- [x] `.tmp/20260725-skillset-evaluation-8axes.md` の結論を `decisions.md` に転記する（`.tmp/` は git 追跡外のため根拠が消える）
+- [x] 洗い出しの結果、design.md の表に無い箇所があれば design.md を先に更新する（実装してから直さない）
 
 ## 1. Phase 1 — export セットの出荷前検証
 
@@ -132,13 +132,16 @@ design.md の「主要コンポーネント」は**暫定**。実装に入る前
 - [x] コードレビューを試行 → **並列フルモードが 3 エージェントともセッション上限で中断・所見ゼロ**。自己レビューで代替
 - [x] レビュー結果を `review-result.md` に記録（Status: **OPEN**）
 - [x] 自己レビューの指摘 2 件に対応（`ask` の glob 3 形式化 / `normalize()` の契約値破壊）→ コミット `1c34091`
-- [ ] **フレッシュエージェントで再レビュー**（範囲 `HEAD~4..HEAD`・スコープ読み替えが要る。手順は `decisions.md` の「再開時にやること」）
-- [ ] 新規指摘があれば対応し、`review-result.md` の Status を `RESOLVED` / `DEFERRED` に更新
-- [ ] **（人間）`ask` ゲートの実効性確認** — `docs/knowledge/` 配下を AI に編集させ、確認ダイアログが出るか。**出なければ Phase 1・2 の機械防御の結論が崩れる**
+- [x] **フレッシュエージェントで再レビュー**（範囲 `HEAD~5..HEAD`）→ **3 体とも完走。自己レビューが見落としていた High が 3 件**
+- [x] High 3 件に対応: Bash 迂回を塞ぐ hook 新設 / 差分ガードの master 側フェイルクローズ / `STOP_VOCAB` の取りこぼし解消
+- [x] Medium 2 件に対応: コミットに混入した検証ゴミ 2 ファイルを削除 / `design.md` の陳腐化した記述を訂正
+- [ ] 残り Medium 5 件（`validate_skills.py` の未知フラグ Traceback・`--verbose` の仕様不一致・`[:120]` 切り詰め・ask/hook の実効性未確認）と Low 4 / Info 2 の対応方針を決める
+- [ ] **（要セッション再起動）hook の実効性確認** — `echo test > docs/knowledge/_probe.md` を AI に実行させ確認が出るか。**セッション内で登録した hook は当該セッションでは有効にならない**（実測でプローブが無プロンプト通過）。出なければ機械防御は成立せず Phase 1・2 の結論を撤回する
+- [ ] `review-result.md` の Status を `RESOLVED` / `DEFERRED` に更新（上記の確認後）
 
 ## 6. デプロイ
 
-- [ ] main へコミット（Phase 単位で分ける）
+- [x] main へコミット（Phase 単位で分ける）
 - [ ] export worktree へ main をマージし、`export/company/` 側の整合を確認する
 - [ ] export ブランチでの運用ルール（`--all` を使わない・検査対象を明示指定）を `export/company/MANIFEST.md` に追記する
 - [ ] merge 時に `check:export`（差分ガード）を実行する運用を MANIFEST に書く
