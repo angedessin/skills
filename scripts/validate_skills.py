@@ -23,7 +23,7 @@
   python3 scripts/validate_skills.py --template      # templates/SKILL.template.md（プレースホルダ許容）
   python3 scripts/validate_skills.py --purity        # ツール純度レポート（FAIL にしない）
   python3 scripts/validate_skills.py --portability   # ポータビリティレポート（FAIL にしない）
-終了コード: 0 = 全 PASS / 1 = FAIL あり
+終了コード: 0 = 全 PASS / 1 = FAIL あり / 2 = 使い方の誤り（不明なオプション等）
 """
 import re
 import sys
@@ -187,6 +187,11 @@ def portability_hits(skill_dir: Path) -> list[tuple[str, int, str]]:
     return hits
 
 
+# main() が分岐として受け付けるフラグの全集合。**分岐を足したらここにも足す**
+# （片側修正だと、実在するフラグが「不明なオプション」で弾かれる）。
+KNOWN_FLAGS = ("--help", "-h", "--skill", "--template", "--purity", "--portability")
+
+
 def main() -> None:
     args = sys.argv[1:]
     # --help / -h は使い方を出して正常終了する。これが無いと未知のフラグが
@@ -196,6 +201,14 @@ def main() -> None:
     if args and args[0] in ("--help", "-h"):
         print(__doc__)
         sys.exit(0)
+    # 未知のフラグを走査ルートとして解釈しない。`--protability` のような打ち間違いが
+    # Path("--protability").iterdir() の生 Traceback になり、原因が読み取れなかった。
+    # 既知フラグの集合だけを見る一般ガードなので、以降 6 経路の分岐には触れない。
+    if args and args[0].startswith("-") and args[0] not in KNOWN_FLAGS:
+        print(f"エラー: 不明なオプション: {args[0]}", file=sys.stderr)
+        print(f"  使えるオプション: {', '.join(KNOWN_FLAGS)}", file=sys.stderr)
+        print("  使い方は --help を参照してください。", file=sys.stderr)
+        sys.exit(2)
     # ポータビリティレポート（配布可スキルにマスター内部前提が無いか・report-only）
     if args and args[0] == "--portability":
         root = Path(args[1]) if len(args) > 1 else (
