@@ -49,17 +49,26 @@ design.md の「主要コンポーネント」は**暫定**。実装に入る前
 
 ## 2. Phase 2 — master の回帰シナリオ
 
-- [ ] Phase 1d の結果を踏まえてシナリオ設計方針を決める（破れ方が共通なら master 側にも反映する）
-- [ ] **各シナリオの判定可能性を先に確認する** — `build_sandbox()` は git init しないため、素通りの副作用がファイル変更として現れないものは判定できない
-- [ ] `tests/passthrough/impl-from-design/scenario.md` を作成
-- [ ] `tests/passthrough/debug/scenario.md` を作成
-- [ ] `tests/passthrough/adr/scenario.md` を作成
-- [ ] `tests/passthrough/frontend-code-review/scenario.md` — サンドボックスに `.git` が無く「空 diff」ではなく「git 不在」経路を踏むため、**成立可否を先に確認する。成立しなければこのシナリオは落とす**
-- [ ] ~~`tests/passthrough/feature-pipeline/scenario.md`~~ — **見送り**（Gate 3.5 の素通り＝マージで判定対象ファイルが変化せず常時 PASS になる）。ハーネス拡張を別タスクとして起票する
-- [ ] `--dry-run` で構造確認（無課金）
-- [ ] **課金前にコスト（最大 16 run）を提示して承認を得る**
-- [ ] `--runs 4` で実走
-- [ ] FAIL があれば該当 SKILL.md を修正。**再実走は再承認を取る**
+- [x] Phase 1d の結果を踏まえてシナリオ設計方針を決める
+- [x] **各シナリオの判定可能性を先に確認する** — `verdict()` は `before.get(k) != after[k]` で新規ファイル作成も検出することを確認（`passthrough_check.py`）
+- [x] `tests/passthrough/impl-from-design/scenario.md` を作成 → **4/4 PASS**
+- [x] `tests/passthrough/debug/scenario.md` を作成 → **3/4（run2 FAIL）**
+- [x] `tests/passthrough/adr/scenario.md` を作成 → **3/4（run1 FAIL）**
+- [x] ~~`tests/passthrough/frontend-code-review/scenario.md`~~ — **落とす**。承認語彙は2件のみで、停止は「合算 diff が空」という縮退入力ガードであって承認ゲートではない。かつ非 git サンドボックスでは意図した分岐に間接的にしか到達しない
+- [x] ~~`tests/passthrough/feature-pipeline/scenario.md`~~ — **見送り**（判定不能）。ハーネス拡張を別タスクとして起票する
+- [x] `--dry-run` で構造確認（無課金）
+- [x] **課金前にコスト（12 run）を提示して承認を得る**
+- [x] `--runs 4` で3本を実走
+- [x] FAIL への対応 — 本文の改善では下がらないと判断（`decisions.md` の型別分析）。書き込み先が狭い `adr` は機械防御、広い `debug` は残存リスクとして受容
+- [x] ~~再実走~~ — 行わない。n=4 では 3/4 と 4/4 に有意差を主張できず、効果を測れない
+
+### FAIL 対応（Phase 2）
+
+- [x] `.claude/settings.json` の `ask` に `Edit/Write(./docs/decisions/**)` を追加（`adr` の書き込み先を機械的にゲート）
+- [x] `adr` の Step 3 にターン境界を追加（既定レシピとの一貫性のため。効果は未実証と明記）
+- [x] `debug` の Step 5 にターン境界と「方針を書き終えた勢いで適用に流れやすい」の名指しを追加（同上）
+- [x] `README.md` の settings.json 説明に `docs/decisions/**` を反映
+- [x] 無回帰: `validate_skills.py` 29/29 PASS・`--portability` 混入0件・settings.json 妥当（ask 15件）
 
 ## 3. Phase 3 — 即効修正バンドル
 
