@@ -34,9 +34,11 @@
 ## 手順（MANIFEST「配置先（会社）でやること」に対応）
 
 1. `skills/` 配下の 10 ディレクトリを `.claude/skills/` にコピーする
-2. `claude-config/hooks/` の 4 本を `.claude/hooks/` にコピーする（settings の登録は
+2. `claude-config/hooks/` の 5 本を `.claude/hooks/` にコピーする（settings の登録は
    `$CLAUDE_PROJECT_DIR` 起点なのでパス書き換え不要）
-   - 4 本とも POSIX 標準ユーティリティのみで動く。**追加のツールをインストールしない**
+   - 5 本とも POSIX 標準ユーティリティのみで動く。**追加のツールをインストールしない**
+   - `guard-gated-write.sh` は PreToolUse なので、**配置したセッション中は発火しないことがある**。
+     効いているかの確認は Claude Code を再起動してから行う（手順は MANIFEST の配置手順 2）
 3. `claude-config/settings.example.json` を `.claude/settings.json` に**手動マージ**する。
    既存の settings を丸ごと上書きしない。既存 allow と deny が衝突したら deny を優先。
    **マージ結果の全文を提示して、承認を得てから書き込む**

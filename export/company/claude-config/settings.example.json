@@ -1,5 +1,5 @@
 {
-  "_comment": "配置先の .claude/settings.json に手動マージする雛形（丸ごと上書きしない）。既存 allow と衝突したら deny を優先。マスターとの差分: npx を ask から deny に強化（npx 全面禁止の方針）・validate-skill-edit.sh（マスター専用）と stop-typecheck.sh（Angular ではテンプレートを型チェックできず CI と重複）を hooks から除外。登録している hook 4 本は POSIX 標準ユーティリティのみで動き、追加インストールを必要としない",
+  "_comment": "配置先の .claude/settings.json に手動マージする雛形（丸ごと上書きしない）。既存 allow と衝突したら deny を優先。マスターとの差分: npx を ask から deny に強化（npx 全面禁止の方針）・validate-skill-edit.sh（マスター専用）と stop-typecheck.sh（Angular ではテンプレートを型チェックできず CI と重複）を hooks から除外。登録している hook 5 本は POSIX 標準ユーティリティのみで動き、追加インストールを必要としない。guard-gated-write.sh は ask（Edit/Write 限定）が Bash のリダイレクトで迂回されるのを塞ぐもので、permissions.ask の CLAUDE.md / docs/knowledge/ / docs/decisions/ と対で維持する（対象は書き込みのみ・削除は非対象）",
   "permissions": {
     "allow": [
       "Bash(ls)",
@@ -25,7 +25,13 @@
       "Edit(./docs/knowledge/**)",
       "Write(./docs/knowledge/**)",
       "Edit(./docs/knowledge/**/*)",
-      "Write(./docs/knowledge/**/*)"
+      "Write(./docs/knowledge/**/*)",
+      "Edit(./docs/decisions/*)",
+      "Write(./docs/decisions/*)",
+      "Edit(./docs/decisions/**)",
+      "Write(./docs/decisions/**)",
+      "Edit(./docs/decisions/**/*)",
+      "Write(./docs/decisions/**/*)"
     ],
     "deny": [
       "Bash(npx)",
@@ -99,6 +105,16 @@
           {
             "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-env-read.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-gated-write.sh",
             "timeout": 10
           }
         ]

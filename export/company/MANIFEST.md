@@ -3,10 +3,21 @@
 > **同梱スキル数の一次情報は `skills/` のディレクトリ数**（`ls skills/ | wc -l` で数える）。本文中の「9 スキル」は provenance（debug 以外の 9 本が同一 source-commit）または日付付き履歴節の記述であり、現在の同梱数ではない。現在は **10 スキル**。
 
 - **マスターコミット**: `e90165507d319933f2c07f9538b0a0040e67842e`
-- **作成日**: 2026-07-14（最終更新: 2026-07-23 — debug を追加し同梱 10 スキルに。2026-07-22 にレビュー系 8 スキルと feature-pipeline を除外して 9 スキルに縮小していた）
+- **作成日**: 2026-07-14（最終更新: 2026-07-26 — 承認ゲートの穴を塞ぐ `guard-gated-write.sh` を同梱し hook 5 本に。スキルの同梱内容は 2026-07-23 の debug 追加以降 10 スキルのまま）
 - **検証**: 同梱 10 スキル 10/10 PASS（このセット自体に直接実行・2026-07-23）。ローカルパス・個人情報・外部 URL の混入なし（grep 検査済み）
 - 各スキルの frontmatter `metadata.source-commit` にコミットハッシュを記録済み（配置先での手動追記は不要）。9 スキルは上記 `e90165` から、後から追加した debug は master HEAD `dd1bb31` から作成しており provenance が分かれる（debug の該当分岐が e90165 時点には存在せず、実際の複製元 HEAD を記録したため）
 - **Angular 適用版**: マスター（React / Vitest 前提）から、tdd の本文・スコープ（.tsx → .ts / .html）を Angular / Jasmine 向けに書き換え済み。**スキル本文に React / Vitest / pnpm 等の個人スタック語彙は 1 件も残っていない**（機械確認済み。React 前提のコード例を集めた tdd のカートリッジは同梱から外した — 下記「同梱しなかったもの」参照）。**マスターとの diff を確認するときはこの変換分を差し引いて見る**（スキルの手順・停止契約は変えていない。変えたのはスタック語彙とコード例のみ）
+
+## 2026-07-26 更新の要点（承認ゲートの穴を塞ぐ）
+
+スキルの同梱内容に変更なし（10 スキルのまま）。変わったのは `claude-config/` の防御構成だけ。
+
+- **`guard-gated-write.sh` を同梱・登録（hook 4 本 → 5 本）** — `permissions.ask` は **Edit / Write ツールにしか掛からない**。`allow` に `Bash(git show*)` / `Bash(git diff*)` のような前置一致ルールがあると `git show HEAD:x > CLAUDE.md` が Edit/Write を経由せずに通り、**ask が一度も発火しないまま承認制のファイルが書き換わる**。マスター側では 2026-07-25 のレビューでこれを High（セキュリティ）と判定して塞いだが、配布物側は開いたままだった。PreToolUse(Bash) で `>` / `>>` / `tee` による書き込みを検出して ask に落とす。依存は `grep` のみ
+- **`docs/decisions/` を ask に追加** — 同梱している `rule-audit` が `docs/decisions` を参照するのに、書き込みのゲートが `CLAUDE.md` と `docs/knowledge/` にしか無かった。glob は `*` / `**` / `**/*` の 3 形式を Edit / Write 分だけ並べる（単一形式では直下のファイルを取りこぼす）
+- **ask と hook は対で維持する** — 片方だけでは防波堤にならない。`settings.example.json` の `_comment` にもこの対応関係を明記した
+- **限界を明記** — ゲートの対象は**書き込みのみ**で、`rm` による削除・`sed -i`・任意インタプリタ経由は塞がない。脅威モデルが「敵対者」ではなく「停止契約を滑った善意のエージェント」であるため意図的にこの線で止めている。**「機械的に完全にゲートした」とは言えない**
+- **配置後の確認手順を追記** — PreToolUse hook は配置したセッション中には発火しないことがある（マスターで実測）。再起動後にプローブで確認する手順を MANIFEST の配置手順 2 と HANDOVER に入れた。**ask の発火は AI からは観測できない**ので、確認は人間が行う
+- **配布加工の確認** — hook 本文に非同梱スキル名（`adr` 等）が残っていないことを機械確認済み（マスター版の理由文は `knowledge-capture / compound / adr` を挙げているが、`adr` は非同梱のため配布版から外した）
 
 ## 2026-07-23 更新の要点（debug の追加）
 
@@ -84,17 +95,23 @@
 ## 配置先（会社）でやること
 
 1. `.claude/skills/` に `skills/` 配下のディレクトリをそのままコピーする
-2. **hooks を配置する** — `claude-config/hooks/` の 4 本を配置先の `.claude/hooks/` にコピーする。settings.json のコマンド登録は `"$CLAUDE_PROJECT_DIR"` 起点の相対参照なので、同じ配置ならパスの書き換えは不要
+2. **hooks を配置する** — `claude-config/hooks/` の 5 本を配置先の `.claude/hooks/` にコピーする。settings.json のコマンド登録は `"$CLAUDE_PROJECT_DIR"` 起点の相対参照なので、同じ配置ならパスの書き換えは不要
    - `session-start-check.sh`（SessionStart）: 未処理フラグ・アクティブタスクをセッション開始時に注入
    - `session-stop.sh`（Stop）: `.capture-needed` を立てて knowledge-capture の起動を促す
    - `guard-env-read.sh`（PreToolUse）: deny の前置一致をすり抜ける .env 読み取りを全文検査で ask に落とす
+   - `guard-gated-write.sh`（PreToolUse）: `CLAUDE.md` / `docs/knowledge/` / `docs/decisions/` への **Bash 経由**の書き込み（`>` / `>>` / `tee`）を ask に落とす。permissions の ask は Edit / Write ツールにしか掛からず、`Bash(git show*)` のような前置一致 allow があると `git show X > CLAUDE.md` で迂回できるため、その穴を塞ぐ。**対象は書き込みのみで、`rm` による削除は非対象**
    - `post-edit-lint.sh`（PostToolUse）: 編集ごとの lint 差し戻し（Biome / ESLint / Stylelint を自動検出）。**フェイルオープン**（lint 設定が無ければ素通し）なのでスタックを問わず置いてよい
 
-   **前提ツールの追加インストールは不要。** 4 本とも `grep` / `sed` / `find` など POSIX 標準の
+   **PreToolUse の hook はセッション再起動後に効く。** 配置したセッション中は発火しない場合があるため、
+   置いた直後に「効いていない」と判断しない。確認するときは Claude Code を再起動してから
+   `echo test > docs/knowledge/_probe.md` を AI に実行させ、確認プロンプトが出るかを**人間が**見る
+   （ask の発火は AI 側からは観測できない）。確認できたら `_probe.md` を削除する。
+
+   **前提ツールの追加インストールは不要。** 5 本とも `grep` / `sed` / `find` など POSIX 標準の
    ユーティリティだけで動く。Claude Code は hook に JSON を標準入力で渡すが、JSON 解析器
-   （`jq` 等）には依存しない設計にしてある — `guard-env-read` は構造を解釈せず全文を検査し、
-   他の 2 本は必要な値の切り出しと出力のエスケープを標準ユーティリティで行う。
-3. **settings をマージする** — `claude-config/settings.example.json` を配置先の `.claude/settings.json` に**手動マージ**する（丸ごと上書きしない）。既存の allow と deny が同じ操作で衝突したら **deny を優先**（安全側）。マスターとの差分として **npx は全面 deny** に強化済み（下の「npx 禁止」参照）。また **`CLAUDE.md` と `docs/knowledge/**` への書き込みを ask** にしてある — knowledge-capture は本文のハードストップで「承認前に書き込まない」を担保しているが、締めを尽くした状態でも承認前の書き込みが 1/4 の頻度で再現した実測があるため、機械的な最後の防波堤を置いている。**この 2 行は外さないことを推奨する**
+   （`jq` 等）には依存しない設計にしてある — `guard-env-read` / `guard-gated-write` は構造を
+   解釈せず全文を検査し、他の 2 本は必要な値の切り出しと出力のエスケープを標準ユーティリティで行う。
+3. **settings をマージする** — `claude-config/settings.example.json` を配置先の `.claude/settings.json` に**手動マージ**する（丸ごと上書きしない）。既存の allow と deny が同じ操作で衝突したら **deny を優先**（安全側）。マスターとの差分として **npx は全面 deny** に強化済み（下の「npx 禁止」参照）。また **`CLAUDE.md` / `docs/knowledge/**` / `docs/decisions/**` への書き込みを ask** にしてある — knowledge-capture は本文のハードストップで「承認前に書き込まない」を担保しているが、締めを尽くした状態でも承認前の書き込みが 1/4 の頻度で再現した実測があるため、機械的な最後の防波堤を置いている。**これらの ask エントリは外さないことを推奨する。** ask だけでは Bash のリダイレクトで迂回できるので、`guard-gated-write.sh`（PreToolUse）と**対で**維持すること — 片方だけでは防波堤にならない
 4. **tdd のカートリッジを作る（任意・配置先の AI に依頼する）** — tdd は「エンジン（本文の判断軸）＋カートリッジ（`references/patterns.md` のスタック固有例）」構成だが、**カートリッジは同梱していない**（元は React / Vitest / RTL / MSW 前提の中身で、Angular / Jasmine の本文と矛盾し、誤ったコード例を持ち込む害の方が大きいため削除した）。**無いままでも tdd は動く** — 本文の判断軸は言語非依存で、スキル側にその旨のフォールバックが書いてある。具体例を効かせたければ、配置先で AI に実際のテスト環境（Jasmine の実行基盤・TestBed の使い方・既存 spec の慣習）を調べさせてから作成を依頼する
    - 見出しは本文が参照する §名にする: `§run`（実行コマンド）/ `§config`（ランナー設定）/ `§setup`（共通セットアップ）/ `§unit` / `§component` / `§query-ladder`（クエリ優先順位）/ `§network`（ネットワークモック）/ `§state` / `§api-layer` / `§coverage`。Angular に対応物が無い節は省いてよい
    - 依頼例:「このプロジェクトの実際のテスト構成を確認して、`.claude/skills/tdd/references/patterns.md` を Jasmine / TestBed 向けに新規作成して。見出しは SKILL.md が参照する §名に合わせる。SKILL.md 本文は変更しない。npx は使わない」

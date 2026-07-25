@@ -97,7 +97,7 @@ migration の主な躊躇は「レビュー済みスキルを書き直す手間�
 | 操作 | 対象 | 量 |
 |---|---|---|
 | 追加コピー | `.claude/skills/` に 10 ディレクトリ | 10 スキル |
-| 追加コピー | `.claude/hooks/` に 4 本 | session-start-check / session-stop / guard-env-read / post-edit-lint |
+| 追加コピー | `.claude/hooks/` に 5 本 | session-start-check / session-stop / guard-env-read / guard-gated-write / post-edit-lint |
 | **手動マージ** | `.claude/settings.json`（permissions ＋ hooks 登録） | 既存があれば丸ごと上書きせずマージ。allow と deny が衝突したら deny 優先 |
 | 追記 | `CLAUDE.md` に発動ポリシー節 | 数行〜十数行 |
 | 追記 | `.gitignore` | 3 行（フラグファイル除外） |
@@ -120,7 +120,7 @@ migration の主な躊躇は「レビュー済みスキルを書き直す手間�
 - **permissions.ask**: `git push`・`rm -r`・settings.json／hooks 自身の編集
 - **hooks 登録**: SessionStart（フラグ・タスク注入）・PreToolUse/Bash（.env 読み取りガード）・PostToolUse/Edit|Write（lint 差し戻し）・Stop（`.capture-needed` 生成）
 
-既存 allow とマスター由来 deny が同じ操作で衝突したら **deny を優先**（安全側）。hook 4 本は POSIX 標準ユーティリティのみで動き、**追加インストール不要**（jq 依存は撤廃済み）。
+既存 allow とマスター由来 deny が同じ操作で衝突したら **deny を優先**（安全側）。hook 5 本は POSIX 標準ユーティリティのみで動き、**追加インストール不要**（jq 依存は撤廃済み）。
 
 ## スモークテスト（配置後・必須）
 
@@ -132,7 +132,7 @@ migration の主な躊躇は「レビュー済みスキルを書き直す手間�
 
 ## つまずきどころ
 
-- **福利化ループが回らない** → hooks を 4 本すべて配置したか確認。`session-stop.sh`（書く側）だけでは `.capture-needed` が溜まるだけで拾われない。`session-start-check.sh`（読む側）が対で要る。
+- **福利化ループが回らない** → hooks を 5 本すべて配置したか確認。`session-stop.sh`（書く側）だけでは `.capture-needed` が溜まるだけで拾われない。`session-start-check.sh`（読む側）が対で要る。
 - **テストが 1 件も実行されず緑** → tdd カートリッジのテストファイル命名が会社のランナー収集パターンと不一致の可能性。既存 spec を 1 つ開いて命名規則を確認してから作る。
 - **`Status:` を日本語化してしまう** → `.steering/` 成果物の見出しは日本語だが、`Status:` の値（`DRAFT`／`APPROVED`）は impl-from-design が照合する契約値。英語のまま扱う。
 
