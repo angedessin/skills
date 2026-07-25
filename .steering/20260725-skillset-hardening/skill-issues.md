@@ -23,3 +23,22 @@
 **該当**: `scripts/check_export_stopcontract.py`
 
 **含意**: 「両側を同一コミットで直す」規律は、人の注意ではなく機械のガードで支えられる。同種のガードを他の producer/consumer 対にも置ける可能性がある（`compound` / `rule-audit` の福利化時に検討）。
+
+---
+
+## 20260725 — 「必要時に読む」プレーンパス参照は、その作業中でも読まれない（compound 昇格候補）
+
+**事象**: CLAUDE.md に「settings.json・hooks 作業時: `docs/knowledge/claude-code-config.md` を読む」という導線があり、このタスクで settings.json と hooks を繰り返し編集したにもかかわらず**一度も読まず、同ファイルに記録済みのルールを 3 つ破った**（ツール網羅・glob の形式列挙・hook の有効化タイミング）。うち 2 つは欠陥として出荷され、フレッシュエージェントのレビューで初めて検出された。
+
+**対照**: 同じセッションで `skill-design-patterns.md` のルール（停止契約の構造・片側修正の禁止・境界の相互明記）は一貫して守れていた。差は **CLAUDE.md の `@` 参照でセッション開始時に全文がロードされていたか否か**だけ。導線の文言は両方とも CLAUDE.md にあった。
+
+**期待**: 「@ を外して必要時に読む導線にする」判断（コンテキスト固定費の削減）は維持しつつ、**作業の瞬間に読ませるトリガー**が要る。
+
+**含意（重要）**: このタスクの Phase 3 で `skill-design-patterns.md` の `@` を外した。今回の実測は、**次セッション以降のスキル作業で同じ失敗が再現しうる**ことを示している。`@` を戻すのは固定費の観点で割に合わないため、別の仕組みが要る。
+
+**昇格候補の案**（compound で検討）:
+- `.claude/settings.json` / `.claude/hooks/**` の編集を検知する PreToolUse hook を置き、`claude-code-config.md` を読むよう `additionalContext` で促す（`post-edit-lint.sh` が診断行を AI に返すのと同じ型）
+- 同様に `.claude/skills/**/SKILL.md` の編集で `skill-design-patterns.md` を促す
+- あるいは CLAUDE.md の導線を「読む」から「**読んでから編集する**」という順序の命令形に変え、該当スキル（`compound` / `rule-audit` 等）の手順にも組み込む
+
+**該当**: CLAUDE.md のドキュメント参照節 / hooks の構成

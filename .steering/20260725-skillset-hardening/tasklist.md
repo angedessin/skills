@@ -135,9 +135,9 @@ design.md の「主要コンポーネント」は**暫定**。実装に入る前
 - [x] **フレッシュエージェントで再レビュー**（範囲 `HEAD~5..HEAD`）→ **3 体とも完走。自己レビューが見落としていた High が 3 件**
 - [x] High 3 件に対応: Bash 迂回を塞ぐ hook 新設 / 差分ガードの master 側フェイルクローズ / `STOP_VOCAB` の取りこぼし解消
 - [x] Medium 2 件に対応: コミットに混入した検証ゴミ 2 ファイルを削除 / `design.md` の陳腐化した記述を訂正
-- [ ] 残り Medium 5 件（`validate_skills.py` の未知フラグ Traceback・`--verbose` の仕様不一致・`[:120]` 切り詰め・ask/hook の実効性未確認）と Low 4 / Info 2 の対応方針を決める
-- [ ] **（要セッション再起動）hook の実効性確認** — `echo test > docs/knowledge/_probe.md` を AI に実行させ確認が出るか。**セッション内で登録した hook は当該セッションでは有効にならない**（実測でプローブが無プロンプト通過）。出なければ機械防御は成立せず Phase 1・2 の結論を撤回する
-- [ ] `review-result.md` の Status を `RESOLVED` / `DEFERRED` に更新（上記の確認後）
+- [x] 残り Medium 5 / Low 4 / Info 2 の対応方針を決定 → **次タスクへ送る**（理由は `review-result.md` の「Status を DEFERRED にした理由」）
+- [x] `review-result.md` の Status を **DEFERRED** に更新
+- [ ] （次タスクの先頭・**要セッション再起動**）hook の実効性確認 — `echo test > docs/knowledge/_probe.md` で確認が出るか。出なければ Phase 1・2 の機械防御の結論を撤回する
 
 ## 6. デプロイ
 
@@ -148,7 +148,11 @@ design.md の「主要コンポーネント」は**暫定**。実装に入る前
 
 ## 7. 福利化・知見保存
 
-- [ ] `knowledge-capture` で知見を保存する
+- [x] `knowledge-capture` で知見を保存する（案1〜4 を docs/knowledge/ へ書き込み。案5 は compound へ申し送り = skill-issues.md に起票）
 - [ ] `compound` でルール・スキルへの昇格を検討する
-- [ ] 次タスクを起票する: **(a) 配布機構の初回実走**（Phase 4 の切り出し。配置先が決まってから。上の 4. の項目がそのまま内容）、(b) 構造改善（依存表・README セットアップ節・knowledge 剪定・ズレ検知）、(c) `passthrough_check.py` のハーネス拡張（`## setup` 節・git init。feature-pipeline の Gate 3.5 を判定可能にする）
+- [ ] 次タスクを起票する:
+  - **(a) レビュー積み残しの解消（最優先）** — 先頭に「hook の実効性確認（要セッション再起動）」。以下 `review-result.md` の DEFERRED 分: `validate_skills.py` の未知フラグ Traceback / `--verbose` の仕様不一致 / `[:120]` 切り詰めで差分が読めない / 非同梱スキル名の語境界 / `read_body()` の型注釈 / `.test.tsx` の `STACK_WORDS` 欠落 / `--master` 不在時の誤誘導文言 / 配布物の `docs/decisions/` ask 欠落 / global CLAUDE.md と `.claude/skills/**` が ask の射程外
+  - **(b) 配布機構の初回実走** — Phase 4 の切り出し。配置先が決まってから。上の 4. の項目がそのまま内容
+  - **(c) 構造改善** — 依存表・README セットアップ節・knowledge 剪定・ドキュメント↔実装のズレ検知
+  - **(d) `passthrough_check.py` のハーネス拡張** — `## setup` 節・git init。feature-pipeline の Gate 3.5 を判定可能にする
 - [ ] `steering` の archive モードでこのタスクをアーカイブする
