@@ -42,6 +42,9 @@
 ## 4. 完了処理
 
 - [x] 静的検査（29/29 PASS・portability 0 件・停止契約サマリ 7/1/2 で不変）
-- [ ] コミット（master と `export/company` で別コミット。**未実施 — ユーザーの指示待ち**）
-- [ ] `knowledge-capture` / `compound`（知見があれば）
-- [ ] `steering` archive
+- [x] コミット（master と `export/company` で別コミット。ブランチが分かれるため 1 コミットにまとめられない）
+- [x] `knowledge-capture` — 2 件保存（`claude-code-config.md` に「配布物にも同じ防御が要る」節を新設 / `skill-design-patterns.md` の検出ツール節を 3規律 → 4規律 に改訂）。既に本文に書き込み済みの 3 件は重複として見送り
+- [x] `compound` — 3 件昇格（`expected_hooks()` の同送漏れ / compound の洗い出し範囲 / `session-stop.sh` の AND 条件）。既存違反 2 件も同じ承認内で修正。詳細は `codify-log.md`
+- [x] `steering` archive
+
+Archived: 20260726
