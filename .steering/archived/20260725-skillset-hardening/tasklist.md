@@ -155,4 +155,8 @@ design.md の「主要コンポーネント」は**暫定**。実装に入る前
   - **(b) 配布機構の初回実走** — Phase 4 の切り出し。配置先が決まってから。上の 4. の項目がそのまま内容
   - **(c) 構造改善** — 依存表・README セットアップ節・knowledge 剪定・ドキュメント↔実装のズレ検知
   - **(d) `passthrough_check.py` のハーネス拡張** — `## setup` 節・git init。feature-pipeline の Gate 3.5 を判定可能にする
-- [ ] `steering` の archive モードでこのタスクをアーカイブする
+- [x] `steering` の archive モードでこのタスクをアーカイブする
+
+Archived: 20260725
+
+> 未チェックで残した 23 項目は、やり残しではなく行き先が決まっているもの: Phase 4（20 件）は配置先未定のため撤退条件で切り出し、hook の実効性確認（1 件）はセッション再起動が必要、`pnpm validate`（1 件）は pnpm のバイナリ破損で実行不能。いずれも `decisions.md` のバックログまたは `blockers.md` に記録済み。
