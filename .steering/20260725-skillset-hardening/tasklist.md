@@ -1,0 +1,135 @@
+# タスクリスト: スキルセット堅牢化
+
+design.md: `.steering/20260725-skillset-hardening/design.md`
+
+## 0. 変更対象の確定（実装の最初に行う）
+
+design.md の「主要コンポーネント」は**暫定**。実装に入る前に、変更対象を表す語で全文検索して対象を機械的に洗い出し、表に挙げ漏れた箇所を潰す。
+
+- [ ] `grep -rn "@参照\|@docs/" --include="*.md" . | grep -v .steering/archived | grep -v docs/archive` で `@` の producer を全て洗い出す（`@docs/knowledge` だけの grep では `@参照` 表記を拾えない）
+- [ ] 洗い出した各ヒットを producer（`@` を書けと指示している）と consumer（参照切れ検出など）に仕分ける。修正対象は producer のみ
+- [ ] `grep -rn "9 個\|10 個\|9 スキル\|10 スキル" export/company/` でスキル数の記述箇所を洗い出す
+- [ ] `grep -rn "sys.argv" scripts/` で argparse 化が必要なスクリプトが check_deploy_drift.py 以外に無いか確認する
+- [ ] `.tmp/20260725-skillset-evaluation-8axes.md` の結論を `decisions.md` に転記する（`.tmp/` は git 追跡外のため根拠が消える）
+- [ ] 洗い出しの結果、design.md の表に無い箇所があれば design.md を先に更新する（実装してから直さない）
+
+## 1. Phase 1 — export セットの出荷前検証
+
+> 実行ディレクトリに注意: スクリプトの `MASTER_ROOT` は実行ファイルの位置から決まる。main 側の `scripts/` を使うか worktree 側を使うかで挙動が変わる。
+
+- [x] `export/company/HANDOVER.md:9` の「9 個」→「10 個」
+- [x] `export/company/MANIFEST.md` の冒頭に「スキル数の一次情報は `skills/` のディレクトリ数（機械カウント）」を明記する（13行目=10 と 54行目=9 の食い違いは、54行目が日付付き履歴節のため本文は残す）
+- [x] `export/company/MIGRATION-GUIDE.md` 第2部の対応表がスキル10本と一致することを確認（全箇所 10 で整合済み・変更不要）
+- [x] `scripts/check_export_stopcontract.py` を新規作成
+  - [x] 停止契約領域の実質差分を report-only で報告（差分ありでも exit 0）
+  - [x] **比較対象ディレクトリ不在時は exit 2 でフェイルクローズ**（main 実行時の偽グリーン防止・実測で確認）
+  - [x] 比較対象パスを引数で明示指定できるようにする（`--export` / `--master`）
+- [x] `README.md` の `scripts/` 資産一覧に `check_export_stopcontract.py` を追加（ツリーとインフラ節の両方）
+- [x] 差分ガードを実行し、シナリオ対象を確定する → **2 本**（設計の 3 本から変更。`decisions.md` に根拠）
+- [x] `.claude/skills/skill-test/SKILL.md` に export セットの検査手順を追記（`--all` が拾わない / export ブランチで `--all` を使うと master を検査して偽陽性 / 実行ディレクトリで対象が変わる / 対象選定は差分ガードに従う）。あわせて `--runs 4` の規律も Step 3 に反映（Phase 3 の項目を前倒し）
+- [x] `export/company/tests/session-retrospective/scenario.md` を作成（CLAUDE.md に自律実行境界を**書かない**サンドボックス。**FAIL 想定**）
+- [x] `export/company/tests/knowledge-capture/scenario.md` を作成（入力充実版・Angular / Jasmine・日本語見出し・Status は英語）
+- [x] ~~`export/company/tests/compound/scenario.md`~~ — **見送り**（削除箇所が停止より後方の Step 4 内。差分ガードの実測による）
+- [x] `--dry-run` で2本の構造確認（無課金）
+- [x] **課金前にコスト（8 run）を提示して承認を得る**
+- [x] 実走前に `session-retrospective` の停止をハードストップ化（main を先に修正 → export へ同型適用。B 案）
+- [x] `--runs 4` で2本を実走 → `session-retrospective` **4/4 PASS** / `knowledge-capture` **3/4（run1 FAIL）**
+- [x] agent output の tail を目視し、無出力 run が無いことを確認（全8 run で承認待ちの実体あり）
+- [x] FAIL への対応 — 本文の締めは尽くされているため、`ask` 権限による機械の別防御を追加（`decisions.md` に根拠と留保）
+- [x] ~~再実走~~ — 行わない。`ask` は `--permission-mode acceptEdits` のハーネスでは反映されない可能性が高く、測れないものに課金しない
+- [x] `validate_skills.py <worktree>/export/company/skills` が 10/10 PASS
+
+### 機械の別防御（FAIL 対応で追加）
+
+- [x] `.claude/settings.json` の `ask` に `Edit/Write(./CLAUDE.md)` `Edit/Write(./docs/knowledge/**)` を追加
+- [x] `export/company/claude-config/settings.example.json` にも同じ 4 行を追加（配布物側）
+- [x] `README.md` の settings.json 説明を更新（片側修正の禁止）
+- [x] `docs/starter-kit.md` 手順6 を更新（同上）
+- [x] `export/company/MANIFEST.md` 手順3 を更新（同上）
+
+## 2. Phase 2 — master の回帰シナリオ
+
+- [ ] Phase 1d の結果を踏まえてシナリオ設計方針を決める（破れ方が共通なら master 側にも反映する）
+- [ ] **各シナリオの判定可能性を先に確認する** — `build_sandbox()` は git init しないため、素通りの副作用がファイル変更として現れないものは判定できない
+- [ ] `tests/passthrough/impl-from-design/scenario.md` を作成
+- [ ] `tests/passthrough/debug/scenario.md` を作成
+- [ ] `tests/passthrough/adr/scenario.md` を作成
+- [ ] `tests/passthrough/frontend-code-review/scenario.md` — サンドボックスに `.git` が無く「空 diff」ではなく「git 不在」経路を踏むため、**成立可否を先に確認する。成立しなければこのシナリオは落とす**
+- [ ] ~~`tests/passthrough/feature-pipeline/scenario.md`~~ — **見送り**（Gate 3.5 の素通り＝マージで判定対象ファイルが変化せず常時 PASS になる）。ハーネス拡張を別タスクとして起票する
+- [ ] `--dry-run` で構造確認（無課金）
+- [ ] **課金前にコスト（最大 16 run）を提示して承認を得る**
+- [ ] `--runs 4` で実走
+- [ ] FAIL があれば該当 SKILL.md を修正。**再実走は再承認を取る**
+
+## 3. Phase 3 — 即効修正バンドル
+
+### `@` 常時ロードの解消（producer を止める）
+
+- [ ] `CLAUDE.md:49` の `@` を外し、50行目と同じ書式に統一する
+- [ ] `CLAUDE.md:43` の保存先の表「（@参照で読む）」を条件付き記述に修正（**producer**）
+- [ ] `.claude/skills/knowledge-capture/SKILL.md:214` の出力テンプレからデフォルトの `@` を外す（**producer**）
+- [ ] `.claude/skills/compound/SKILL.md:169` の「`@参照` にする」を条件付きに（**producer**）
+- [ ] `.claude/skills/rule-audit/SKILL.md:85, :172` の「`@参照` に置き換え」を条件付きに（**producer**。97行目の参照切れ検出は consumer なので変更しない）
+- [ ] `templates/SKILL.template.md` の冒頭に skill-design-patterns.md を読む手順を追加（`@` 除去で失われる導線の代替）
+- [ ] `grep -rn "@参照\|@docs/" --include="*.md" .claude/ CLAUDE.md` で producer が残っていないことを確認
+
+### その他
+
+- [ ] `.claude/skills/skill-test/SKILL.md:36, :48` を `--runs 4`（承認ゲート系）に修正し、コスト見積の文言も倍に直す
+- [ ] `package.json` に `validate` / `validate:portability` / `check:export` を追加
+- [ ] `scripts/check_deploy_drift.py` を argparse 化し、`--help` バグを解消する
+- [ ] argparse 化の前後で既存2経路（引数なしのレジストリ全件 / 配置先パス直指定）が動くことを確認
+- [ ] `scripts/validate_skills.py` に `--help` / `-h` で docstring を表示する分岐を足す（最小修正。全面 argparse 化はしない）
+- [ ] `validate_skills.py` の既存5経路（引数なし / `<dir>` / `--skill` / `--template` / `--purity` / `--portability`）が壊れていないことを確認
+- [ ] `.claude/skills/steering/SKILL.md` の status / resume に `.steering/` 不在時の動作を追記
+- [ ] `.claude/skills/frontend-code-review/SKILL.md` に `compatibility:` を追加
+- [ ] `.claude/skills/impl-from-design/SKILL.md` に `compatibility:` を追加
+- [ ] `README.md` の資産一覧に argparse 化・npm script を反映
+- [ ] 個別検証: `check_deploy_drift.py --help` が使用法を出す / `pnpm validate` が通る / `@` producer が grep で消えている
+- [ ] 無回帰: `validate_skills.py` 29/29 PASS・`--portability` 混入0件
+
+## 4. Phase 4 — 配布機構の初回実走と修復
+
+**前提**: 配置先プロジェクトが決まっていること（design.md 未解決の論点 1）。
+**撤退条件**: Phase 1〜3 完了時点で配置先が未定なら、Phase 4 を別タスクに分離して本タスクを閉じる。
+
+- [ ] 配置先プロジェクトを決める
+- [ ] 配布するスキルセットを決める（最小に限定せず**拡張セットも候補**とし、配布先の要件に合わせて選ぶ。`session-retrospective` は必須 — 還流の producer）
+- [ ] `deployments.md` のコメント行の実在しないパスを実態に修正する（記録の正確さ。機構の修復ではない）
+- [ ] `skill-deploy` を起動し、dry-run 提示まで進める
+- [ ] **dry-run の内容を確認し、承認してから配置を実行する**（リポジトリ外への書き込み）
+- [ ] 配置先に既存の settings.json がある場合、手動マージ案を確認して人がマージする
+- [ ] スモークテスト: 「どのスキルが使える？」で配置スキルが一覧に出る
+- [ ] スモークテスト: 小さなタスク依頼で design-doc が承認待ちで停止する
+- [ ] スモークテスト: 小さな diff に対してレビューが実行される（レビュー系を配置した場合）
+- [ ] スモークテスト: `head .env.local` が ask に落ちる（`cat .env` では検証にならない）
+- [ ] スモークテスト: **配置先の通常コマンド（依存インストール・テスト実行）が阻害されていない**（settings.json 新規作成時に deny が丸ごと入るため）
+- [ ] スモークテスト: 対話セッションを起動して信頼ダイアログを承認する
+- [ ] `check_deploy_drift.py` を実配置先に対して実行し、3分類 + hooks 差分 + skill-issues 収集が動くことを確認
+- [ ] `skill-harvest` を1周させ、還流レポートが出ることを確認（配置直後は差分ゼロが正常）
+- [ ] 実走で詰まった箇所を `docs/starter-kit.md` の手順に反映する
+- [ ] 同じ内容を `.claude/skills/skill-deploy/SKILL.md` に反映する（starter-kit と同一コミット）
+- [ ] `adr` で「配布機構を維持し実走で実証する」決定を起票する（却下案: 縮退B・還流系のみ撤去）
+- [ ] 既存 ADR 20260612 との関係（補足 / 改訂 / 独立）を `adr` の近縁検出結果を見て決める
+- [ ] `decisions.md` に「配置先 N 件を登録した」と記録する（`deployments.md` は git 追跡外のため証跡が残らない）
+- [ ] 無回帰: `validate_skills.py` 全 PASS・`--portability` 混入0件
+
+## 5. レビュー
+
+- [ ] コードレビューを実施する（スキル本文・スクリプト・ドキュメントの整合）
+- [ ] レビュー結果を `.steering/20260725-skillset-hardening/review-result.md` に記録する
+- [ ] 指摘の修正対応
+
+## 6. デプロイ
+
+- [ ] main へコミット（Phase 単位で分ける）
+- [ ] export worktree へ main をマージし、`export/company/` 側の整合を確認する
+- [ ] export ブランチでの運用ルール（`--all` を使わない・検査対象を明示指定）を `export/company/MANIFEST.md` に追記する
+- [ ] merge 時に `check:export`（差分ガード）を実行する運用を MANIFEST に書く
+
+## 7. 福利化・知見保存
+
+- [ ] `knowledge-capture` で知見を保存する
+- [ ] `compound` でルール・スキルへの昇格を検討する
+- [ ] 次タスクを起票する: (a) 構造改善（依存表・README セットアップ節・knowledge 剪定・ズレ検知）、(b) `passthrough_check.py` のハーネス拡張（`## setup` 節・git init）
+- [ ] `steering` の archive モードでこのタスクをアーカイブする

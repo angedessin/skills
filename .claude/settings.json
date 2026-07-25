@@ -17,7 +17,11 @@
       "Edit(./.claude/settings.local.json)",
       "Write(./.claude/settings.local.json)",
       "Edit(./.claude/hooks/**)",
-      "Write(./.claude/hooks/**)"
+      "Write(./.claude/hooks/**)",
+      "Edit(./CLAUDE.md)",
+      "Write(./CLAUDE.md)",
+      "Edit(./docs/knowledge/**)",
+      "Write(./docs/knowledge/**)"
     ],
     "deny": [
       "Bash(pnpm add *)",
