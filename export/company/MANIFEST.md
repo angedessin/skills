@@ -147,6 +147,13 @@
 - **スキルの改善は会社リポジトリで直接編集する**。skill-issues.md（session-retrospective が起票）は会社内の改善ループの入力として使う（マスターへの供給ではなく、会社内で完結する自己改善の材料）
 - **編集したら目印を残す**: 編集したスキルの frontmatter `metadata:` に `modified: "YYYY-MM-DD 変更概要"` を追記する。`source-commit` は消さない（持ち込み時点の基準として残す）
 - **マスターから再持ち込みする場合は丸ごと上書きしない**: `modified` の付いたスキルは会社側の変更を優先し、必要な差分だけ手動マージする（再持ち込みの予定が無ければこの 2 つは無視してよい — 持ち込み後は会社側で育てるのが既定）
+### このセットの検査を回すときの運用ルール（20260725 追加）
+
+- **素通り検査は `--all` を使わない。** `passthrough_check.py --all` の走査対象は `tests/passthrough/` 固定で、このセット専用のシナリオ（`export/company/tests/`）を**永久に拾わない**。さらにこのブランチには master 側の `.claude/skills/` と `tests/passthrough/` もそのまま存在するため、`--all` は**master のスキルを検査して PASS を返す**。持ち出しセットを 1 本も見ていないのに「検査済み」に見える
+- **シナリオは明示指定で回す**: `python3 scripts/passthrough_check.py export/company/tests/<skill>/scenario.md --runs 4`（承認ゲート系は 4 回以上）
+- **実行はこのブランチ（worktree）側の `scripts/` から行う**。スクリプトはルートを実行ファイルの位置から決めるため、main 側の `scripts/` を使うと `export/company/` を解決できない
+- **master をマージしたら停止契約の差分ガードを回す**: `python3 scripts/check_export_stopcontract.py`（引数なしで worktree を自動発見）。master 側の停止契約の改善が持ち出し側に伝播していない箇所が「実質差分」として出る。出力の件数をそのままシナリオ選定に使わず、差分の中身を見て判断する
+
 ### このセット（`export/company/`）自体の育成方針（2026-07-23 決定）
 
 上の 4 点は**配置後の会社コピー**の運用。ここは**このリポジトリで持つ持ち出しセットそのもの**を今後どう育てるか。
