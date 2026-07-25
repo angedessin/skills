@@ -32,9 +32,9 @@ Approved: 20260725
 - **Phase 1** — export セットの出荷前検証（数値不整合の修正・停止契約の差分ガード新設・export 専用シナリオ3本・12 run 実走）
 - **Phase 2** — master の回帰シナリオ追加と実走（判定可能なもののみ）
 - **Phase 3** — 即効修正バンドル（`@` 常時ロードの**producer ごと**解消・npm script・argparse 化・skill-test の実行回数・steering のフォールバック・compatibility 2本）
-- **Phase 4** — 配布機構の初回実走と修復（外部プロジェクト1件への配置・スモークテスト・ドリフト検出と還流の一周・実走で判明した不具合の反映・ADR 起票）
-
 ### 対象外
+
+- **Phase 4（配布機構の初回実走と修復）** — **20260725 に撤退条件を発動して別タスクへ切り出した**。design.md の撤退条件「Phase 1〜3 完了時点で配置先が未定なら Phase 4 を分離して本タスクを閉じる」に該当（Phase 1〜3 が完了した時点で配置先が未定だったため）。切り出す内容は下の「Phase 4 — 別タスクへ（内容は維持）」に残す
 
 - **構造改善（旧 Phase 5）** — starter-kit 依存表の網羅・README の**セットアップ節の新設**・`docs/knowledge/skill-design-patterns.md`（36.6KB）の剪定・ドキュメント↔実装のズレ機械検知。別タスクとして本タスク完了後に起票する。※ README の**資産一覧行**（`scripts/` の列挙・各スクリプトの役割説明）の更新は、片側修正を避けるため本タスクの Phase 1 / Phase 3 に含める
 - **`passthrough_check.py` のハーネス拡張**（サンドボックスでの `git init`・シナリオの `## setup` 節）— feature-pipeline の Gate 3.5 のような「外向き操作が副作用」の停止契約を判定するには必要だが、本タスクの範囲を超える。別タスクに切り出す
@@ -65,10 +65,7 @@ Approved: 20260725
 - [ ] `grep -rn "@参照\|@docs/" --include="*.md" .claude/ CLAUDE.md` の結果に、`@` を**書けと指示する producer** が残っていない（consumer である参照切れ検出は残ってよい）
 - [ ] `.claude/skills/skill-test/SKILL.md` が承認ゲート系に `--runs 4` を指定している
 - [ ] `python3 scripts/check_deploy_drift.py --help` が使用法を表示する（配置先パスとして解釈しない）
-- [ ] 外部プロジェクト1件への配置が `skill-deploy` 経由で完了し、starter-kit 手順8のスモークテストが全項目 PASS
-- [ ] `deployments.md` に実エントリが1件以上あり、`check_deploy_drift.py` が実配置先に対して正常動作する
-- [ ] 実走で判明した不具合が `starter-kit.md` / `skill-deploy` / スクリプトに反映されている
-- [ ] 配布機構を維持する判断が ADR として起票されている（既存 ADR 20260612 との関係を明示）
+※ 以下の 4 項目は Phase 4 の切り出しに伴い**本タスクの完了条件から外した**（別タスクへ移送）: 外部プロジェクトへの配置とスモークテスト / `deployments.md` の実エントリと `check_deploy_drift.py` の動作確認 / 実走で判明した不具合の反映 / 配布機構を維持する判断の ADR 起票。
 
 ### 無回帰条件（着手前から満たされている。壊していないことの確認）
 
@@ -141,9 +138,10 @@ Approved: 20260725
 | `.claude/skills/frontend-code-review/SKILL.md` / `impl-from-design/SKILL.md` | frontmatter に `compatibility:` を追加。**選定基準**: 本文にスタック前提の判断軸・コード例を持つもの（実測で本文のスタック固有語が29件 / 9件）。他の未設定15本は判断軸がスタック中立と判断し対象外 |
 | `README.md` | 資産一覧の `scripts/` 説明に argparse 化・npm script を反映 |
 
-### Phase 4 — 配布機構の初回実走と修復
+### Phase 4 — 別タスクへ（内容は維持）
 
-**撤退条件**: Phase 1〜3 完了時点で配置先が未定なら、Phase 4 を別タスクに分離して本タスクを閉じる（アクティブタスクが `.steering/` に居座ると以後の全セッションのコンテキストコストになるため）。
+**20260725 に撤退条件を発動して切り出した。以下は次タスクの設計材料としてそのまま残す。**
+（撤退条件: Phase 1〜3 完了時点で配置先が未定なら分離して本タスクを閉じる。アクティブタスクが `.steering/` に居座ると以後の全セッションのコンテキストコストになるため）
 
 | 対象 | 内容（変更後の状態） |
 |---|---|

@@ -59,8 +59,15 @@ GENERALIZE = (
     ("マスター", ""),
     ("プルリクエスト", "MR"),
     ("プルリク", "MR"),
-    ("PR", "MR"),
     ("パイプライン", "CI"),
+)
+
+# 語境界が要る言い換え。"PR" を無条件の部分文字列置換にすると `APPROVED` を
+# `APMROVED` に壊す（"APPROVED" の index 2-3 が "PR"）。APPROVED はこのリポジトリの
+# 契約値（design.md の Status・impl-from-design の前提チェックが照合する値）なので、
+# 正規化後の文字列に依存する処理を足した時点で事故になる。
+GENERALIZE_RE = (
+    (re.compile(r"(?<![A-Za-z])PR(?![A-Za-z])"), "MR"),
 )
 
 # スタック語（Angular 変換で入れ替わる。停止契約の強さには影響しない）
@@ -101,6 +108,8 @@ def normalize(line: str, nonbundled: set[str]) -> str:
         s = s.replace(f"`{n}`", "").replace(n, "")
     for a, b in GENERALIZE:
         s = s.replace(a, b)
+    for pat, b in GENERALIZE_RE:
+        s = pat.sub(b, s)
     for w in STACK_WORDS:
         s = s.replace(w, "")
     # 記号・空白・強調の揺れを吸収する（語順と語そのものだけを見る）
