@@ -149,7 +149,7 @@ design.md の「主要コンポーネント」は**暫定**。実装に入る前
 ## 7. 福利化・知見保存
 
 - [x] `knowledge-capture` で知見を保存する（案1〜4 を docs/knowledge/ へ書き込み。案5 は compound へ申し送り = skill-issues.md に起票）
-- [ ] `compound` でルール・スキルへの昇格を検討する
+- [x] `compound` でルール・スキルへの昇格を検討する（5 件昇格。`codify-log.md` に記録）
 - [ ] 次タスクを起票する:
   - **(a) レビュー積み残しの解消（最優先）** — 先頭に「hook の実効性確認（要セッション再起動）」。以下 `review-result.md` の DEFERRED 分: `validate_skills.py` の未知フラグ Traceback / `--verbose` の仕様不一致 / `[:120]` 切り詰めで差分が読めない / 非同梱スキル名の語境界 / `read_body()` の型注釈 / `.test.tsx` の `STACK_WORDS` 欠落 / `--master` 不在時の誤誘導文言 / 配布物の `docs/decisions/` ask 欠落 / global CLAUDE.md と `.claude/skills/**` が ask の射程外
   - **(b) 配布機構の初回実走** — Phase 4 の切り出し。配置先が決まってから。上の 4. の項目がそのまま内容
