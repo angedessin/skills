@@ -152,9 +152,27 @@ def expected_hooks(skills: list[str] | set[str]) -> list[str]:
     check_deploy_drift.py がこの関数を import して「配るべきなのに配置先に無い hook」を
     検出する。**同送リストの単一情報源** — ここを直せば配置側と検出側が同時に追随する
     （両者に同じリストを書くと片側修正で腐る。20260723 の敵対レビューで実際に起きた系統）。
+
+    **新しい hook を .claude/hooks/ に追加したら、ここに載せるか master-only かをその場で決める。**
+    ここに入れ忘れると、配置先に配られないうえ check_deploy_drift.py も「不足なし」の緑を出す
+    （検出側がこのリストを正としているため）。20260725 に新設した guard-gated-write.sh が
+    まさにこれで漏れ、20260726 まで気づかれなかった。
+
+    master-only（意図的に同送しない）hook:
+      remind-config-docs.sh — 注入する本文がマスターの docs/knowledge/ のパスと内容に依存する。
+                              配置先には該当ファイルが無く、死んだ参照を注入することになる。
+      validate-skill-edit.sh — scripts/validate_skills.py に依存する。配置先にスクリプトが
+                              無いためフェイルオープンで素通りし、置いても効かない。
     """
-    # 品質ゲート 2 本 + env ガードはフェイルオープン / 自己完結なので常に同送する
-    send = ["guard-env-read.sh", "post-edit-lint.sh", "stop-typecheck.sh"]
+    # 品質ゲート 2 本 + 書き込みガード 2 本はフェイルオープン / 自己完結なので常に同送する。
+    # guard-gated-write.sh は permissions.ask（Edit/Write 限定）が Bash のリダイレクトで
+    # 迂回されるのを塞ぐ。ask と対でなければ防波堤にならないため、ask を配る配置先には必ず要る。
+    send = [
+        "guard-env-read.sh",
+        "guard-gated-write.sh",
+        "post-edit-lint.sh",
+        "stop-typecheck.sh",
+    ]
     skills = set(skills)
     if "knowledge-capture" in skills:
         send.append("session-stop.sh")  # .capture-needed を立てる hook。スキル無しで送ると実行不能指示になる
