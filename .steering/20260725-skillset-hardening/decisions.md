@@ -153,3 +153,34 @@
 **`@` producer の仕分け** — design.md の表と**完全一致**（漏れなし）。修正対象は producer 5箇所（`CLAUDE.md:43,49` / `knowledge-capture:214` / `compound:169` / `rule-audit:85,172`）。変更しない consumer / 事実記述は `CLAUDE.md:50`（正例）・`rule-audit:41,56,97`・`knowledge-capture:83`（既に条件付き・表記のみ揃える）・`docs/decisions/20260715-*`（履歴）・`claude-code-config.md:74,76`（知識本体）・`skill-design-patterns.md:149`（履歴）。
 
 **export のスキル数** — 実際に直すのは `HANDOVER.md:9`（「9 個」）の**1箇所のみ**。`MANIFEST.md` の「9」は全て provenance（`:6,:14` — debug 以外の9本が同一 source-commit）または日付付き履歴（`:4,:11,:54`）で、記述として正しい。`MIGRATION-GUIDE.md` は全箇所 10 で整合済み。
+
+---
+
+## 20260725 — 次タスクのバックログ（`.steering/` は着手時に作る）
+
+**決定**: 後続 4 件を `.steering/` のアクティブタスクとして今作らず、ここにバックログとして記録する。着手するときに `design-doc` でディレクトリを作る。
+
+**理由**: アクティブタスクは SessionStart hook が毎セッション context に注入する。4 件同時に置くと、着手していないタスクの読み込みコストを全セッションが払う。本タスクで Phase 4 を切り出した理由（アクティブタスクの居座りがコンテキストコストになる）と同じ判断を、後続にも適用する。
+
+**却下した案**: 4 件それぞれに `.steering/` を作る — 起票の可視性は上がるが、上記のコストを常時払う。バックログを 1 件のアクティブタスクにまとめる案も、実体のないタスクが常時アクティブになる点で同じ問題を持つ。
+
+### (a) レビュー積み残しの解消 — **最優先**
+
+先頭に置くのは **hook の実効性確認**（要セッション再起動）。これが否定されると Phase 1・2 の「機械の別防御を足した」という結論が撤回対象になる。
+
+- `echo test > docs/decisions/_probe.md` で `guard-gated-write.sh` が確認を出すか
+- 出ない場合、PreToolUse hook がセッション中の追加で効かない件（原因未解明・`claude-code-config.md` に記録済み）を切り分ける
+- 以下 `review-result.md` の DEFERRED 分: `validate_skills.py` の未知フラグ Traceback / `check_export_stopcontract.py` の `--verbose` 仕様不一致・`[:120]` 切り詰めで差分が読めない・非同梱スキル名の語境界・`read_body()` の型注釈・`.test.tsx` の `STACK_WORDS` 欠落・`--master` 不在時の誤誘導文言 / 配布物の `docs/decisions/` ask 欠落 / global CLAUDE.md と `.claude/skills/**` が ask の射程外
+- あわせて `remind-config-docs.sh` の**効果**（注入された内容を実際に守るか）を観察する。効かなければ hook を外す（増やしたまま放置しない）
+
+### (b) 配布機構の初回実走
+
+Phase 4 の切り出し。配置先が決まってから。内容は本タスクの `tasklist.md` セクション 4 がそのまま使える。
+
+### (c) 構造改善
+
+starter-kit の依存表の網羅 / README のマスター自体のセットアップ節 / `skill-design-patterns.md` の剪定（本タスクで 36.6KB → 41KB に増えた。`rule-audit` の対象）/ ドキュメント↔実装のズレ機械検知。
+
+### (d) `passthrough_check.py` のハーネス拡張
+
+シナリオに `## setup` 節（`git init` 等）を追加し、`feature-pipeline` の Gate 3.5 のような「外向き操作が副作用」の停止契約を判定可能にする。現状は判定対象ファイルが変化せず常時 PASS になるため、シナリオを作れない。
