@@ -33,12 +33,14 @@ PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null)
 [ -z "$PROJECT_ROOT" ] && exit 0
 
 case "$FILE" in
-  */.claude/skills/*/SKILL.md) MODE=skill ;;
-  */templates/SKILL.template.md) MODE=template ;;
-  */.claude/hooks/*.sh) MODE=assets ;;
+  "$PROJECT_ROOT"/.claude/skills/*/SKILL.md) MODE=skill ;;
+  "$PROJECT_ROOT/templates/SKILL.template.md") MODE=template ;;
+  "$PROJECT_ROOT"/.claude/hooks/*.sh) MODE=assets ;;
+  "$PROJECT_ROOT/.claude/settings.json") MODE=assets ;;
   "$PROJECT_ROOT/README.md") MODE=assets ;;
   "$PROJECT_ROOT/docs/starter-kit.md") MODE=assets ;;
   "$PROJECT_ROOT/scripts/deploy_skills.py") MODE=assets ;;
+  "$PROJECT_ROOT/scripts/check_asset_consistency.py") MODE=assets ;;
   *) exit 0 ;;
 esac
 
@@ -48,13 +50,22 @@ if [ "$MODE" = assets ]; then
   [ -f "$CHECKER" ] || exit 0
   out=$(python3 "$CHECKER" 2>&1)
   rc=$?
-  # exit 2 は対象不在（worktree が無い等）。片側修正の検出ではないので差し戻さない
-  # — ここで止めると、持ち出しセットを持たない環境で全編集がブロックされる
   [ "$rc" -eq 0 ] && exit 0
-  [ "$rc" -ne 1 ] && exit 0
+  if [ "$rc" -eq 1 ]; then
+    {
+      echo "Asset consistency check failed (scripts/check_asset_consistency.py)."
+      echo "同じ情報を持つ別の箇所が追随していません。片側だけ直して終わらせないでください:"
+      printf '%s\n' "$out"
+    } >&2
+    exit 2
+  fi
+  # rc=2 は走査の前提そのものが崩れている（settings.json が壊れている等）。
+  # **無言で捨てない** — 持ち出しセット不在はスクリプト側で SKIP に降格したので、
+  # ここに来るのは本当の異常だけ。以前は「1 以外は素通し」にしていたため、
+  # 対象不在の exit 2 が他の契約の FAIL を握りつぶして hook が恒久的に無音になっていた。
   {
-    echo "Asset consistency check failed (scripts/check_asset_consistency.py)."
-    echo "同じ情報を持つ別の箇所が追随していません。片側だけ直して終わらせないでください:"
+    echo "Asset consistency check could not run (scripts/check_asset_consistency.py, exit $rc)."
+    echo "契約違反ではなく、走査の前提が崩れています。先にこれを直してください:"
     printf '%s\n' "$out"
   } >&2
   exit 2
