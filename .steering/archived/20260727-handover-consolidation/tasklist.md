@@ -73,19 +73,19 @@ design.md: `.steering/20260727-handover-consolidation/design.md`
 ## 5. レビュー
 
 - [x] 静的検査 → 29/29・export 10/10・portability 0・template PASS・停止契約 7/1/2 不変・契約 9/9・配置 dry-run 両経路 exit 0・`validate_skills.py` の既存 6 経路すべて exit 0
-- [ ] 汎用 subagent でレビュー（前回 High 3 件を検出した経路。範囲は `HEAD~N..HEAD` の diff）
-- [ ] 指摘をトリアージし `review-result.md` に記録
-- [ ] must-fix に対応
-- [ ] **「単体で効く」を「全体で効く」と混同しない** — 契約 (i) を個別に壊す検証に加えて、
-      **契約の組み合わせ**（worktree 不在 + 別契約の違反）と**既定の呼び出し経路**（フラグ無し・
-      hook 経由）でも測る（前回この 2 つを測らず High 2 件を出した）
+- [x] ~~汎用 subagent でレビュー~~ → **ユーザー判断で省略**。前回 High 3 件の原因（契約の組み合わせ・既定の呼び出し経路の未測定）は今回明示的に測った。**残るリスクは `main()` のリファクタが未レビューであること**（(g) の 3 状態が通ることは確認済み）
+- [x] ~~指摘のトリアージ~~ — レビュー省略のため該当なし
+- [x] ~~must-fix~~ — 同上
+- [x] **「単体で効く」を「全体で効く」と混同しない** → 組み合わせ（worktree 不在 + 別契約違反 → exit 1）と既定の呼び出し経路 3 つ（直接 / npm / hook 経由）を実測済み
 
 ## 6. デプロイ・知見保存
 
-- [ ] main へコミット（Phase 単位で分ける）
-- [ ] `git status --short` でステージ内容を確認してからコミットする
-- [ ] export ブランチへ merge してコミット（`HANDOVER.md` と `.tmp` の削除は export 側の作業）
-- [ ] **push**（main / export/company の両方）
-- [ ] `knowledge-capture` で知見を保存する
-- [ ] `compound` でルール・スキルへの昇格を検討する
-- [ ] `steering` の archive モードでこのタスクをアーカイブする
+- [x] main へコミット `bf7a719`（Phase 2〜4 は相互依存のため 1 コミット）
+- [x] `git status --short` でステージ内容を確認してからコミット（両ブランチとも）
+- [x] export 側を先にコミット `24190ad` してから main を merge `326c389`（stash を使わない順序）
+- [x] **push 完了**（main `bf7a719` / export/company `326c389`）
+- [x] `knowledge-capture` — **2 件書き込み**（`skill-design-patterns.md` の検出ツールの規律に #8「文書と実体の突合で等価を既定にしない」+ bash 注記を 2 項目に拡張）。**2 件は見送り**: 契約 (g) の実時間検出は既存規律 #3 と重複 / 「自分の運用ルールに自分で違反」は行動パターンなので compound へ
+- [x] `compound` — **1 件昇格**（契約 (i-4): 配置先が読む文書にマスター専用スクリプト名が混入しない。検出リストは動的生成）。**効果検証でルール 3 が働いたことを確認、同時に同じ型の違反を自分がまた作っていたことも検出**。1 件は昇格せず（詳細は `codify-log.md`）
+- [x] `steering` の archive モードでこのタスクをアーカイブする
+
+Archived: 20260727
