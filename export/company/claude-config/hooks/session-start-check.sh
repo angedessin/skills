@@ -64,10 +64,14 @@ fi
 
 # JSON 文字列本体へのエスケープ（囲みの " は付けない）:
 # \ と " をエスケープし、タブと改行を \t / \n に畳む。
+# **改行の畳み込みは移植形の `$!{N;ba}` を使う。** よくある `:a;N;$!ba;s/\n/\\n/g` は
+# **BSD sed（macOS）で入力が 1 行のとき何も出力しない**（N が EOF で打ち切る）。
+# 従来は msg が「見出し + 項目」で必ず 2 行以上だったため到達しなかったが、1 行だけの
+# 通知を足した瞬間に空の additionalContext を注入する（= 静かに何も伝えない）状態になる。
 json_escape() {
   printf '%s' "$1" \
     | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/	/\\t/g' \
-    | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\n/g'
+    | sed -e ':a' -e '$!{N;ba' -e '}' -e 's/\n/\\n/g'
 }
 
 printf '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"%s"}}\n' \
