@@ -85,10 +85,13 @@
    - **npm プロジェクト**では `pnpm test` → `npm test --`、`pnpm run X` → `npm run X --`、`pnpm exec <bin>` → `npx <bin>` に置き換える。**npx は対象が未導入だとレジストリ取得 → 即実行が走る**ため、ローカル導入済みバイナリの実行にのみ使い、`.npmrc` に `ignore-scripts=true` を設定する（手順 6 参照）
 5. **CLAUDE.md に発動ポリシー節を作る** — 下の雛形から。雛形は最小セット前提なので、他のセット構成では各スキルの description の発動フレーズを元に 1 行ずつ書き換える。行動ルールは配置先で育てる（マスターの CLAUDE.md を丸ごとコピーしない）
 6. **ガードレールも同送する（サプライチェーン対策）** — スキルだけコピーすると、references が指示する `npx` 実行等に対する防御が配置先に存在しない状態になる:
-   - マスターの `.claude/settings.json` から **permissions（allow / ask / deny）セクション**を配置先の settings.json に取り込む（パッケージインストール deny・npx / rm -r の ask・env / 鍵ファイルの Read deny・ガードレール自己改変の ask・**`CLAUDE.md` と `docs/knowledge/**` への書き込みの ask**）
-   - **`CLAUDE.md` / `docs/knowledge/**` の ask は knowledge-capture・compound を配置する場合に特に重要**。これらのスキルは本文のハードストップで「承認前に書き込まない」を担保しているが、締めを尽くした状態でも承認前の書き込みが 1/4 の頻度で再現した実測がある。ask はその最後の防波堤で、承認制という方針そのものは配置先の CLAUDE.md でも宣言しておく
-   - 配置先に**既存の settings.json / permissions がある場合は手動マージ**する（丸ごと上書きしない）。方針: マスター由来の deny / ask は削らずに追加する。既存の allow とマスターの deny が同じ操作で衝突したら **deny を優先**（安全側に倒す。緩めたい場合は配置先の判断で個別に外す）
+   - **permissions は「マスターの settings.json をそのままコピー」ではない。** `deploy_skills.py` の `DEPLOY_PERMISSIONS`（配布用サブセット）を取り込む（npx / rm -r / git push の ask・自動インストールを伴う実行（`npx -y` / dlx / bunx）の deny・env / 鍵ファイルの Read deny・ガードレール自己改変の ask・**`CLAUDE.md` / `docs/knowledge/**` / `docs/decisions/**` への書き込みの ask**）
+   - **配らないものがある**（`MASTER_ONLY_PERMISSIONS`）: パッケージインストールの deny（`npm install` / `pnpm add` 等）は「マスターは依存を増やさない」という**このリポジトリ固有の方針**であり、配置先に配ると**配置直後から依存インストールが全部拒否される**。`~/.claude/CLAUDE.md` の ask も配置先を超えたグローバルな副作用になるため配らない
+   - **配布サブセットはベースラインであって最終形ではない。** 最終的なセキュリティルールは**配布先に依存する**。`skill-deploy` の dry-run 提示の段階で、配置先の事情（社内方針・CI の制約・使っているパッケージマネージャ）に合わせて調整する
+   - **`CLAUDE.md` / `docs/knowledge/**` / `docs/decisions/**` の ask は knowledge-capture・compound・rule-audit を配置する場合に特に重要**。これらのスキルは本文のハードストップで「承認前に書き込まない」を担保しているが、締めを尽くした状態でも承認前の書き込みが 1/4 の頻度で再現した実測がある。ask はその最後の防波堤で、承認制という方針そのものは配置先の CLAUDE.md でも宣言しておく。**ディレクトリ配下は `*` / `**` / `**/*` の 3 形式を並べる**（単一形式では直下のファイルを取りこぼす）
+   - 配置先に**既存の settings.json / permissions がある場合は手動マージ**する（丸ごと上書きしない）。方針: **配布サブセット由来**の deny / ask は削らずに追加する。既存の allow と配布サブセットの deny が同じ操作で衝突したら **deny を優先**（安全側に倒す。緩めたい場合は配置先の判断で個別に外す）
    - `.claude/hooks/guard-env-read.sh` をコピーし、settings.json の `hooks.PreToolUse` 登録も移す（deny の前置一致では防げない .env 読み取りの迂回を全文検査で ask に落とす）
+   - **`.claude/hooks/guard-gated-write.sh` もコピーする**（`hooks.PreToolUse` 登録も移す）。permissions の ask は **Edit / Write ツールにしか掛からない**ため、`Bash(git show*)` のような前置一致 allow があると `git show HEAD:x > CLAUDE.md` で迂回できる。**ask と対でなければ防波堤にならない**ので、上の ask を配る配置先には必ず要る。対象は書き込み（`>` / `>>` / `tee`）のみで、`rm` による削除は非対象
    - **品質ゲート 2 本も同送する**: `post-edit-lint.sh`（編集ごとの lint 差し戻し。Biome / ESLint / Stylelint を実行時に自動検出）と `stop-typecheck.sh`（終了宣言時の tsc）。settings.json の `hooks.PostToolUse` / `hooks.Stop` 登録も移す。両方**フェイルオープン**（lint 設定・tsconfig.json が無いプロジェクトでは素通し）なのでスタックを問わず配ってよい。詳細・調整（tsc が遅い場合の外し方等）は docs/knowledge/claude-code-config.md
    - hooks のコマンド登録は `"$CLAUDE_PROJECT_DIR"` 起点の相対参照なので、`.claude/hooks/` に同じ配置でコピーすれば**パスの書き換えは不要**
    - `session-stop.sh`（Stop hook）は **knowledge-capture を配置する場合のみ**コピーする（settings.json の `hooks.Stop` 登録も同時に移す）。この hook が立てる `.capture-needed` は knowledge-capture の起動を促すフラグなので、未配置のまま同送すると「存在しないスキルの実行を促す」実行不能な指示になる
@@ -101,7 +104,9 @@
    - 「どのスキルが使える？」→ 配置したスキルが一覧に出る（出ない場合は配置パス・frontmatter の破損を疑う）
    - design-doc 配置時: 小さなタスク（例:「◯◯ボタンを追加したい」）を投げ、設計の提示後に**承認待ちで停止する**こと（勝手に実装が始まったら FAIL — 配置先で直さず、事象をマスターの `skill-issues.md` 経路で報告する）
    - frontend-code-review 配置時: 小さな diff に「コードをレビューして」→ レビューが実行され指摘（または指摘なしの報告）が返ること
-   - hooks / permissions 同送時: `.env` の読み取りを依頼して guard-env-read.sh が確認（ask）に落とすこと
+   - hooks / permissions 同送時: **`head .env.local`** の実行を依頼して guard-env-read.sh が確認（ask）に落とすこと。**`cat .env` では検証にならない**（permissions の deny だけで止まるため、hook が動いていなくても同じ結果になる）
+   - hooks / permissions 同送時: **配置先の通常コマンドが阻害されていないこと** — 依存インストール（`npm install` 等）とテスト実行を試し、拒否されないことを確認する。配置先に settings.json が無い場合は配布サブセットが丸ごと新規作成されるため、ここが壊れていると「なぜか依存インストールができない」原因不明の摩擦になる
+   - **PreToolUse hook（guard-env-read / guard-gated-write）は配置したセッション中に発火しないことがある。** 効いているかの確認は Claude Code を再起動してから行う。**ask の発火は AI 側から観測できないので、確認は人間が行う**
 
 ## ドリフト確認と改善の還元
 
