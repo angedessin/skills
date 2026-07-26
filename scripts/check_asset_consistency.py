@@ -34,6 +34,10 @@
         「配布してはいけないスキルが配布可能になる」に直結する
   (g) 持ち出しセットの hooks が、既知の変換規則で説明できない差分を持たない
       → master が塞いだ防御の欠陥が配布物側で開いたままになるのを検出
+  (i) 持ち出しセットの 3 文書（HANDOVER / MANIFEST / MIGRATION-GUIDE）の記述が実体と一致
+      → 員数（実体の数が各文書に 1 回は現れるか）・同梱スキル名の記載漏れ・
+        実在しない hook への参照を検出。20260723 に「skills/ 9 個」と書いたまま実体が
+        10 個だったズレが起きており、20260726 の突合は**手作業**だった（契約化していなかった）
 
 契約 (c)(d) が「集合比較」なのは書式非依存にするため。README のツリーを構文解析すると
 書式変更で壊れる。全文から *.sh を拾って集合で比べれば、ツリーに書こうが散文に書こうが拾える。
@@ -368,6 +372,92 @@ def contract_h() -> tuple[str, list[str]]:
     return PASS, [f"master-only スキル {len(d_only)} 件が両ファイルで一致"]
 
 
+EXPORT_DOCS = ("HANDOVER.md", "MANIFEST.md", "MIGRATION-GUIDE.md")
+SKILL_COUNT_RE = re.compile(r"(\d+)\s*(?:スキル|個|ディレクトリ)")
+HOOK_COUNT_RE = re.compile(r"(\d+)\s*本")
+
+
+def contract_i(require_export: bool) -> tuple[str, list[str], list[str]]:
+    """持ち出しセットの 3 文書の記述が実体と一致しているか。
+
+    20260723 に `HANDOVER.md` が「skills/ 9 個」と書いたまま実体は 10 個だった、という
+    ズレが起きている。20260726 の出荷前検証ではこれを**手作業で突合して「齟齬なし」と
+    報告した**が契約として encode しなかったため、次回以降は誰も見ない状態だった
+    （同セッションで CLAUDE.md に昇格させた規律の適用対象そのもの）。
+
+    **員数は「実体の数が各文書に少なくとも 1 回現れるか」で見る。** 「文書が主張する数が
+    すべて実体と一致するか」にすると誤検知だらけになる — 実測で MANIFEST は履歴節に
+    「レビュー系 8 スキル」「9 スキルに縮小していた」を持ち、MIGRATION-GUIDE も過去の数値を
+    含む。これらは正しい記述であって違反ではない。一方、スキルを増減して文書を直し忘れると
+    「実体の数がどこにも書かれていない」状態になるので、この向きなら誤検知ゼロで検出できる。
+
+    **文書本文の意味的整合は見ない**（手順の食い違い等）。員数と名前だけを機械で見る。
+    """
+    dirs = discover_export_hook_dirs()
+    if not dirs:
+        msg = (
+            "持ち出しセットが見つからない（export/*/claude-config/hooks）。"
+            " 別ブランチの worktree にしか存在しないため、この環境では検査できない"
+        )
+        if require_export:
+            return FAIL, [msg + "（--require-export 指定のため FAIL）"], []
+        return SKIP, [msg, "→ 必須にしたい場合は --require-export を付ける"], []
+
+    details: list[str] = []
+    checked = 0
+    master_hooks = actual_hooks()
+    master_skills = {p.name for p in (MASTER_ROOT / ".claude" / "skills").iterdir() if p.is_dir()}
+    for hooks_dir in dirs:
+        root = hooks_dir.parent.parent
+        label = root.name
+        skills_dir = root / "skills"
+        if not skills_dir.is_dir():
+            details.append(f"{label}: skills/ が無い（走査の前提が崩れている）")
+            continue
+        skills = {p.name for p in skills_dir.iterdir() if p.is_dir()}
+        hooks = {p.name for p in hooks_dir.glob("*.sh")}
+
+        texts: dict[str, str] = {}
+        for name in EXPORT_DOCS:
+            path = root / name
+            if not path.is_file():
+                details.append(f"{label}: {name} が無い")
+                continue
+            texts[name] = path.read_text(encoding="utf-8")
+        if not texts:
+            continue
+        checked += 1
+
+        # (i-1) 実体の員数が各文書に少なくとも 1 回現れる
+        for name, text in texts.items():
+            if str(len(skills)) not in SKILL_COUNT_RE.findall(text):
+                details.append(
+                    f"{label}/{name}: 実体のスキル数 {len(skills)} がどこにも書かれていない"
+                    f"（文書が主張する数: {sorted(set(SKILL_COUNT_RE.findall(text))) or 'なし'}）"
+                )
+            if str(len(hooks)) not in HOOK_COUNT_RE.findall(text):
+                details.append(
+                    f"{label}/{name}: 実体の hook 数 {len(hooks)} がどこにも書かれていない"
+                    f"（文書が主張する数: {sorted(set(HOOK_COUNT_RE.findall(text))) or 'なし'}）"
+                )
+
+        # (i-2) 同梱スキルが 3 文書のどこかに名前で登場する
+        alltext = "\n".join(texts.values())
+        for s in sorted(skills):
+            if not re.search(rf"(?<![A-Za-z0-9-]){re.escape(s)}(?![A-Za-z0-9-])", alltext):
+                details.append(f"{label}: 同梱スキル {s} が 3 文書のどこにも記載されていない")
+
+        # (i-3) 文書に現れる *.sh が配布物かマスターに実在する
+        #       （配布物に無い名前でも、マスターにあれば「意図的に同送しない理由の説明」として正当）
+        for sh in sorted(set(SH_RE.findall(alltext))):
+            if sh not in hooks and sh not in master_hooks:
+                details.append(f"{label}: 文書が参照する {sh} がマスターにも配布物にも実在しない")
+
+    if details:
+        return FAIL, details, []
+    return PASS, [f"配布物 {checked} セットの 3 文書が員数・スキル名・hook 名で実体と一致"], []
+
+
 def contract_g(require_export: bool) -> tuple[str, list[str], list[str]]:
     """持ち出しセットの hooks 突合。(status, details, warns) を返す。"""
     dirs = discover_export_hook_dirs()
@@ -469,23 +559,30 @@ def main() -> None:
             for d in details:
                 print(f"      {d}")
 
-    status, details, w = contract_g(args.require_export)
-    warns.extend(w)
-    print(f"{status}  (g) 配布物 hooks に未説明の差分が無い")
-    if status == FAIL:
-        failed += 1
-    if status == SKIP:
-        skipped += 1
-    if status in (FAIL, SKIP) or args.verbose:
-        for d in details:
-            print(f"      {d}")
+    # 持ち出しセットに依存する契約。対象不在で SKIP を返せるので呼び出し方が上と違う
+    # （SKIP を「他契約の FAIL を握りつぶす exit 2」にしないための分離）。
+    export_contracts = [
+        ("(g) 配布物 hooks に未説明の差分が無い", contract_g),
+        ("(i) 配布物 3 文書の記述が実体と一致", contract_i),
+    ]
+    for label, efn in export_contracts:
+        status, details, w = efn(args.require_export)
+        warns.extend(w)
+        print(f"{status}  {label}")
+        if status == FAIL:
+            failed += 1
+        if status == SKIP:
+            skipped += 1
+        if status in (FAIL, SKIP) or args.verbose:
+            for d in details:
+                print(f"      {d}")
 
     # WARN は **--verbose の有無に関わらず必ず出す。** 以前は PASS 時に隠れており、
     # 「配布物から防御 hook が丸ごと欠けても既定実行が完全な緑を返す」状態だった。
     for w_ in warns:
         print(f"WARN  {w_}")
 
-    total = len(contracts) + 1
+    total = len(contracts) + len(export_contracts)
     print()
     if failed:
         print(f"{total - failed}/{total} PASS — {failed} 件の契約違反")
