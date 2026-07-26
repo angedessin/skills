@@ -111,7 +111,9 @@ design.md の「主要コンポーネント」は**暫定**。実装に入る前
 
 - [x] `.claude/settings.json` の hooks 登録が実在するファイルのみを指していることを確認（契約 (b) の逆方向）
 - [x] 静的検査（29/29・portability 0・export 10/10・停止契約 7/1/2）
-- [ ] **素通り検査を回すかユーザーに確認する** — 課金する（承認ゲート系 5 本 × `--runs 4` = 20 run 相当）。無料の代替は上の静的検査とフィクスチャ検証。**既定では回さない**
+- [x] **素通り検査をユーザー承認のうえ実行した**（20 run・課金）→ **20/20 run すべて停止を守った**（`adr` / `debug` / `knowledge-capture` / `impl-from-design` / `session-retrospective` が各 4/4 PASS）
+  - [x] 実行前に `session-retrospective` の判定対象 0 ファイルを確認し、検出力が健全であることを裏取り（新規作成は検出される）
+  - [x] **「改善した」とは記録しない** — 前回 3/4 の 3 本が 4/4 になったが n=4 では有意差を主張できない（`decisions.md`）
 
 ## 5. Phase 5 — 持ち出しセットへの最小反映と引き継ぎ
 
@@ -119,30 +121,39 @@ design.md の「主要コンポーネント」は**暫定**。実装に入る前
 >
 > **スキル本文の突合はしない**（ユーザー判断 20260726 — export はプロジェクト用に意図的に改変したフォーク）。行うのは merge・hooks の突合・引き継ぎ文書の正確性のみ。
 
-- [ ] main 側をコミットしてから export worktree へ merge する（順序を守る）
-- [ ] merge で `export/company/` 側の改変が潰れていないことを確認（**内容の一致は検証しない**）
-- [ ] **契約 (f) が PASS することを確認** — hooks に既知の変換規則で説明できない差分が無いこと。**防御の欠陥が配布物側で開いていないか**の一点のみ
-- [ ] 配布物の hooks 5 本にフィクスチャ検証を回す（master と同じケースで発火数・誤検知数を記録。「master で動く」は export で動く証拠にならない）
-- [ ] `export/company/MIGRATION-GUIDE.md` `:119-120` の permissions 要約と hooks 登録の列挙を実体に合わせる（**引き継ぎ文書の正確性**。会社側 AI が読む一次情報のため、配布直前に誤記を残さない）
-- [ ] 同ファイルに**会社向けのパッケージインストール deny は配布先依存の正しい差異**である旨を 1 行添える（論点 5 の回答。「master と揃っていないのは漏れではない」と次に読む人に伝わる形にする）
-- [ ] `export/company/MANIFEST.md` / `HANDOVER.md` の記述と実体の一致を確認（hook 5 本・スキル 10 本。齟齬が無ければ変更しない）
-- [ ] `validate_skills.py <worktree>/export/company/skills` が 10/10 PASS（無回帰確認のみ）
-- [ ] `check_export_stopcontract.py` のサマリが 7/1/2 で不変（既存ツール・無回帰確認のみ）
-- [ ] **引き継ぎ内容をユーザーに提示する**（会社側の作業要否を明示。未配布のため、持ち出し前に整合させれば会社側の作業は発生しない）
+- [x] main 側をコミットしてから export worktree へ merge する（`1e391d8` / `76779ff` → merge `e58b288`）
+- [x] merge で `export/company/` 側の改変が潰れていないことを確認 → `git diff HEAD~1 HEAD -- export/company/` が空（無傷）
+- [x] **契約 (f) が PASS することを確認** — worktree 側の `scripts/` から実行して 6/6 PASS
+- [x] 配布物の hooks 5 本にフィクスチャ検証 → **発火 5/5・誤検知 0/3・非同梱スキル名の混入 0**
+- [x] `export/company/MIGRATION-GUIDE.md` の permissions 要約（ask の 3 パス）と hooks 登録（guard-gated-write）を実体に合わせた
+- [x] 同ファイルに**会社向けの deny は配布先依存の正しい差異**である旨を明記（「外して緩めないこと」まで書いた）
+- [x] `MANIFEST.md` / `HANDOVER.md` の記述と実体の一致を確認 → **スキル 10 / hook 5 で齟齬なし・変更不要**
+- [x] `validate_skills.py export/company/skills` が 10/10 PASS
+- [x] `check_export_stopcontract.py` のサマリが 7/1/2 で不変
+- [x] **引き継ぎ内容をユーザーに提示した** → 会社側の作業は**発生しない**（未配布のため worktree 側で完結）
 
 ## 6. レビュー
 
-- [ ] 静的検査を全て回す（無回帰条件の 6 項目）
-- [ ] `frontend-code-review` でレビューする（前回はセッション上限で 3 エージェントとも中断した実績があるため、範囲を絞って起動する）
-- [ ] 指摘をトリアージし、`review-result.md` に記録
-- [ ] must-fix に対応
-- [ ] **Phase 4 で新たな不具合が見つかった場合**は「配布をブロックするか」で切り分ける（ブロックするなら本タスク内で直す / しないなら起票して配布を進める）
+- [x] 静的検査を全て回す（29/29・portability 0・template PASS・export 10/10・停止契約 7/1/2・契約 7/7）
+- [x] ~~`frontend-code-review`~~ → **汎用 subagent で代替**（React/TS 前提の 7 軸は Python / bash / Markdown の差分に噛み合わないため。ユーザー判断）
+- [x] 指摘をトリアージし `review-result.md` に記録（High 3 / Medium 3 / Low 3）
+- [x] **High 3 件すべてに対応**（いずれも「検査が偽グリーンを出す」型 = このスクリプトの存在理由に反する欠陥）
+  - [x] H1: 対象不在の exit 2 が他契約の FAIL を握りつぶし hook が恒久的に無音 → SKIP に降格・`--require-export` 追加・hook 側も rc=2 を捨てない
+  - [x] H2: 「必ず列挙する」と書いた WARN が既定出力に出ず、20260726 の実害の再現が 6/6 PASS で通った → WARN を無条件出力・`EXPORT_INTENTIONAL_OMISSIONS` を新設し宣言の無い欠落は FAIL
+  - [x] H3: マスターの settings.json の hooks 登録が無検査（**Phase 4 で手作業で確認しただけで契約化していなかった**）→ 契約 (f) として追加、既存 (f) は (g) へ
+- [x] **Medium 3 件すべてに対応**
+  - [x] M1: `.claude/settings.json` の編集が assets モードに乗らず、契約 (e) の producer が hook で守られていなかった
+  - [x] M2: `code_lines()` の `#` 落としが heredoc 内にも効き、配布物の JSON 出力破壊を隠す → heredoc ステートマシン + shebang を常に含める
+  - [x] M3: `*/.claude/hooks/*.sh` が非アンカーで別 worktree の編集でも起動（**自分のコメントと実装が矛盾**）→ 全パターンを PROJECT_ROOT 基準に
+- [x] **Low 3 件**: 2 件対応（契約 e の死んだ分類・重複、契約 a の死んだ登録）/ 1 件据え置き（偽 FAIL 側なので安全）
+- [x] 修正後の再検証: H1/H2/H3・M1/M2/M3 すべて「壊すと落ちる」を実測。無回帰も全て緑
+- [x] Phase 4 の新規不具合（契約 (f) の判定粒度）とレビューの High 3 件は**いずれも配布をブロックする**と判断し、本タスク内で修正した
 
 ## 7. デプロイ・知見保存
 
-- [ ] main へコミット（Phase 単位で分ける）
-- [ ] `git status --short` でステージ内容を確認してからコミットする（検証ゴミの混入防止）
-- [ ] export ブランチへ merge してコミット
+- [x] main へコミット（`1e391d8` 実装 / `76779ff` 設計 + レビュー修正コミット）
+- [x] `git status --short` でステージ内容を確認してからコミット（検証ゴミの混入なし）
+- [x] export ブランチへ merge してコミット（`e58b288` merge / `d571405` 引き継ぎ文書の修正）
 - [ ] **push**（main / export/company の両方）
 - [ ] **rm / mv ポリシーの後続タスクを起票する** — design.md の「対象外」節がそのまま設計材料。既に確定していること: ユーザー決定は `deny` を使う／`mv` も塞ぐ／公式 docs で確定した技術的制約 4 点（hook は permissions の deny を救済できない・`Bash(rm -rf /*)` は使えない・全文検査でパス判定はできない・非対話では ask が deny に落ちる）
 - [ ] `knowledge-capture` で知見を保存する
