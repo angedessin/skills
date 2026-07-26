@@ -65,6 +65,19 @@ HOOK_REGISTRATIONS = {
             ],
         },
     ),
+    "guard-gated-write.sh": (
+        "PreToolUse",
+        {
+            "matcher": "Bash",
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": 'bash "$CLAUDE_PROJECT_DIR"/.claude/hooks/guard-gated-write.sh',
+                    "timeout": 10,
+                }
+            ],
+        },
+    ),
     "post-edit-lint.sh": (
         "PostToolUse",
         {
@@ -101,6 +114,157 @@ HOOK_REGISTRATIONS = {
             ]
         },
     ),
+    "session-start-check.sh": (
+        "SessionStart",
+        {
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": 'bash "$CLAUDE_PROJECT_DIR"/.claude/hooks/session-start-check.sh',
+                    "timeout": 10,
+                }
+            ]
+        },
+    ),
+}
+
+# 同送しない hook とその理由。**expected_hooks() と対で「.claude/hooks/ の全ファイルの分類」を成す。**
+# check_asset_consistency.py の契約 (b) が
+#   expected_hooks() の全可能出力 ∪ MASTER_ONLY_HOOKS ≡ ls .claude/hooks/
+# を検査するため、hook を 1 本足してどちらにも入れなければ検査が落ちる（分類漏れを機械が捕まえる）。
+#
+# 定数にしてある理由: 以前は expected_hooks() の docstring に散文で書かれていたため、
+# 「配るべきなのに配られていない」と「意図的に配らない」を機械が区別できなかった。
+MASTER_ONLY_HOOKS = {
+    # 注入する本文がマスターの docs/knowledge/ のパスと内容に依存する。
+    # 配置先には該当ファイルが無く、死んだ参照を注入することになる。
+    "remind-config-docs.sh",
+    # scripts/validate_skills.py に依存する。配置先にスクリプトが無いため
+    # フェイルオープンで素通しし、置いても効かない。
+    "validate-skill-edit.sh",
+}
+
+# 配置先に配る permissions の**ベースライン**。
+#
+# なぜマスターの settings.json をそのまま配らないか: マスターの permissions には
+# 「このリポジトリはスキル定義の置き場で依存を増やさない」というマスター固有の方針が
+# 混ざっている。それを配置先に押し付けると、配置直後から依存インストールが全部拒否される
+# （配置先に settings.json が無い場合、この payload が丸ごと新規作成されるため）。
+#
+# なぜ「除外リスト」ではなく「配るものの列挙」か: 除外方式は新しい deny を足すたびに
+# 除外判断が要り、判断し忘れると**配置先が壊れる方向**（フェイルオープン）に倒れる。
+# 列挙方式なら、足し忘れは**配られない方向**（フェイルセーフ）に倒れる。
+# 二重管理の腐りは check_asset_consistency.py の契約 (e) が双方向で検出する。
+#
+# **ベースラインであって最終形ではない。** 最終的なセキュリティルールは配布先に依存する
+# （20260726 決定）。skill-deploy の dry-run 提示で配置先の事情に合わせて調整する。
+DEPLOY_PERMISSIONS = {
+    "allow": [
+        "Bash(ls)",
+        "Bash(ls *)",
+        "Bash(git status*)",
+        "Bash(git diff*)",
+        "Bash(git log*)",
+        "Bash(git show*)",
+    ],
+    "ask": [
+        "Bash(git push*)",
+        "Bash(npx *)",
+        "Bash(rm -r*)",
+        "Edit(./.claude/settings.json)",
+        "Write(./.claude/settings.json)",
+        "Edit(./.claude/settings.local.json)",
+        "Write(./.claude/settings.local.json)",
+        "Edit(./.claude/hooks/**)",
+        "Write(./.claude/hooks/**)",
+        "Edit(./CLAUDE.md)",
+        "Write(./CLAUDE.md)",
+        # ディレクトリ配下は * / ** / **/* の 3 形式を並べる（単一形式では直下を取りこぼす）
+        "Edit(./docs/knowledge/*)",
+        "Write(./docs/knowledge/*)",
+        "Edit(./docs/knowledge/**)",
+        "Write(./docs/knowledge/**)",
+        "Edit(./docs/knowledge/**/*)",
+        "Write(./docs/knowledge/**/*)",
+        "Edit(./docs/decisions/*)",
+        "Write(./docs/decisions/*)",
+        "Edit(./docs/decisions/**)",
+        "Write(./docs/decisions/**)",
+        "Edit(./docs/decisions/**/*)",
+        "Write(./docs/decisions/**/*)",
+    ],
+    "deny": [
+        # 自動インストールを伴う実行（サプライチェーン対策）。依存管理そのものは止めない
+        "Bash(pnpm dlx *)",
+        "Bash(npx -y *)",
+        "Bash(npx --yes *)",
+        "Bash(yarn dlx *)",
+        "Bash(bunx *)",
+        # シークレットの読み取り（Bash / Read の両ツール分を揃える）
+        "Bash(cat .env*)",
+        "Bash(cat *.env)",
+        "Bash(grep * .env*)",
+        "Bash(grep * *.env)",
+        "Bash(printenv)",
+        "Bash(printenv *)",
+        "Bash(env)",
+        "Read(./.env*)",
+        "Read(./**/.env*)",
+        "Read(./*.env)",
+        "Read(./**/*.env)",
+        "Read(./**/*.pem)",
+        "Read(./**/*.key)",
+        "Read(~/.ssh/**)",
+        "Read(~/.aws/**)",
+        "Read(~/.claude/.credentials.json)",
+        # 破壊的操作
+        "Bash(rm -rf *)",
+        "Bash(rm -fr *)",
+        "Bash(git push --force*)",
+        "Bash(git push -f*)",
+        "Bash(git push * +*)",
+        "Bash(git reset --hard*)",
+        "Bash(git clean -f*)",
+    ],
+}
+
+# マスターにしか置かない permission と、その理由。
+# **DEPLOY_PERMISSIONS と対で「マスター settings.json の全ルールの分類」を成す。**
+# check_asset_consistency.py の契約 (e) が双方向で検査する:
+#   - マスターにあって両集合のどちらにも無いルール → 分類漏れ
+#   - DEPLOY_PERMISSIONS にあってマスターに無いルール → 静かなドリフト
+MASTER_ONLY_PERMISSIONS = {
+    "ask": [
+        # 配置先を超えたグローバルな副作用になる。配置先の settings が
+        # ユーザーのホーム設定をゲートするのは越権
+        "Edit(~/.claude/CLAUDE.md)",
+        "Write(~/.claude/CLAUDE.md)",
+    ],
+    "deny": [
+        # 配置先の**通常の依存管理**を止めてしまう。マスターは「依存を増やさない」方針だが、
+        # それは配布対象ではない（配置先は普通に npm install する必要がある）
+        "Bash(pnpm add *)",
+        "Bash(pnpm remove *)",
+        "Bash(pnpm install)",
+        "Bash(pnpm install *)",
+        "Bash(pnpm i)",
+        "Bash(pnpm i *)",
+        "Bash(npm install)",
+        "Bash(npm install *)",
+        "Bash(npm i)",
+        "Bash(npm i *)",
+        "Bash(npm ci)",
+        "Bash(npm ci *)",
+        "Bash(yarn add *)",
+        "Bash(yarn install)",
+        "Bash(yarn install *)",
+        "Bash(bun add *)",
+        "Bash(bun install)",
+        "Bash(bun install *)",
+        "Bash(pip install *)",
+        "Bash(pip3 install *)",
+        "Bash(brew install *)",
+    ],
 }
 
 
@@ -152,9 +316,28 @@ def expected_hooks(skills: list[str] | set[str]) -> list[str]:
     check_deploy_drift.py がこの関数を import して「配るべきなのに配置先に無い hook」を
     検出する。**同送リストの単一情報源** — ここを直せば配置側と検出側が同時に追随する
     （両者に同じリストを書くと片側修正で腐る。20260723 の敵対レビューで実際に起きた系統）。
+
+    **新しい hook を .claude/hooks/ に追加したら、ここに載せるか MASTER_ONLY_HOOKS に
+    入れるかをその場で決める。** どちらにも入れないと check_asset_consistency.py の
+    契約 (b) が落ちる（分類漏れを機械が捕まえる）。
+
+    master-only（意図的に同送しない）hook の一覧と理由は MASTER_ONLY_HOOKS を見る。
+    以前はここに散文で書いていたが、それでは「配るべきなのに漏れた」と「意図的に配らない」を
+    機械が区別できなかった（20260725 新設の guard-gated-write.sh が漏れ、20260726 まで
+    気づかれなかった系統）。
+
+    **返り値に入れた hook は HOOK_REGISTRATIONS にも登録すること。** 登録を忘れると
+    deploy_guardrails() が KeyError で落ちる。契約 (a) がこれを検出する。
     """
-    # 品質ゲート 2 本 + env ガードはフェイルオープン / 自己完結なので常に同送する
-    send = ["guard-env-read.sh", "post-edit-lint.sh", "stop-typecheck.sh"]
+    # 品質ゲート 2 本 + 書き込みガード 2 本はフェイルオープン / 自己完結なので常に同送する。
+    # guard-gated-write.sh は permissions.ask（Edit/Write 限定）が Bash のリダイレクトで
+    # 迂回されるのを塞ぐ。ask と対でなければ防波堤にならないため、ask を配る配置先には必ず要る。
+    send = [
+        "guard-env-read.sh",
+        "guard-gated-write.sh",
+        "post-edit-lint.sh",
+        "stop-typecheck.sh",
+    ]
     skills = set(skills)
     if "knowledge-capture" in skills:
         send.append("session-stop.sh")  # .capture-needed を立てる hook。スキル無しで送ると実行不能指示になる
@@ -181,12 +364,12 @@ def deploy_guardrails(target: Path, skills: list[str], dry: bool, log: list[str]
             hooks_dst.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, hooks_dst / name)
 
-    master_settings = json.loads((MASTER_ROOT / ".claude" / "settings.json").read_text(encoding="utf-8"))
     hooks_cfg: dict = {}
     for name in send:
         event, entry = HOOK_REGISTRATIONS[name]
         hooks_cfg.setdefault(event, []).append(entry)
-    payload = {"permissions": master_settings["permissions"], "hooks": hooks_cfg}
+    # マスターの settings.json をそのまま配らない（DEPLOY_PERMISSIONS の宣言を参照）
+    payload = {"permissions": DEPLOY_PERMISSIONS, "hooks": hooks_cfg}
 
     target_settings = target / ".claude" / "settings.json"
     if target_settings.exists():
@@ -195,7 +378,13 @@ def deploy_guardrails(target: Path, skills: list[str], dry: bool, log: list[str]
         log.append(json.dumps(payload, ensure_ascii=False, indent=2))
     else:
         log.append(f"settings.json: 新規作成 → {target_settings}")
-        if not dry:
+        # dry-run でも中身を出す。既存ありの分岐だけ payload を見せて新規作成の分岐で
+        # 見せないと、**新規作成経路の内容を配置前に確認する手段が無くなる**
+        # （実際、配布 permissions の検証手段が無いという欠陥として顕在化した）。
+        if dry:
+            log.append("settings.json: 上記パスに書き込む内容（dry-run のため未書き込み）:")
+            log.append(json.dumps(payload, ensure_ascii=False, indent=2))
+        else:
             target_settings.parent.mkdir(parents=True, exist_ok=True)
             target_settings.write_text(
                 json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

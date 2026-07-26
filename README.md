@@ -31,9 +31,11 @@
 │   │   ├── session-start-check.sh     # 開始時に未処理フラグ・アクティブタスクを context へ注入
 │   │   ├── session-stop.sh            # セッション終了時に .capture-needed フラグを作成
 │   │   ├── guard-env-read.sh          # .env 系に触れる Bash を ask に落とす（全文検査）
+│   │   ├── guard-gated-write.sh       # 承認制パスへの Bash 経由の書き込みを ask に落とす
 │   │   ├── post-edit-lint.sh          # 編集ごとの lint 差し戻し（フェイルオープン）
 │   │   ├── stop-typecheck.sh          # 終了宣言時の tsc（フェイルオープン）
-│   │   └── validate-skill-edit.sh     # SKILL.md 編集時に validate_skills.py を自動実行
+│   │   ├── remind-config-docs.sh      # 設定/スキル編集時に該当知識の要点を注入（master-only）
+│   │   └── validate-skill-edit.sh     # SKILL.md 等の編集時に検証を自動実行（master-only）
 │   └── skills/                        # スキル定義（下の一覧を参照）
 ├── .steering/                         # クロスセッション コンテキスト（複数セッションタスクのみ）
 ├── deployments.example.md             # 配置先レジストリの雛形（追跡。実体 deployments.md は .gitignore＝ローカル限定）
@@ -42,7 +44,8 @@
 │   ├── passthrough_check.py           # 素通り検査（ハードストップの実地検証・課金・任意）
 │   ├── deploy_skills.py               # 配置先へのスキル・ガードレール同送（skill-deploy が使う）
 │   ├── check_deploy_drift.py          # 配置先ドリフト検出・issues 還流（読み取り専用）
-│   └── check_export_stopcontract.py   # 持ち出しセットと master の停止契約差分（report-only）
+│   ├── check_export_stopcontract.py   # 持ち出しセットと master の停止契約差分（report-only）
+│   └── check_asset_consistency.py     # 資産どうしの契約突合（片側修正の検出・違反で exit 1）
 ├── prompts/                           # 人が貼って使うマスター専用プロンプト（非配布）
 │   └── adversarial-skill-review.md    # スキル本文の敵対的レビュー（横断／個別の二層）
 ├── templates/                         # スキル作成用メタ雛形（SKILL.template.md・README.md）
@@ -205,13 +208,16 @@ design-premortem   impl-tournament                          session-retrospectiv
 - **SessionStart Hook** (`.claude/hooks/session-start-check.sh`): `.steering/` を走査し、未処理フラグ（`.capture-needed` / `.codify-needed`）とアクティブタスク一覧を context に注入する。フラグの**読む側** — これが無いと Stop hook が立てたフラグは誰にも拾われない。`.steering/` が無い環境・jq 不在時はフェイルオープン
 - **Stop Hook** (`.claude/hooks/session-stop.sh`): アクティブタスクに `capture_done` がなければ `.capture-needed` フラグを作成するだけの軽量フック（セッション記録は git が持つ）。成果物（*.md）の無いタスクディレクトリはスキップする
 - **PreToolUse Guard** (`.claude/hooks/guard-env-read.sh`): Bash コマンド全文を検査し、`.env` 系に触れるものを ask に落とす（deny の前置一致では防げない head/sed/base64 等の迂回対策）。jq 未導入環境ではフェイルクローズ
+- **承認ゲートの Bash 側** (`.claude/hooks/guard-gated-write.sh`): `CLAUDE.md` / `docs/knowledge/` / `docs/decisions/` への **Bash 経由**の書き込み（`>` / `>>` / `tee`）を ask に落とす。permissions の ask は **Edit / Write ツールにしか掛からず**、`Bash(git show*)` のような前置一致 allow があると `git show HEAD:x > CLAUDE.md` で迂回できるため、その穴を塞ぐ。**対象は書き込みのみ — `rm` による削除・`mv` による移動・`sed -i` は非対象**（脅威モデルが敵対者ではないため意図的にこの線で止めている）
+- **知識の要点注入** (`.claude/hooks/remind-config-docs.sh`, **master-only**): `.claude/settings.json` / `.claude/hooks/` / `SKILL.md` を編集したとき、対応する `docs/knowledge/` の要点を**本文ごと** context に注入する（セッション 1 回だけ）。「読め」というポインタを増やしても読まれなかった実測があるため、要点そのものを渡す方式にしている。注入する本文がマスターの `docs/knowledge/` に依存するため配置先には同送しない
 - **検証スクリプト** (`scripts/validate_skills.py`): name 一致・description・行数・アストラル面絵文字・metadata.version・When NOT to use 見出し・停止契約の構造（承認語彙 → ハードストップ）の 7 項目を機械検証。`--purity` でツール純度レポート（本文のツール固有語彙の出現数・FAIL にしない）。スキル改訂時と配置前に実行する（PostToolUse hook でも自動実行）
 - **素通り検査** (`scripts/passthrough_check.py`): ハードストップが実地で守られるかを、フレッシュエージェントの実行前後の SHA1 差分で機械判定（課金・任意・デフォルトでは回さない）。シナリオは `tests/passthrough/[skill]/scenario.md`。`--dry-run` で無課金の構造確認。編成は `skill-test` スキル
-- **npm script** (`package.json`): `validate`（静的検査）/ `validate:portability`（配布可スキルの内部前提混入）/ `check:export`（下記の差分ガード）/ `lint`（Biome）。検証コマンドを散文から探さずに済むようにしている
+- **npm script** (`package.json`): `validate`（静的検査）/ `validate:portability`（配布可スキルの内部前提混入）/ `validate:assets`（下記の契約突合）/ `check:export`（下記の差分ガード）/ `lint`（Biome）。検証コマンドを散文から探さずに済むようにしている
+- **資産どうしの契約突合** (`scripts/check_asset_consistency.py`): 「同じ情報が複数箇所にある」箇所を機械で突合し、**片側修正を検出する**。検査する 6 契約 — 同送 hook が `HOOK_REGISTRATIONS` に登録済みか / `.claude/hooks/` の全ファイルが「同送」か「master-only」に分類済みか / README の hook 記述が実体と一致するか / 同送 hook が配置手順に載っているか / permissions が配布用とマスター専用に分類済みか（双方向） / 配布物 hooks に未説明の差分が無いか。**違反で exit 1**・対象不在で exit 2。ドキュメントとの突合は**全文の `*.sh` 集合比較**なので書式変更で壊れない。この検査は「`expected_hooks()` に足したが `HOOK_REGISTRATIONS` に登録し忘れて配置が全滅する」型が 2 度起きたことから作られている（うち 1 度は、まさに同じ漏れをルール化したコミット自身が再発させた）
 - **停止契約の差分ガード** (`scripts/check_export_stopcontract.py`, 引数なしで git worktree から持ち出しセットを自動発見): 手で転記・加工される持ち出しセット（`export/company/skills/`）と master の**停止契約領域だけ**を比較し、非同梱スキル名の除去・マスター固有語の一般化・スタック語の置換で説明がつかない**実質差分**を報告する（report-only）。実質差分のあるスキルだけが持ち出し側の素通り検査シナリオの対象になり、差分ゼロのスキルは master 側のシナリオで代表させる。**比較対象が存在しなければ exit 2 でフェイルクローズ**（持ち出しセットは export ブランチにしか無いため、main で実行すると走査 0 件になる。それを「差分なし」と報告しないための措置）
 - **敵対的スキルレビュー** (`prompts/adversarial-skill-review.md`): スキル**本文の中身**を敵対的に精読するプロンプト（人が貼って使う・フレッシュな subagent 推奨）。境界の重複と空白・オーケストレーターとの契約ズレ・片側修正・死んだ参照・迂回経路・配布分類違反を、静的検査と素通り検査の**間**の層として拾う。ファイルは一切変更せず、証拠つきの指摘と方向性1行だけを提示して止まる
 - **品質ゲート hooks** (`.claude/hooks/post-edit-lint.sh` / `stop-typecheck.sh` / `validate-skill-edit.sh`): 編集ごとの lint 差し戻し・終了宣言時の tsc・SKILL.md 編集時の `validate_skills.py` 自動実行。前 2 本はフェイルオープン（設定が無ければ素通し）なのでスタックを問わず配れる
-- **配置スクリプト** (`scripts/deploy_skills.py`): 配置先へのスキル本体とガードレール（hooks・permissions・.gitignore）の同送。`--dry-run` / `--overwrite`。master-only スキルは配置対象から除外される。編成は `skill-deploy` スキル
+- **配置スクリプト** (`scripts/deploy_skills.py`): 配置先へのスキル本体とガードレール（hooks・permissions・.gitignore）の同送。`--dry-run` / `--overwrite`。master-only スキルと master-only hook は配置対象から除外される。**permissions はマスターの settings.json をそのまま配らず、`DEPLOY_PERMISSIONS` に明示列挙した配布用サブセットを配る** — マスターの deny には「このリポジトリは依存を増やさない」というマスター固有の方針（`npm install` 等の deny）が混ざっており、そのまま配ると配置先の開発フローを止めるため。**配布サブセットはベースラインであって最終形ではない**（最終的なセキュリティルールは配布先に依存するので、dry-run 提示で調整する）。編成は `skill-deploy` スキル
 - **ドリフト検出** (`scripts/check_deploy_drift.py`, argparse・`--help` あり): 配置先スキルの直接編集・マスター先行・記録なしの3分類 + **hooks の未配置 / 内容差分**（同送すべき hook が配置先に無い・内容がずれている）+ 溜まった skill-issues.md を収集（読み取り専用）。同送すべき hook の判定は `deploy_skills.py` の `expected_hooks()` を import して単一情報源にしている。引数なしで `deployments.md` の全配置先をループ。編成は `skill-harvest` スキル
 - **settings.json**: パッケージインストール（dlx / bunx / npx -y 含む）・`.env` / 鍵ファイル読み取り（Bash / Read 両方）・破壊的 git 操作・`rm -rf` を deny。素の `npx` / `rm -r` / `git push` / ガードレール自身（settings・hooks）の変更は ask。加えて **`CLAUDE.md` / `docs/knowledge/` / `docs/decisions/` への書き込みも ask**（ディレクトリ配下は `*` / `**` / `**/*` の**3形式を列挙**する — 単一形式では直下のファイルを取りこぼしうる。根拠は docs/knowledge/claude-code-config.md の「glob はプレフィックス形とサフィックス形の両方を列挙する」） — CLAUDE.md が宣言している「CLAUDE.md・docs/ への書き込みは承認制」に機械的な裏づけを与えるもの（本文のハードストップだけでは knowledge-capture が承認前に書き込む破れが 1/4 の頻度で再現したため、`skill-design-patterns.md` の「摩擦が実証されてから機械の別防御を足す」に従って追加）。配置先への同送手順は [docs/starter-kit.md](docs/starter-kit.md) 手順 6
 

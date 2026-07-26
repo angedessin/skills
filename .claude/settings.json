@@ -20,6 +20,8 @@
       "Write(./.claude/hooks/**)",
       "Edit(./CLAUDE.md)",
       "Write(./CLAUDE.md)",
+      "Edit(~/.claude/CLAUDE.md)",
+      "Write(~/.claude/CLAUDE.md)",
       "Edit(./docs/knowledge/*)",
       "Write(./docs/knowledge/*)",
       "Edit(./docs/knowledge/**)",

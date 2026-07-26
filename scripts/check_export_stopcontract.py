@@ -83,11 +83,34 @@ GENERALIZE_RE = (
 STACK_WORDS = (
     "React", "Vitest", "TypeScript", "Jasmine", "Angular", "TestBed",
     "Playwright", "MSW", "RTL", "Testing Library", "pnpm", "npm", "npx",
-    ".tsx", ".spec.ts", ".test.ts", ".ts", ".html", "Jotai", "Karma",
+    ".spec.tsx", ".test.tsx", ".tsx", ".spec.ts", ".test.ts", ".ts",
+    ".html", "Jotai", "Karma",
 )
 
+# **長い語から順に消す。** 部分文字列置換なので、短い語を先に消すと長い語が壊れる:
+# ".tsx" を先に消すと ".spec.tsx" が ".spec" になり、以降どの語にも一致しなくなる
+# （RTL→Angular 変換で master 側だけが残り、無害差分が実質差分に化ける）。
+# 並び順の書き間違いでこれが再発しないよう、書かれた順ではなく長さ順で適用する。
+STACK_WORDS_SORTED = tuple(sorted(STACK_WORDS, key=len, reverse=True))
 
-def read_body(skill_md: Path) -> list[str]:
+
+def build_nonbundled_patterns(nonbundled: set[str]) -> list[tuple[str, re.Pattern[str]]]:
+    """非同梱スキル名を打ち消すためのパターンを長い名から順に構築する。
+
+    語境界が要る: `adr` / `e2e` / `tdd` のような短い名を無条件の部分文字列置換に
+    すると `adrenaline` → `enaline` のように巻き添えで壊す。両側に同じ処理が掛かるため
+    偽陰性方向（実質差分を無害と誤判定する側）に効く。GENERALIZE_RE の "PR" と同じ配慮。
+
+    境界は ASCII の英数字とハイフンだけを見る。和文文字を境界に含めないのは、
+    「`adr` を使う」のように和文に埋まったスキル名は打ち消したいため。
+    """
+    return [
+        (f"`{n}`", re.compile(rf"(?<![A-Za-z0-9-]){re.escape(n)}(?![A-Za-z0-9-])"))
+        for n in sorted(nonbundled, key=len, reverse=True)
+    ]
+
+
+def read_body(skill_md: Path) -> list[tuple[int, str]]:
     """frontmatter を除いた本文を行のリストで返す。
 
     frontmatter の metadata.modified には「停止をステップ境界化」等の
@@ -109,42 +132,78 @@ def stop_lines(skill_md: Path) -> list[tuple[int, str]]:
     return hits
 
 
-def normalize(line: str, nonbundled: set[str]) -> str:
+def normalize(line: str, nonbundled_pats: list[tuple[str, re.Pattern[str]]]) -> str:
     """既知の無害差分を打ち消した比較用の文字列を返す。"""
     s = line
     # 非同梱スキル名の除去（バッククォート付き → 素の順で消す）
-    for n in sorted(nonbundled, key=len, reverse=True):
-        s = s.replace(f"`{n}`", "").replace(n, "")
+    for quoted, pat in nonbundled_pats:
+        s = pat.sub("", s.replace(quoted, ""))
     for a, b in GENERALIZE:
         s = s.replace(a, b)
     for pat, b in GENERALIZE_RE:
         s = pat.sub(b, s)
-    for w in STACK_WORDS:
+    for w in STACK_WORDS_SORTED:
         s = s.replace(w, "")
     # 記号・空白・強調の揺れを吸収する（語順と語そのものだけを見る）
     s = re.sub(r"[\s、。，．「」『』（）()\[\]`*_\-—–/：:；;→←↔|]+", "", s)
     return s
 
 
-def compare(master_md: Path, export_md: Path, nonbundled: set[str]):
-    """(実質差分のリスト, 無害差分の件数) を返す。
+def first_diff(a: str, b: str) -> int:
+    """2 つの文字列が最初に食い違う位置を返す（完全一致なら -1）。"""
+    for i, (ca, cb) in enumerate(zip(a, b)):
+        if ca != cb:
+            return i
+    return -1 if a == b else min(len(a), len(b))
 
-    実質差分は (種別, master 側の行, export 側の行) のタプル。
+
+def excerpt(line: str, anchor: int = -1, width: int = 160) -> str:
+    """行を width 文字に切り詰める。anchor が窓の外なら、そこが見えるようにずらす。
+
+    先頭固定の切り詰めだと、食い違いが窓より後ろにあるときレポート上の master 行と
+    export 行が同一に見え、何が変わったのか読み取れない（実測: design-doc の実質差分は
+    192 文字目にあり、先頭 120 文字では両行が完全に同じに見えた）。
+    """
+    s = line.strip()
+    if len(s) <= width:
+        return s
+    if anchor < 0 or anchor < width:
+        return s[:width] + " …"
+    head = max(0, anchor - width // 4)
+    tail = head + width
+    return "… " + s[head:tail] + (" …" if tail < len(s) else "")
+
+
+def print_benign(benign: list[tuple[tuple[int, str], tuple[int, str]]]) -> None:
+    """無害差分を行単位で表示する（--verbose）。実質差分のあるスキルでも表示する。"""
+    for m, e in benign:
+        anchor = first_diff(m[1].strip(), e[1].strip())
+        print(f"      [無害] master {m[0]}: {excerpt(m[1], anchor)}")
+        print(f"      [無害] export {e[0]}: {excerpt(e[1], anchor)}")
+
+
+def compare(master_md: Path, export_md: Path, nonbundled_pats):
+    """(実質差分のリスト, 無害差分のリスト) を返す。
+
+    実質差分は (種別, master 側の (行番号, 行), export 側の (行番号, 行)) のタプル。
+    無害差分は (master 側の (行番号, 行), export 側の (行番号, 行)) のタプル。
+    件数だけでなく行そのものを返すのは、--verbose が「無害差分も行単位で表示」と
+    宣言しているため（件数しか返さないと、その宣言を実装できない）。
     """
     m_lines = stop_lines(master_md)
     e_lines = stop_lines(export_md)
-    m_norm = [normalize(ln, nonbundled) for _, ln in m_lines]
-    e_norm = [normalize(ln, nonbundled) for _, ln in e_lines]
+    m_norm = [normalize(ln, nonbundled_pats) for _, ln in m_lines]
+    e_norm = [normalize(ln, nonbundled_pats) for _, ln in e_lines]
 
     substantive = []
-    benign = 0
+    benign: list[tuple[tuple[int, str], tuple[int, str]]] = []
     sm = difflib.SequenceMatcher(None, m_norm, e_norm, autojunk=False)
     for tag, i1, i2, j1, j2 in sm.get_opcodes():
         if tag == "equal":
-            # 正規化後は同じ = 無害差分。生の行が違うものだけ数える
+            # 正規化後は同じ = 無害差分。生の行が違うものだけ拾う
             for k in range(i2 - i1):
                 if m_lines[i1 + k][1] != e_lines[j1 + k][1]:
-                    benign += 1
+                    benign.append((m_lines[i1 + k], e_lines[j1 + k]))
             continue
         if tag == "replace":
             for k in range(max(i2 - i1, j2 - j1)):
@@ -224,15 +283,23 @@ def main() -> None:
             sys.exit(2)
         export_root = found[0]
 
-    # フェイルクローズ: 対象が無いのに「差分なし」と報告しない
+    # フェイルクローズ: 対象が無いのに「差分なし」と報告しない。
+    # 助言は側ごとに分ける — master 側の不在に「export ブランチで実行しろ」と出すと、
+    # --master のパス誤りを worktree の問題と誤認させて誘導を外す。
+    hints = {
+        "--export": (
+            "  持ち出しセットは export ブランチ（worktree）にしかありません。"
+            "main 側で実行していないか確認してください。"
+        ),
+        "--master": (
+            "  --master には master 側の skills ディレクトリを渡してください"
+            f"（既定: {MASTER_ROOT / '.claude' / 'skills'}）。"
+        ),
+    }
     for label, root in (("--export", export_root), ("--master", master_root)):
         if not root.is_dir():
             print(f"エラー: {label} のディレクトリが存在しません: {root}", file=sys.stderr)
-            print(
-                "  持ち出しセットは export ブランチ（worktree）にしかありません。"
-                "main 側で実行していないか確認してください。",
-                file=sys.stderr,
-            )
+            print(hints[label], file=sys.stderr)
             sys.exit(2)
 
     export_skills = sorted(d.name for d in export_root.iterdir() if (d / "SKILL.md").exists())
@@ -258,6 +325,7 @@ def main() -> None:
         sys.exit(2)
 
     nonbundled = set(master_skills) - set(export_skills)
+    nonbundled_pats = build_nonbundled_patterns(nonbundled)
 
     print("停止契約の差分レポート（持ち出しセット ↔ master・report-only）")
     print(f"  export: {export_root}  （{len(export_skills)} スキル）")
@@ -273,21 +341,27 @@ def main() -> None:
         if name not in master_skills:
             continue
         substantive, benign = compare(
-            master_root / name / "SKILL.md", export_root / name / "SKILL.md", nonbundled
+            master_root / name / "SKILL.md", export_root / name / "SKILL.md", nonbundled_pats
         )
         if substantive:
             n_sub += 1
-            print(f"{name}:  実質差分 {len(substantive)} 件 / 無害差分 {benign} 件")
+            print(f"{name}:  実質差分 {len(substantive)} 件 / 無害差分 {len(benign)} 件")
             for kind, m, e in substantive:
+                # 食い違いの位置を両行で共有し、そこが窓に入るように切り出す
+                anchor = first_diff(m[1].strip(), e[1].strip()) if m and e else -1
                 if m:
-                    print(f"      [{kind}] master {m[0]}: {m[1].strip()[:120]}")
+                    print(f"      [{kind}] master {m[0]}: {excerpt(m[1], anchor)}")
                 if e:
-                    print(f"      [{kind}] export {e[0]}: {e[1].strip()[:120]}")
+                    print(f"      [{kind}] export {e[0]}: {excerpt(e[1], anchor)}")
+            if args.verbose and benign:
+                print_benign(benign)
             print()
         elif benign:
             n_benign_only += 1
             if args.verbose:
-                print(f"{name}:  無害差分のみ {benign} 件")
+                print(f"{name}:  無害差分のみ {len(benign)} 件")
+                print_benign(benign)
+                print()
         else:
             n_clean += 1
 
