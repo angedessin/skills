@@ -42,11 +42,14 @@ import sys
 from pathlib import Path
 
 MASTER_ROOT = Path(__file__).resolve().parent.parent
-REGISTRY = MASTER_ROOT / "deployments.md"
 HARVEST_MARKER = re.compile(r"<!--\s*harvested:\s*\d{8}\s*-->")
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from deploy_skills import expected_hooks  # noqa: E402 — 同送リストの単一情報源
+# REGISTRY もここから取る。以前は `MASTER_ROOT / "deployments.md"` を独立に定義していたが、
+# **レジストリのファイル名という値の契約を 2 箇所に持つ形**で、片方だけ変えても
+# どちらも自分の中では整合するため grep でも静的検査でも検出されない。
+# 同送リストで同じ理由の import をしているので、ここも producer 側から取る。
+from deploy_skills import REGISTRY, expected_hooks  # noqa: E402 — 値の契約の単一情報源
 
 
 def git(args: list[str]) -> subprocess.CompletedProcess:

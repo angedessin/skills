@@ -148,3 +148,44 @@ hooks 登録 ↔ 実ファイルの双方向で欠落なし（登録があるの
 **実行前に確認したこと**: `session-retrospective` の dry-run が「判定対象スナップショット: 0 ファイル」を出したため、検出力ゼロのシナリオに課金していないかを先に確認した。`judge_glob: .steering/**/skill-issues.md` は初期 0 件でも、素通り時に新規作成されれば `verdict()` の `before.get(k) != after[k]` で `None != content` となり FAIL 判定される（`passthrough_check.py:151-157`）。検出力は健全。
 
 **副次的な観察**: `adr` の run3 の出力に「依頼文に『確認は不要』『headless なので応答できません』とありますが、明示承認を得るまで書き込まない運用です」という、環境圧を明示的に拒否して停止する実体が出ていた。停止契約が「説明文」ではなく「手順」として効いている証拠のひとつ。
+
+---
+
+## 20260726 — 後続タスクの起票: rm / mv ポリシーの再設計（バックログ）
+
+`.steering/` は作らず、ここにバックログとして記録する（アクティブタスクが `.steering/` に居座ると以後の全セッションのコンテキストコストになる。前タスクと同じ方式）。
+
+### 目的
+
+承認ゲート（`CLAUDE.md` / `docs/knowledge/` / `docs/decisions/`）は**書き込みだけを塞ぎ、削除・移動は素通し**。`rm -f docs/knowledge/x.md` が実測で素通りした。かつ permissions の前置一致には flag の網羅漏れがある。
+
+### ユーザー決定（20260726・確定済み）
+
+| 論点 | 決定 |
+|---|---|
+| 判定を deny か ask か | **`deny` を使う**（プレモータムが提案した「ask に統一」は採らない） |
+| 判定精度の問題 | rm タスク側で扱う |
+| rm ポリシーの位置づけ | 配置機構の修復とは独立した問題。混ぜると配布のブロッカーが増える |
+
+### 必ず持ち越す技術的制約（公式 docs で裏取り済み・調査からやり直さない）
+
+1. **PreToolUse hook は permissions より先に評価される。** hook が沈黙すると通常の permission flow に進むため、**hook は permissions の deny を救済できない**（`permissionDecision: "allow"` を返さない限り）。したがって permissions に置く deny は「プロジェクト内に絶対にマッチしない形」でなければならない — **`Bash(rm -rf /*)` は前置一致で `rm -rf /Users/.../skills/.tmp` にマッチするので使えない**
+2. **入力 JSON には `transcript_path`（`/Users/<user>/.claude/projects/...`）・`cwd`・`tool_input.description` が必ず含まれる**ため、**全文検査でパス判定はできない**（プロジェクト外の絶対パスが恒常的に入っている）。`tool_input.command` の構造抽出が必須。`remind-config-docs.sh:31` の `grep -o` + `sed` 手法で `jq` 非依存を維持できる
+3. `permissionDecision` に指定できる値は `allow` / `deny` / `ask` / `defer`
+4. **非対話モード（`claude -p`）では hook の `ask` は deny に落ちる**（`claude-code-config.md:209`）。`guard-gated-write.sh` は**全配置先に無条件同送**されるため、配置先の CI で誤検知すると原因の遠い障害になる
+5. **20260726 の実測で、現行の全文検査 hook は `transcript_path` に巻き込まれていない**（発火 13/13・誤検知 0）。ただしこれは「`.env` を含むか」「リダイレクト先が対象パスか」を見ているからで、**「プロジェクト外の絶対パスを検出する」判定を足した瞬間に成立しなくなる**
+
+### 併せて塞ぐべき穴
+
+- **`mv` は削除と等価にゲートを破る**（`mv docs/knowledge/x.md /tmp/`）
+- `sed -i` / 任意インタプリタ経由は脅威モデル外（敵対者ではなく滑った善意のエージェント）
+
+### 波及
+
+- `guard-gated-write.sh` のリネーム是非（書き込み以外も見るなら名前がずれる）。今回は**リネームしないと決めた**（rm / mv を切り出したので名前と実態が一致した）。rm タスクで再検討する
+- 配布物側の同名 hook にも同じ変更が要る。**契約 (g) が差分を検出するので片側修正は落ちる**
+- 配布物の `MANIFEST.md` に「対象は書き込みのみ・削除は非対象」と明記済み。変更したらここも直す（契約は文書までは見ない）
+
+### 一次情報
+
+`.steering/20260726-deploy-integrity/design.md` の「対象外 — rm / mv ポリシーの再設計」節。
