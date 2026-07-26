@@ -158,4 +158,6 @@ design.md の「主要コンポーネント」は**暫定**。実装に入る前
 - [x] **rm / mv ポリシーの後続タスクを起票**（`.steering/` は作らず `decisions.md` にバックログとして記録。ユーザー決定 3 件 + 公式 docs で裏取りした技術的制約 5 点 + 併せて塞ぐべき `mv` + 波及先を保存）
 - [x] `knowledge-capture` で知見を保存 — **2 件書き込み**（`claude-code-config.md` に「PreToolUse と permissions の評価順」「入力 JSON に常にプロジェクト外の絶対パスが入る」「配布 permissions はマスターの方針と分ける」の 3 節 / `skill-design-patterns.md` の検出ツールの規律に #5〜#7 + heredoc 注記）。**1 件は compound へ申し送り**（検証工程の 2 つの混同 = 行動ルールなので重複を避けて `skill-issues.md` に起票）
 - [x] `compound` でルール・スキルへの昇格を実施 — **3 件昇格**（契約 (h) で `MASTER_ONLY` の 2 重定義を機械化 / `REGISTRY` を import で単一化 / CLAUDE.md に「手作業の突合を機械化したと扱わない」1 行）。**効果検証で前回の昇格ルールが不完全だったことを検出**（対の片方しか名指ししていなかった）。既存違反の洗い出し → **残り 0 件**。詳細は `codify-log.md`
-- [ ] `steering` の archive モードでこのタスクをアーカイブする
+- [x] `steering` の archive モードでこのタスクをアーカイブする
+
+Archived: 20260726
