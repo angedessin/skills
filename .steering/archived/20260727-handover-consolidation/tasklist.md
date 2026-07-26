@@ -86,4 +86,6 @@ design.md: `.steering/20260727-handover-consolidation/design.md`
 - [x] **push 完了**（main `bf7a719` / export/company `326c389`）
 - [x] `knowledge-capture` — **2 件書き込み**（`skill-design-patterns.md` の検出ツールの規律に #8「文書と実体の突合で等価を既定にしない」+ bash 注記を 2 項目に拡張）。**2 件は見送り**: 契約 (g) の実時間検出は既存規律 #3 と重複 / 「自分の運用ルールに自分で違反」は行動パターンなので compound へ
 - [x] `compound` — **1 件昇格**（契約 (i-4): 配置先が読む文書にマスター専用スクリプト名が混入しない。検出リストは動的生成）。**効果検証でルール 3 が働いたことを確認、同時に同じ型の違反を自分がまた作っていたことも検出**。1 件は昇格せず（詳細は `codify-log.md`）
-- [ ] `steering` の archive モードでこのタスクをアーカイブする
+- [x] `steering` の archive モードでこのタスクをアーカイブする
+
+Archived: 20260727
