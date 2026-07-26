@@ -29,6 +29,9 @@
   (f) **マスター settings.json の hooks 登録 ≡ .claude/hooks/ の実ファイル**
       → hooks/ に置いて expected_hooks() にも README にも入れたが、settings.json への
         登録を忘れる = マスターで一度も発火しない、という片側修正を検出する
+  (h) deploy_skills.MASTER_ONLY ≡ validate_skills.MASTER_ONLY
+      → 配布分類が 2 ファイルに独立定義されている。片方への足し忘れは
+        「配布してはいけないスキルが配布可能になる」に直結する
   (g) 持ち出しセットの hooks が、既知の変換規則で説明できない差分を持たない
       → master が塞いだ防御の欠陥が配布物側で開いたままになるのを検出
 
@@ -73,6 +76,7 @@ try:
         MASTER_ONLY_PERMISSIONS,
         expected_hooks,
     )
+    from deploy_skills import MASTER_ONLY as DEPLOY_MASTER_ONLY  # noqa: E402
 except ImportError as e:  # pragma: no cover - 実行環境の異常のみ
     print(f"ERROR: deploy_skills.py を読み込めない: {e}", file=sys.stderr)
     sys.exit(2)
@@ -334,6 +338,36 @@ def contract_f() -> tuple[str, list[str]]:
     return (FAIL, details) if details else (PASS, [f"hooks 登録 {len(reg)} 件が実ファイルと一致"])
 
 
+def contract_h() -> tuple[str, list[str]]:
+    """master-only スキルの分類が 2 ファイルで一致しているか。
+
+    `MASTER_ONLY` は deploy_skills.py（誤配置の防止）と validate_skills.py（--portability の
+    走査除外）に**独立して定義**されている。用途が違うので統合はしないが、片方に新しい
+    master-only スキルを足し忘れると「配布してはいけないスキルが配布可能になる」か
+    「portability 検査が誤った対象を走査する」。値の集合の片側修正は grep でも静的検査でも
+    検出されないため（どちらも自分の中では整合している）、突合をここに置く。
+
+    import による単一化はしない: validate_skills.py は PostToolUse hook が --skill で呼ぶ
+    最も頻繁に走る経路で、そこに deploy_skills への import 依存を足すと片方の破損がもう片方を
+    巻き込む。「スクリプトは依存ゼロ」の規約にも反する。
+    """
+    try:
+        import validate_skills  # noqa: PLC0415 - 突合のためだけに読む
+    except ImportError as e:
+        return FAIL, [f"validate_skills.py を読み込めない: {e}"]
+    d_only = set(DEPLOY_MASTER_ONLY)
+    v_only = set(validate_skills.MASTER_ONLY)
+    if d_only != v_only:
+        details = []
+        if d_only - v_only:
+            details.append(f"deploy_skills.py にのみある: {', '.join(sorted(d_only - v_only))}")
+        if v_only - d_only:
+            details.append(f"validate_skills.py にのみある: {', '.join(sorted(v_only - d_only))}")
+        details.append("→ 分類の一次情報は docs/starter-kit.md の選定表。両方を揃える")
+        return FAIL, details
+    return PASS, [f"master-only スキル {len(d_only)} 件が両ファイルで一致"]
+
+
 def contract_g(require_export: bool) -> tuple[str, list[str], list[str]]:
     """持ち出しセットの hooks 突合。(status, details, warns) を返す。"""
     dirs = discover_export_hook_dirs()
@@ -421,6 +455,7 @@ def main() -> None:
         ("(d) 同送 hook が配置手順に記載済み", contract_d),
         ("(e) permissions が配布/マスター専用に分類済み", contract_e),
         ("(f) settings.json の hooks 登録が実体と一致", contract_f),
+        ("(h) master-only スキルの分類が 2 ファイルで一致", contract_h),
     ]
 
     failed = skipped = 0
