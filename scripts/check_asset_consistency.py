@@ -453,6 +453,24 @@ def contract_i(require_export: bool) -> tuple[str, list[str], list[str]]:
             if sh not in hooks and sh not in master_hooks:
                 details.append(f"{label}: 文書が参照する {sh} がマスターにも配布物にも実在しない")
 
+        # (i-4) 配置先が読む文書にマスター専用スクリプト名が現れない。
+        #       配置先は scripts/ を持たないので死んだ参照になる（20260726 に
+        #       MIGRATION-GUIDE へ deploy_skills.py を混入させ、翌日の手動 grep で見つけた）。
+        #       **検出リストは実ファイルから動的に作る** — 手で列挙すると 2 重定義になり、
+        #       規律「単一情報源を作ったつもりで 2 つある」の型を自分で作ることになる。
+        #       MANIFEST.md は対象外: マスター側の検査手順を書いた節を持ち、そこでの言及は正当。
+        master_scripts = {p.name for p in (MASTER_ROOT / "scripts").glob("*.py")}
+        for name in ("HANDOVER.md", "MIGRATION-GUIDE.md"):
+            text = texts.get(name)
+            if text is None:
+                continue
+            for script in sorted(master_scripts):
+                if script in text or script.removesuffix(".py") in text:
+                    details.append(
+                        f"{label}/{name}: マスター専用スクリプト名 {script} が書かれている"
+                        "（配置先は scripts/ を持たないので死んだ参照になる）"
+                    )
+
     if details:
         return FAIL, details, []
     return PASS, [f"配布物 {checked} セットの 3 文書が員数・スキル名・hook 名で実体と一致"], []
