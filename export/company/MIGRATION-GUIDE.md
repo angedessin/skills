@@ -117,10 +117,12 @@ migration の主な躊躇は「レビュー済みスキルを書き直す手間�
 `claude-config/settings.example.json` を既存 `.claude/settings.json` に手動マージする。主な内容:
 
 - **permissions.deny**: パッケージインストール全般（npm/pnpm/yarn/bun/pip/brew）・`npx`（会社方針で ask から deny に強化）・`.env`／鍵ファイルの読み取り・破壊的コマンド（`rm -rf`・`git push --force`・`git reset --hard` 等）
-- **permissions.ask**: `git push`・`rm -r`・settings.json／hooks 自身の編集
-- **hooks 登録**: SessionStart（フラグ・タスク注入）・PreToolUse/Bash（.env 読み取りガード）・PostToolUse/Edit|Write（lint 差し戻し）・Stop（`.capture-needed` 生成）
+- **permissions.ask**: `git push`・`rm -r`・settings.json／hooks 自身の編集・**`CLAUDE.md` / `docs/knowledge/**` / `docs/decisions/**` への書き込み**（ディレクトリ配下は `*` / `**` / `**/*` の 3 形式を Edit / Write 分だけ並べる — 単一形式では直下のファイルを取りこぼす）
+- **hooks 登録**: SessionStart（フラグ・タスク注入）・PreToolUse/Bash（.env 読み取りガード + **承認制パスへの Bash 経由の書き込みガード**）・PostToolUse/Edit|Write（lint 差し戻し）・Stop（`.capture-needed` 生成）
 
 既存 allow とマスター由来 deny が同じ操作で衝突したら **deny を優先**（安全側）。hook 5 本は POSIX 標準ユーティリティのみで動き、**追加インストール不要**（jq 依存は撤廃済み）。
+
+> **パッケージインストールの全面 deny はこのセット固有の判断であって、マスターとの食い違い（漏れ）ではない。** マスターから新規プロジェクトへ配る経路（`deploy_skills.py`）では、この deny は**配らない**設定になっている（配置先の通常の依存インストールを止めてしまうため）。セキュリティルールは配布先に依存するのが正しく、この組織は npx 全面禁止・`ignore-scripts=true` と併せて意図的に強めている。**外して緩めないこと。**
 
 ## スモークテスト（配置後・必須）
 
