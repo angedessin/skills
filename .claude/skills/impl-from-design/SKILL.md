@@ -3,7 +3,7 @@ name: impl-from-design
 description: "承認済みデザインドキュメントに基づく実装に使う — 「実装を開始して」「設計から実装して」「設計が承認された、作ろう」などのフレーズが対象。.steering/[task]/design.md の Status が APPROVED である必要がある。design.md がない・DRAFT の場合は design-doc にリダイレクト。.steering/ コンテキストなしの汎用「実装して」リクエストには起動しない。"
 compatibility: "React / TypeScript（TDD モードのテスト配置・命名の例がスタック前提。実装手順と前提チェックは言語非依存で、テストのパターンは tdd の references/patterns.md 側を差し替える）"
 metadata:
-  version: "1.4"
+  version: "1.5"
 ---
 
 # Impl from Design
@@ -35,6 +35,11 @@ find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
   design.md がまだ DRAFT です。
   `design-doc` スキルで設計レビューを完了してからもう一度呼び出してください。
   ```
+
+**design.md の読み契約**: 既定は**契約コアまで**（`<!-- design-doc-boundary: appendix -->` より前）。
+マーカーが無い旧ファイルは全文扱い。ツールが全文を返しても必須入力はコアに限定する（可能なら `Read` の `limit` で境界まで）。
+**実装開始前**に付録の `## 影響範囲` を例外追加で読む。`## テスト方針` は TDD/非コード検証に入るとき、
+`## 調査結果` は追記するとき、`## データフロー` は必要なときだけ開く。
 
 `tasklist.md` も読んで実装スコープを把握する。
 - `tasklist.md` が存在しない場合 → ユーザーに確認する:

@@ -3,7 +3,7 @@ name: frontend-code-review
 description: "実装後のコードレビューに使う — 「コードをレビューして」「レビューしよう」「コードレビュー」「実装を確認して」などのフレーズが対象。diff トリアージでモードを判定し、ロジック/コンポーネント変更はフルモード（7エージェント並列）、リファクタリング/スタイルのみは軽量モード（直列）で実行。結果を .steering/[task]/review-result.md に書き込む。"
 compatibility: "React / TypeScript（diff の対象拡張子・モード判定の閾値がスタック前提。レビュー軸そのものはフレームワーク中立で、別スタックでは対象拡張子とサブスキルの構成を差し替える）"
 metadata:
-  version: "1.3"
+  version: "1.4"
 ---
 
 # Frontend Code Review
@@ -106,7 +106,7 @@ subagent はセッション履歴もスキル定義も持たない。**サブス
 
 - 対象ファイル: [トリアージ結果のうち、このエージェントのスコープに合うファイル一覧]
 - diff 範囲: [Phase 1 で決定した範囲（コミット済み範囲 + 未コミットの有無）]
-- 参照: .steering/[task]/design.md（存在する場合のみ。主に impl-review 用）
+- 参照: .steering/[task]/design.md（存在する場合のみ。主に impl-review 用。境界読みは impl-review 側の契約に従う — このオーケストレーターは付録全文を必須入力にしない）
 
 結果は SKILL.md の軸ごとに「軸 / 指摘 / file:line / 重要度」の表で返してください。
 指摘ゼロの軸も「問題なし」と明記してください。

@@ -3,7 +3,7 @@ name: impl-review
 description: "実装コードの品質レビューに使う — 「実装をレビューして」「コードが設計に合っているか確認して」「TypeScript の問題」「React パターンのレビュー」などのフレーズが対象。確認内容: design.md との整合性・docs/knowledge/ のプロジェクト規約・TypeScript 品質・React パターン。アクセシビリティは対象外（review-a11y の担当）。単独または frontend-code-review のサブスキルとして動作。テストコードのレビュー（test-review を使う）やテストインフラの監査には起動しない。"
 compatibility: "React / TypeScript"
 metadata:
-  version: "1.2"
+  version: "1.3"
 ---
 
 # Impl Review
@@ -38,6 +38,7 @@ BASE=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^o
 ### Axis 1 — 設計整合性（最重要・このスキル固有）
 
 `.steering/[task]/design.md` が存在する場合、実装との整合性を確認する。複数のアクティブタスクがある場合は変更ファイルのパスと最も関連するタスクを選択する（判断できない場合はユーザーに確認する）。
+**読み契約**: 設計整合は**契約コア**（境界マーカーより前。主要コンポーネント・完了条件など）で足りる。マーカーが無い旧ファイルは全文。
 
 **確認項目**:
 
