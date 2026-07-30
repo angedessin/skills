@@ -75,13 +75,15 @@
       ↓
 [5] 指摘修正      修正 → 指摘があった軸のみ差分再レビュー
       ↓
+[5.5] 知見（PR分） knowledge-capture — **この変更の説明・落とし穴は同じブランチへ**（後続 PR に混ぜない）
+      ↓
 [6] PR 提出       pr-create → CI 確認（**マージはしない**）
       ↓
 [6.5] PR 往復     pr-feedback — 返ってきたコメント・CI 失敗をトリアージ → 修正 → 返信
       ↓
 [6.9] マージ      人間の判断（外向き操作）
       ↓
-[7] ナレッジ保存  knowledge-capture（パターン → docs/）／ session-retrospective — セッション摩擦を skill-issues.md に採掘
+[7] 知見（残り）  knowledge-capture（会話由来・横断の残り）／ session-retrospective — セッション摩擦を skill-issues.md に採掘
       ↓
 [8] 福利化        compound（パターン → ルール・知識・スキル改善）
       ↓
