@@ -37,8 +37,8 @@ Last updated: 20260730
 - [x] `package.json` から `check:export` 削除
 - [x] `check_asset_consistency.py`: (g)(i) / EXPORT_* / `--require-export` / 持ち出し発見を除去
 - [x] `README.md`: ツリー・インフラ節から export 差分ガードを削除。契約員数を更新
-- [x] `skill-test/SKILL.md`: 持ち出し検査節を Frozen・対象外化
-- [x] `deployments.md`（ローカル）/ `deployments.example.md`: Frozen handoff 明記
+- [x] `skill-test/SKILL.md`: 持ち出し検査節を**削除**（PR #1 指摘反映。Frozen 注記も残さない）
+- [x] `deployments.example.md`: Frozen handoff 明記（`deployments.md` は gitignore）
 - [x] `claude-code-config.md`: 防御パリティ現況義務 → 過去形＋個人配置向け一般則
 - [x] `skill-design-patterns.md`: `check_export_*` に削除済み注記
 
@@ -50,21 +50,20 @@ Last updated: 20260730
 - [x] `rg check_export_stopcontract` — 実体パス無し（削除済み注記のみ）
 - [x] `rg blockers .claude/skills/knowledge-capture` ヒット
 - [x] `package.json` に `check:export` 無し
+- [x] `skill-test` に持ち出し / export/company / Frozen 説明が無いこと
 
 ## レビュー
 
-- [ ] frontend-code-review（PR 前後で任意）
-- [ ] レビュー指摘の修正
-- [ ] 修正後の差分再レビュー
+- [x] ~~frontend-code-review~~ — 省略（PR 確認は人間）
+- [x] PR #1 指摘の修正（持ち出し節削除）→ PR #4
+- [x] ~~修正後の差分再レビュー~~ — 省略（PR 確認は人間）
 
 ## デプロイ
 
-- [ ] PR 作成（`pr-create`）
-- [ ] マージ（人間）
+- [x] PR 作成 — https://github.com/angedessin/skills/pull/4（base: `integration/20260730-reports`）
+- [ ] マージ（人間承認後・親ブランチへ。main 直ではない）
 
 ## 福利化 / 知見
 
-- [ ] compound（必要なら）
-- [ ] knowledge-capture
+- [ ] compound / knowledge-capture / archive — **本 PR 対象外**（親へマージ後、または後続 PR）
 - [x] `.steering/BACKLOG.md` に P1d / P2 / 後続候補を追記
-- [ ] steering archive

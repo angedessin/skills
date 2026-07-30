@@ -41,14 +41,14 @@ Approved: 20260730
 
 ## 完了条件
 
-- [ ] P0: `knowledge-capture` が `blockers.md` を入力に含め、決定木で取捨し、ドラフト提示まで到達する手順が本文にある。CLAUDE.md / README / ADR 20260612 の「取捨は knowledge-capture」宣言と矛盾しない
-- [ ] P1a: `docs/knowledge/skill-design-patterns.md` の master-only 記述が `MASTER_ONLY` 4本（`adr` / `skill-deploy` / `skill-harvest` / `skill-test`）かつ本体パス `.claude/skills/` と一致。ツール（`scripts/` 等）との用語混線を解消
-- [ ] P1b: producer が FCR + knowledge-capture の二重である旨が `skill-design-patterns` / `docs/starter-kit.md` / `README.md` で現行形として一致
-- [ ] P1c: jq 依存・フェイル方針の記述が、実 hook（`guard-env-read` / `session-start-check` / `post-edit-lint` は jq 未使用。jq は `stop-typecheck` / `validate-skill-edit`）と一致
-- [ ] E1: `scripts/check_export_stopcontract.py` 削除、`package.json` の `check:export` 削除、`check_asset_consistency.py` から契約 (g)(i)・`EXPORT_INTENTIONAL_OMISSIONS`・`--require-export` および持ち出し発見経路を除去。README / skill-test の持ち出し検査手順を現行義務から外す
-- [ ] E1: `deployments.md` に Frozen handoff（更新しない）を明記。`claude-code-config` の「防御変更時に配布物確認」現況義務を過去形の教訓＋一般法則（次の**個人**配置先）に書き換え
-- [ ] `npm run validate:assets` が PASS（契約数は (g)(i) 除外後の集合）
-- [ ] 対象クラスタについて「説明文だけ」の差分が無い（手順または検査が動いている）
+- [x] P0: `knowledge-capture` が `blockers.md` を入力に含め、決定木で取捨し、ドラフト提示まで到達する手順が本文にある。CLAUDE.md / README / ADR 20260612 の「取捨は knowledge-capture」宣言と矛盾しない
+- [x] P1a: `docs/knowledge/skill-design-patterns.md` の master-only 記述が `MASTER_ONLY` 4本（`adr` / `skill-deploy` / `skill-harvest` / `skill-test`）かつ本体パス `.claude/skills/` と一致。ツール（`scripts/` 等）との用語混線を解消
+- [x] P1b: producer が FCR + knowledge-capture の二重である旨が `skill-design-patterns` / `docs/starter-kit.md` / `README.md` で現行形として一致
+- [x] P1c: jq 依存・フェイル方針の記述が、実 hook（`guard-env-read` / `session-start-check` / `post-edit-lint` は jq 未使用。jq は `stop-typecheck` / `validate-skill-edit`）と一致
+- [x] E1: `scripts/check_export_stopcontract.py` 削除、`package.json` の `check:export` 削除、`check_asset_consistency.py` から契約 (g)(i)・`EXPORT_INTENTIONAL_OMISSIONS`・`--require-export` および持ち出し発見経路を除去。README から差分ガードを外し、`skill-test` の持ち出し検査節は削除
+- [x] E1: `deployments.example.md` に Frozen handoff（更新しない）を明記。`claude-code-config` の「防御変更時に配布物確認」現況義務を過去形の教訓＋一般法則（次の**個人**配置先）に書き換え
+- [x] `npm run validate:assets` が PASS（契約数は (g)(i) 除外後の集合）
+- [x] 対象クラスタについて「説明文だけ」の差分が無い（手順または検査が動いている）
 
 ## アプローチ
 
