@@ -43,7 +43,7 @@
 |---|---|---|
 | impl-from-design | design-doc が作る `design.md`（APPROVED） | 止まって design-doc を案内する（実装に入らない） |
 | impl-from-design（TDD モード） | tdd の `references/patterns.md` | パターン参照なしの縮退（本文の判断軸のみでテストを書く） |
-| frontend-code-review | review-* 7 軸 / impl-review / test-review | 未配置分をスキップして報告する（縮退動作） |
+| frontend-code-review | review-* 5 サブスキル + impl-review + test-review（フルモード 7 エージェント） | 未配置分をスキップして報告する（縮退動作） |
 | compound の自動起動 | frontend-code-review **および** knowledge-capture が立てる `.codify-needed`（**書く側・二重**）+ `session-start-check.sh`（SessionStart hook・**読む側**） | フラグ起動が効かないだけ。明示呼び出しで使える。**読む側の hook を欠くとフラグが溜まるだけで一度も拾われない** |
 | knowledge-capture の自動起動 | `session-stop.sh`（Stop hook・**書く側**）が立てる `.capture-needed` + `session-start-check.sh`（SessionStart hook・**読む側**） | 同上。両方を対で配る（手順 6） |
 | pr-feedback | pr-create | **対で入れる**（提出と往復は対。片方だけでは往復の入口/出口が欠ける） |
@@ -58,7 +58,7 @@
 |---|---|
 | **どんなスタックでも**（バックエンド・CLI・インフラ含む） | メタワークフロー: design-doc / steering / debug / knowledge-capture / compound / rule-audit / feature-pipeline / empirical-prompt-tuning / security-audit。設計承認ゲート・障害調査・知見蓄積・剪定・セットアップ資産のセキュリティ監査はコードの種類に依存しない |
 | **テストを書くプロジェクト全般** | tdd / test-review / e2e。本文は判断軸のみなので、references/patterns.md を自分のテストスタック（pytest / JUnit / Go test 等）で再生成する |
-| **フロントエンド（React 以外も可）** | frontend-code-review + review-* 全 7 軸。判断軸は概ねフレームワーク中立（a11y / CWV / XSS / correctness）。compatibility とコード例を自分のフレームワークに合わせる |
+| **フロントエンド（React 以外も可）** | frontend-code-review + review-* 全 5 サブスキル（フルモードは 7 エージェント）。判断軸は概ねフレームワーク中立（a11y / CWV / XSS / correctness）。compatibility とコード例を自分のフレームワークに合わせる |
 | **フロントエンド以外でのレビュー** | review-correctness は言語横断で使える（境界条件・null・非同期レース・エラー握りつぶし）。review-a11y / ui / performance は対象外なので配置しない |
 
 既存の開発ワークフロー（レビュー体制・ブランチ運用・チケット管理）があるプロジェクトでは、**スキル本文を書き換えず**、配置先 CLAUDE.md の発動ポリシー側で接続を定義する（例:「PR 作成は既存のチーム運用に従い、feature-pipeline の Phase 3.5 はスキップする」「設計レビューは design.md ではなく既存の Design Doc プロセスに読み替える」）。

@@ -84,7 +84,7 @@
 
 **一次情報**: `.steering/20260730-report-driven-fixes/design.md` 対象外 / `.tmp/20260730-*-report.md`
 
-- **P1d** — 7軸用語の正本化（starter-kit / user-guide）と @参照配線の残骸（ADR 20260715 Context / rule-audit）
+- ~~**P1d** — フルモード用語の正本化（7 エージェント）と @参照配線の残骸（ADR 20260715 Context / rule-audit）~~ → **完了**（`20260730-p1d-terminology-at-refs`。starter-kit / user-guide / 関連 SKILL.md 含む）
 - **P2** — design.md の契約/付録分離 or SPIKE レーン（どちらか最小スライス）
 - **capture 粒度** — `.capture-needed` の「完了時」と「セッション知見あり」の分離（偽陰性を増やさない）
 - **ナレッジ鮮度の機械化** — rule-audit 常用化が第一歩
