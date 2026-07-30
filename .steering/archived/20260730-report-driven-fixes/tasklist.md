@@ -67,6 +67,8 @@ Last updated: 20260730
 
 ## 福利化 / クローズ
 
-- [ ] compound（別ゲート・マージ後でも可）
+- [x] ~~compound~~ — 省略（アーカイブ時に明示スキップ。学びは skill-issues / decisions / 同梱 knowledge に残置）
 - [x] `.steering/BACKLOG.md` に P1d / P2 / 後続候補を追記
-- [ ] steering archive（親へマージ後）
+- [x] steering archive（親へマージ後）
+
+Archived: 20260731
