@@ -80,7 +80,7 @@
 
 ## 4. 20260730 レポート由来の後続（`report-driven-fixes` から切り出し）
 
-**一次情報**: `.steering/20260730-report-driven-fixes/design.md` 対象外 / `.tmp/20260730-*-report.md`
+**一次情報**: `.steering/archived/20260730-report-driven-fixes/design.md` 対象外 / `.tmp/reports/20260730-*-report.md`
 
 - ~~**P1d** — フルモード用語の正本化（7 エージェント）と @参照配線の残骸（ADR 20260715 Context / rule-audit）~~ → **完了**（`20260730-p1d-terminology-at-refs`。starter-kit / user-guide / 関連 SKILL.md 含む）
 - ~~**P2（契約/付録）**~~ → **完了**（`archived/20260731-design-contract-appendix`。PR #6 → integration）
