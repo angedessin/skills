@@ -49,12 +49,6 @@ metadata:
 
 **実行回数**: 既定は 2 回だが、**承認語彙（承認 / APPROVED）を持つスキルは `--runs 4` 以上**で回す。2 回では非決定 FAIL を取りこぼす（構造がきれいなのに稀に破れるスキルがあり、2/2 PASS を合格と即断して取りこぼした実例がある）。全シナリオを 4 回にすると課金が倍になるため、`--all` の既定は 2 のままにして承認ゲート系だけ明示的に `--runs 4` を指定する。
 
-### 持ち出しセットの検査（Frozen・対象外）
-
-会社向け持ち出しセット（`export/company`）向けの素通り選定・差分ガード
-（`check_export_stopcontract.py`）は **20260730 に Frozen handoff として削除済み**。
-master 側の `tests/passthrough/` シナリオのみを対象にする。持ち出し worktree への追随検査は行わない。
-
 結果を報告し、FAIL したスキルはハードストップの書き方を見直す（`docs/knowledge/skill-design-patterns.md` の「停止・承認・前提条件の契約」の節が一次情報）。
 
 ## 出力形式
