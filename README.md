@@ -44,7 +44,6 @@
 │   ├── passthrough_check.py           # 素通り検査（ハードストップの実地検証・課金・任意）
 │   ├── deploy_skills.py               # 配置先へのスキル・ガードレール同送（skill-deploy が使う）
 │   ├── check_deploy_drift.py          # 配置先ドリフト検出・issues 還流（読み取り専用）
-│   ├── check_export_stopcontract.py   # 持ち出しセットと master の停止契約差分（report-only）
 │   └── check_asset_consistency.py     # 資産どうしの契約突合（片側修正の検出・違反で exit 1）
 ├── prompts/                           # 人が貼って使うマスター専用プロンプト（非配布）
 │   └── adversarial-skill-review.md    # スキル本文の敵対的レビュー（横断／個別の二層）
@@ -76,13 +75,15 @@
       ↓
 [5] 指摘修正      修正 → 指摘があった軸のみ差分再レビュー
       ↓
+[5.5] 知見（PR分） knowledge-capture — **この変更の説明・落とし穴は同じブランチへ**（後続 PR に混ぜない）
+      ↓
 [6] PR 提出       pr-create → CI 確認（**マージはしない**）
       ↓
 [6.5] PR 往復     pr-feedback — 返ってきたコメント・CI 失敗をトリアージ → 修正 → 返信
       ↓
 [6.9] マージ      人間の判断（外向き操作）
       ↓
-[7] ナレッジ保存  knowledge-capture（パターン → docs/）／ session-retrospective — セッション摩擦を skill-issues.md に採掘
+[7] 知見（残り）  knowledge-capture（会話由来・横断の残り）／ session-retrospective — セッション摩擦を skill-issues.md に採掘
       ↓
 [8] 福利化        compound（パターン → ルール・知識・スキル改善）
       ↓
@@ -199,22 +200,21 @@ design-premortem   impl-tournament                          session-retrospectiv
 - セッション中にスキルの誤発動・曖昧な指示に気づいたら `.steering/[task]/skill-issues.md` に記録する（CLAUDE.md ルール。decisions.md / skill-issues.md / blockers.md への追記は承認不要 — 内容の取捨選択は compound / knowledge-capture 時に行う）
 - compound がルールを増やし、`rule-audit` が定期監査（削除テスト）で刈る — 追加と剪定の両輪で CLAUDE.md の肥大化を構造的に抑える
 - Stop hook が knowledge-capture 未実行タスクに `.capture-needed` フラグを作成し、次セッション開始時にリマインドされる
-- frontend-code-review 完了時に `.codify-needed` フラグが作成され、compound への引き継ぎになる
+- frontend-code-review 完了時、および knowledge-capture 完了時（`codify-log.md` が無ければ）に `.codify-needed` フラグが作成され、compound への引き継ぎになる（producer 二重化）
 
 ---
 
 ## インフラ・設定
 
-- **SessionStart Hook** (`.claude/hooks/session-start-check.sh`): `.steering/` を走査し、未処理フラグ（`.capture-needed` / `.codify-needed`）とアクティブタスク一覧を context に注入する。フラグの**読む側** — これが無いと Stop hook が立てたフラグは誰にも拾われない。加えて **`.steering/BACKLOG.md`（固定パスの着手前バックログ）の存在と節数を 1 行注入する** — バックログをアーカイブ済みタスクの `decisions.md` に書くと走査が `archived/` を除外するため次セッションから見えず、アクティブタスクとして置くと毎セッションの固定費になる。その中間として「存在と規模だけ」を知らせる（中身は必要になってから読む）。`.steering/` が無い環境・jq 不在時はフェイルオープン
+- **SessionStart Hook** (`.claude/hooks/session-start-check.sh`): `.steering/` を走査し、未処理フラグ（`.capture-needed` / `.codify-needed`）とアクティブタスク一覧を context に注入する。フラグの**読む側** — これが無いと Stop hook が立てたフラグは誰にも拾われない。加えて **`.steering/BACKLOG.md`（固定パスの着手前バックログ）の存在と節数を 1 行注入する** — バックログをアーカイブ済みタスクの `decisions.md` に書くと走査が `archived/` を除外するため次セッションから見えず、アクティブタスクとして置くと毎セッションの固定費になる。その中間として「存在と規模だけ」を知らせる（中身は必要になってから読む）。`.steering/` が無い環境ではフェイルオープン（jq 非依存）
 - **Stop Hook** (`.claude/hooks/session-stop.sh`): アクティブタスクに `capture_done` がなければ `.capture-needed` フラグを作成するだけの軽量フック（セッション記録は git が持つ）。成果物（*.md）の無いタスクディレクトリはスキップする
-- **PreToolUse Guard** (`.claude/hooks/guard-env-read.sh`): Bash コマンド全文を検査し、`.env` 系に触れるものを ask に落とす（deny の前置一致では防げない head/sed/base64 等の迂回対策）。jq 未導入環境ではフェイルクローズ
+- **PreToolUse Guard** (`.claude/hooks/guard-env-read.sh`): Bash コマンド全文を検査し、`.env` 系に触れるものを ask に落とす（deny の前置一致では防げない head/sed/base64 等の迂回対策）。jq 非依存
 - **承認ゲートの Bash 側** (`.claude/hooks/guard-gated-write.sh`): `CLAUDE.md` / `docs/knowledge/` / `docs/decisions/` への **Bash 経由**の書き込み（`>` / `>>` / `tee`）を ask に落とす。permissions の ask は **Edit / Write ツールにしか掛からず**、`Bash(git show*)` のような前置一致 allow があると `git show HEAD:x > CLAUDE.md` で迂回できるため、その穴を塞ぐ。**対象は書き込みのみ — `rm` による削除・`mv` による移動・`sed -i` は非対象**（脅威モデルが敵対者ではないため意図的にこの線で止めている）
 - **知識の要点注入** (`.claude/hooks/remind-config-docs.sh`, **master-only**): `.claude/settings.json` / `.claude/hooks/` / `SKILL.md` を編集したとき、対応する `docs/knowledge/` の要点を**本文ごと** context に注入する（セッション 1 回だけ）。「読め」というポインタを増やしても読まれなかった実測があるため、要点そのものを渡す方式にしている。注入する本文がマスターの `docs/knowledge/` に依存するため配置先には同送しない
 - **検証スクリプト** (`scripts/validate_skills.py`): name 一致・description・行数・アストラル面絵文字・metadata.version・When NOT to use 見出し・停止契約の構造（承認語彙 → ハードストップ）の 7 項目を機械検証。`--purity` でツール純度レポート（本文のツール固有語彙の出現数・FAIL にしない）。スキル改訂時と配置前に実行する（PostToolUse hook でも自動実行）
 - **素通り検査** (`scripts/passthrough_check.py`): ハードストップが実地で守られるかを、フレッシュエージェントの実行前後の SHA1 差分で機械判定（課金・任意・デフォルトでは回さない）。シナリオは `tests/passthrough/[skill]/scenario.md`。`--dry-run` で無課金の構造確認。編成は `skill-test` スキル
-- **npm script** (`package.json`): `validate`（静的検査）/ `validate:portability`（配布可スキルの内部前提混入）/ `validate:assets`（下記の契約突合）/ `check:export`（下記の差分ガード）/ `lint`（Biome）。検証コマンドを散文から探さずに済むようにしている
-- **資産どうしの契約突合** (`scripts/check_asset_consistency.py`): 「同じ情報が複数箇所にある」箇所を機械で突合し、**片側修正を検出する**。検査する 9 契約 — (a) 同送 hook が `HOOK_REGISTRATIONS` に登録済みか（死んだ登録も検出）/ (b) `.claude/hooks/` の全ファイルが「同送」か「master-only」に分類済みか / (c) README の hook 記述が実体と一致するか / (d) 同送 hook が配置手順に載っているか / (e) permissions が配布用とマスター専用に分類済みか（未分類・ドリフト・死んだ分類・重複の 4 方向）/ (f) **`settings.json` の hooks 登録が実体と一致するか**（置いたのに登録を忘れて一度も発火しない、を検出）/ (h) `MASTER_ONLY`（配布分類）が `deploy_skills.py` と `validate_skills.py` で一致するか / (g) 配布物 hooks に未説明の差分が無いか / (i) **持ち出しセットの 3 文書（HANDOVER / MANIFEST / MIGRATION-GUIDE）の記述が実体と一致するか**（員数・同梱スキル名の記載漏れ・実在しない hook への参照）。**違反で exit 1**。持ち出しセットが無い環境では (g)(i) を **SKIP** に降格して他の契約の判定を通す（契約 1 本の対象不在で全体を exit 2 にすると、他の契約の FAIL が握りつぶされて呼び出し側の hook が無音になる）。`--require-export` で SKIP を FAIL にできる。**(i) の員数は「実体の数が各文書に 1 回は現れるか」で見る** — 「文書が主張する数がすべて実体と一致するか」にすると、履歴節の過去の数値（「9 スキルに縮小していた」等）を誤検知する。ドキュメントとの突合は**全文の `*.sh` 集合比較**なので書式変更で壊れない。持ち出しセットが意図的に外す hook は `EXPORT_INTENTIONAL_OMISSIONS` に宣言させ、**宣言の無い欠落は FAIL**（「意図的な除外」と「新しい防御の入れ忘れ」は見た目が同じため分類を強制する）。この検査は「`expected_hooks()` に足したが `HOOK_REGISTRATIONS` に登録し忘れて配置が全滅する」型が 2 度起きたことから作られている（うち 1 度は、まさに同じ漏れをルール化したコミット自身が再発させた）
-- **停止契約の差分ガード** (`scripts/check_export_stopcontract.py`, 引数なしで git worktree から持ち出しセットを自動発見): 手で転記・加工される持ち出しセット（`export/company/skills/`）と master の**停止契約領域だけ**を比較し、非同梱スキル名の除去・マスター固有語の一般化・スタック語の置換で説明がつかない**実質差分**を報告する（report-only）。実質差分のあるスキルだけが持ち出し側の素通り検査シナリオの対象になり、差分ゼロのスキルは master 側のシナリオで代表させる。**比較対象が存在しなければ exit 2 でフェイルクローズ**（持ち出しセットは export ブランチにしか無いため、main で実行すると走査 0 件になる。それを「差分なし」と報告しないための措置）
+- **npm script** (`package.json`): `validate`（静的検査）/ `validate:portability`（配布可スキルの内部前提混入）/ `validate:assets`（下記の契約突合）/ `lint`（Biome）。検証コマンドを散文から探さずに済むようにしている
+- **資産どうしの契約突合** (`scripts/check_asset_consistency.py`): 「同じ情報が複数箇所にある」箇所を機械で突合し、**片側修正を検出する**。検査する 7 契約 — (a) 同送 hook が `HOOK_REGISTRATIONS` に登録済みか（死んだ登録も検出）/ (b) `.claude/hooks/` の全ファイルが「同送」か「master-only」に分類済みか / (c) README の hook 記述が実体と一致するか / (d) 同送 hook が配置手順に載っているか / (e) permissions が配布用とマスター専用に分類済みか（未分類・ドリフト・死んだ分類・重複の 4 方向）/ (f) **`settings.json` の hooks 登録が実体と一致するか**（置いたのに登録を忘れて一度も発火しない、を検出）/ (h) `MASTER_ONLY`（配布分類）が `deploy_skills.py` と `validate_skills.py` で一致するか。**違反で exit 1**。この検査は「`expected_hooks()` に足したが `HOOK_REGISTRATIONS` に登録し忘れて配置が全滅する」型が 2 度起きたことから作られている（うち 1 度は、まさに同じ漏れをルール化したコミット自身が再発させた）。会社向け持ち出しセット用の契約 (g)(i) と `check_export_stopcontract.py` は 20260730 に Frozen handoff として除去済み
 - **敵対的スキルレビュー** (`prompts/adversarial-skill-review.md`): スキル**本文の中身**を敵対的に精読するプロンプト（人が貼って使う・フレッシュな subagent 推奨）。境界の重複と空白・オーケストレーターとの契約ズレ・片側修正・死んだ参照・迂回経路・配布分類違反を、静的検査と素通り検査の**間**の層として拾う。ファイルは一切変更せず、証拠つきの指摘と方向性1行だけを提示して止まる
 - **品質ゲート hooks** (`.claude/hooks/post-edit-lint.sh` / `stop-typecheck.sh` / `validate-skill-edit.sh`): 編集ごとの lint 差し戻し・終了宣言時の tsc・SKILL.md 編集時の `validate_skills.py` 自動実行。前 2 本はフェイルオープン（設定が無ければ素通し）なのでスタックを問わず配れる
 - **配置スクリプト** (`scripts/deploy_skills.py`): 配置先へのスキル本体とガードレール（hooks・permissions・.gitignore）の同送。`--dry-run` / `--overwrite`。master-only スキルと master-only hook は配置対象から除外される。**permissions はマスターの settings.json をそのまま配らず、`DEPLOY_PERMISSIONS` に明示列挙した配布用サブセットを配る** — マスターの deny には「このリポジトリは依存を増やさない」というマスター固有の方針（`npm install` 等の deny）が混ざっており、そのまま配ると配置先の開発フローを止めるため。**配布サブセットはベースラインであって最終形ではない**（最終的なセキュリティルールは配布先に依存するので、dry-run 提示で調整する）。編成は `skill-deploy` スキル
