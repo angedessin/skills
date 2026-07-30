@@ -508,6 +508,25 @@ consumer は複数箇所（compound・knowledge-capture・hook 等）あった�
 `codify-log.md` が無ければ立てる no-op ガード付き）の二重。代替を注記に書くだけでは守られない
 （下記「説明文では守られない」に該当）。
 
+**メモにも producer / consumer の対が要る（20260730）。**
+`blockers.md` 等は追記が承認不要でも、回収出口が無いと CLAUDE.md の「取捨は knowledge-capture 時」が空振りする
+（書く導線だけあって読む側がスキルに無い状態）。フラグの対と同じく、任意メモも
+**入力源・決定木・ドラフト提示まで** consumer（knowledge-capture）に載せる。自動移設はしない。
+
+**Frozen handoff は生きた機械まで外す（20260730）。**
+一方向持ち出しを設計入力から外すとき、文書の過去形化だけでは足りない。SKIP される契約・npm script・
+README の第一級記載が残ると認知税と片側修正の温床になる。検査・スクリプト・現行義務文を除去し、
+一般法則・ADR・履歴は残す。
+
+**gitignore のレジストリに方針を書かない（20260730）。**
+`deployments.md` はローカル限定。Frozen 注記など追跡したい文言は `deployments.example.md` に書く。
+実体だけ直すとリポジトリに残らない。
+
+**PR に属する知見はマージ前に同じブランチへ（20260730）。**
+`feature-pipeline` の「マージ → knowledge-capture」や tasklist の「デプロイ → 知見保存」順だけを見ると、
+知見が後続 PR や別差分に混ざる。この変更の説明・落とし穴として残す knowledge は、
+**レビュー対象ブランチに含めてから PR を出す**。マージ後の capture は会話由来・横断・compound 用に残す。
+
 ---
 
 ## 課金を伴う操作は前置承認のハードストップにし、hooks から自動起動しない
