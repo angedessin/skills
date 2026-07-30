@@ -83,7 +83,7 @@
 **一次情報**: `.steering/20260730-report-driven-fixes/design.md` 対象外 / `.tmp/20260730-*-report.md`
 
 - ~~**P1d** — フルモード用語の正本化（7 エージェント）と @参照配線の残骸（ADR 20260715 Context / rule-audit）~~ → **完了**（`20260730-p1d-terminology-at-refs`。starter-kit / user-guide / 関連 SKILL.md 含む）
-- ~~**P2（契約/付録）**~~ → 着手済み（`.steering/20260731-design-contract-appendix/`。SPIKE レーンは未着手のまま後続候補）
+- ~~**P2（契約/付録）**~~ → **完了**（`archived/20260731-design-contract-appendix`。PR #6 → integration）
 - **SPIKE レーン** — design.md の探索実装レーン（P2 のもう一方。契約/付録とは別タスク）
 - **design.md 境界の任意追記** — アクティブ design への `<!-- design-doc-boundary: appendix -->` 追記は任意・強制しない（マーカー無しは全文フォールバックのまま）
 - **capture 粒度** — `.capture-needed` の「完了時」と「セッション知見あり」の分離（偽陰性を増やさない）
