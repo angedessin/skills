@@ -38,20 +38,20 @@ Last updated: 20260730
 ## 知見保存（この PR / ブランチに載せる分）
 
 - [x] decisions.md に用語境界・プレモータム反映を短く残す
-- [ ] knowledge-capture は差分に属する知見があれば同ブランチへ（任意）
+- [x] ~~knowledge-capture~~ — 省略（タスク固有決定は decisions.md に済。docs/knowledge への横断昇格は不要）
 
 ## レビュー
 
-- [ ] ~~frontend-code-review~~ — 省略可（docs/ADR/スキル文言。人間が PR で確認）
-- [ ] PR 作成前に差分を人間確認
+- [x] ~~frontend-code-review~~ — 省略（docs/ADR/スキル文言。人間が PR で確認）
+- [x] PR 差分の人間確認（承認 20260730）
 
 ## デプロイ
 
-- [ ] PR 作成（base: `integration/20260730-reports`）
-- [ ] CI グリーン確認
-- [ ] マージ（**人間の明示指示があるまでしない**）
+- [x] PR 作成（base: `integration/20260730-reports`）— https://github.com/angedessin/skills/pull/5
+- [x] CI — チェック未設定（`gh pr checks` no checks reported）
+- [ ] マージ（人間承認済み・実施待ち）
 
 ## 福利化 / クローズ
 
-- [ ] compound（任意・別ゲート）
+- [x] ~~compound~~ — 省略（別ゲート。今回の学びは decisions.md に閉じる）
 - [ ] steering archive（親へマージ後）
