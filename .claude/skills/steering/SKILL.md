@@ -2,7 +2,7 @@
 name: steering
 description: ".steering/ クロスセッションコンテキスト管理のメタスキル。「new task」「start steering」「[task] を再開」「[task] をアーカイブ」「steering status」「進行中タスクは？」と明示的に言われた場合のみ起動。通常のセッション開始で .steering/ を読むだけの場合や design-doc がコンテキスト設定を担っている場合は自動起動しない。"
 metadata:
-  version: "1.0"
+  version: "1.2"
 ---
 
 # Steering
@@ -22,7 +22,7 @@ metadata:
 ```
 .steering/
 ├── [YYYYMMDD]-[task-name]/
-│   ├── design.md           (必須 — 目的/スコープ/完了条件を含む。APPROVED になるまで実装禁止)
+│   ├── design.md           (必須 — 契約コアに目的/スコープ/完了条件等。APPROVED になるまで実装禁止。付録は境界マーカー以降)
 │   ├── tasklist.md         (必須 — セッションごとに更新)
 │   ├── decisions.md        (任意 — タスク固有の決定事項)
 │   ├── blockers.md         (任意 — 未解決の問題)
@@ -68,7 +68,10 @@ metadata:
 
 1. `.steering/` のアクティブタスク一覧（`archived/` 除外）を確認
 2. 対象タスクの以下を読む:
-   - `design.md`（目的・設計と Status。旧構造で `requirements.md` があればそれも読む）
+   - `design.md`（**契約コアまで**を既定。`<!-- design-doc-boundary: appendix -->` より前の
+     目的・設計と Status。マーカーが無い旧ファイルは全文。旧構造で `requirements.md` があればそれも読む。
+     **操作定義**: ツールがファイル全文を返しても必須入力は境界より前に限定する。可能なら `Read` の
+     `limit` で境界行まで取得する。付録を要約・推論に使ってはならない）
    - `tasklist.md`（進捗確認）
    - `blockers.md`（なければ「なし」として扱う）
    - `decisions.md`（なければ「記録なし」として扱う）

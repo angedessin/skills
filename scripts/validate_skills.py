@@ -11,6 +11,8 @@
   7. 承認語彙（承認 / APPROVED）が出現するスキルは、本文にハードストップ表現
      （「ここで止ま」または見出しの STOP）を 1 つ以上持つ。否定形（承認不要 等）は
      トリガーから除外。逃し弁として本文に <!-- validator: no-stop-needed --> があればスキップ。
+  8. 既定の .claude/skills 走査時: design-doc/references/templates.md に
+     design-doc-boundary: appendix がある（契約コア/付録境界）
 
 純度計測・ポータビリティ（レポートのみ・FAIL にしない）:
   python3 scripts/validate_skills.py --purity        # 各スキル本文のツール固有 API 出現数
@@ -62,6 +64,30 @@ PORTABILITY_VOCAB = [
     "還流", "配布セット", "source-commit", "deployments.md",
     "このマスター", "マスターへ", "マスターの git", "（distributable）",
 ]
+
+# design-doc テンプレの契約コア/付録境界（live design.md は対象外・フォールバック全文）
+DESIGN_DOC_BOUNDARY_MARKER = "design-doc-boundary: appendix"
+
+
+def check_design_doc_template(repo_root: Path) -> list[str]:
+    """design-doc/references/templates.md に付録境界マーカーがあることを検査する。"""
+    p = (
+        repo_root
+        / ".claude"
+        / "skills"
+        / "design-doc"
+        / "references"
+        / "templates.md"
+    )
+    if not p.is_file():
+        return [f"{p.relative_to(repo_root)} が存在しない"]
+    text = p.read_text(encoding="utf-8")
+    if DESIGN_DOC_BOUNDARY_MARKER not in text:
+        return [
+            f"design-doc/references/templates.md に "
+            f"`{DESIGN_DOC_BOUNDARY_MARKER}` 境界マーカーが無い"
+        ]
+    return []
 
 
 def validate(skill_dir: Path, template_mode: bool = False) -> list[str]:
@@ -301,7 +327,23 @@ def main() -> None:
         else:
             print(f"PASS  {d.name}")
 
-    print(f"\n{len(dirs) - failed}/{len(dirs)} PASS")
+    # リポジトリ既定の .claude/skills を走査するときだけテンプレ境界を検査する
+    # （任意ルートへの走査や --skill 単体ではスキップ）
+    default_skills = Path(__file__).resolve().parent.parent / ".claude" / "skills"
+    if root.resolve() == default_skills.resolve():
+        tpl_errs = check_design_doc_template(default_skills.parent.parent)
+        if tpl_errs:
+            failed += 1
+            print("FAIL  design-doc/references/templates.md (boundary)")
+            for e in tpl_errs:
+                print(f"      - {e}")
+        else:
+            print("PASS  design-doc/references/templates.md (boundary)")
+
+    total = len(dirs) + (
+        1 if root.resolve() == default_skills.resolve() else 0
+    )
+    print(f"\n{total - failed}/{total} PASS")
     sys.exit(1 if failed else 0)
 
 

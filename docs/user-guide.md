@@ -31,7 +31,7 @@
 | コードをレビューしてほしい | 「コードをレビューして」 | frontend-code-review | 変更を複数観点（正当性・セキュリティ・a11y 等）でレビューし指摘を出す |
 | PR を出す | 「PR を作って」 | pr-create | ブランチ作成・PR 本文作成。**プッシュ前に承認を求めて止まる** |
 | 進行中タスクを一覧する | 「進行中のタスクは？」「steering status」 | steering (status) | アクティブタスクと進捗の一覧表を表示 |
-| 途中のタスクを再開する | 「[タスク名] を再開」（複数あるときはこれで指定する） | steering (resume) | design.md・tasklist.md を読んで現在地を要約し「何から始めるか」を確認 |
+| 途中のタスクを再開する | 「[タスク名] を再開」（複数あるときはこれで指定する） | steering (resume) | design.md の**契約コア**と tasklist.md を読んで現在地を要約し「何から始めるか」を確認 |
 | タスクを完了する | 「[タスク名] をアーカイブして」 | steering (archive) | 完了チェック（tasklist 全消化・知見保存済み）を通して `.steering/archived/` へ移動 |
 | フロー全体を通す | 「フロー全体を通してやって」 | feature-pipeline | 設計→実装→レビュー→PR→知見蓄積を順に回す（各境界で承認） |
 | セッションを振り返る | 「振り返りして」 | session-retrospective | セッション中の摩擦（誤発動・手戻り）を `skill-issues.md` に起票 |
