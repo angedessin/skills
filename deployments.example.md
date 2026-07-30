@@ -17,3 +17,8 @@
 # /path/to/another-project
 
 # （配置先を追加したら deployments.md に 1 行で登録する。starter-kit.md の配置手順を参照）
+
+# --- Frozen handoff（2026-07-30）---
+# 会社プロジェクトへの一方向持ち込み（export/20260714-company 由来）は Frozen:
+# マスターから更新しない・還流なし・有効行に載せない。再開は会社側からの明示依頼時のみ。
+# 生きた検査（check_export_stopcontract / 資産契約の持ち出し突合）はマスターから除去済み。
