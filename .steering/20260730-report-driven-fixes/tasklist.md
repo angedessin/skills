@@ -63,7 +63,7 @@ Last updated: 20260730
 ## デプロイ
 
 - [x] PR 作成 — https://github.com/angedessin/skills/pull/4（base: `integration/20260730-reports`）
-- [ ] マージ（人間承認後・親ブランチへ）
+- [x] マージ（親 `integration/20260730-reports` へ — PR #4 / 20260730）
 
 ## 福利化 / クローズ
 
