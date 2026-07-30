@@ -38,7 +38,7 @@ metadata:
 
 1. プロジェクトの `CLAUDE.md` — **存在しない場合**: `AGENTS.md`・`.cursorrules` 等の相当ファイルを探し、見つかればそれを監査対象にしてよいかユーザーに確認する。相当ファイルも無ければ「監査対象のルールファイルがありません」と伝え、スキル frontmatter 検証（Step 4）のみ実施するか確認する
 2. `~/.claude/CLAUDE.md`（グローバルルール。読めない場合はスキップ）
-3. `docs/knowledge/` 配下（あれば。監査対象 — Step 2 の削除テストと Step 3 の鮮度チェックにかける。CLAUDE.md からの `@参照` の整合確認にも使う）
+3. `docs/knowledge/` 配下（あれば。監査対象 — Step 2 の削除テストと Step 3 の鮮度チェックにかける。CLAUDE.md に `@docs/...` があれば参照切れ確認にも使う。無ければその確認はスキップ）
 4. `.claude/skills/*/SKILL.md` の frontmatter（あれば。Step 4 の機械検証対象）
 5. `.steering/**/codify-log.md`（あれば。ルールの由来＝どの失敗から昇格したかの突合に使う。無ければ由来突合をスキップ）
 
@@ -53,9 +53,9 @@ ls .claude/skills/*/SKILL.md 2>/dev/null
 
 CLAUDE.md（および相当ファイル）の各ルールに以下を順に適用する。
 **基準 1 の削除テストは `docs/knowledge/` のトピック（見出し単位）にも適用する** —
-knowledge はレビュー基準・@参照として AI の行動に配線されており、腐った記述は
-誤った指摘や廃止済み規約の強制として行動品質に直接跳ね返るため、ルールと同格の監査対象とする
-（段階基準は docs/decisions/20260715-docs-lifecycle-tiers.md — 無いプロジェクトではこの参照をスキップしてよい）。
+knowledge はレビュー基準や必要時に読む導線として AI の行動に影響しうるため、腐った記述は
+誤った指摘や廃止済み規約の強制として行動品質に直接跳ね返る。ルールと同格の監査対象とする
+（段階基準は docs/decisions/20260715-docs-lifecycle-tiers.md — 無いプロジェクトではこの参照をスキップしてよい。現行の knowledge 導線は `@` 既定ではなく必要時読込）。
 **docs/decisions/（決定の記録）は削除テストの対象外** — 不変の記録として剪定しない
 （決定の変更は Superseded / Amended 印で扱う。このリポジトリの決定記録の運用に従う）。
 

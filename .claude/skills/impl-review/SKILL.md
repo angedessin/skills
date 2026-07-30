@@ -165,5 +165,5 @@ review-a11y をあわせて実行する。
 ## Related skills
 
 - `test-review` — テストコードのレビュー（こちらは実装コードのみ）
-- `frontend-code-review` — レビューのオーケストレーター（フルモード: 7 軸を並列実行 / 軽量モード: test-review・impl-review・review-ui を直列実行）
+- `frontend-code-review` — レビューのオーケストレーター（フルモード: 7 エージェントを並列実行 / 軽量モード: test-review・impl-review・review-ui を直列実行）
 - `knowledge-capture` — レビューで発見したパターンを `docs/knowledge/` に保存

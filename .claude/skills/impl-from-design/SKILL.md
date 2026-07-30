@@ -171,7 +171,7 @@ TDD のパターンと実行コマンドは `.claude/skills/tdd/references/patte
    実装が完了しました。
 
    次: `frontend-code-review` スキルでレビューを実行してください。
-   （diff の種別に応じて、フルモードなら 7 軸を並列、軽量モードなら
+   （diff の種別に応じて、フルモードなら 7 エージェントを並列、軽量モードなら
      test-review・impl-review・review-ui を直列で実行します）
    ```
 

@@ -40,7 +40,7 @@
 
 ## 覚えなくていいスキル
 
-- **自動発動・パイプライン内部**: impl-from-design / e2e / review-*（7 軸）/ test-review / impl-review / pr-feedback / knowledge-capture / compound / design-premortem / impl-tournament — design-doc の承認後や作業の流れから接続される
+- **自動発動・パイプライン内部**: impl-from-design / e2e / review-*（5 サブスキル）/ test-review / impl-review / pr-feedback / knowledge-capture / compound / design-premortem / impl-tournament — design-doc の承認後や作業の流れから接続される（フルモードはこれらで 7 エージェント並列）
 - **メンテ・マスター専用**（日常の開発では呼ばない）:
 
 | スキル | いつ実行するか |

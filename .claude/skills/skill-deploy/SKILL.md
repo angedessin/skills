@@ -41,7 +41,7 @@ starter-kit.md — **このスキル・`scripts/deploy_skills.py`・starter-kit 
 `docs/starter-kit.md` の「推奨構成」の表を読み、選択肢として提示してユーザーに選ばせる:
 
 1. **最小** — 基本フロー（計画→実装→レビュー→知見）を一周できるセット
-2. **最小 + レビュー厚み**（review-* 7 軸フルモード）
+2. **最小 + レビュー厚み**（review-* 5 サブスキル + フルモード 7 エージェント）
 3. **最小 + 統合・運用**（e2e / debug / pr-create / pr-feedback）
 4. **カスタム** — スキル名を個別指定
 
