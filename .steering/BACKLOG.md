@@ -79,3 +79,14 @@
 - **`pnpm` のバイナリが壊れており実行できない**（`pnpm --version` も同じエラー）。
   npm script の実行は `npm run <script>` で代替する（npm 11.9.0 は動作）。
   リポジトリの作業とは無関係な環境問題
+
+## 4. 20260730 レポート由来の後続（`report-driven-fixes` から切り出し）
+
+**一次情報**: `.steering/20260730-report-driven-fixes/design.md` 対象外 / `.tmp/20260730-*-report.md`
+
+- **P1d** — 7軸用語の正本化（starter-kit / user-guide）と @参照配線の残骸（ADR 20260715 Context / rule-audit）
+- **P2** — design.md の契約/付録分離 or SPIKE レーン（どちらか最小スライス）
+- **capture 粒度** — `.capture-needed` の「完了時」と「セッション知見あり」の分離（偽陰性を増やさない）
+- **ナレッジ鮮度の機械化** — rule-audit 常用化が第一歩
+- **配置1件実走** — `deployments.md` 有効行を 1 にする（company はカウントしない）
+- **passthrough シナリオ拡充** — adr / debug / feature-pipeline / impl-from-design / frontend-code-review
