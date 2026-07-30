@@ -32,11 +32,12 @@ Last updated: 20260731
 
 ## 知見保存（この PR / ブランチに載せる分）
 
-- [ ] knowledge-capture（PR 差分に属する知見）
-- [ ] 必要なら docs/ への追記をこのブランチでコミット
+- [x] knowledge-capture — **省略**（decisions / compound 済み。追加 knowledge なし）。`capture_done` 済み
+- [x] compound（片側修正節に操作定義の具体例）— `codify-log.md` 記録済み
+- [x] docs/ への追記をこのブランチでコミット（skill-design-patterns）
 
 ## デプロイ
 
-- [x] base = `integration/20260730-reports` の PR 作成（[#6](https://github.com/angedessin/skills/pull/6)）。マージは人間指示までしない
-- [ ] CI グリーン確認
+- [x] base = `integration/20260730-reports` の PR 作成（[#6](https://github.com/angedessin/skills/pull/6)）
+- [x] CI グリーン確認 — チェック無し（N/A）
 - [ ] マージ（人間指示）
