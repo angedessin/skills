@@ -49,9 +49,11 @@ Last updated: 20260730
 
 - [x] PR 作成（base: `integration/20260730-reports`）— https://github.com/angedessin/skills/pull/5
 - [x] CI — チェック未設定（`gh pr checks` no checks reported）
-- [ ] マージ（人間承認済み・実施待ち）
+- [x] マージ — https://github.com/angedessin/skills/pull/5 → integration/20260730-reports（20260730）
 
 ## 福利化 / クローズ
 
 - [x] ~~compound~~ — 省略（別ゲート。今回の学びは decisions.md に閉じる）
-- [ ] steering archive（親へマージ後）
+- [x] steering archive（親へマージ後）
+
+Archived: 20260730
