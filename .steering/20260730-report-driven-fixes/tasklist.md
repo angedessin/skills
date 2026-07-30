@@ -59,8 +59,8 @@ Last updated: 20260730
 
 ## デプロイ
 
-- [x] PR 作成 — https://github.com/angedessin/skills/pull/1
-- [x] マージ（20260730）
+- [ ] PR 作成（`pr-create`）
+- [ ] マージ（人間）
 
 ## 福利化 / 知見
 
