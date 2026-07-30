@@ -5,7 +5,8 @@
     "lint": "biome check .",
     "validate": "python3 scripts/validate_skills.py",
     "validate:portability": "python3 scripts/validate_skills.py --portability",
-    "validate:assets": "python3 scripts/check_asset_consistency.py"
+    "validate:assets": "python3 scripts/check_asset_consistency.py",
+    "check:export": "python3 scripts/check_export_stopcontract.py"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.2",

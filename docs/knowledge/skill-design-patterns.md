@@ -389,8 +389,7 @@ knowledge-capture が同じ 3/4 で、n=4 では 3/4 と 4/4 に有意差も主�
 
 ## 検出ツールを書くときの4規律（フェイルクローズ・語幹・機械化の実益・適用順）
 
-差分ガード（当時 `check_export_stopcontract.py` — **20260730 に削除済み。現行の生きた検査ではない**）の
-実装で得た知見。**検出ツールの欠陥は「検出漏れ」
+差分ガード（`check_export_stopcontract.py`）の実装で得た知見。**検出ツールの欠陥は「検出漏れ」
 として現れるため、使っている側からは成功と区別がつかない**。
 
 1. **フェイルクローズは「両側」に要る。** 比較ツールで片側の対象不在だけを弾いても、もう一方が
@@ -476,11 +475,9 @@ knowledge-capture が同じ 3/4 で、n=4 では 3/4 と 4/4 に有意差も主�
 ### スキルの配布分類とクロスリポジトリ還流の producer/consumer 対
 
 スキルは**配布可**（他プロジェクトへコピーする前提で自己完結に書く）と**マスター専用**
-（このリポジトリの管理ツール。配置先にコピーしても無意味）に分かれる。master-only スキルは
-`adr` / `skill-deploy` / `skill-harvest` / `skill-test` の 4 本（`scripts/deploy_skills.py` と
-`scripts/validate_skills.py` の `MASTER_ONLY` が正本。starter-kit の選定表とも一致させる）。
-**スキル本体の置き場は `.claude/skills/`**。ルート直下の `scripts/`・`tests/`・`deployments.md` は
-マスター専用**ツール・資産**であり、master-only スキルの置き場ではない（用語を混線させない）。
+（このリポジトリの管理ツール。配置先にコピーしても無意味）に分かれる。skill-test /
+skill-harvest はマスター専用。分類は starter-kit の選定表に「distributable / master-only」
+として明示し、master-only はルート直下（`scripts/`・`tests/`・`deployments.md`）に置く。
 
 配置先からマスターへ知見を還流させる仕組みは **producer / consumer の対**で成立する:
 consumer（skill-harvest・マスター側）が回収できるのは、producer（配置先）に
@@ -500,13 +497,15 @@ consumer（skill-harvest・マスター側）が回収できるのは、producer
 必ず対で確認する。依存表には書く側だけでなく**読む側も列挙する**（書く側だけを書くと、
 その表自体が片欠けを正常に見せてしまう）。
 
-**producer 側が単一だと、それを外した瞬間に対が静かに崩れる（当時の教訓）。**
-`.codify-needed`（福利化ループの起動フラグ）の producer は当初 frontend-code-review 1 本だけで、
-consumer は複数箇所（compound・knowledge-capture・hook 等）あった。consumer は「フラグが無い」を
-正常系として扱うため、producer を外す・差し替えると**誰もエラーにならずループだけが静かに止まる**。
-**現行**: producer は frontend-code-review（レビュー完了時）と knowledge-capture（最終 Step・
-`codify-log.md` が無ければ立てる no-op ガード付き）の二重。代替を注記に書くだけでは守られない
-（下記「説明文では守られない」に該当）。
+**producer 側が単一だと、それを外した瞬間に対が静かに崩れる。**
+`.codify-needed`（福利化ループの起動フラグ）の producer は frontend-code-review 1 本だけで、consumer は
+8 箇所（compound・knowledge-capture・hook 等）あった。consumer は「フラグが無い」を正常系として扱うため、
+producer を外す・差し替える・description を変えて発動しなくなっても**誰もエラーにならずループだけが
+静かに止まる**。実際、レビュー系スキルを外してスキルの部分セットを作ったとき、読み手 14 箇所に対し
+生成側 0 という組み合わせになった。規律: フラグの producer が 1 本しかない対は、その 1 本が消えうる経路
+（一部スキルの除外・差し替え）を想定して producer を二重化する（今回は knowledge-capture の最終 Step に
+「福利化を見送るなら `.codify-needed` を立てる」を追加。compound 実行済みなら立てない no-op ガード付き）。
+代替を注記に書くだけでは守られない（下記「説明文では守られない」に該当）。
 
 ---
 

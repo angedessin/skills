@@ -44,7 +44,7 @@
 | impl-from-design | design-doc が作る `design.md`（APPROVED） | 止まって design-doc を案内する（実装に入らない） |
 | impl-from-design（TDD モード） | tdd の `references/patterns.md` | パターン参照なしの縮退（本文の判断軸のみでテストを書く） |
 | frontend-code-review | review-* 7 軸 / impl-review / test-review | 未配置分をスキップして報告する（縮退動作） |
-| compound の自動起動 | frontend-code-review **および** knowledge-capture が立てる `.codify-needed`（**書く側・二重**）+ `session-start-check.sh`（SessionStart hook・**読む側**） | フラグ起動が効かないだけ。明示呼び出しで使える。**読む側の hook を欠くとフラグが溜まるだけで一度も拾われない** |
+| compound の自動起動 | frontend-code-review が立てる `.codify-needed`（**書く側**）+ `session-start-check.sh`（SessionStart hook・**読む側**） | フラグ起動が効かないだけ。明示呼び出しで使える。**読む側の hook を欠くとフラグが溜まるだけで一度も拾われない** |
 | knowledge-capture の自動起動 | `session-stop.sh`（Stop hook・**書く側**）が立てる `.capture-needed` + `session-start-check.sh`（SessionStart hook・**読む側**） | 同上。両方を対で配る（手順 6） |
 | pr-feedback | pr-create | **対で入れる**（提出と往復は対。片方だけでは往復の入口/出口が欠ける） |
 | feature-pipeline | 各フェーズのサブスキル（design-doc / impl-from-design / frontend-code-review / pr-create / pr-feedback / knowledge-capture / compound / e2e / steering） | フェーズごとにディスパッチ前に存在確認し、無いフェーズはスキップして「手動で行ってください」と報告する |
@@ -95,7 +95,7 @@
    - **品質ゲート 2 本も同送する**: `post-edit-lint.sh`（編集ごとの lint 差し戻し。Biome / ESLint / Stylelint を実行時に自動検出）と `stop-typecheck.sh`（終了宣言時の tsc）。settings.json の `hooks.PostToolUse` / `hooks.Stop` 登録も移す。両方**フェイルオープン**（lint 設定・tsconfig.json が無いプロジェクトでは素通し）なのでスタックを問わず配ってよい。詳細・調整（tsc が遅い場合の外し方等）は docs/knowledge/claude-code-config.md
    - hooks のコマンド登録は `"$CLAUDE_PROJECT_DIR"` 起点の相対参照なので、`.claude/hooks/` に同じ配置でコピーすれば**パスの書き換えは不要**
    - `session-stop.sh`（Stop hook）は **knowledge-capture を配置する場合のみ**コピーする（settings.json の `hooks.Stop` 登録も同時に移す）。この hook が立てる `.capture-needed` は knowledge-capture の起動を促すフラグなので、未配置のまま同送すると「存在しないスキルの実行を促す」実行不能な指示になる
-   - `session-start-check.sh`（SessionStart hook）は **`.steering/` を使うスキル（design-doc / steering / knowledge-capture / compound）を配置する場合にコピーする**（settings.json の `hooks.SessionStart` 登録も同時に移す）。これはフラグを**読む側**で、`.capture-needed` / `.codify-needed` とアクティブタスクを検出して context に注入する。**`session-stop.sh`（書く側）だけを配ると、フラグは毎セッション立つのに拾う主体が居らず、knowledge-capture / compound の「セッション開始時にフラグがあれば起動」が配置先で永久に発火しない**（producer だけ配って consumer が欠ける状態）。`.steering/` が無いプロジェクトでは素通し（jq 非依存）
+   - `session-start-check.sh`（SessionStart hook）は **`.steering/` を使うスキル（design-doc / steering / knowledge-capture / compound）を配置する場合にコピーする**（settings.json の `hooks.SessionStart` 登録も同時に移す）。これはフラグを**読む側**で、`.capture-needed` / `.codify-needed` とアクティブタスクを検出して context に注入する。**`session-stop.sh`（書く側）だけを配ると、フラグは毎セッション立つのに拾う主体が居らず、knowledge-capture / compound の「セッション開始時にフラグがあれば起動」が配置先で永久に発火しない**（producer だけ配って consumer が欠ける状態）。`.steering/` が無いプロジェクトでは素通し、jq 不在時もフェイルオープン
    - `settings.local.json` はコピーしない（マシン固有の承認履歴）
    - 配置先の `.npmrc` に `ignore-scripts=true` を推奨（install 時の postinstall 実行 = サプライチェーン攻撃の主経路を既定で遮断。ビルドスクリプトが必要なパッケージだけ個別に許可する運用）
    - **配置後、配置先で一度対話セッションを起動して信頼ダイアログを承認する** — 未信頼のワークスペースでは settings.json の permissions.allow が無効化される（deny / hooks は有効）。headless 運用（`claude -p`）を始める前に必須
