@@ -40,4 +40,6 @@ Last updated: 20260731
 
 - [x] base = `integration/20260730-reports` の PR 作成（[#6](https://github.com/angedessin/skills/pull/6)）
 - [x] CI グリーン確認 — チェック無し（N/A）
-- [ ] マージ（人間指示）
+- [x] マージ（PR #6 → integration/20260730-reports）
+
+Archived: 20260731
