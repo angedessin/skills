@@ -37,4 +37,6 @@ Last updated: 20260731
 
 ## デプロイ
 
-- [ ] base = `integration/20260730-reports` の PR 作成（マージは人間指示までしない）
+- [x] base = `integration/20260730-reports` の PR 作成（[#6](https://github.com/angedessin/skills/pull/6)）。マージは人間指示までしない
+- [ ] CI グリーン確認
+- [ ] マージ（人間指示）
