@@ -90,3 +90,4 @@
 - **ナレッジ鮮度の機械化** — rule-audit 常用化が第一歩
 - **配置1件実走** — `deployments.md` 有効行を 1 にする（company はカウントしない）
 - **passthrough シナリオ拡充** — adr / debug / feature-pipeline / impl-from-design / frontend-code-review
+- **compound 未実行** — `20260730-report-driven-fixes`（アーカイブ済み・`.codify-needed` あり）。SessionStart は archived を見ないので明示で `compound` を回す
