@@ -1,6 +1,6 @@
 # タスクリスト: spike-lane
 
-Last updated: 20260801
+Last updated: 20260802
 
 ## 実装前（主要コンポーネントの確定）
 
@@ -28,20 +28,22 @@ Last updated: 20260801
 
 ## 知見保存（この PR / ブランチに載せる分）
 
-- [ ] knowledge-capture スキルの実行（PR 差分に属する知見）
-- [ ] 必要なら docs/ への追記をこのブランチでコミット
+- [x] knowledge-capture スキルの実行（PR 差分に属する知見 — 追加 docs なし。decisions / BACKLOG / スキルで足りる）
+- [x] 必要なら docs/ への追記をこのブランチでコミット（compound 経由で skill-design-patterns に反映）
 
 ## デプロイ
 
 - [x] PR 作成（base = `integration/20260730-reports`）— https://github.com/angedessin/skills/pull/7
-- [ ] CI グリーン確認
+- [x] CI グリーン確認（CI 未設定のため N/A）
 - [ ] マージ（**人間の明示指示があるまでしない**）
 
 ## 福利化
 
-- [ ] compound スキルの実行（パターンをルール・知識に昇格）
+- [x] compound スキルの実行（パターンをルール・知識に昇格）
 
 ## クローズ
 
-- [ ] knowledge-capture（会話由来・横断の残りがあれば）
-- [ ] steering archive モードでアーカイブ
+- [x] knowledge-capture（会話由来・横断の残り — 追加なし）
+- [x] steering archive モードでアーカイブ
+
+Archived: 20260802
