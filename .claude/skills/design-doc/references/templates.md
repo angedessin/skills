@@ -16,6 +16,11 @@
 Created: [YYYYMMDD]
 Status: **DRAFT — awaiting review**
 
+<!-- Status は DRAFT / SPIKE / APPROVED の 3 値。既定は DRAFT。
+     SPIKE（探索・破棄前提・外向き禁止）の表記例: Status: **SPIKE**
+     読み取り: Status 行の最初の語彙トークン ∈ {DRAFT,SPIKE,APPROVED}、以外は停止。
+     実装可否の正本: DRAFT のみ実装禁止。SPIKE/APPROVED は実装可（SPIKE は外向き不可）。 -->
+
 ## 目的
 
 [一段落: このタスクが達成することと、なぜ必要か]
@@ -94,6 +99,15 @@ Status: **DRAFT — awaiting review**
 Status: **APPROVED**
 Approved: [YYYYMMDD]
 ```
+
+SPIKE（探索実装レーン）の Status 表記:
+
+```markdown
+Status: **SPIKE**
+```
+
+SPIKE の意味: 破棄前提のローカル探索。PR / push / マージ禁止。学びは `decisions.md`。
+出口は (a) 破棄、または (b) 契約コア更新のうえ `DRAFT` に戻して通常承認。`SPIKE` → `APPROVED` 直昇格は禁止。
 
 ---
 
