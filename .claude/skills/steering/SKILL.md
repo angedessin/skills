@@ -22,7 +22,7 @@ metadata:
 ```
 .steering/
 ├── [YYYYMMDD]-[task-name]/
-│   ├── design.md           (必須 — 契約コアに目的/スコープ/完了条件等。APPROVED になるまで実装禁止。付録は境界マーカー以降)
+│   ├── design.md           (必須 — 契約コアに目的/スコープ/完了条件等。DRAFT のみ実装禁止。SPIKE/APPROVED は実装可（SPIKE は外向き不可）。付録は境界マーカー以降)
 │   ├── tasklist.md         (必須 — セッションごとに更新)
 │   ├── decisions.md        (任意 — タスク固有の決定事項)
 │   ├── blockers.md         (任意 — 未解決の問題)
@@ -38,6 +38,9 @@ metadata:
 ```
 
 旧構造のタスク（`requirements.md`・`session-log.md` がある）は読み取り時のみ対応する: あれば読む、新規には作らない。
+
+**Status 読み取り規則**: `Status:` 行の最初の語彙トークン（`**` を除く）∈ {DRAFT,SPIKE,APPROVED}。以外・欠落は停止。
+**実装可否の正本**: DRAFT のみ実装禁止。SPIKE/APPROVED は実装可（SPIKE は外向き不可）。詳細は `references/spec.md`。
 
 詳細仕様: `references/spec.md`
 
@@ -81,7 +84,7 @@ metadata:
 ## セッション再開: [task-name]
 
 **目的**: [design.md の目的から一行]
-**設計**: DRAFT / APPROVED
+**設計**: DRAFT / SPIKE / APPROVED
 **進捗**: X/Y tasks チェック済み
 
 ### 残タスク
@@ -113,6 +116,7 @@ metadata:
 | タスク | 作成日 | Design | 進捗 |
 |--------|--------|--------|------|
 | [name] | [date] | APPROVED | 3/7 |
+| [name] | [date] | SPIKE | 1/5 |
 | [name] | [date] | DRAFT | 0/5 |
 
 ### アーカイブ済み（直近3件）

@@ -2,7 +2,7 @@
 name: feature-pipeline
 description: "機能開発の複数フェーズ（計画→実装→テスト→レビュー→統合→知見蓄積）を一気通貫で回したいときに使うエンドツーエンドのオーケストレーター。発動の合図は『フロー全体を通して/一括で/最初から最後まで/エンドツーエンドで』のように、単一作業ではなく工程全体をまとめて進めたい意図があること。例:『この機能を設計から実装・テストして最後にナレッジ残すまで通してやって』『新機能を計画から知見蓄積まで一括で面倒みて』『フル開発サイクルで回したい、途中の承認は挟んでいい』。既存スキル（design-doc → impl-from-design → frontend-code-review → pr-create → knowledge-capture / compound）を順に呼び出し、主要な判断点（設計承認・指摘トリアージ・マージ・知見保存）で人間の承認ゲートを挟む半自動フロー。`.steering/[task]/` の成果物から現在地を検出して途中フェーズから再開できるため、複数セッションにまたがる機能開発に向く。**単一フェーズだけの依頼では発動しない** — 設計のみは design-doc、承認済み設計からの実装のみは impl-from-design、レビューのみは frontend-code-review、テスト追加のみは tdd、知見保存のみは knowledge-capture、ルール昇格のみは compound を直接使う。CI/CD・デプロイの『パイプライン』や、小さなバグ修正・タスク状況の確認にも使わない。"
 metadata:
-  version: "1.4"
+  version: "1.5"
 ---
 
 # Feature Pipeline
@@ -69,12 +69,15 @@ find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
 ### 現在地の判定表
 
 対象タスクの `design.md`・`tasklist.md`・`review-result.md` を確認し、**上から順に評価して最初にマッチした行で確定する。確定したらそれ以降の行は評価しない**（複数行の条件が同時に成立して見えても、上の行が優先）。
+**Status 読み取り規則**: `Status:` 行の最初の語彙トークン（`**` を除く）∈ {DRAFT,SPIKE,APPROVED}。以外・欠落は表の「未知」行で即停止（fail-closed。下位行へ落とさない）。
 現在地判定は Status・tasklist・review-result のみで足りる（design.md の契約コア/付録の境界読み対象外 — 付録全文は読まない）。
 
 | 観測される状態 | 現在地 |
 |---|---|
 | `design.md` が無い | **Phase 1**（計画） |
 | `design.md` の Status が `DRAFT` | **Gate 1 で停止**（設計レビュー待ち。実装に入らない） |
+| `design.md` の Status が `SPIKE` | **即停止**（探索レーンはパイプライン外。破棄または DRAFT 戻し後に再開） |
+| `design.md` の Status が上記以外（未知・欠落） | **即停止**（fail-closed。Status 読み取り規則に従う） |
 | `design.md` が `APPROVED` かつ `tasklist.md` の実装タスクに未チェックあり | **Phase 2**（実装） |
 | 実装タスクが全チェック済み かつ `review-result.md` が無い | **Phase 3**（レビュー） |
 | `review-result.md` が存在し Status が `OPEN` | **Gate 3 で停止**（指摘の修正対応待ち） |
@@ -136,7 +139,10 @@ Gate 1 を通過したことをユーザーに伝えてから Phase 2 を開始�
 
 ## Phase 2 — 実装（impl-from-design）
 
-進む前に `design.md` の Status が `APPROVED` であることを再確認する（DRAFT なら Gate 1 に戻る）。
+進む前に `design.md` の Status が `APPROVED` であることを再確認する。
+- `DRAFT` → Gate 1 に戻る
+- `SPIKE` → **ここで止まる**（探索はパイプライン外。破棄または DRAFT 戻し後に再開）
+- 未知・欠落 → **ここで止まる**（fail-closed）
 
 `impl-from-design` スキルを起動する。これは:
 - `tasklist.md` の実装スコープを確認（無ければユーザーに確認）

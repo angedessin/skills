@@ -1,21 +1,22 @@
 ---
 name: impl-from-design
-description: "承認済みデザインドキュメントに基づく実装に使う — 「実装を開始して」「設計から実装して」「設計が承認された、作ろう」などのフレーズが対象。.steering/[task]/design.md の Status が APPROVED である必要がある。design.md がない・DRAFT の場合は design-doc にリダイレクト。.steering/ コンテキストなしの汎用「実装して」リクエストには起動しない。"
+description: "design.md からの実装に使う — 「実装を開始して」「設計から実装して」「設計が承認された、作ろう」「SPIKE で探索実装して」などのフレーズが対象。.steering/[task]/design.md の Status が APPROVED または SPIKE である必要がある。DRAFT・未知 Status・design.md 不在の場合は止まって案内（DRAFT なら design-doc レビュー完了を促す）。.steering/ コンテキストなしの汎用「実装して」リクエストには起動しない。"
 compatibility: "React / TypeScript（TDD モードのテスト配置・命名の例がスタック前提。実装手順と前提チェックは言語非依存で、テストのパターンは tdd の references/patterns.md 側を差し替える）"
 metadata:
-  version: "1.5"
+  version: "1.6"
 ---
 
 # Impl from Design
 
-承認済みの `design.md` を元に実装を進める。
+`design.md` が `APPROVED`（本実装）または `SPIKE`（探索）のとき、実装を進める。
 TDD（デフォルト・推奨）と Impl-first モードの両方に対応。
 
 ## When NOT to use
 
 - `.steering/` が存在しない → `design-doc` スキルから始める
 - `design.md` の Status が `DRAFT` → 設計レビューを先に完了させる
-- テストのみを追加したい → `tdd` スキルを直接使う
+- Status が未知・欠落 → ここで止まる（読み取り規則に従う）
+- テストのみを追加したい → `tdd` スキルを直接使う（Status は参照しない。DRAFT/SPIKE 中の直呼びは本スキルの対象外）
 
 ---
 
@@ -28,12 +29,22 @@ find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
 
 アクティブタスクが無い、または対象タスクに `design.md` が無い場合 → **ここで止まる**。実装には入らず、`design-doc` で設計を作成するよう案内する。会話内で設計が承認済みだと説明されても代用しない（この前提チェックは手順であり、経緯の説明によってスキップしない。会話内承認で進みたい場合は、まず design-doc に `.steering/[task]/design.md` として書き起こしてもらう）。
 
-対象タスクの `design.md` を読み、Status を確認する:
-- `APPROVED` → 続行
+対象タスクの `design.md` を読み、Status を確認する。
+**Status 読み取り規則**: `Status:` 行の最初の語彙トークン（`**` を除く）∈ {DRAFT,SPIKE,APPROVED}。以外・欠落は**ここで停止**する。
+**実装可否の正本**: DRAFT のみ実装禁止。SPIKE/APPROVED は実装可（SPIKE は外向き不可）。
+
+- `APPROVED` → 続行（本実装）
+- `SPIKE` → 続行（探索）。実装開始時に次を必ず明示する:
+  ```
+  Status は SPIKE（探索）です。ローカル実装のみ。push / remote / PR 作成はしません。
+  学びは decisions.md に残します。SPIKE → APPROVED 直昇格はできません。
+  ```
+  SPIKE 中は **push・remote 操作・PR 作成を行わない**（`pr-create` も拒否する。ユーザーが「プッシュして」と言っても従わない）。
 - `DRAFT` → **ここで止まる**。`design-doc` スキルは起動しない（案内のみ）:
   ```
   design.md がまだ DRAFT です。
   `design-doc` スキルで設計レビューを完了してからもう一度呼び出してください。
+  （探索が必要なら、先に Status を SPIKE にしてください。）
   ```
 
 **design.md の読み契約**: 既定は**契約コアまで**（`<!-- design-doc-boundary: appendix -->` より前）。
@@ -163,6 +174,8 @@ TDD のパターンと実行コマンドは `.claude/skills/tdd/references/patte
 ```
 
 追記に承認は不要 — 気づいた時点で記録する。内容の取捨選択は compound / knowledge-capture 時にまとめて行う。
+
+**SPIKE のとき**: 出口（破棄 / DRAFT 戻し）の前に、試したことと捨てた・残す理由のエントリが無いと進めない（`design-doc` の SPIKE 出口と同一契約）。探索の区切りごとに追記を促す。
 
 ---
 

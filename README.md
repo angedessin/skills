@@ -67,9 +67,10 @@
       ↓
 [1] 設計          design-doc（.steering/ は複数セッションタスクのみ作成。feature-pipeline 配下では常に作成）
       ↓           （任意）design-premortem — 人間レビュー前に敵対的レビューで設計の穴出し
+      │           （任意）SPIKE — 破棄前提の短い探索実装（ローカルのみ・PR 不可）。学びは decisions。本実装は DRAFT に戻してから承認
 [2] レビュー      人間がレビュー・承認（design.md: DRAFT → APPROVED）
       ↓
-[3] 実装          impl-from-design  ←→  tdd ／ クリティカルパスは e2e
+[3] 実装          impl-from-design（APPROVED または SPIKE）  ←→  tdd ／ クリティカルパスは e2e
       ↓           （任意）impl-tournament — リスクの高いアプローチ選択で N 並列実装を比較
 [4] コードレビュー  frontend-code-review（フル: 7エージェント並列 / 軽量: 直列）
       ↓
@@ -128,7 +129,7 @@ design-premortem   impl-tournament                          session-retrospectiv
 
 | スキル | 役割 |
 |---|---|
-| [`design-doc`](.claude/skills/design-doc/SKILL.md) | タスク開始時に design.md（目的/スコープ/完了条件 + 設計）と tasklist.md を作成。**design.md 作成後は人間の承認まで実装しない**。1セッションで終わるタスクには .steering を作らない |
+| [`design-doc`](.claude/skills/design-doc/SKILL.md) | タスク開始時に design.md（目的/スコープ/完了条件 + 設計）と tasklist.md を作成。**DRAFT は人間の承認まで実装しない**。SPIKE はローカル探索可（外向き不可）。1セッションで終わるタスクには .steering を作らない |
 | [`debug`](.claude/skills/debug/SKILL.md) | 障害調査。再現 → 仮説 → 切り分け → 根本原因 → 修正方針。小さい修正（影響が閉じる・巻き戻し容易・テストで再発防止可）は承認を得て即修正、構造に触る修正は design-doc に接続 |
 | [`steering`](.claude/skills/steering/SKILL.md) | `.steering/` のライフサイクル管理（init / resume / status / archive）。ファイル仕様は [references/spec.md](.claude/skills/steering/references/spec.md) |
 | [`design-premortem`](.claude/skills/design-premortem/SKILL.md) | 人間レビュー前の敵対的レビュー。エッジケース・状態複雑化・テスト容易性・スコープ・「3ヶ月後に後悔する理由」の6観点で design.md を攻撃し `## プレモータム所見` に反映。**設計は承認しない**（任意・design-doc の Phase 2.5） |
@@ -137,10 +138,10 @@ design-premortem   impl-tournament                          session-retrospectiv
 
 | スキル | 役割 |
 |---|---|
-| [`impl-from-design`](.claude/skills/impl-from-design/SKILL.md) | APPROVED な design.md から実装。code-explorer による既存パターン調査 → TDD モード（推奨）/ Impl-first モードを選択。設計と乖離したら止まって報告 |
+| [`impl-from-design`](.claude/skills/impl-from-design/SKILL.md) | APPROVED または SPIKE な design.md から実装（SPIKE はローカルのみ・外向き禁止）。code-explorer による既存パターン調査 → TDD モード（推奨）/ Impl-first モードを選択。設計と乖離したら止まって報告 |
 | [`tdd`](.claude/skills/tdd/SKILL.md) | Red → Green → Refactor サイクルの単独ユーティリティ。テストパターン集は [references/patterns.md](.claude/skills/tdd/references/patterns.md) |
 | [`e2e`](.claude/skills/e2e/SKILL.md) | E2E テストの作成・レビュー。クリティカルパス選定・1テスト1シナリオ・安定性原則（flaky 防止）・実ユーザー視点の4判断軸。Playwright 具体例は [references/patterns.md](.claude/skills/e2e/references/patterns.md)（カートリッジ — 配置先で再生成） |
-| [`impl-tournament`](.claude/skills/impl-tournament/SKILL.md) | リスクの高いアプローチ選択で、APPROVED な design.md から2〜3の異なる実装を worktree 並列で作り採点して人間が勝者を選ぶ。**開始前にコスト見積 + 無料代替の承認必須**。常用しない（任意）。worktree コマンド・モデル振り分けは [references/commands.md](.claude/skills/impl-tournament/references/commands.md) |
+| [`impl-tournament`](.claude/skills/impl-tournament/SKILL.md) | リスクの高いアプローチ選択で、APPROVED な design.md から2〜3の異なる実装を worktree 並列で作り採点して人間が勝者を選ぶ（SPIKE 不可）。**開始前にコスト見積 + 無料代替の承認必須**。常用しない（任意）。worktree コマンド・モデル振り分けは [references/commands.md](.claude/skills/impl-tournament/references/commands.md) |
 
 ### コードレビュー
 

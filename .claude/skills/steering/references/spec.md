@@ -12,7 +12,7 @@
 ```
 .steering/
 ├── [YYYYMMDD]-[task-name]/    ← 進行中タスク
-│   ├── design.md              ← 必須: 要求 + 実装アプローチ（DRAFT → APPROVED）
+│   ├── design.md              ← 必須: 要求 + 実装アプローチ（DRAFT / SPIKE / APPROVED）
 │   ├── tasklist.md            ← 必須: チェックボックス形式のタスクリスト
 │   ├── decisions.md           ← 任意: タスク固有の決定事項ログ
 │   ├── blockers.md            ← 任意: 未解決の問題・依存待ち
@@ -34,7 +34,9 @@
 ### design.md（必須）
 
 要求の整理（目的 / スコープ / 完了条件）と実装アプローチを1ファイルにまとめる。
-**Status が DRAFT の間は実装に入らない。** 人間の承認後に APPROVED に変更する。
+**実装可否の正本**: DRAFT のみ実装禁止。SPIKE / APPROVED は実装可（SPIKE は外向き不可 — push / remote / PR をしない）。
+**Status 読み取り規則**: `Status:` 行の最初の語彙トークン（`**` を除く）∈ {DRAFT,SPIKE,APPROVED}。以外・欠落は停止。
+人間の承認後に DRAFT → APPROVED に変更する。探索はユーザー明示で SPIKE。SPIKE → APPROVED 直昇格は禁止（一度 DRAFT に戻す）。
 
 ```markdown
 # 設計: [task-name]
@@ -68,30 +70,21 @@ Status: **DRAFT — awaiting review**
 |---------------|------|------|
 | [name] | `src/...` | [役割] |
 
-## データフロー
-[テキストまたは ASCII ダイアグラム]
-
-## テスト方針
-- Unit: [何をユニットテストするか]
-- Integration: [必要な MSW ハンドラー]
-- E2E: [Playwright シナリオ（あれば）]
-
 ## 未解決の論点
 - [ ] [人間のレビューが必要な質問]
-
-## 検討した代替案
-| 代替案 | 却下理由 |
-|--------|----------|
-| [代替案] | [却下理由] |
-
-## 調査結果
-[インシデントや未知の技術を調査した場合、その結果をここに記載。impl-from-design / debug が既存コード調査の結論を追記する書き込み先]
 ```
+
+（付録境界・付録節は `design-doc/references/templates.md` に従う。）
 
 承認後:
 ```markdown
 Status: **APPROVED**
 Approved: [YYYYMMDD]
+```
+
+SPIKE（探索）:
+```markdown
+Status: **SPIKE**
 ```
 
 ### tasklist.md（必須）

@@ -41,7 +41,7 @@
 
 | スキル | 依存先 | 欠けている場合の挙動 |
 |---|---|---|
-| impl-from-design | design-doc が作る `design.md`（APPROVED） | 止まって design-doc を案内する（実装に入らない） |
+| impl-from-design | design-doc が作る `design.md`（APPROVED または SPIKE） | DRAFT・未知・不在なら止まって案内（実装に入らない）。SPIKE はローカルのみ |
 | impl-from-design（TDD モード） | tdd の `references/patterns.md` | パターン参照なしの縮退（本文の判断軸のみでテストを書く） |
 | frontend-code-review | review-* 5 サブスキル + impl-review + test-review（フルモード 7 エージェント） | 未配置分をスキップして報告する（縮退動作） |
 | compound の自動起動 | frontend-code-review **および** knowledge-capture が立てる `.codify-needed`（**書く側・二重**）+ `session-start-check.sh`（SessionStart hook・**読む側**） | フラグ起動が効かないだけ。明示呼び出しで使える。**読む側の hook を欠くとフラグが溜まるだけで一度も拾われない** |
@@ -119,8 +119,8 @@
 ```markdown
 ## スキル発動ポリシー
 
-- 新しいタスクを開始するときは design-doc を使う。1 セッション完結の見込みなら会話内設計・複数セッションなら .steering/（どちらにするかは design-doc がユーザーに確認する）。いずれも設計の承認までは実装しない
-- 承認済み design.md からの実装は impl-from-design を使う（実装モードは TDD 推奨）
+- 新しいタスクを開始するときは design-doc を使う。1 セッション完結の見込みなら会話内設計・複数セッションなら .steering/（どちらにするかは design-doc がユーザーに確認する）。**DRAFT は設計の承認まで実装しない**。探索だけなら Status: SPIKE（ローカル実装可・PR 不可）
+- 実装は impl-from-design を使う（APPROVED の本実装、または SPIKE の探索。実装モードは TDD 推奨）
 - 既存コードへのテスト追加・テストファーストの実装は tdd を使う
 - 実装後のコードレビューは frontend-code-review を使う
 - セッションで得た知見は knowledge-capture で docs/ に保存する
