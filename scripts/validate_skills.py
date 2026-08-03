@@ -13,6 +13,9 @@
      トリガーから除外。逃し弁として本文に <!-- validator: no-stop-needed --> があればスキップ。
   8. 既定の .claude/skills 走査時: design-doc/references/templates.md に
      design-doc-boundary: appendix がある（契約コア/付録境界）
+  9. 既定走査時: design↔実装同期パスのキー共存（design-doc 方針転換 / impl-from-design
+     乖離分類 / impl-review・frontend-code-review・feature-pipeline の設計整合ゲート）。
+     キーワード並びのみ検査し、手順の実行正否は見ない（空文で通る限界あり）
 
 純度計測・ポータビリティ（レポートのみ・FAIL にしない）:
   python3 scripts/validate_skills.py --purity        # 各スキル本文のツール固有 API 出現数
@@ -68,6 +71,55 @@ PORTABILITY_VOCAB = [
 # design-doc テンプレの契約コア/付録境界（live design.md は対象外・フォールバック全文）
 DESIGN_DOC_BOUNDARY_MARKER = "design-doc-boundary: appendix"
 
+# design↔実装同期パス（20260802-design-impl-sync）のキー共存検査。
+# 限界: キーワードが並んでいれば通る。手順の意味・順序・勝手変更禁止の実行正否は見ない（空文で通る）。
+# 振る舞い契約が要る場合は passthrough（別 BACKLOG）を使う。
+DESIGN_IMPL_SYNC_CHECKS = (
+    (
+        "design-doc",
+        (
+            ("方針転換が起きた場合", "方針転換節"),
+            ("Status: **DRAFT**", "コア変更時の DRAFT 戻し"),
+            ("APPROVED 追認", "APPROVED 追認パス"),
+            ("review-result.md", "review-result 破棄"),
+        ),
+    ),
+    (
+        "impl-from-design",
+        (
+            ("乖離が生じた場合", "乖離節"),
+            ("【乖離の分類提案】", "分類提案テンプレ"),
+            ("design-doc", "方針転換への案内"),
+        ),
+    ),
+    (
+        "impl-review",
+        (
+            ("Axis 1", "設計整合 Axis 1"),
+            ("設計契約コア不一致", "High 尺度の設計例外"),
+            ("design 同期が先", "単独時の次ステップ"),
+            ("契約成果物の Axis 1 例外", "空 TS でも Axis 1"),
+        ),
+    ),
+    (
+        "frontend-code-review",
+        (
+            ("設計契約コア不一致", "High 尺度の設計例外"),
+            ("design 同期が先", "ゲート入力明示"),
+            ("必須警告", "DEFERRED 時警告"),
+            ("Axis 1 をスキップしない", "軽量でも Axis 1"),
+        ),
+    ),
+    (
+        "feature-pipeline",
+        (
+            ("APPROVED 追認", "乖離待機の追認分岐"),
+            ("Gate 1", "DRAFT 戻し時の Gate 1"),
+            ("必須警告", "設計整合 DEFERRED 警告"),
+        ),
+    ),
+)
+
 
 def check_design_doc_template(repo_root: Path) -> list[str]:
     """design-doc/references/templates.md に付録境界マーカーがあることを検査する。"""
@@ -88,6 +140,26 @@ def check_design_doc_template(repo_root: Path) -> list[str]:
             f"`{DESIGN_DOC_BOUNDARY_MARKER}` 境界マーカーが無い"
         ]
     return []
+
+
+def check_design_impl_sync(repo_root: Path) -> list[str]:
+    """design↔実装同期パスのキーが各スキル本文に共存することを検査する。
+
+    キーワード共存のみ。空文で通る限界あり（モジュール先頭コメント参照）。
+    """
+    errors: list[str] = []
+    skills_root = repo_root / ".claude" / "skills"
+    for skill_name, keys in DESIGN_IMPL_SYNC_CHECKS:
+        p = skills_root / skill_name / "SKILL.md"
+        rel = p.relative_to(repo_root)
+        if not p.is_file():
+            errors.append(f"{rel} が存在しない（design-impl-sync）")
+            continue
+        text = p.read_text(encoding="utf-8")
+        for needle, label in keys:
+            if needle not in text:
+                errors.append(f"{rel}: design-impl-sync 欠落 — {label}（`{needle}`）")
+    return errors
 
 
 def validate(skill_dir: Path, template_mode: bool = False) -> list[str]:
@@ -340,8 +412,17 @@ def main() -> None:
         else:
             print("PASS  design-doc/references/templates.md (boundary)")
 
+        sync_errs = check_design_impl_sync(default_skills.parent.parent)
+        if sync_errs:
+            failed += 1
+            print("FAIL  design-impl-sync (keyword coexistence)")
+            for e in sync_errs:
+                print(f"      - {e}")
+        else:
+            print("PASS  design-impl-sync (keyword coexistence)")
+
     total = len(dirs) + (
-        1 if root.resolve() == default_skills.resolve() else 0
+        2 if root.resolve() == default_skills.resolve() else 0
     )
     print(f"\n{total - failed}/{total} PASS")
     sys.exit(1 if failed else 0)

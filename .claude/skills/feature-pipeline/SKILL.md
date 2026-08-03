@@ -2,7 +2,7 @@
 name: feature-pipeline
 description: "機能開発の複数フェーズ（計画→実装→テスト→レビュー→統合→知見蓄積）を一気通貫で回したいときに使うエンドツーエンドのオーケストレーター。発動の合図は『フロー全体を通して/一括で/最初から最後まで/エンドツーエンドで』のように、単一作業ではなく工程全体をまとめて進めたい意図があること。例:『この機能を設計から実装・テストして最後にナレッジ残すまで通してやって』『新機能を計画から知見蓄積まで一括で面倒みて』『フル開発サイクルで回したい、途中の承認は挟んでいい』。既存スキル（design-doc → impl-from-design → frontend-code-review → pr-create → knowledge-capture / compound）を順に呼び出し、主要な判断点（設計承認・指摘トリアージ・マージ・知見保存）で人間の承認ゲートを挟む半自動フロー。`.steering/[task]/` の成果物から現在地を検出して途中フェーズから再開できるため、複数セッションにまたがる機能開発に向く。**単一フェーズだけの依頼では発動しない** — 設計のみは design-doc、承認済み設計からの実装のみは impl-from-design、レビューのみは frontend-code-review、テスト追加のみは tdd、知見保存のみは knowledge-capture、ルール昇格のみは compound を直接使う。CI/CD・デプロイの『パイプライン』や、小さなバグ修正・タスク状況の確認にも使わない。"
 metadata:
-  version: "1.5"
+  version: "1.6"
 ---
 
 # Feature Pipeline
@@ -168,8 +168,11 @@ impl-from-design は全タスク完了後に「実装が完了しました」と
 直後の Phase 3 のレビューと Gate 3 が人間の判断点として控えている。遷移は報告するので、
 異議・追加実装の要望が出たらそこで止めて impl-from-design に戻る。
 
-> 実装中に design.md との乖離が生じた場合、impl-from-design 自身が止まってユーザーに
-> 報告する。その場合はこのスキルも待機し、設計変更が必要なら Phase 1 に戻る判断をする。
+> 実装中に design.md との乖離が生じた場合、`impl-from-design` が止まって分類提案する。
+> このスキルも待機する:
+> - **契約コア変更**（または迷ったらコア）→ ユーザーが `design-doc` 方針転換で `Status: **DRAFT**` に戻したら、
+>   Step 0 を再判定して **Gate 1**（設計レビュー）へ戻る。方針転換時に `review-result.md` は破棄される
+> - **APPROVED 追認** → design/tasklist 更新後も Status は APPROVED のまま。**Phase 2 を継続**する（Gate 1 に戻さない）
 
 ---
 
@@ -199,7 +202,10 @@ impl-from-design は全タスク完了後に「実装が完了しました」と
   解消するまでこのゲートを繰り返す。
 - **2（後で対応する）** → `review-result.md` の Status を `DEFERRED` に更新し、未対応の指摘は
   チェックボックスを未チェックのまま残す → Phase 4 へ。Phase 5 のサマリーに未対応として明記する。
+  **設計整合 High（設計契約コア不一致）が残っている場合は必須警告**を出してから続行する
+  （文言は `frontend-code-review` の「設計整合 High のゲート入力」と同じ。警告なしの DEFERRED は禁止）。
 - **3（このまま進める / 指摘なし扱い）** → `review-result.md` の Status を `RESOLVED` に更新 → Phase 4 へ。
+  設計整合 High 残存時は **2 と同様の必須警告**を出してから続行する。
 
 **いずれの選択でも `review-result.md` の Status を `OPEN` から必ず変更する。** `OPEN` のまま Phase 4 に
 進むと、次セッションの Step 0 が再び Gate 3 と判定してパイプラインが前に進めなくなる（resume デッドロック）。
