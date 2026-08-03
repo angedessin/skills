@@ -2,7 +2,7 @@
 name: knowledge-capture
 description: "セッション終了時のプロジェクト知識保存に使うメタスキル。「ナレッジを保存して」「学んだことを記録して」「この決定をドキュメント化して」「セッション終了」と明示的に言われた場合のみ起動。README・仕様書など通常のドキュメント編集には起動しない。セッション開始時に .capture-needed ファイルがあれば起動。decisions.md・review-result.md・blockers.md・会話コンテキストから知見を抽出し docs/knowledge/・.steering/decisions.md・CLAUDE.md に分類する。決定の記録は決定・理由・却下案までを担当し、決定記録の定型フォーマットは生成しない。タスク完了のたびに自動起動しない。lint ルール・スキルを作成する compound とは別物。"
 metadata:
-  version: "1.7"
+  version: "1.8"
 ---
 
 # Knowledge Capture
@@ -40,8 +40,12 @@ find .steering -maxdepth 2 \( -name "decisions.md" -o -name "review-result.md" -
 
 **フラグ確認（入力ファイルの有無に関係なく独立して処理する。上から順に実行する）:**
 
-- `.capture-needed` が存在する → それがトリガーになっている旨をユーザーに伝える
-- `.codify-needed` が存在する → **入力ファイルの有無に関わらずここで確認する**:
+- `.capture-needed` が存在する → **三択（今 / 後で / スキップ）を `.codify-needed` 確認より先に**提示する（複数タスクがある場合は**タスク単位**。一括スキップ禁止）。SessionStart 経路の操作正本は `CLAUDE.md`。スキル内起動時も同契約:
+  - **今** → 当該タスクについて以降の知見収集・保存フローへ進む（完了時は現行どおり `capture_done` を立てる）
+  - **後で** → `.capture-needed` を残して当該タスクの capture は今はやらない（compact/resume で再確認してよい）
+  - **スキップ** → 当該タスクの `.capture-needed` のみ削除して終了枝（`capture_done` は作らない・tasklist の knowledge-capture はチェックしない）。効果は次の Stop まで（Stop フェイルセーフが再立てする）
+  - 対象タスクをすべて「後で」または「スキップ」にしたあと、まだ保存フローに入るタスクが無ければ、下の `.codify-needed` 確認へ進む（スキップしても compound 確認は残す）
+- `.codify-needed` が存在する → **入力ファイルの有無に関わらずここで確認する**（三択の後）:
   「compound スキルも未実行です。先に compound を実行しますか？」
   （compound = ルール・スキルへの昇格、knowledge-capture = ドキュメント保存、両方を順に実施推奨）
   - ユーザーが **Yes** → knowledge-capture をここで中断し、compound スキルを先に実行するよう案内する。compound 完了後にもう一度 knowledge-capture を呼び出してもらう。

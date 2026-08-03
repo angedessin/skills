@@ -2,7 +2,7 @@
 name: steering
 description: ".steering/ クロスセッションコンテキスト管理のメタスキル。「new task」「start steering」「[task] を再開」「[task] をアーカイブ」「steering status」「進行中タスクは？」と明示的に言われた場合のみ起動。通常のセッション開始で .steering/ を読むだけの場合や design-doc がコンテキスト設定を担っている場合は自動起動しない。"
 metadata:
-  version: "1.2"
+  version: "1.3"
 ---
 
 # Steering
@@ -133,17 +133,20 @@ metadata:
 
 **アーカイブ前チェック**:
 - [ ] `tasklist.md` の全項目がチェック済み
-- [ ] `knowledge-capture` スキルが実行済み（または明示的に省略を確認）
+- [ ] knowledge-capture **ハードストップ**（下記充足判定）
+
+**knowledge-capture 充足判定（ハードストップ）**:
+- **充足**: `capture_done` が存在する、またはユーザーが「知見なしでアーカイブ」と明示した
+- **非充足**: 上記どちらも無い → **ここで止まる**。アーカイブ手順に進まない。knowledge-capture を実行するか、「知見なしでアーカイブ」と明示するかを聞く
+- **非充足のままでは通さないもの**: 汎用「省略してアーカイブ」、`tasklist.md` の knowledge-capture `[x]` 単独
 
 チェックを満たしている場合:
 1. `.steering/[date]-[task]` を `.steering/archived/[date]-[task]` に移動
 2. `tasklist.md` の末尾に `Archived: [YYYYMMDD]` を追記
 3. 「アーカイブ完了。`.steering/archived/[task]` に保存されました。」と報告
 
-チェックが不足している場合は、不足している項目をリストして確認を求める。
-ユーザーが「省略してアーカイブ」と明示した場合は未チェック項目をスキップしてアーカイブを実行する。
-
-**knowledge-capture 実行済みの判定**: `capture_done` フラグが存在するか、または `tasklist.md` の knowledge-capture チェックボックスがチェック済みであれば OK（どちらか一方で十分）。
+knowledge-capture 以外のチェックが不足している場合は、不足項目をリストして確認を求める。
+ユーザーが「省略してアーカイブ」と明示した場合は、**knowledge-capture ゲート以外**の未チェック項目をスキップしてアーカイブを実行する（knowledge-capture 未充足なら依然としてここで止まる）。
 
 ---
 
@@ -155,5 +158,5 @@ metadata:
 ## Related skills
 
 - `design-doc` — 新機能タスクの主要な入口（.steering/ の詳細なフロー付き）
-- `knowledge-capture` — アーカイブ前に実行が推奨
+- `knowledge-capture` — アーカイブ前ハードストップ（`capture_done` または「知見なしでアーカイブ」）
 - `impl-from-design` — 実装フェーズで tasklist.md を更新

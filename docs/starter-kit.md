@@ -124,6 +124,6 @@
 - 既存コードへのテスト追加・テストファーストの実装は tdd を使う
 - 実装後のコードレビューは frontend-code-review を使う
 - セッションで得た知見は knowledge-capture で docs/ に保存する
-- セッション開始時、未処理フラグ（`.capture-needed` / `.codify-needed`）とアクティブタスクは SessionStart hook が context に注入する。`.capture-needed` があれば「knowledge-capture を実行しますか？」、`.codify-needed` があれば「compound を実行しますか？」とユーザーに確認する（hook を配置していない場合は `.steering/` を自分で確認する）
+- セッション開始時、未処理フラグ（`.capture-needed` / `.codify-needed`）とアクティブタスクは SessionStart hook が context に注入する。`.capture-needed` があれば対象タスクごとに「今 / 後で / スキップ」で確認する（一括スキップ禁止。操作正本は配置先の CLAUDE.md または同等ルール。スキップは `.capture-needed` のみ削除・効果は次の Stop まで）。`.codify-needed` があれば「compound を実行しますか？」と確認する（三択の後。hook を配置していない場合は `.steering/` を自分で確認する）
 <!-- 配置したスキルに合わせて追記・削除する。行動ルール（プロジェクト固有の規約）はこの下に育てていく -->
 ```

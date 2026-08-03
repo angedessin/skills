@@ -28,8 +28,13 @@ tasks=$(find "$STEERING_DIR" -maxdepth 1 -mindepth 1 -type d ! -name archived 2>
 
 msg=""
 if [ -n "$capture_tasks" ]; then
-  msg="${msg}【未保存ナレッジ】.capture-needed を検出。ユーザーに「knowledge-capture を実行しますか？」と確認してください。対象タスク:
+  msg="${msg}【未保存ナレッジ】.capture-needed を検出。対象タスクごとに「今 / 後で / スキップ」で確認してください（一括スキップ禁止。操作正本は CLAUDE.md）:
+対象タスク:
 $(printf '%s\n' "$capture_tasks" | sed 's/^/  - /')
+選択肢:
+  - 今 → knowledge-capture を実行
+  - 後で → フラグ残置（compact/resume で再確認可）
+  - スキップ → 対象の .capture-needed を rm（capture_done は作らない。効果は次の Stop まで）
 
 "
 fi
