@@ -39,7 +39,7 @@ Last updated: 20260803
 
 - [x] PR 作成（base = `integration/20260730-reports`） https://github.com/angedessin/skills/pull/9
 - [x] CI なし（checks 空）
-- [ ] マージ（ユーザー明示後）
+- [x] マージ（https://github.com/angedessin/skills/pull/9 → integration）
 
 ## 福利化
 
