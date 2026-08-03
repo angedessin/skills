@@ -37,7 +37,7 @@ Last updated: 20260803
 
 ## デプロイ
 
-- [ ] PR 作成（base = `integration/20260730-reports`）
+- [x] PR 作成（base = `integration/20260730-reports`） https://github.com/angedessin/skills/pull/9
 - [ ] CI グリーン確認
 - [ ] マージは人間の明示指示後のみ
 
