@@ -16,6 +16,8 @@
   9. 既定走査時: design↔実装同期パスのキー共存（design-doc 方針転換 / impl-from-design
      乖離分類 / impl-review・frontend-code-review・feature-pipeline の設計整合ゲート）。
      キーワード並びのみ検査し、手順の実行正否は見ない（空文で通る限界あり）
+  10. 既定走査時: capture 粒度（三択 UX / archive ハードストップ）のキー共存。
+      キーワード並びのみ。空文で通る限界あり（design-impl-sync と同型）
 
 純度計測・ポータビリティ（レポートのみ・FAIL にしない）:
   python3 scripts/validate_skills.py --purity        # 各スキル本文のツール固有 API 出現数
@@ -120,6 +122,74 @@ DESIGN_IMPL_SYNC_CHECKS = (
     ),
 )
 
+# capture 粒度（20260803-capture-granularity）のキー共存検査。
+# 限界: キーワードが並んでいれば通る。三択の実行正否・rm の実施・archive 停止の実地は見ない（空文で通る）。
+CAPTURE_GRANULARITY_CHECKS = (
+    (
+        ".claude/hooks/session-start-check.sh",
+        (
+            ("今 / 後で / スキップ", "三択注入文"),
+            ("一括スキップ禁止", "複数タスク単位"),
+            ("次の Stop", "スキップ寿命"),
+        ),
+    ),
+    (
+        "CLAUDE.md",
+        (
+            ("今 / 後で / スキップ", "三択再掲（任意）"),
+            ("一括スキップ禁止", "複数タスク単位"),
+            ("次の Stop", "スキップ寿命"),
+        ),
+    ),
+    (
+        ".claude/skills/knowledge-capture/SKILL.md",
+        (
+            ("今 / 後で / スキップ", "三択再掲"),
+            ("一括スキップ禁止", "複数タスク単位"),
+            ("次の Stop", "スキップ寿命"),
+            ("`.codify-needed` 確認より先", "三択を codify より先"),
+        ),
+    ),
+    (
+        ".claude/skills/steering/SKILL.md",
+        (
+            ("知見なしでアーカイブ", "専用省略句"),
+            ("ハードストップ", "archive ハードストップ"),
+            ("ここで止まる", "未充足時停止"),
+            ("`[x]` 単独", "tasklist 単独非充足"),
+        ),
+    ),
+    (
+        ".claude/skills/steering/references/spec.md",
+        (
+            ("今 / 後で / スキップ", "セッション確認"),
+            ("知見なしでアーカイブ", "専用省略句"),
+        ),
+    ),
+    (
+        "docs/starter-kit.md",
+        (
+            ("今 / 後で / スキップ", "配置先向け三択"),
+            ("次の Stop", "スキップ寿命"),
+        ),
+    ),
+    (
+        "docs/user-guide.md",
+        (
+            ("今 / 後で / スキップ", "user-guide 三択"),
+            ("次の Stop", "スキップ寿命"),
+            ("知見なしでアーカイブ", "archive ハードストップ"),
+        ),
+    ),
+    (
+        "README.md",
+        (
+            ("今 / 後で / スキップ", "README 三択"),
+            ("次の Stop", "スキップ寿命"),
+        ),
+    ),
+)
+
 
 def check_design_doc_template(repo_root: Path) -> list[str]:
     """design-doc/references/templates.md に付録境界マーカーがあることを検査する。"""
@@ -159,6 +229,24 @@ def check_design_impl_sync(repo_root: Path) -> list[str]:
         for needle, label in keys:
             if needle not in text:
                 errors.append(f"{rel}: design-impl-sync 欠落 — {label}（`{needle}`）")
+    return errors
+
+
+def check_capture_granularity(repo_root: Path) -> list[str]:
+    """capture 粒度（三択 UX / archive ハードストップ）のキー共存を検査する。
+
+    キーワード共存のみ。空文で通る限界あり（CAPTURE_GRANULARITY_CHECKS 上コメント参照）。
+    """
+    errors: list[str] = []
+    for rel, keys in CAPTURE_GRANULARITY_CHECKS:
+        p = repo_root / rel
+        if not p.is_file():
+            errors.append(f"{rel} が存在しない（capture-granularity）")
+            continue
+        text = p.read_text(encoding="utf-8")
+        for needle, label in keys:
+            if needle not in text:
+                errors.append(f"{rel}: capture-granularity 欠落 — {label}（`{needle}`）")
     return errors
 
 
@@ -421,8 +509,17 @@ def main() -> None:
         else:
             print("PASS  design-impl-sync (keyword coexistence)")
 
+        cap_errs = check_capture_granularity(default_skills.parent.parent)
+        if cap_errs:
+            failed += 1
+            print("FAIL  capture-granularity (keyword coexistence)")
+            for e in cap_errs:
+                print(f"      - {e}")
+        else:
+            print("PASS  capture-granularity (keyword coexistence)")
+
     total = len(dirs) + (
-        2 if root.resolve() == default_skills.resolve() else 0
+        3 if root.resolve() == default_skills.resolve() else 0
     )
     print(f"\n{total - failed}/{total} PASS")
     sys.exit(1 if failed else 0)

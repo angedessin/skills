@@ -80,10 +80,12 @@ CLAUDE.md のポリシー側を調整する（スキル本文は触らない）�
 **Q. `.steering/` は git にコミットする？**
 コミットを推奨する（設計・決定・タスク状態は複数セッション再開と知見還流の入力になる）。ただしランタイムフラグはコミットしない — マスターと同じく `.gitignore` に `.steering/**/.capture-needed`・`.steering/**/.codify-needed`・`.steering/**/capture_done` の 3 行を追加する。
 
+セッション開始で `.capture-needed` が出たら、対象タスクごとに「今 / 後で / スキップ」で選ぶ（一括スキップ禁止）。スキップはフラグ削除だけ（`capture_done` は作らない）で、効果は次の Stop まで — 永久免除ではない。
+
 **Q. タスクの「完了」はどう扱われる？**
 進捗の実体は `.steering/[task]/tasklist.md` のチェックボックス（作業のたびに Claude が更新する）。
 アーカイブは自動では起きない — あなたが「アーカイブして」と言ったときに、完了チェックを通して
-`.steering/archived/` へ移動する。worktree・ブランチ上で開始したタスクは、**main へのマージ前に
+`.steering/archived/` へ移動する。アーカイブ前の knowledge-capture はハードストップ: `capture_done` があるか、「知見なしでアーカイブ」と明示したときだけ進む（汎用の省略や tasklist のチェック単独では足りない）。worktree・ブランチ上で開始したタスクは、**main へのマージ前に
 アーカイブまで済ませる**（`.steering/` がブランチ間で分岐すると対応漏れが起きる）。
 
 ---

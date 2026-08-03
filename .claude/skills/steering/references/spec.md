@@ -187,8 +187,8 @@ compound 実行のたびに「何をどこへ昇格したか」を追記する�
 
 毎セッション:
 1. 未処理フラグ（`.capture-needed` / `.codify-needed`）とアクティブタスク一覧は **SessionStart hook `session-start-check.sh` が検出して context に注入する**（手動の find は不要）
-2. `.capture-needed` が注入されたら knowledge-capture を促す
-3. `.codify-needed` が注入されたら compound スキルを促す
+2. `.capture-needed` が注入されたら、対象タスクごとに「今 / 後で / スキップ」で確認する（一括スキップ禁止。操作定義は `session-start-check.sh` の注入文。CLAUDE.md 再掲は任意）。スキップは `.capture-needed` のみ削除（`capture_done` 非作成・効果は次の Stop まで）
+3. `.codify-needed` が注入されたら compound スキルを促す（capture 三択の後。スキップしても残す）
 4. アクティブタスクの context を読む
 5. 複数タスクがあれば優先度を確認
 
@@ -208,3 +208,5 @@ find .steering \( -name '.capture-needed' -o -name '.codify-needed' \) -not -pat
 
 `tasklist.md` が全チェック済みになったら `archived/` へ移動。
 直近3件は `steering status` で表示される。
+
+**knowledge-capture ハードストップ**（`steering` archive モードと同一）: アーカイブ前に `capture_done` または「知見なしでアーカイブ」が必要。汎用「省略してアーカイブ」および tasklist `[x]` 単独では非充足。

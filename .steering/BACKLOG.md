@@ -87,7 +87,6 @@
 - ~~**SPIKE レーン**~~ → **完了**（`archived/20260801-spike-lane` / PR #7 → integration）
 - ~~**design↔実装の同期パス明確化**~~ → **完了**（`20260802-design-impl-sync`。方針転換分類表・乖離分類・Axis 1 High・FCR/pipeline ゲート入力・validate キー共存）
 - **design.md 境界の任意追記** — アクティブ design への `<!-- design-doc-boundary: appendix -->` 追記は任意・強制しない（マーカー無しは全文フォールバックのまま）
-- **capture 粒度** — `.capture-needed` の「完了時」と「セッション知見あり」の分離（偽陰性を増やさない）
 - **ナレッジ鮮度の機械化** — rule-audit 常用化が第一歩
 - **配置1件実走** — `deployments.md` 有効行を 1 にする（company はカウントしない）
 - **passthrough シナリオ拡充** — adr / debug / feature-pipeline / impl-from-design / frontend-code-review
