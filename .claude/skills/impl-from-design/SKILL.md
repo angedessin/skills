@@ -3,7 +3,7 @@ name: impl-from-design
 description: "design.md からの実装に使う — 「実装を開始して」「設計から実装して」「設計が承認された、作ろう」「SPIKE で探索実装して」などのフレーズが対象。.steering/[task]/design.md の Status が APPROVED または SPIKE である必要がある。DRAFT・未知 Status・design.md 不在の場合は止まって案内（DRAFT なら design-doc レビュー完了を促す）。.steering/ コンテキストなしの汎用「実装して」リクエストには起動しない。"
 compatibility: "React / TypeScript（TDD モードのテスト配置・命名の例がスタック前提。実装手順と前提チェックは言語非依存で、テストのパターンは tdd の references/patterns.md 側を差し替える）"
 metadata:
-  version: "1.6"
+  version: "1.7"
 ---
 
 # Impl from Design
@@ -158,10 +158,21 @@ TDD のパターンと実行コマンドは `.claude/skills/tdd/references/patte
 
 ### design.md との乖離が生じた場合
 
-実装中に設計通りに進められないことが判明したら:
-1. 止まってユーザーに報告
-2. `design.md` の「未解決の論点」に追記
-3. ユーザーの判断を待つ（勝手に設計変更しない）
+実装中に設計通りに進められないことが判明したら **ここで止まる**。Status / 契約コアは**書き換えない**（書き込みは `design-doc` の方針転換のみ）。
+
+1. ユーザーに報告する
+2. `design.md` の「未解決の論点」に追記する
+3. 次の**短い固定テンプレ**で分類を提案する（区分・根拠1行・次アクション1行）:
+
+```
+【乖離の分類提案】
+区分: 契約コア変更 / APPROVED 追認 / 迷ったらコア（いずれか1つ）
+根拠: [1行]
+次アクション: [契約コア変更または迷ったらコア → design-doc の方針転換（DRAFT 戻し）を実行してください /
+APPROVED 追認 → 表現・tasklist・付録のみの更新案を提示し、承認後に decisions 1 行]
+```
+
+4. ユーザーの判断を待つ。分類表の正本は `design-doc`「方針転換が起きた場合」。SPIKE 中は本分類を使わず SPIKE 出口へ案内する
 
 ### decisions.md への記録
 
