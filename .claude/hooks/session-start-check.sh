@@ -28,7 +28,7 @@ tasks=$(find "$STEERING_DIR" -maxdepth 1 -mindepth 1 -type d ! -name archived 2>
 
 msg=""
 if [ -n "$capture_tasks" ]; then
-  msg="${msg}【未保存ナレッジ】.capture-needed を検出。対象タスクごとに「今 / 後で / スキップ」で確認してください（一括スキップ禁止。操作正本は CLAUDE.md）:
+  msg="${msg}【未保存ナレッジ】.capture-needed を検出。対象タスクごとに「今 / 後で / スキップ」で確認してください（一括スキップ禁止。この注入文が SessionStart の操作定義）:
 対象タスク:
 $(printf '%s\n' "$capture_tasks" | sed 's/^/  - /')
 選択肢:

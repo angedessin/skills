@@ -9,8 +9,8 @@ Last updated: 20260803
 ## 実装
 
 - [x] `session-start-check.sh`: 注入文を三択（今 / 後で / スキップ）へ
-- [x] `CLAUDE.md`: 三択の操作正本（スキップ＝`rm`・効果＝次 Stop まで／後で＝残置／今＝KC）
-- [x] `knowledge-capture/SKILL.md`: フラグ起点の三択再掲（正本は CLAUDE.md と同一契約）・codify より先
+- [x] `knowledge-capture/SKILL.md`: フラグ起点の三択再掲（SessionStart 操作定義は hook 注入文と同一）・codify より先
+- [x] `CLAUDE.md`: 三択の任意再掲（スキップ＝`rm`・効果＝次 Stop まで／後で＝残置／今＝KC）
 - [x] `steering/SKILL.md` archive: ハードストップ＋「知見なしでアーカイブ」＋`[x]`/汎用省略非充足
 - [x] `steering/references/spec.md`: 同上に同期
 - [x] `docs/starter-kit.md` / `docs/user-guide.md` / `README.md`: 確認文言・スキップ寿命を現行形へ

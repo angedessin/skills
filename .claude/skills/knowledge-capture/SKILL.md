@@ -40,7 +40,7 @@ find .steering -maxdepth 2 \( -name "decisions.md" -o -name "review-result.md" -
 
 **フラグ確認（入力ファイルの有無に関係なく独立して処理する。上から順に実行する）:**
 
-- `.capture-needed` が存在する → **三択（今 / 後で / スキップ）を `.codify-needed` 確認より先に**提示する（複数タスクがある場合は**タスク単位**。一括スキップ禁止）。SessionStart 経路の操作正本は `CLAUDE.md`。スキル内起動時も同契約:
+- `.capture-needed` が存在する → **三択（今 / 後で / スキップ）を `.codify-needed` 確認より先に**提示する（複数タスクがある場合は**タスク単位**。一括スキップ禁止）。SessionStart 経路の操作定義は **`session-start-check.sh` の注入文**（CLAUDE.md が無い／異なる配置先でも hook だけで足りる）。スキル内起動時も同契約を再掲する。CLAUDE.md への再掲は任意（推奨）:
   - **今** → 当該タスクについて以降の知見収集・保存フローへ進む（完了時は現行どおり `capture_done` を立てる）
   - **後で** → `.capture-needed` を残して当該タスクの capture は今はやらない（compact/resume で再確認してよい）
   - **スキップ** → 当該タスクの `.capture-needed` のみ削除して終了枝（`capture_done` は作らない・tasklist の knowledge-capture はチェックしない）。効果は次の Stop まで（Stop フェイルセーフが再立てする）

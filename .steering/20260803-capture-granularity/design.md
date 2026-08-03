@@ -38,7 +38,7 @@ Approved: 20260803
 ## 完了条件
 
 - [ ] SessionStart 注入文と CLAUDE.md / starter-kit / user-guide の確認が「今 / 後で / スキップ」で一致する
-- [ ] **スキップの実行主体**: SessionStart 確認でのスキップは **CLAUDE.md が `rm .capture-needed` まで命令**する（knowledge-capture 未起動でよい）。スキル内三択はフラグ起点起動時の同契約再掲
+- [ ] **スキップの実行主体**: SessionStart 確認でのスキップは **hook 注入文の操作定義に従い** `.capture-needed` を `rm` する（knowledge-capture 未起動でよい。CLAUDE.md 再掲は任意）。スキル内三択はフラグ起点起動時の同契約再掲
 - [ ] 「スキップ」は `.capture-needed` のみ削除し `capture_done` を立てない。**効果範囲＝次の Stop まで**（Stop フェイルセーフが再立てする。跨セッションの永久スキップではない）
 - [ ] 「後で」はフラグ残置のみ（何も消さない）。compact/resume 再注入で再確認してよい（フラグが残っている限り）
 - [ ] 「今」は `knowledge-capture` 起動。完了時は現行どおり `capture_done` を立てる
@@ -52,15 +52,15 @@ Approved: 20260803
 
 ## アプローチ
 
-フラグは `.capture-needed` 1 種のままにする。セッション側は確認を三択にして意味を分離し、完了側は `steering` archive を唯一の硬いゲートにする。途中の knowledge-capture は現行どおり `capture_done` を立てて archive を満たす。「スキップ」は**いま出ている催促の解除**だけに閉じ（次 Stop でフェイルセーフが再立て）、完了義務の免除には使わない。セッション開始時のスキップ操作の正本は CLAUDE.md。archive 充足は `capture_done` または「知見なしでアーカイブ」のみ。
+フラグは `.capture-needed` 1 種のままにする。セッション側は確認を三択にして意味を分離し、完了側は `steering` archive を唯一の硬いゲートにする。途中の knowledge-capture は現行どおり `capture_done` を立てて archive を満たす。「スキップ」は**いま出ている催促の解除**だけに閉じ（次 Stop でフェイルセーフが再立て）、完了義務の免除には使わない。SessionStart の操作定義は **`session-start-check.sh` の注入文**（CLAUDE.md 再掲は任意）。archive 充足は `capture_done` または「知見なしでアーカイブ」のみ。
 
 ## 主要コンポーネント
 
 | コンポーネント | 場所 | 変更後の記述・契約（原本なしで判定できる粒度） |
 |---------------|------|------|
-| SessionStart hook | `.claude/hooks/session-start-check.sh` | `.capture-needed` 検出時の注入文を「今 / 後で / スキップ」三択確認に変更。文言に三択が含まれる。複数タスクは列挙し、単位はタスクごと |
-| セッション開始ルール | `CLAUDE.md` | 三択確認の**操作正本**。タスク単位。スキップ＝対象の `.capture-needed` を `rm`（`capture_done` 非作成）／後で＝残置／今＝knowledge-capture。スキップ効果＝次 Stop まで |
-| knowledge-capture | `.claude/skills/knowledge-capture/SKILL.md` | フラグ起点時は三択を `.codify-needed` より先に。スキップは `.capture-needed` のみ削除。正本は CLAUDE.md と同一契約 |
+| SessionStart hook | `.claude/hooks/session-start-check.sh` | `.capture-needed` 検出時の注入文を「今 / 後で / スキップ」三択確認に変更。**SessionStart の操作定義はこの注入文**。文言に三択が含まれる。複数タスクは列挙し、単位はタスクごと |
+| セッション開始ルール | `CLAUDE.md` | 三択確認の**任意再掲**（配置先で CLAUDE.md が無くても hook だけで足りる）。タスク単位。スキップ＝対象の `.capture-needed` を `rm`（`capture_done` 非作成）／後で＝残置／今＝knowledge-capture。スキップ効果＝次 Stop まで |
+| knowledge-capture | `.claude/skills/knowledge-capture/SKILL.md` | フラグ起点時は三択を `.codify-needed` より先に。スキップは `.capture-needed` のみ削除。SessionStart の操作定義は hook 注入文と同一契約 |
 | steering archive | `.claude/skills/steering/SKILL.md` | knowledge-capture **ハードストップ**。充足: `capture_done` または「知見なしでアーカイブ」。汎用省略・`[x]` 単独は非充足 |
 | steering spec | `.claude/skills/steering/references/spec.md` | フラグ意味・セッション確認・archive 前チェックを SKILL と同一契約に更新 |
 | starter-kit | `docs/starter-kit.md` | SessionStart 時の確認文言を三択に同期 |
@@ -95,7 +95,7 @@ Approved: 20260803
 - 攻撃: [1][4] スキップ実行主体が CLAUDE.md と knowledge-capture で二重
   影響: 口頭スキップでファイル残留、または手順食い違い
   提案: SessionStart 経路の正本を CLAUDE.md（`rm` まで）に単一化
-  **プレモータム反映済み**: 完了条件・主要コンポーネント表で正本を CLAUDE.md に固定
+  **プレモータム反映済み**: 完了条件・主要コンポーネント表で正本を CLAUDE.md に固定（PR #9 で hook 注入文へ変更 — decisions 参照）
 
 - 攻撃: [2][5] archive 充足に tasklist `[x]` 単独が残り、ハードゲートが形骸化しうる
   影響: 汎用省略を塞いでも手動チェックで抜けられる
@@ -200,4 +200,4 @@ task complete
 - 現行 `session-stop.sh` はフェイルセーフ明示（偽陽性＝確認1回、偽陰性＝知見喪失）
 - 現行 `steering` archive は knowledge-capture をチェックリスト＋「明示的に省略」＋汎用「省略してアーカイブ」で満たせ、硬いゲートではない
 - 確認文言の旧形: `session-start-check.sh` / `CLAUDE.md` / `docs/starter-kit.md`（実装時再検索で確定）。周辺: `docs/user-guide.md`（フラグ説明）、`steering/references/spec.md:190`（旧「促す」）、`README.md`
-- プレモータムで確定した契約: スキップ寿命＝次 Stop まで / スキップ正本＝CLAUDE.md / pipeline は steering 委譲
+- プレモータムで確定した契約: スキップ寿命＝次 Stop まで / SessionStart 操作定義＝hook 注入文（CLAUDE.md 再掲は任意・PR #9 追認） / pipeline は steering 委譲

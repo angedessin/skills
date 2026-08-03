@@ -187,7 +187,7 @@ compound 実行のたびに「何をどこへ昇格したか」を追記する�
 
 毎セッション:
 1. 未処理フラグ（`.capture-needed` / `.codify-needed`）とアクティブタスク一覧は **SessionStart hook `session-start-check.sh` が検出して context に注入する**（手動の find は不要）
-2. `.capture-needed` が注入されたら、対象タスクごとに「今 / 後で / スキップ」で確認する（一括スキップ禁止。操作正本は `CLAUDE.md`）。スキップは `.capture-needed` のみ削除（`capture_done` 非作成・効果は次の Stop まで）
+2. `.capture-needed` が注入されたら、対象タスクごとに「今 / 後で / スキップ」で確認する（一括スキップ禁止。操作定義は `session-start-check.sh` の注入文。CLAUDE.md 再掲は任意）。スキップは `.capture-needed` のみ削除（`capture_done` 非作成・効果は次の Stop まで）
 3. `.codify-needed` が注入されたら compound スキルを促す（capture 三択の後。スキップしても残す）
 4. アクティブタスクの context を読む
 5. 複数タスクがあれば優先度を確認

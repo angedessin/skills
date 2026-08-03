@@ -12,9 +12,15 @@
 **理由**: 完了ライフサイクルが既存 archive と一致する。途中セッションは柔らかい三択のまま。
 **確定（承認時）**:
 - スキップ → `.capture-needed` のみ削除、`capture_done` なし。**効果＝次 Stop まで**
-- スキップ正本 → SessionStart 経路は CLAUDE.md が `rm` まで担う
+- SessionStart 操作定義 → **`session-start-check.sh` 注入文**（CLAUDE.md 再掲は任意）
 - 途中 knowledge-capture → 現行どおり `capture_done` を立てる
 - archive 充足 → `capture_done` または「知見なしでアーカイブ」のみ（`[x]`・汎用省略は非充足）
+
+## 20260803 — SessionStart 操作定義は hook 注入文（APPROVED 追認）
+
+**決定**: 「正本＝CLAUDE.md」をやめ、SessionStart の操作定義は `session-start-check.sh` の注入文とする。CLAUDE.md は任意再掲。
+**理由**: PR #9 レビュー。CLAUDE.md は配置先ごとに変わり、必須依存にすると死んだ参照になる。hook は配布され注入文に操作が既にある。
+**影響**: knowledge-capture / CLAUDE.md / spec / starter-kit / README / design 主要コンポーネントを同一コミットで同期。Status は APPROVED 維持。
 
 ## 20260803 — 承認（推奨で未解決を確定）
 

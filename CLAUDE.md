@@ -10,7 +10,7 @@ Tech stack: React / TypeScript / Vitest / React Testing Library / MSW / Playwrig
 3. 作業完了後は必ず `tasklist.md` を更新すること
 
 セッション開始時（未処理フラグ `.capture-needed` / `.codify-needed` とアクティブタスク一覧は SessionStart hook `session-start-check.sh` が検出して context に注入する。手動 find は不要）:
-1. `.capture-needed` が注入されたら、**対象タスクごとに**「今 / 後で / スキップ」で確認する（一括スキップ禁止。この確認の操作正本はここ）:
+1. `.capture-needed` が注入されたら、**対象タスクごとに**「今 / 後で / スキップ」で確認する（一括スキップ禁止。操作定義は hook 注入文。ここはプロジェクト側の再掲）:
    - 今 → `knowledge-capture` を実行する
    - 後で → フラグを残して続行する（compact/resume で再確認してよい）
    - スキップ → 対象タスクの `.capture-needed` を削除する（`capture_done` は作らない）。効果は次の Stop まで（Stop フェイルセーフが再立てする）
