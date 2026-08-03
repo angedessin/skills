@@ -25,15 +25,21 @@ Last updated: 20260803
 
 ## 知見保存（この PR / ブランチに載せる分）
 
-- [ ] knowledge-capture スキルの実行（PR 差分に属する知見）
-- [ ] 必要なら docs/ への追記をこのブランチでコミット
+- [x] knowledge-capture スキルの実行（追加 docs なし。decisions / SKILL / validate で足りる）
+- [x] 必要なら docs/ への追記をこのブランチでコミット（compound 経由で skill-design-patterns）
 
 ## デプロイ
 
 - [x] PR 作成（base = `integration/20260730-reports`。`pr-create`）— https://github.com/angedessin/skills/pull/8
-- [ ] CI グリーン確認
-- [ ] マージ（**人間の明示「マージして」まで禁止**）
+- [x] CI グリーン確認（CI 未設定のため N/A）
+- [ ] マージ（**人間の明示「マージして」まで禁止**）— アーカイブ後に実施
 
 ## 福利化
 
-- [ ] compound の実行（`.codify-needed` があれば）
+- [x] compound の実行（片側修正節へ空スコープ早期終了の短文）
+
+## クローズ
+
+- [x] steering archive モードでアーカイブ（マージ前）
+
+Archived: 20260803
