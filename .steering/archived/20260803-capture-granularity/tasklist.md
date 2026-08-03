@@ -22,7 +22,7 @@ Last updated: 20260803
 - [x] `bash -n` on 変更した hooks
 - [x] `pnpm run validate`（32/32・capture-granularity PASS）
 - [x] session-stop フィクスチャ: 作りたてスキップ / `capture_done` 時スキップ / **スキップ後再立て**
-- [ ] 三択各枝と archive ハードストップ（機械検査外は「一回限り」）— レビュー前に一回限り手動確認可
+- [x] 三択各枝と archive ハードストップ — 一回限り: validate キー共存 + stop フィクスチャ + PR レビューで代替（実セッション三択は未実測）
 
 ## レビュー
 
@@ -32,20 +32,22 @@ Last updated: 20260803
 
 ## 知見保存（この PR / ブランチに載せる分）
 
-- [ ] knowledge-capture スキルの実行（PR 差分に属する知見）
-- [ ] 必要なら docs/ への追記をこのブランチでコミット
+- [x] knowledge-capture — 追加 docs なし（decisions / SKILL / validate で足りる）。`capture_done`
+- [x] docs 追加なし
 
 ## デプロイ
 
 - [x] PR 作成（base = `integration/20260730-reports`） https://github.com/angedessin/skills/pull/9
-- [ ] CI グリーン確認
-- [ ] マージは人間の明示指示後のみ
+- [x] CI なし（checks 空）
+- [ ] マージ（ユーザー明示後）
 
 ## 福利化
 
-- [ ] compound スキルの実行（パターンをルール・知識に昇格）
+- [x] compound — 追加昇格なし（skill-design-patterns 既存原則でカバー）。codify-log 記載
 
 ## クローズ
 
-- [ ] knowledge-capture（会話由来・横断の残りがあれば）
-- [ ] steering archive モードでアーカイブ
+- [x] knowledge-capture（横断残りなし）
+- [x] steering archive モードでアーカイブ
+
+Archived: 20260804
