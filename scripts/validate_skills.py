@@ -190,6 +190,79 @@ CAPTURE_GRANULARITY_CHECKS = (
     ),
 )
 
+# knowledge 鮮度ナッジ（20260804-knowledge-freshness-nudge）のキー共存検査。
+# 限界: キーワードが並んでいれば通る。閾値判定・date 失敗時の実挙動・マーカー書き込みは見ない（空文で通る）。
+# capture の「次の Stop」キーとは混線させない（本検査は【rule-audit 月次】と 30 日再ナッジを使う）。
+KNOWLEDGE_FRESHNESS_CHECKS = (
+    (
+        ".claude/hooks/session-start-check.sh",
+        (
+            ("【rule-audit 月次】", "ナッジ見出し"),
+            ("30 日再ナッジ", "スキップ寿命（capture と別）"),
+            ("capture の次 Stop 寿命とは別", "別契約明示"),
+            (".last-rule-audit", "マーカーパス"),
+            ("2592000", "30 日閾値秒"),
+        ),
+    ),
+    (
+        ".claude/skills/rule-audit/SKILL.md",
+        (
+            (".steering/.last-rule-audit", "マーカーパス"),
+            ("承認不要の例外", "Step 5 マーカー例外"),
+            ("date +%s", "epoch 書き込み"),
+        ),
+    ),
+    (
+        ".gitignore",
+        (
+            (".steering/.last-rule-audit", "gitignore マーカー"),
+        ),
+    ),
+    (
+        "scripts/deploy_skills.py",
+        (
+            (".steering/.last-rule-audit", "deploy GITIGNORE_LINES"),
+        ),
+    ),
+    (
+        "CLAUDE.md",
+        (
+            ("【rule-audit 月次】", "ナッジ再掲"),
+            ("30 日再ナッジ", "スキップ寿命再掲"),
+            ("capture の次 Stop 寿命とは別", "別契約再掲"),
+        ),
+    ),
+    (
+        "docs/starter-kit.md",
+        (
+            ("【rule-audit 月次】", "starter-kit ナッジ"),
+            ("30 日再ナッジ", "starter-kit スキップ寿命"),
+        ),
+    ),
+    (
+        "docs/user-guide.md",
+        (
+            ("【rule-audit 月次】", "user-guide ナッジ"),
+            (".steering/.last-rule-audit", "user-guide マーカー"),
+            ("4 行", "ランタイムフラグ行数"),
+        ),
+    ),
+    (
+        "README.md",
+        (
+            ("【rule-audit 月次】", "README ナッジ"),
+            ("30 日再ナッジ", "README スキップ寿命"),
+        ),
+    ),
+    (
+        "docs/decisions/20260715-docs-lifecycle-tiers.md",
+        (
+            ("20260804", "Amendment 日付"),
+            ("【rule-audit 月次】", "Amendment ナッジ"),
+        ),
+    ),
+)
+
 
 def check_design_doc_template(repo_root: Path) -> list[str]:
     """design-doc/references/templates.md に付録境界マーカーがあることを検査する。"""
@@ -247,6 +320,24 @@ def check_capture_granularity(repo_root: Path) -> list[str]:
         for needle, label in keys:
             if needle not in text:
                 errors.append(f"{rel}: capture-granularity 欠落 — {label}（`{needle}`）")
+    return errors
+
+
+def check_knowledge_freshness(repo_root: Path) -> list[str]:
+    """knowledge 鮮度ナッジ（SessionStart 月次）のキー共存を検査する。
+
+    キーワード共存のみ。空文で通る限界あり（KNOWLEDGE_FRESHNESS_CHECKS 上コメント参照）。
+    """
+    errors: list[str] = []
+    for rel, keys in KNOWLEDGE_FRESHNESS_CHECKS:
+        p = repo_root / rel
+        if not p.is_file():
+            errors.append(f"{rel} が存在しない（knowledge-freshness）")
+            continue
+        text = p.read_text(encoding="utf-8")
+        for needle, label in keys:
+            if needle not in text:
+                errors.append(f"{rel}: knowledge-freshness 欠落 — {label}（`{needle}`）")
     return errors
 
 
@@ -518,8 +609,17 @@ def main() -> None:
         else:
             print("PASS  capture-granularity (keyword coexistence)")
 
+        fresh_errs = check_knowledge_freshness(default_skills.parent.parent)
+        if fresh_errs:
+            failed += 1
+            print("FAIL  knowledge-freshness (keyword coexistence)")
+            for e in fresh_errs:
+                print(f"      - {e}")
+        else:
+            print("PASS  knowledge-freshness (keyword coexistence)")
+
     total = len(dirs) + (
-        3 if root.resolve() == default_skills.resolve() else 0
+        4 if root.resolve() == default_skills.resolve() else 0
     )
     print(f"\n{total - failed}/{total} PASS")
     sys.exit(1 if failed else 0)

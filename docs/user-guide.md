@@ -45,7 +45,7 @@
 
 | スキル | いつ実行するか |
 |---|---|
-| rule-audit | CLAUDE.md が肥大化したと感じたとき（compound 数回ごと・月 1 目安の定期剪定。docs/knowledge/ の鮮度点検も兼ねる） |
+| rule-audit | CLAUDE.md が肥大化したと感じたとき、および SessionStart の【rule-audit 月次】ナッジ（最終実施から 30 日以上 or 未実施。スキル配置時のみ）。compound 数回ごと・月 1 目安の定期剪定。docs/knowledge/ の鮮度点検も兼ねる |
 | security-audit | サードパーティのスキル・hooks の採用前、および定期 |
 | empirical-prompt-tuning | スキル自体の品質を実測ベースで改善したいとき（任意・課金） |
 | adr | **マスター専用**。却下した代替案がある決定を ADR として起票したいとき（手動起動。knowledge-capture が decisions.md に残した決定を見て人が呼ぶ） |
@@ -78,9 +78,9 @@ CLAUDE.md のポリシー側を調整する（スキル本文は触らない）�
 「続けて」等の曖昧な指示ではゲートをスキップしない設計になっている。
 
 **Q. `.steering/` は git にコミットする？**
-コミットを推奨する（設計・決定・タスク状態は複数セッション再開と知見還流の入力になる）。ただしランタイムフラグはコミットしない — マスターと同じく `.gitignore` に `.steering/**/.capture-needed`・`.steering/**/.codify-needed`・`.steering/**/capture_done` の 3 行を追加する。
+コミットを推奨する（設計・決定・タスク状態は複数セッション再開と知見還流の入力になる）。ただしランタイムフラグはコミットしない — マスターと同じく `.gitignore` に `.steering/**/.capture-needed`・`.steering/**/.codify-needed`・`.steering/**/capture_done`・`.steering/.last-rule-audit` の 4 行を追加する。
 
-セッション開始で `.capture-needed` が出たら、対象タスクごとに「今 / 後で / スキップ」で選ぶ（一括スキップ禁止）。スキップはフラグ削除だけ（`capture_done` は作らない）で、効果は次の Stop まで — 永久免除ではない。
+セッション開始で `.capture-needed` が出たら、対象タスクごとに「今 / 後で / スキップ」で選ぶ（一括スキップ禁止）。スキップはフラグ削除だけ（`capture_done` は作らない）で、効果は次の Stop まで — 永久免除ではない。【rule-audit 月次】が出たら別契約の三択（今＝rule-audit / 後で＝残置 / スキップ＝`.steering/.last-rule-audit` 更新で 30 日再ナッジ。capture の次 Stop 寿命とは別）。
 
 **Q. タスクの「完了」はどう扱われる？**
 進捗の実体は `.steering/[task]/tasklist.md` のチェックボックス（作業のたびに Claude が更新する）。

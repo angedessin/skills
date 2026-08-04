@@ -15,7 +15,7 @@ starter-kit.md「配置手順」の機械的な部分（手順 2・3・6 の一�
      session-stop.sh（knowledge-capture 配置時のみ）
      - 配置先に settings.json が無い → permissions + 同送 hooks の登録を持つ settings.json を新規作成
      - 配置先に settings.json が有る → 何も書かず、手動マージ案（JSON 断片）を表示するだけ
-  4. 配置先 .gitignore に .steering ランタイムフラグ 3 行を追記（無い場合のみ）
+  4. 配置先 .gitignore に .steering ランタイムフラグ 4 行を追記（無い場合のみ）
   5. マスターの deployments.md へ配置先を登録（未登録の場合のみ）
 
 しないこと（skill-deploy が案内する残タスク）:
@@ -49,6 +49,7 @@ GITIGNORE_LINES = [
     ".steering/**/.capture-needed",
     ".steering/**/.codify-needed",
     ".steering/**/capture_done",
+    ".steering/.last-rule-audit",
 ]
 
 HOOK_REGISTRATIONS = {
@@ -302,7 +303,7 @@ def ensure_gitignore(target: Path, dry: bool, log: list[str]) -> None:
     existing = gi.read_text(encoding="utf-8") if gi.exists() else ""
     missing = [ln for ln in GITIGNORE_LINES[1:] if ln not in existing]
     if not missing:
-        log.append(".gitignore: フラグ 3 行は登録済み（変更なし）")
+        log.append(".gitignore: フラグ 4 行は登録済み（変更なし）")
         return
     log.append(f".gitignore: {len(missing)} 行追記 → {gi}")
     if not dry:

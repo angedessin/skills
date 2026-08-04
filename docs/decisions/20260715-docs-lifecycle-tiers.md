@@ -1,7 +1,7 @@
 # Decision: ドキュメントの鮮度管理は段階基準で運用する（当面は rule-audit の手動起動）
 
 Date: 20260715
-Status: Accepted (Amended 20260721・20260730 — 末尾の Amendments 参照)
+Status: Accepted (Amended 20260721・20260730・20260804 — 末尾の Amendments 参照)
 
 ## Context
 
@@ -82,3 +82,11 @@ Context 冒頭が「CLAUDE.md の @参照などに行動に配線」と**現在�
 
 **核は不変**: 段階基準・decisions の不変記録・Superseded / Amended 印 — いずれも変更していない。
 変わったのは配線モデルの記述のみ。rule-audit の `@docs/...` 参照切れ検出（consumer）は残す。
+
+### 20260804 — 個人段階に SessionStart 月次ナッジを追加した
+
+個人段階の起動は「手動のみ」から「手動＋ SessionStart の【rule-audit 月次】ナッジ（最終実施から 30 日以上または未実施。`.claude/skills/rule-audit/SKILL.md` があるときだけ）」へ進めた。Decision 表の管理方式は Amendment で「起動は手動＋月次ナッジ」と読む。ハードゲートにはしない。
+
+**Bad（追加）**: スキップはマーカー更新で 30 日黙り、Step 5 到達だけでマーカーを更新するため、マーカー上は健全でも実体の未監査・未適用が続きうる（意図的。常用化は「見る」まで）。
+
+**核は不変**: 段階基準による鮮度管理、decisions は剪定せず不変の記録、Superseded / Amended 印 — いずれも変更していない。変わったのは個人段階の起動ナッジの有無のみ。
