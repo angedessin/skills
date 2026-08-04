@@ -86,6 +86,7 @@
 - ~~**P2（契約/付録）**~~ → **完了**（`archived/20260731-design-contract-appendix`。PR #6 → integration）
 - ~~**SPIKE レーン**~~ → **完了**（`archived/20260801-spike-lane` / PR #7 → integration）
 - ~~**design↔実装の同期パス明確化**~~ → **完了**（`20260802-design-impl-sync`。方針転換分類表・乖離分類・Axis 1 High・FCR/pipeline ゲート入力・validate キー共存）
+- ~~**ナレッジ鮮度の機械化**~~ → **完了**（`archived/20260804-knowledge-freshness-nudge` / PR #10 → integration。SessionStart 月次ナッジ）
 - **design.md 境界の任意追記** — アクティブ design への `<!-- design-doc-boundary: appendix -->` 追記は任意・強制しない（マーカー無しは全文フォールバックのまま）
 - **配置1件実走** — `deployments.md` 有効行を 1 にする（company はカウントしない）
 - **passthrough シナリオ拡充** — adr / debug / feature-pipeline / impl-from-design / frontend-code-review
