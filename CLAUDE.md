@@ -9,14 +9,18 @@ Tech stack: React / TypeScript / Vitest / React Testing Library / MSW / Playwrig
 2. `design.md`（会話内設計の場合は設計方針）の提示後は人間のレビュー待ちで止まること（実装に入らない）
 3. 作業完了後は必ず `tasklist.md` を更新すること
 
-セッション開始時（未処理フラグ `.capture-needed` / `.codify-needed` とアクティブタスク一覧は SessionStart hook `session-start-check.sh` が検出して context に注入する。手動 find は不要）:
+セッション開始時（未処理フラグ `.capture-needed` / `.codify-needed`・rule-audit 月次ナッジ・アクティブタスク一覧は SessionStart hook `session-start-check.sh` が検出して context に注入する。手動 find は不要）:
 1. `.capture-needed` が注入されたら、**対象タスクごとに**「今 / 後で / スキップ」で確認する（一括スキップ禁止。操作定義は hook 注入文。ここはプロジェクト側の再掲）:
    - 今 → `knowledge-capture` を実行する
    - 後で → フラグを残して続行する（compact/resume で再確認してよい）
    - スキップ → 対象タスクの `.capture-needed` を削除する（`capture_done` は作らない）。効果は次の Stop まで（Stop フェイルセーフが再立てする）
 2. `.codify-needed` が注入されたら「compound を実行しますか？」と確認（capture 三択の後。スキップしてもこの確認は残す）
-3. `.steering/` のアクティブタスクをすべて読んでから作業開始
-4. 複数のアクティブタスクがある場合はどれを再開するか確認
+3. 【rule-audit 月次】が注入されたら「今 / 後で / スキップ」で確認する（操作定義は hook 注入文。capture の三択とは別契約）:
+   - 今 → `rule-audit` を実行する（レポート提示 Step 5 到達時に `.steering/.last-rule-audit` を更新）
+   - 後で → マーカー不変（次回 SessionStart で再確認可）
+   - スキップ → `.steering/.last-rule-audit` を現在時刻で更新（監査せず 30 日再ナッジ。capture の次 Stop 寿命とは別）
+4. `.steering/` のアクティブタスクをすべて読んでから作業開始
+5. 複数のアクティブタスクがある場合はどれを再開するか確認
 
 worktree・ブランチ上で開始したタスクは、main へのマージ前にアーカイブまで済ませる（`.steering/` がブランチ間で分岐すると、他のセッションからタスクが見えない・アーカイブ済みがアクティブに見える等の対応漏れが起きる）
 

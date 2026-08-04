@@ -28,7 +28,7 @@
 ├── .claude/
 │   ├── settings.json                  # パーミッション・フック設定
 │   ├── hooks/
-│   │   ├── session-start-check.sh     # 開始時に未処理フラグ・アクティブタスクを context へ注入
+│   │   ├── session-start-check.sh     # 開始時に未処理フラグ・rule-audit 月次ナッジ・アクティブタスクを context へ注入
 │   │   ├── session-stop.sh            # セッション終了時に .capture-needed フラグを作成
 │   │   ├── guard-env-read.sh          # .env 系に触れる Bash を ask に落とす（全文検査）
 │   │   ├── guard-gated-write.sh       # 承認制パスへの Bash 経由の書き込みを ask に落とす
@@ -199,7 +199,7 @@ design-premortem   impl-tournament                          session-retrospectiv
 ```
 
 - セッション中にスキルの誤発動・曖昧な指示に気づいたら `.steering/[task]/skill-issues.md` に記録する（CLAUDE.md ルール。decisions.md / skill-issues.md / blockers.md への追記は承認不要 — 内容の取捨選択は compound / knowledge-capture 時に行う）
-- compound がルールを増やし、`rule-audit` が定期監査（削除テスト）で刈る — 追加と剪定の両輪で CLAUDE.md の肥大化を構造的に抑える
+- compound がルールを増やし、`rule-audit` が定期監査（削除テスト）で刈る — 追加と剪定の両輪で CLAUDE.md の肥大化を構造的に抑える。SessionStart は `.claude/skills/rule-audit/SKILL.md` があるとき、最終実施から 30 日以上（または未実施）なら【rule-audit 月次】ナッジを注入する（操作定義は hook 注入文。スキップは `.steering/.last-rule-audit` 更新による 30 日再ナッジ）
 - Stop hook が knowledge-capture 未実行タスクに `.capture-needed` フラグを作成し、次セッション開始時に「今 / 後で / スキップ」でリマインドされる（スキップは次の Stop までの催促解除。アーカイブ前は `capture_done` または「知見なしでアーカイブ」が要る）
 - frontend-code-review 完了時、および knowledge-capture 完了時（`codify-log.md` が無ければ）に `.codify-needed` フラグが作成され、compound への引き継ぎになる（producer 二重化）
 
@@ -207,7 +207,7 @@ design-premortem   impl-tournament                          session-retrospectiv
 
 ## インフラ・設定
 
-- **SessionStart Hook** (`.claude/hooks/session-start-check.sh`): `.steering/` を走査し、未処理フラグ（`.capture-needed` / `.codify-needed`）とアクティブタスク一覧を context に注入する。`.capture-needed` 時は対象タスクごとの「今 / 後で / スキップ」確認を促す（**操作定義はこの注入文**。CLAUDE.md 再掲は任意。スキップ効果は次の Stop まで）。フラグの**読む側** — これが無いと Stop hook が立てたフラグは誰にも拾われない。加えて **`.steering/BACKLOG.md`（固定パスの着手前バックログ）の存在と節数を 1 行注入する** — バックログをアーカイブ済みタスクの `decisions.md` に書くと走査が `archived/` を除外するため次セッションから見えず、アクティブタスクとして置くと毎セッションの固定費になる。その中間として「存在と規模だけ」を知らせる（中身は必要になってから読む）。`.steering/` が無い環境ではフェイルオープン（jq 非依存）
+- **SessionStart Hook** (`.claude/hooks/session-start-check.sh`): `.steering/` を走査し、未処理フラグ（`.capture-needed` / `.codify-needed`）とアクティブタスク一覧を context に注入する。`.capture-needed` 時は対象タスクごとの「今 / 後で / スキップ」確認を促す（**操作定義はこの注入文**。CLAUDE.md 再掲は任意。スキップ効果は次の Stop まで）。`.claude/skills/rule-audit/SKILL.md` があるとき、最終実施から 30 日以上（または未実施）なら【rule-audit 月次】の「今 / 後で / スキップ」も注入する（操作定義はこの注入文。スキップは `.steering/.last-rule-audit` 更新による 30 日再ナッジ。capture の次 Stop 寿命とは別）。フラグの**読む側** — これが無いと Stop hook が立てたフラグは誰にも拾われない。加えて **`.steering/BACKLOG.md`（固定パスの着手前バックログ）の存在と節数を 1 行注入する** — バックログをアーカイブ済みタスクの `decisions.md` に書くと走査が `archived/` を除外するため次セッションから見えず、アクティブタスクとして置くと毎セッションの固定費になる。その中間として「存在と規模だけ」を知らせる（中身は必要になってから読む）。`.steering/` が無い環境ではフェイルオープン（jq 非依存）
 - **Stop Hook** (`.claude/hooks/session-stop.sh`): アクティブタスクに `capture_done` がなければ `.capture-needed` フラグを作成するだけの軽量フック（セッション記録は git が持つ）。成果物（*.md）の無いタスク・作りたて（design/tasklist のみかつ未チェック）はスキップする。スキップでフラグを消しても `capture_done` が無ければ次の Stop で再立てする
 - **PreToolUse Guard** (`.claude/hooks/guard-env-read.sh`): Bash コマンド全文を検査し、`.env` 系に触れるものを ask に落とす（deny の前置一致では防げない head/sed/base64 等の迂回対策）。jq 非依存
 - **承認ゲートの Bash 側** (`.claude/hooks/guard-gated-write.sh`): `CLAUDE.md` / `docs/knowledge/` / `docs/decisions/` への **Bash 経由**の書き込み（`>` / `>>` / `tee`）を ask に落とす。permissions の ask は **Edit / Write ツールにしか掛からず**、`Bash(git show*)` のような前置一致 allow があると `git show HEAD:x > CLAUDE.md` で迂回できるため、その穴を塞ぐ。**対象は書き込みのみ — `rm` による削除・`mv` による移動・`sed -i` は非対象**（脅威モデルが敵対者ではないため意図的にこの線で止めている）

@@ -22,3 +22,4 @@ _test/
 .steering/**/.capture-needed
 .steering/**/.codify-needed
 .steering/**/capture_done
+.steering/.last-rule-audit
