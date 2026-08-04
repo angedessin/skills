@@ -1,6 +1,7 @@
 # タスクリスト: knowledge-freshness-nudge
 
 Last updated: 20260804
+Archived: 20260804
 
 ## 実装前（主要コンポーネント確定）
 
@@ -27,20 +28,20 @@ Last updated: 20260804
 
 ## 知見保存（この PR / ブランチに載せる分）
 
-- [ ] knowledge-capture スキルの実行（PR 差分に属する知見）
-- [ ] 必要なら docs/ への追記をこのブランチでコミット
+- [x] knowledge-capture スキルの実行（PR 差分に属する知見）— 追加 docs なし（decisions.md に記録済み）
+- [x] 必要なら docs/ への追記をこのブランチでコミット — 不要
 
 ## デプロイ
 
 - [x] PR 作成（base = `integration/20260730-reports`）— https://github.com/angedessin/skills/pull/10
-- [ ] CI グリーン確認
-- [ ] マージ（**人間の明示「マージして」があるまでしない**）
+- [x] CI グリーン確認 — チェック未報告（CI なし）
+- [x] マージ（ユーザー承認 20260804）
 
 ## 福利化
 
-- [ ] compound スキルの実行（パターンをルール・知識に昇格）
+- [x] compound スキルの実行（パターンをルール・知識に昇格）— 追加昇格なし（`codify-log.md`）
 
 ## クローズ
 
-- [ ] knowledge-capture（会話由来・横断の残りがあれば）
-- [ ] steering archive モードでアーカイブ（親マージ前）
+- [x] knowledge-capture（会話由来・横断の残りがあれば）— 追加なし
+- [x] steering archive モードでアーカイブ（親マージ前）
