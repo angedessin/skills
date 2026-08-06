@@ -134,6 +134,12 @@ permissions の粗い `rm -r*` / `rm -rf *` は別層。`sed -i` 等は脅威モ
 誤発火なし・セッション 1 回制限も期待どおりだった。したがって上表の「しない」は
 **セッション中に追加した場合に限る現象**で、恒久的な不発ではない。原因自体は未解明のまま。
 
+**同一 event+matcher を配列で分割しない（20260807）。** PreToolUse の `Bash` を
+`guard-env-read` / `guard-gated-write` / `guard-gated-delete` の 3 エントリに分けると、
+再起動後でも `/hooks` に delete が出ず deny が沈黙した（ファイルと settings の記述はある）。
+**1 つの `matcher: "Bash"` エントリに hooks を並べる**（PostToolUse と同型）。
+契約 (f) が同一 event+matcher の分割を検出する。deploy も同キーをマージしてから書く。
+
 **運用ルール（変更なし）**: PreToolUse で新しいガードを足したら、**セッションを再起動してから
 実効性を確認する**（下記「hook 変更はセッション開始時に読まれる」）。確認できるまでそのガードを
 「機械的な防御」として数えない。

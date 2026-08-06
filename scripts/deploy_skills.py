@@ -355,6 +355,23 @@ def expected_hooks(skills: list[str] | set[str]) -> list[str]:
     return send
 
 
+def _append_or_merge_hook(hooks_cfg: dict, event: str, entry: dict) -> None:
+    """同一 event+matcher の hooks を 1 エントリにマージして hooks_cfg に載せる。"""
+    matcher = entry.get("matcher")
+    entries = hooks_cfg.setdefault(event, [])
+    for existing in entries:
+        if existing.get("matcher") == matcher:
+            existing.setdefault("hooks", []).extend(entry.get("hooks", []))
+            return
+    # 呼び出し元の entry を共有しない（後続マージで hooks を破壊しない）
+    entries.append(
+        {
+            **{k: v for k, v in entry.items() if k != "hooks"},
+            "hooks": list(entry.get("hooks", [])),
+        }
+    )
+
+
 def deploy_guardrails(target: Path, skills: list[str], dry: bool, log: list[str]) -> None:
     hooks_src = MASTER_ROOT / ".claude" / "hooks"
     hooks_dst = target / ".claude" / "hooks"
@@ -373,7 +390,10 @@ def deploy_guardrails(target: Path, skills: list[str], dry: bool, log: list[str]
     hooks_cfg: dict = {}
     for name in send:
         event, entry = HOOK_REGISTRATIONS[name]
-        hooks_cfg.setdefault(event, []).append(entry)
+        # 同一 event+matcher は 1 エントリに hooks をマージする。
+        # PreToolUse の Bash を配列で分割すると、Claude Code が後段を落とす実測がある
+        # （/hooks に guard-gated-delete が出ず deny が沈黙。20260807）。
+        _append_or_merge_hook(hooks_cfg, event, entry)
     # マスターの settings.json をそのまま配らない（DEPLOY_PERMISSIONS の宣言を参照）
     payload = {"permissions": DEPLOY_PERMISSIONS, "hooks": hooks_cfg}
 

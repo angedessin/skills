@@ -233,6 +233,9 @@ def contract_f() -> tuple[str, list[str]]:
     忘れる = マスターで一度も発火しない、という片側修正を塞ぐ。20260726 のレビューで
     「この経路が無検査だった」と指摘されて追加した（手作業で 1 回確認しただけで
     契約として encode していなかった）。
+
+    同一 event で同じ matcher のエントリが複数あると、Claude Code が後段を落とす実測が
+    ある（20260807: PreToolUse Bash を 3 分割 → /hooks に delete が出ず deny 沈黙）。
     """
     reg = registered_hooks(SETTINGS)
     actual = actual_hooks()
@@ -242,6 +245,26 @@ def contract_f() -> tuple[str, list[str]]:
     if actual - reg:
         details.append(f"ファイルがあるのに settings.json に登録が無い: {', '.join(sorted(actual - reg))}")
         details.append("→ マスターで一度も発火しない（置いただけで効いていない）")
+
+    try:
+        cfg = json.loads(SETTINGS.read_text(encoding="utf-8")).get("hooks", {})
+    except json.JSONDecodeError:
+        cfg = {}
+    for event, entries in cfg.items():
+        seen: dict[object, int] = {}
+        for entry in entries:
+            key = entry.get("matcher")
+            seen[key] = seen.get(key, 0) + 1
+        for matcher, n in sorted(seen.items(), key=lambda x: str(x[0])):
+            if n > 1:
+                label = matcher if matcher is not None else "(matcher なし)"
+                details.append(
+                    f"{event}: matcher={label!r} が {n} エントリに分割されている"
+                )
+                details.append(
+                    "→ 同一 event+matcher は 1 エントリに hooks を並べる（後段が /hooks から落ちる）"
+                )
+
     return (FAIL, details) if details else (PASS, [f"hooks 登録 {len(reg)} 件が実ファイルと一致"])
 
 
