@@ -31,7 +31,7 @@ Last updated: 20260807
 ## デプロイ
 <!-- base=integration/20260730-reports の feature PR。PR #13 の ready/マージはしない。 -->
 
-- [ ] feature PR 作成（`pr-create` または `gh pr create`、base=親）
+- [x] feature PR 作成（`pr-create` または `gh pr create`、base=親）— https://github.com/angedessin/skills/pull/16
 - [ ] CI グリーン確認
 - [ ] 親へマージ
 - [ ] PR #13 本文（Test plan 員数）を更新
