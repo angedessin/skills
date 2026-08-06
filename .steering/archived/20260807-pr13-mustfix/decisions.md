@@ -73,3 +73,13 @@
 - 親 `integration/20260730-reports` @ `595a700`（tasklist 反映コミット含む）
 - PR #13 Test plan 員数更新済み（35/35 等）
 - **残（人間のみ）**: Claude Code 再起動後の deny 発火確認 → この decisions に観測を追記
+
+## 20260807 — hook 人間確認（観測）
+
+**決定**: guard-gated-delete の実発火を確認済み（合格）
+**理由**: Claude Code 再起動後。`/hooks` に delete 表示。実測:
+- deny: `rm -f docs/knowledge/x.md` / `rm -f CLAUDE.md*`
+- 沈黙（設計どおり）: `rm CLAUDE.md.bak`（`.` 非境界）/ `cd docs/knowledge && rm x.md`（`&&` 非対象）
+**影響**:
+- PreToolUse Bash の matcher 統合・delete 先頭化・正規表現の set -e 耐性が実行時に効いている
+- 境界に `.` を足す案は採らない（B20 を壊す）

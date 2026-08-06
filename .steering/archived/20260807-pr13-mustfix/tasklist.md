@@ -44,5 +44,5 @@ Last updated: 20260807
 ## クローズ
 
 - [x] knowledge-capture（会話由来・横断の残りがあれば）— 追加なし
-- [ ] hook 人間確認の観測を decisions.md に記録
+- [x] hook 人間確認の観測を decisions.md に記録（20260807・deny/沈黙とも設計どおり）
 - [x] steering archive モードでアーカイブ（main マージ前に済ませる）
