@@ -87,4 +87,4 @@
 - ~~**design↔実装の同期パス明確化**~~ → **完了**（`20260802-design-impl-sync`。方針転換分類表・乖離分類・Axis 1 High・FCR/pipeline ゲート入力・validate キー共存）
 - ~~**ナレッジ鮮度の機械化**~~ → **完了**（`archived/20260804-knowledge-freshness-nudge` / PR #10 → integration。SessionStart 月次ナッジ）
 - **design.md 境界の任意追記** — アクティブ design への `<!-- design-doc-boundary: appendix -->` 追記は任意・強制しない（マーカー無しは全文フォールバックのまま）
-- **passthrough シナリオ拡充** — adr / debug / feature-pipeline / impl-from-design / frontend-code-review
+- ~~**passthrough シナリオ拡充（Gate 1）**~~ → **シナリオ骨格のみ・未実走**（`20260806-passthrough-pipeline-gate1`。`tests/passthrough/feature-pipeline-gate1/`。課金実走は任意）。**残置**: `frontend-code-review` は 20260725 どおり落とし維持。Gate 3.5 は節 2(d) ハーネス拡張前提
