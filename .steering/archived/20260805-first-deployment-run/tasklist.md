@@ -33,13 +33,13 @@ Last updated: 20260806
 
 ## デプロイ
 
-- [ ] PR 作成（base = `integration/20260730-reports`）— **マージは人間の明示指示までしない**
-- [ ] CI があればグリーン確認
+- [x] PR 作成 — https://github.com/angedessin/skills/pull/11 （base = `integration/20260730-reports`）— **マージはレビュー後の明示指示までしない**
+- [x] CI — 無し（または未確認・ブロッカーにしない）
 
 ## 福利化
 
-- [ ] compound（`.codify-needed` があれば確認）— Write(path) 修正は本 PR で契約化済み。追加昇格は任意
+- [x] compound — Write(path) は契約 (j) で本 PR に含め済み。追加の compound 起動は不要（`.codify-needed` なし）
 
 ## クローズ
 
-- [ ] steering archive（親へのマージ前にアーカイブまで）
+- [x] steering archive（親へのマージ前）
