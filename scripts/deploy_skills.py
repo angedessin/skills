@@ -79,6 +79,19 @@ HOOK_REGISTRATIONS = {
             ],
         },
     ),
+    "guard-gated-delete.sh": (
+        "PreToolUse",
+        {
+            "matcher": "Bash",
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": 'bash "$CLAUDE_PROJECT_DIR"/.claude/hooks/guard-gated-delete.sh',
+                    "timeout": 10,
+                }
+            ],
+        },
+    ),
     "post-edit-lint.sh": (
         "PostToolUse",
         {
@@ -321,13 +334,13 @@ def expected_hooks(skills: list[str] | set[str]) -> list[str]:
     **返り値に入れた hook は HOOK_REGISTRATIONS にも登録すること。** 登録を忘れると
     deploy_guardrails() が KeyError で落ちる。契約 (a) がこれを検出する。
     """
-    # 品質ゲート 2 本 + 書き込みガード 2 本はフェイルオープン / 自己完結なので常に同送する。
-    # guard-gated-write.sh は permissions.ask（Edit(path) 限定。編集系ツールを覆う）が
-    # Bash のリダイレクトで迂回されるのを塞ぐ。ask と対でなければ防波堤にならないため、
-    # ask を配る配置先には必ず要る。
+    # 品質ゲート 2 本 + 書き込み/削除ガードはフェイルオープン / 自己完結なので常に同送する。
+    # guard-gated-write.sh は permissions.ask（Edit(path) 限定）が Bash リダイレクトで迂回されるのを塞ぐ。
+    # guard-gated-delete.sh は同パスへの素の rm/mv を deny（書き込みゲート迂回の削除・移動）。
     send = [
         "guard-env-read.sh",
         "guard-gated-write.sh",
+        "guard-gated-delete.sh",
         "post-edit-lint.sh",
         "stop-typecheck.sh",
     ]
