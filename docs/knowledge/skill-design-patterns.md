@@ -193,7 +193,7 @@ consumer の判定表・分岐条件に現れる値を列挙し、producer が�
 
 **同じ工程表を複数箇所に別々に書くと、片側だけ増改築されてドリフトする。**
 frontend-code-review の「次のステップ」チェックリストと tasklist テンプレート
-（`design-doc/references/templates.md`）は同じ工程（実装 / レビュー / デプロイ / 福利化 / 知見保存）を
+（`design-doc/references/templates.md`）は同じ工程（実装 / レビュー / 知見保存 / デプロイ / 福利化 / クローズ）を
 別の場所に持つ関係だが、前者から knowledge-capture と steering archive が抜けていた。
 **`feature-pipeline` 経由だと後続フェーズが拾うため表面化せず、単独でレビューを回した人だけが踏む**
 （経路としてはそちらが多い）。規律: 工程表・手順リストを複製したら「両方が同じ工程を指すか」を

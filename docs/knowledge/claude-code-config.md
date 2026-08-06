@@ -89,9 +89,10 @@ deny は回復不能なので構造抽出が要る。この不変条件は hook 
 **承認ゲートは書き込みと削除・移動で層が分かれる。** `guard-gated-write.sh` は書き込みリダイレクト
 （`>` / `>>`）と `tee` を **ask**。`guard-gated-delete.sh` は素の `rm` / `mv` で対象パス
 （`CLAUDE.md` / `docs/knowledge/` / `docs/decisions/`）を含むものを **deny**
-（`tool_input.command` の構造抽出 — python3 stdlib。失敗・`cd … && rm` / `bash -c` / `git rm` / `/bin/rm` は沈黙）。
+（`tool_input.command` の構造抽出 — python3 stdlib。失敗・`&&` / `||` / `;` / `|` 連鎖 /
+`bash -c` / `git rm` / `/bin/rm` は沈黙。改行区切りの複数単純コマンドは各行を判定）。
 permissions の粗い `rm -r*` / `rm -rf *` は別層。`sed -i` 等は脅威モデル外。
-完全封鎖ではない。パスは 3 系統（ディレクトリ裸形も deny、`CLAUDE.md` は境界付き）。write と手同期。
+完全封鎖ではない。パスは 3 系統（ディレクトリ裸形も deny、`CLAUDE.md` は境界付き。AFTER にグロブ `*?[{`）。write と手同期。
 検証: `mise exec -- pnpm run test:hooks`。PreToolUse の実効確認はセッション再起動後に人間が行う。
 
 **glob は形式を列挙する。** ディレクトリ配下を対象にするなら `docs/knowledge/*`（直下）・`**`・

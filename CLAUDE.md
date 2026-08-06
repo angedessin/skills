@@ -55,5 +55,5 @@ CLAUDE.md は行動ルールのみ。知識の倉庫にしない（毎回コン�
 
 ## ドキュメント参照（必要なトピック作業時のみ）
 
-スキル作成・改善時: docs/knowledge/skill-design-patterns.md を読む（`@` 参照にしない — 約49KB・547行あり、毎セッション読み込ませると全タスクの固定費になる。`templates/SKILL.template.md` の冒頭にも読む指示がある）
+スキル作成・改善時: docs/knowledge/skill-design-patterns.md を読む（`@` 参照にしない — 毎セッション読み込ませると全タスクの固定費になる。`templates/SKILL.template.md` の冒頭にも読む指示がある）
 settings.json・hooks 作業時: docs/knowledge/claude-code-config.md を読む（@参照にしない — 毎セッション読み込ませない）

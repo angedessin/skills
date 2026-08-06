@@ -282,12 +282,12 @@ review-result.md を更新しました。
 - [ ] （設計整合 High がある場合）design 同期が先 — design-doc 方針転換または APPROVED 追認（OPEN のままマージ前提にしない）
 - [ ] 指摘事項を修正する（review-result.md を参照）
 - [ ] 修正後に再確認
+- [ ] knowledge-capture スキルでセッションの知見を保存（この PR / ブランチに載せる分）
 - [ ] デプロイ（PR 作成 → CI → マージ）
 - [ ] compound スキルで学びをルール・知識に昇格（.codify-needed が作成されました）
-- [ ] knowledge-capture スキルでセッションの知見を保存
 - [ ] steering archive モードでタスクをアーカイブ
 ```
-（この並びは tasklist テンプレートの節構成「実装 / レビュー / デプロイ / 福利化 / 知見保存」に対応する。`feature-pipeline` 経由なら Phase 4b → Phase 5 が拾うが、単独でレビューを回した場合はここが唯一の導線になるため知見保存とアーカイブを落とさない。）
+（この並びは tasklist テンプレートの節構成「実装 / レビュー / 知見保存 / デプロイ / 福利化 / クローズ」に対応する。`feature-pipeline` 経由なら Phase 4b → Phase 5 が拾うが、単独でレビューを回した場合はここが唯一の導線になるため知見保存とアーカイブを落とさない。）
 
 ---
 

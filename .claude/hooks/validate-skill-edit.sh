@@ -60,8 +60,7 @@ if [ "$MODE" = assets ]; then
     exit 2
   fi
   # rc=2 は走査の前提そのものが崩れている（settings.json が壊れている等）。
-  # **無言で捨てない** — 持ち出しセット不在はスクリプト側で SKIP に降格したので、
-  # ここに来るのは本当の異常だけ。以前は「1 以外は素通し」にしていたため、
+  # **無言で捨てない** — ここに来るのは本当の異常だけ。以前は「1 以外は素通し」にしていたため、
   # 対象不在の exit 2 が他の契約の FAIL を握りつぶして hook が恒久的に無音になっていた。
   {
     echo "Asset consistency check could not run (scripts/check_asset_consistency.py, exit $rc)."

@@ -23,7 +23,7 @@
 **一次情報**: `.steering/archived/20260725-skillset-hardening/decisions.md` のバックログ節
 
 - ~~**(b) 配布機構の初回実走**~~ → **完了**（`20260805-first-deployment-run`。`/Users/kentaro/Desktop/_lab/ai/skill-test` へ最小セット配置・`deployments.md` 有効行 1）
-- **(c) 構造改善** — `docs/knowledge/skill-design-patterns.md` が **45KB** に増えており剪定対象
+- **(c) 構造改善** — `docs/knowledge/skill-design-patterns.md` が肥大化しており剪定対象
   （`rule-audit` の担当）。依存表の網羅・README のセットアップ節新設も含む
 - **(d) `passthrough_check.py` のハーネス拡張** — `## setup` 節・サンドボックスでの `git init`。
   `feature-pipeline` の Gate 3.5 のような「外向き操作が副作用」の停止契約を判定可能にする
