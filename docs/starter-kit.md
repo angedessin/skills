@@ -91,7 +91,8 @@
    - **`CLAUDE.md` / `docs/knowledge/**` / `docs/decisions/**` の ask は knowledge-capture・compound・rule-audit を配置する場合に特に重要**。これらのスキルは本文のハードストップで「承認前に書き込まない」を担保しているが、締めを尽くした状態でも承認前の書き込みが 1/4 の頻度で再現した実測がある。ask はその最後の防波堤で、承認制という方針そのものは配置先の CLAUDE.md でも宣言しておく。**ディレクトリ配下は `*` / `**` / `**/*` の 3 形式を並べる**（単一形式では直下のファイルを取りこぼす）
    - 配置先に**既存の settings.json / permissions がある場合は手動マージ**する（丸ごと上書きしない）。方針: **配布サブセット由来**の deny / ask は削らずに追加する。既存の allow と配布サブセットの deny が同じ操作で衝突したら **deny を優先**（安全側に倒す。緩めたい場合は配置先の判断で個別に外す）
    - `.claude/hooks/guard-env-read.sh` をコピーし、settings.json の `hooks.PreToolUse` 登録も移す（deny の前置一致では防げない .env 読み取りの迂回を全文検査で ask に落とす）
-   - **`.claude/hooks/guard-gated-write.sh` もコピーする**（`hooks.PreToolUse` 登録も移す）。permissions のファイルパス ask は **`Edit(path)` のみ**（`Write(path)` は参照されず起動時警告になる。`Edit` が Write 等の編集系ツールを覆う）。それでも `Bash(git show*)` のような前置一致 allow があると `git show HEAD:x > CLAUDE.md` で迂回できる。**ask と対でなければ防波堤にならない**ので、上の ask を配る配置先には必ず要る。対象は書き込み（`>` / `>>` / `tee`）のみで、`rm` による削除は非対象
+   - **`.claude/hooks/guard-gated-write.sh` もコピーする**（`hooks.PreToolUse` 登録も移す）。permissions のファイルパス ask は **`Edit(path)` のみ**（`Write(path)` は参照されず起動時警告になる。`Edit` が Write 等の編集系ツールを覆う）。それでも `Bash(git show*)` のような前置一致 allow があると `git show HEAD:x > CLAUDE.md` で迂回できる。**ask と対でなければ防波堤にならない**ので、上の ask を配る配置先には必ず要る。対象は書き込み（`>` / `>>` / `tee`）
+   - **`.claude/hooks/guard-gated-delete.sh` もコピーする**（`hooks.PreToolUse` 登録も移す）。同パスへの素の `rm` / `mv` を **deny** する（複合シェル・`git rm` / `/bin/rm` は対象外＝沈黙。完全封鎖ではない）
    - **品質ゲート 2 本も同送する**: `post-edit-lint.sh`（編集ごとの lint 差し戻し。Biome / ESLint / Stylelint を実行時に自動検出）と `stop-typecheck.sh`（終了宣言時の tsc）。settings.json の `hooks.PostToolUse` / `hooks.Stop` 登録も移す。両方**フェイルオープン**（lint 設定・tsconfig.json が無いプロジェクトでは素通し）なのでスタックを問わず配ってよい。詳細・調整（tsc が遅い場合の外し方等）は docs/knowledge/claude-code-config.md
    - hooks のコマンド登録は `"$CLAUDE_PROJECT_DIR"` 起点の相対参照なので、`.claude/hooks/` に同じ配置でコピーすれば**パスの書き換えは不要**
    - `session-stop.sh`（Stop hook）は **knowledge-capture を配置する場合のみ**コピーする（settings.json の `hooks.Stop` 登録も同時に移す）。この hook が立てる `.capture-needed` は knowledge-capture の起動を促すフラグなので、未配置のまま同送すると「存在しないスキルの実行を促す」実行不能な指示になる
@@ -106,7 +107,7 @@
    - frontend-code-review 配置時: 小さな diff に「コードをレビューして」→ レビューが実行され指摘（または指摘なしの報告）が返ること
    - hooks / permissions 同送時: **`head .env.local`** の実行を依頼して guard-env-read.sh が確認（ask）に落とすこと。**`cat .env` では検証にならない**（permissions の deny だけで止まるため、hook が動いていなくても同じ結果になる）
    - hooks / permissions 同送時: **配置先の通常コマンドが阻害されていないこと** — 依存インストール（`npm install` 等）とテスト実行を試し、拒否されないことを確認する。配置先に settings.json が無い場合は配布サブセットが丸ごと新規作成されるため、ここが壊れていると「なぜか依存インストールができない」原因不明の摩擦になる
-   - **PreToolUse hook（guard-env-read / guard-gated-write）は配置したセッション中に発火しないことがある。** 効いているかの確認は Claude Code を再起動してから行う。**ask の発火は AI 側から観測できないので、確認は人間が行う**
+   - **PreToolUse hook（guard-env-read / guard-gated-write / guard-gated-delete）は配置したセッション中に発火しないことがある。** 効いているかの確認は Claude Code を再起動してから行う。**ask / deny の発火は AI 側から観測できないので、確認は人間が行う**
 
 ## ドリフト確認と改善の還元
 

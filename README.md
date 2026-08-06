@@ -32,6 +32,7 @@
 │   │   ├── session-stop.sh            # セッション終了時に .capture-needed フラグを作成
 │   │   ├── guard-env-read.sh          # .env 系に触れる Bash を ask に落とす（全文検査）
 │   │   ├── guard-gated-write.sh       # 承認制パスへの Bash 経由の書き込みを ask に落とす
+│   │   ├── guard-gated-delete.sh      # 承認制パスへの素の rm/mv を deny する
 │   │   ├── post-edit-lint.sh          # 編集ごとの lint 差し戻し（フェイルオープン）
 │   │   ├── stop-typecheck.sh          # 終了宣言時の tsc（フェイルオープン）
 │   │   ├── remind-config-docs.sh      # 設定/スキル編集時に該当知識の要点を注入（master-only）
@@ -210,7 +211,8 @@ design-premortem   impl-tournament                          session-retrospectiv
 - **SessionStart Hook** (`.claude/hooks/session-start-check.sh`): `.steering/` を走査し、未処理フラグ（`.capture-needed` / `.codify-needed`）とアクティブタスク一覧を context に注入する。`.capture-needed` 時は対象タスクごとの「今 / 後で / スキップ」確認を促す（**操作定義はこの注入文**。CLAUDE.md 再掲は任意。スキップ効果は次の Stop まで）。`.claude/skills/rule-audit/SKILL.md` があるとき、最終実施から 30 日以上（または未実施）なら【rule-audit 月次】の「今 / 後で / スキップ」も注入する（操作定義はこの注入文。スキップは `.steering/.last-rule-audit` 更新による 30 日再ナッジ。capture の次 Stop 寿命とは別）。フラグの**読む側** — これが無いと Stop hook が立てたフラグは誰にも拾われない。加えて **`.steering/BACKLOG.md`（固定パスの着手前バックログ）の存在と節数を 1 行注入する** — バックログをアーカイブ済みタスクの `decisions.md` に書くと走査が `archived/` を除外するため次セッションから見えず、アクティブタスクとして置くと毎セッションの固定費になる。その中間として「存在と規模だけ」を知らせる（中身は必要になってから読む）。`.steering/` が無い環境ではフェイルオープン（jq 非依存）
 - **Stop Hook** (`.claude/hooks/session-stop.sh`): アクティブタスクに `capture_done` がなければ `.capture-needed` フラグを作成するだけの軽量フック（セッション記録は git が持つ）。成果物（*.md）の無いタスク・作りたて（design/tasklist のみかつ未チェック）はスキップする。スキップでフラグを消しても `capture_done` が無ければ次の Stop で再立てする
 - **PreToolUse Guard** (`.claude/hooks/guard-env-read.sh`): Bash コマンド全文を検査し、`.env` 系に触れるものを ask に落とす（deny の前置一致では防げない head/sed/base64 等の迂回対策）。jq 非依存
-- **承認ゲートの Bash 側** (`.claude/hooks/guard-gated-write.sh`): `CLAUDE.md` / `docs/knowledge/` / `docs/decisions/` への **Bash 経由**の書き込み（`>` / `>>` / `tee`）を ask に落とす。permissions の ask は **Edit / Write ツールにしか掛からず**、`Bash(git show*)` のような前置一致 allow があると `git show HEAD:x > CLAUDE.md` で迂回できるため、その穴を塞ぐ。**対象は書き込みのみ — `rm` による削除・`mv` による移動・`sed -i` は非対象**（脅威モデルが敵対者ではないため意図的にこの線で止めている）
+- **承認ゲートの Bash 側（書き込み）** (`.claude/hooks/guard-gated-write.sh`): `CLAUDE.md` / `docs/knowledge/` / `docs/decisions/` への **Bash 経由**の書き込み（`>` / `>>` / `tee`）を ask に落とす。permissions の ask は **Edit ツールにしか掛からず**、`Bash(git show*)` のような前置一致 allow があると `git show HEAD:x > CLAUDE.md` で迂回できるため、その穴を塞ぐ
+- **承認ゲートの Bash 側（削除・移動）** (`.claude/hooks/guard-gated-delete.sh`): 同パスへの **素の `rm` / `mv`** を **deny** する（`tool_input.command` を python3 で構造抽出。失敗・複合シェル・`git rm` / `/bin/rm` は沈黙＝完全封鎖ではない）。permissions の粗い `rm -rf *` 等は別層として維持。検証: `mise exec -- pnpm run test:hooks`
 - **知識の要点注入** (`.claude/hooks/remind-config-docs.sh`, **master-only**): `.claude/settings.json` / `.claude/hooks/` / `SKILL.md` を編集したとき、対応する `docs/knowledge/` の要点を**本文ごと** context に注入する（セッション 1 回だけ）。「読め」というポインタを増やしても読まれなかった実測があるため、要点そのものを渡す方式にしている。注入する本文がマスターの `docs/knowledge/` に依存するため配置先には同送しない
 - **検証スクリプト** (`scripts/validate_skills.py`): name 一致・description・行数・アストラル面絵文字・metadata.version・When NOT to use 見出し・停止契約の構造（承認語彙 → ハードストップ）の 7 項目を機械検証。`--purity` でツール純度レポート（本文のツール固有語彙の出現数・FAIL にしない）。スキル改訂時と配置前に実行する（PostToolUse hook でも自動実行）
 - **素通り検査** (`scripts/passthrough_check.py`): ハードストップが実地で守られるかを、フレッシュエージェントの実行前後の SHA1 差分で機械判定（課金・任意・デフォルトでは回さない）。シナリオは `tests/passthrough/[skill]/scenario.md`。`--dry-run` で無課金の構造確認。編成は `skill-test` スキル

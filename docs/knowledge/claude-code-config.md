@@ -86,13 +86,13 @@ deny は回復不能なので構造抽出が要る。この不変条件は hook 
 **ファイルパス規則は `Edit(path)` / `Read(path)` のみ** — `Write(path)` は受け付けられるが参照されず
 起動時警告になる（`Edit` が Write / NotebookEdit 等を覆う。20260806 に死んだ Write 対を削除）。
 
-**ゲートの対象は「書き込み」であって「削除」ではない。** `guard-gated-write.sh` が見るのは
-書き込みリダイレクト（`>` / `>>`）と `tee` のみで、`rm docs/knowledge/x.md` は素通りする
-（`permissions` 側も `rm -r*` / `rm -rf *` しか持たないため、単一ファイルの `rm` に当たらない）。
-20260726 に probe の片付けで実際に素通りした。これは意図的な線引き — 脅威モデルが
-「敵対者」ではなく「停止契約を滑った善意のエージェント」で、実測された素通りはいずれも
-書き込み経路だったため。**「承認制のパス」と書くと削除も含むと読めるので、その表現を使うときは
-書き込み限定であることを併記する。**
+**承認ゲートは書き込みと削除・移動で層が分かれる。** `guard-gated-write.sh` は書き込みリダイレクト
+（`>` / `>>`）と `tee` を **ask**。`guard-gated-delete.sh` は素の `rm` / `mv` で対象パス
+（`CLAUDE.md` / `docs/knowledge/` / `docs/decisions/`）を含むものを **deny**
+（`tool_input.command` の構造抽出 — python3 stdlib。失敗・`cd … && rm` / `bash -c` / `git rm` / `/bin/rm` は沈黙）。
+permissions の粗い `rm -r*` / `rm -rf *` は別層。`sed -i` 等は脅威モデル外。
+完全封鎖ではない。パスは 3 系統（ディレクトリ裸形も deny、`CLAUDE.md` は境界付き）。write と手同期。
+検証: `mise exec -- pnpm run test:hooks`。PreToolUse の実効確認はセッション再起動後に人間が行う。
 
 **glob は形式を列挙する。** ディレクトリ配下を対象にするなら `docs/knowledge/*`（直下）・`**`・
 `**/*`（入れ子）を並べる。単一形式では直下のファイルを取りこぼしうる（同じ轍を `Read(./**/*.env)`
@@ -239,7 +239,7 @@ AI の編集を機械が検証して差し戻す「閉じたループ」の配�
 **配置時の注意:**
 
 - `post-edit-lint.sh` はフェイルオープン（lint 設定・`node_modules/.bin/` が無ければ素通し）。`stop-typecheck.sh` は jq・tsconfig・tsc が無ければ素通し（jq を使うのは入力 JSON の `stop_hook_active` 判定）。未整備プロジェクトにコピーしても編集を阻害しない（lint / tsc は品質ゲートでありセキュリティゲートではない）
-- **guard 系**（`guard-env-read` / `guard-gated-write`）は jq 非依存。判定不能時は ask に倒す設計であり、「jq 欠でフェイルクローズ」ではない
+- **guard 系**（`guard-env-read` / `guard-gated-write` / `guard-gated-delete`）は jq 非依存。write/env は ask、delete は deny（抽出失敗は沈黙）
 - 配置時に `time pnpm exec tsc --noEmit --incremental` の 2 回目（キャッシュ有効）を計測し、**20〜30 秒を超えるプロジェクトでは stop-typecheck を settings.json から外して CI に移す**（終了のたびに待たされる体感悪化がループの利益を上回る）
 - `tsc --incremental` は `*.tsbuildinfo` を生成する — .gitignore に追加する
 - ツール検出は `node_modules/.bin/` の存在チェック（pnpm 起動オーバーヘッドを毎編集で払わない）。依存をルート以外に置くモノレポでは検出されない
