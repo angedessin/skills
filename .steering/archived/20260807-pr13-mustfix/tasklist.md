@@ -33,8 +33,8 @@ Last updated: 20260807
 
 - [x] feature PR 作成（`pr-create` または `gh pr create`、base=親）— https://github.com/angedessin/skills/pull/16
 - [x] CI グリーン確認（当該ブランチに checks 報告なし）
-- [ ] 親へマージ
-- [ ] PR #13 本文（Test plan 員数）を更新
+- [x] 親へマージ（PR #16 MERGED）
+- [x] PR #13 本文（Test plan 員数）を更新（25/25→35/35）
 - [ ] （人間明示後のみ）PR #13 ready / マージ — このタスクではしない
 
 ## 福利化
