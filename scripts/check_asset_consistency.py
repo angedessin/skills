@@ -35,6 +35,9 @@
   (j) マスター settings / DEPLOY / MASTER_ONLY に Write|NotebookEdit|MultiEdit の
       **パス付き**規則が無い（Claude Code は Edit(path)/Read(path) のみ参照。死んだ規則は
       起動時警告になる。ツール名のみの Write は対象外）
+  (k) README の契約レター集合 ≡ 本スクリプトの contract_*、かつ
+      package.json の scripts キー集合 ≡ README「npm script」箇条のバッククォート名
+      → 員数や列挙の片側修正を検出する（抽出は下記正規表現に固定）
 
   会社向け持ち出しセット用の契約 (g)(i) は 20260730 Frozen handoff で除去済み。
 
@@ -79,6 +82,10 @@ except ImportError as e:  # pragma: no cover - 実行環境の異常のみ
     sys.exit(2)
 
 SH_RE = re.compile(r"[A-Za-z0-9_-]+\.sh")
+CONTRACT_DEF_RE = re.compile(r"^def contract_([a-z])\(", re.M)
+# 箇条内の「(a) 説明」形のみ。`(g)(i) は` のように直前が ) の連続マーカーは除外する
+CONTRACT_LETTER_RE = re.compile(r"(?<!\))\(([a-z])\)\s")
+NPM_SCRIPT_TICK_RE = re.compile(r"`([a-z][a-z0-9:_-]*)`")
 
 PASS, FAIL, SKIP = "PASS", "FAIL", "SKIP"
 
@@ -290,6 +297,73 @@ def contract_j() -> tuple[str, list[str]]:
     return PASS, ["settings / DEPLOY / MASTER_ONLY に死んだ Write|NotebookEdit|MultiEdit(path) なし"]
 
 
+def _readme_bullet_after(heading_substr: str) -> str:
+    """README の '- **…**' 箇条のうち、見出し部分文字列を含む最初の 1 箇条本文を返す。"""
+    text = README.read_text(encoding="utf-8")
+    lines = text.splitlines()
+    start = None
+    for i, line in enumerate(lines):
+        if line.startswith("- **") and heading_substr in line:
+            start = i
+            break
+    if start is None:
+        return ""
+    chunk = [lines[start]]
+    for line in lines[start + 1 :]:
+        if line.startswith("- **") or line.startswith("## "):
+            break
+        chunk.append(line)
+    return "\n".join(chunk)
+
+
+def contract_k() -> tuple[str, list[str]]:
+    """README の契約レター・npm script 一覧が実装と一致するか。"""
+    details: list[str] = []
+    self_src = Path(__file__).read_text(encoding="utf-8")
+    impl_letters = set(CONTRACT_DEF_RE.findall(self_src))
+
+    asset_bullet = _readme_bullet_after("資産どうしの契約突合")
+    if not asset_bullet:
+        return FAIL, ["README に「資産どうしの契約突合」箇条が無い"]
+    readme_letters = set(CONTRACT_LETTER_RE.findall(asset_bullet))
+    if impl_letters != readme_letters:
+        only_impl = sorted(impl_letters - readme_letters)
+        only_readme = sorted(readme_letters - impl_letters)
+        if only_impl:
+            details.append(f"実装のみ: {', '.join(f'({x})' for x in only_impl)}")
+        if only_readme:
+            details.append(f"README のみ: {', '.join(f'({x})' for x in only_readme)}")
+
+    pkg_path = MASTER_ROOT / "package.json"
+    try:
+        pkg = json.loads(pkg_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as e:
+        details.append(f"package.json を読めない: {e}")
+        details.append("→ 員数ハードコードではなく集合一致。直すときは両側を同じコミットで")
+        return FAIL, details
+    pkg_scripts = set((pkg.get("scripts") or {}).keys())
+
+    npm_bullet = _readme_bullet_after("npm script")
+    if not npm_bullet:
+        details.append("README に「npm script」箇条が無い")
+    else:
+        readme_scripts = set(NPM_SCRIPT_TICK_RE.findall(npm_bullet))
+        if pkg_scripts != readme_scripts:
+            only_pkg = sorted(pkg_scripts - readme_scripts)
+            only_rm = sorted(readme_scripts - pkg_scripts)
+            if only_pkg:
+                details.append(f"package.json scripts のみ: {', '.join(only_pkg)}")
+            if only_rm:
+                details.append(f"README npm script のみ: {', '.join(only_rm)}")
+
+    if details:
+        details.append("→ 員数ハードコードではなく集合一致。直すときは両側を同じコミットで")
+        return FAIL, details
+    return PASS, [
+        f"契約レター {len(impl_letters)} 件と npm scripts {len(pkg_scripts)} 件が README と一致"
+    ]
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(
         description="セットアップ資産どうしの契約突合（マスター専用）",
@@ -311,6 +385,7 @@ def main() -> None:
         ("(f) settings.json の hooks 登録が実体と一致", contract_f),
         ("(h) master-only スキルの分類が 2 ファイルで一致", contract_h),
         ("(j) 死んだ Write|NotebookEdit|MultiEdit(path) が無い", contract_j),
+        ("(k) README の契約レター・npm scripts が実装と一致", contract_k),
     ]
 
     failed = 0

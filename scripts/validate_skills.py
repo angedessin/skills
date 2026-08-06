@@ -18,6 +18,9 @@
      キーワード並びのみ検査し、手順の実行正否は見ない（空文で通る限界あり）
   10. 既定走査時: capture 粒度（三択 UX / archive ハードストップ）のキー共存。
       キーワード並びのみ。空文で通る限界あり（design-impl-sync と同型）
+  11. 既定走査時: knowledge 鮮度ナッジのキー共存
+  12. 既定走査時: tasklist 工程表同期（FCR 知見保存→デプロイ順 + 6 節キー）。
+      キーワード並びと出現位置のみ。空文で通る限界あり
 
 純度計測・ポータビリティ（レポートのみ・FAIL にしない）:
   python3 scripts/validate_skills.py --purity        # 各スキル本文のツール固有 API 出現数
@@ -263,6 +266,18 @@ KNOWLEDGE_FRESHNESS_CHECKS = (
     ),
 )
 
+# tasklist 工程表の同期（20260807-pr13-mustfix）。
+# FCR「次のステップ」と skill-design-patterns の節リストが templates.md の 6 節とズレないこと。
+# 限界: キーワード・出現位置のみ。空文で通る限界あり（他のキー共存と同型）。
+TASKLIST_FLOW_SECTION_KEYS = (
+    "実装",
+    "レビュー",
+    "知見保存",
+    "デプロイ",
+    "福利化",
+    "クローズ",
+)
+
 
 def check_design_doc_template(repo_root: Path) -> list[str]:
     """design-doc/references/templates.md に付録境界マーカーがあることを検査する。"""
@@ -338,6 +353,46 @@ def check_knowledge_freshness(repo_root: Path) -> list[str]:
         for needle, label in keys:
             if needle not in text:
                 errors.append(f"{rel}: knowledge-freshness 欠落 — {label}（`{needle}`）")
+    return errors
+
+
+def check_tasklist_flow_sync(repo_root: Path) -> list[str]:
+    """FCR 次ステップの知見保存→デプロイ順と、工程 6 語のキー共存を検査する。"""
+    errors: list[str] = []
+    fcr = repo_root / ".claude" / "skills" / "frontend-code-review" / "SKILL.md"
+    patterns = repo_root / "docs" / "knowledge" / "skill-design-patterns.md"
+    for p, rel in (
+        (fcr, ".claude/skills/frontend-code-review/SKILL.md"),
+        (patterns, "docs/knowledge/skill-design-patterns.md"),
+    ):
+        if not p.is_file():
+            errors.append(f"{rel} が存在しない（tasklist-flow-sync）")
+            continue
+        text = p.read_text(encoding="utf-8")
+        for needle in TASKLIST_FLOW_SECTION_KEYS:
+            if needle not in text:
+                errors.append(f"{rel}: tasklist-flow-sync 欠落 — `{needle}`")
+
+    if fcr.is_file():
+        text = fcr.read_text(encoding="utf-8")
+        # 知見保存側: 「知見保存」または knowledge-capture / デプロイ側: 「デプロイ」または pr-create
+        know_idxs = [i for i in (text.find("知見保存"), text.find("knowledge-capture")) if i >= 0]
+        deploy_idxs = [i for i in (text.find("デプロイ"), text.find("pr-create")) if i >= 0]
+        if not know_idxs:
+            errors.append(
+                ".claude/skills/frontend-code-review/SKILL.md: "
+                "tasklist-flow-sync 欠落 — 知見保存/knowledge-capture"
+            )
+        elif not deploy_idxs:
+            errors.append(
+                ".claude/skills/frontend-code-review/SKILL.md: "
+                "tasklist-flow-sync 欠落 — デプロイ/pr-create"
+            )
+        elif min(know_idxs) > min(deploy_idxs):
+            errors.append(
+                ".claude/skills/frontend-code-review/SKILL.md: "
+                "tasklist-flow-sync 順序逆転 — 知見保存系がデプロイ系より後"
+            )
     return errors
 
 
@@ -618,8 +673,17 @@ def main() -> None:
         else:
             print("PASS  knowledge-freshness (keyword coexistence)")
 
+        flow_errs = check_tasklist_flow_sync(default_skills.parent.parent)
+        if flow_errs:
+            failed += 1
+            print("FAIL  tasklist-flow-sync (keyword coexistence + order)")
+            for e in flow_errs:
+                print(f"      - {e}")
+        else:
+            print("PASS  tasklist-flow-sync (keyword coexistence + order)")
+
     total = len(dirs) + (
-        4 if root.resolve() == default_skills.resolve() else 0
+        5 if root.resolve() == default_skills.resolve() else 0
     )
     print(f"\n{total - failed}/{total} PASS")
     sys.exit(1 if failed else 0)

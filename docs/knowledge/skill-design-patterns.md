@@ -193,7 +193,7 @@ consumer の判定表・分岐条件に現れる値を列挙し、producer が�
 
 **同じ工程表を複数箇所に別々に書くと、片側だけ増改築されてドリフトする。**
 frontend-code-review の「次のステップ」チェックリストと tasklist テンプレート
-（`design-doc/references/templates.md`）は同じ工程（実装 / レビュー / デプロイ / 福利化 / 知見保存）を
+（`design-doc/references/templates.md`）は同じ工程（実装 / レビュー / 知見保存 / デプロイ / 福利化 / クローズ）を
 別の場所に持つ関係だが、前者から knowledge-capture と steering archive が抜けていた。
 **`feature-pipeline` 経由だと後続フェーズが拾うため表面化せず、単独でレビューを回した人だけが踏む**
 （経路としてはそちらが多い）。規律: 工程表・手順リストを複製したら「両方が同じ工程を指すか」を
@@ -536,8 +536,10 @@ README の第一級記載が残ると認知税と片側修正の温床になる�
 実体だけ直すとリポジトリに残らない。
 
 **PR に属する知見はマージ前に同じブランチへ（20260730）。**
-`feature-pipeline` の「マージ → knowledge-capture」や tasklist の「デプロイ → 知見保存」順だけを見ると、
-知見が後続 PR や別差分に混ざる。この変更の説明・落とし穴として残す knowledge は、
+`feature-pipeline` や旧 tasklist が「デプロイ → 知見保存」順だけを見ると、
+知見が後続 PR や別差分に混ざる。現行の正本は templates の
+「実装 / レビュー / 知見保存 / デプロイ / 福利化 / クローズ」。
+この変更の説明・落とし穴として残す knowledge は、
 **レビュー対象ブランチに含めてから PR を出す**。マージ後の capture は会話由来・横断・compound 用に残す。
 
 ---

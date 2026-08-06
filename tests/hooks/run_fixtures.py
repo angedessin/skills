@@ -71,6 +71,18 @@ CASES: list[dict] = [
     {"id": "A11", "hook": "guard-gated-delete.sh", "command": "mv docs/knowledge /tmp/", "expect": "deny"},
     {"id": "B19", "hook": "guard-gated-delete.sh", "command": "rm /tmp/a && ls docs/knowledge/", "expect": "silence"},
     {"id": "B20", "hook": "guard-gated-delete.sh", "command": "rm CLAUDE.md.bak", "expect": "silence"},
+    # M1 — newline / line-continuation / leading newline
+    {"id": "A12", "hook": "guard-gated-delete.sh", "command": "rm -f docs/knowledge/x.md\nls", "expect": "deny"},
+    {"id": "A13", "hook": "guard-gated-delete.sh", "command": "rm -f \\\n  docs/knowledge/x.md", "expect": "deny"},
+    {"id": "A14", "hook": "guard-gated-delete.sh", "command": "\nrm -f docs/knowledge/x.md", "expect": "deny"},
+    {"id": "A15", "hook": "guard-gated-delete.sh", "command": "ls\nrm -f docs/knowledge/x.md", "expect": "deny"},
+    {"id": "A16", "hook": "guard-gated-delete.sh", "command": "rm CLAUDE.md\nrm docs/knowledge/x.md", "expect": "deny"},
+    {"id": "B21", "hook": "guard-gated-delete.sh", "command": "ls\necho hi", "expect": "silence"},
+    # M2 — glob / brace adjacent
+    {"id": "A17", "hook": "guard-gated-delete.sh", "command": "rm -f CLAUDE.md*", "expect": "deny"},
+    {"id": "A18", "hook": "guard-gated-delete.sh", "command": "rm -rf docs/knowledge*", "expect": "deny"},
+    {"id": "A19", "hook": "guard-gated-delete.sh", "command": "mv docs/knowledge{,.bak}", "expect": "deny"},
+    {"id": "B22", "hook": "guard-gated-delete.sh", "command": "rm -f docs/knowledge-archive-old*", "expect": "silence"},
     # D — write hook regression (same runner)
     {"id": "D21", "hook": "guard-gated-write.sh", "command": "echo x > CLAUDE.md", "expect": "ask"},
     {"id": "D22", "hook": "guard-gated-write.sh", "command": "git log", "expect": "silence"},
@@ -97,14 +109,25 @@ def decision_from_stdout(stdout: str) -> str | None:
     try:
         data = json.loads(text)
     except json.JSONDecodeError:
-        compact = text.replace(" ", "")
-        if '"permissionDecision":"deny"' in compact:
-            return "deny"
-        if '"permissionDecision":"ask"' in compact:
-            return "ask"
         return f"unparseable:{text[:80]!r}"
     hook_out = data.get("hookSpecificOutput") or {}
     return hook_out.get("permissionDecision")
+
+
+def _self_test_decision_from_stdout() -> None:
+    """M3: broken JSON must not be treated as deny/ask via substring match."""
+    broken = [
+        '{"hookSpecificOutput":{"permissionDecision":"deny","permissionDecisionReason":"said "hi""}}',
+        'noise\n{"hookSpecificOutput":{"permissionDecision":"deny"}}',
+        '{"hookSpecificOutput":{"permissionDecision":"deny"',
+    ]
+    for s in broken:
+        got = decision_from_stdout(s)
+        if not (isinstance(got, str) and got.startswith("unparseable:")):
+            raise AssertionError(f"expected unparseable sentinel, got {got!r} for {s!r}")
+    ok = decision_from_stdout('{"hookSpecificOutput":{"permissionDecision":"deny"}}')
+    if ok != "deny":
+        raise AssertionError(f"valid deny JSON regressed: {ok!r}")
 
 
 def run_case(case: dict) -> tuple[bool, str]:
@@ -141,6 +164,13 @@ def run_case(case: dict) -> tuple[bool, str]:
 
 
 def main() -> int:
+    try:
+        _self_test_decision_from_stdout()
+        print("PASS self: decision_from_stdout unparseable")
+    except AssertionError as e:
+        print(f"FAIL self: decision_from_stdout unparseable\n  {e}")
+        return 1
+
     failed = 0
     for case in CASES:
         ok, detail = run_case(case)
