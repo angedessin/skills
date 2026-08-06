@@ -78,11 +78,13 @@ deny は回復不能なので構造抽出が要る。この不変条件は hook 
 ```
 
 **この規律は deny だけでなく `ask`（承認ゲート）にも同じく適用される。** 20260725 に
-「承認前の書き込みを機械で止める」目的で `Edit/Write(./CLAUDE.md)` `Edit/Write(./docs/knowledge/**)`
+「承認前の書き込みを機械で止める」目的で `Edit(./CLAUDE.md)` `Edit(./docs/knowledge/**)`
 を ask に足したが、`allow` の `Bash(git show*)` が前置一致のため `git show X > CLAUDE.md` が
-素通りした（Edit/Write を経由しないので ask が発火しない）。`.env` 保護では Bash と Read を対に
+素通りした（Edit を経由しないので ask が発火しない）。`.env` 保護では Bash と Read を対に
 しているのに、承認ゲートでは片側だけを書いていた。**ゲートしたいパスは、そこへ書けるツール全部を
 塞ぐ**（Bash 側は PreToolUse hook で書き込みリダイレクトを検出する形になる）。
+**ファイルパス規則は `Edit(path)` / `Read(path)` のみ** — `Write(path)` は受け付けられるが参照されず
+起動時警告になる（`Edit` が Write / NotebookEdit 等を覆う。20260806 に死んだ Write 対を削除）。
 
 **ゲートの対象は「書き込み」であって「削除」ではない。** `guard-gated-write.sh` が見るのは
 書き込みリダイレクト（`>` / `>>`）と `tee` のみで、`rm docs/knowledge/x.md` は素通りする
@@ -121,7 +123,7 @@ deny は回復不能なので構造抽出が要る。この不変条件は hook 
 
 **20260726 追試: セッション再起動後は発火した。** 同じ `guard-gated-write.sh` に対し
 `echo test > docs/decisions/_probe.md` を実行してプロンプトが出ることを人間が確認した。あわせて
-`ask` 側（`Edit` / `Write(./docs/knowledge/*)`）も発火、`PostToolUse` の内容注入も両分岐で発火・
+`ask` 側（`Edit(./docs/knowledge/*)`）も発火、`PostToolUse` の内容注入も両分岐で発火・
 誤発火なし・セッション 1 回制限も期待どおりだった。したがって上表の「しない」は
 **セッション中に追加した場合に限る現象**で、恒久的な不発ではない。原因自体は未解明のまま。
 

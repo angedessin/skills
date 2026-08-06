@@ -32,6 +32,9 @@
   (h) deploy_skills.MASTER_ONLY ≡ validate_skills.MASTER_ONLY
       → 配布分類が 2 ファイルに独立定義されている。片方への足し忘れは
         「配布してはいけないスキルが配布可能になる」に直結する
+  (j) マスター settings / DEPLOY / MASTER_ONLY に Write|NotebookEdit|MultiEdit の
+      **パス付き**規則が無い（Claude Code は Edit(path)/Read(path) のみ参照。死んだ規則は
+      起動時警告になる。ツール名のみの Write は対象外）
 
   会社向け持ち出しセット用の契約 (g)(i) は 20260730 Frozen handoff で除去済み。
 
@@ -264,6 +267,29 @@ def contract_h() -> tuple[str, list[str]]:
         return FAIL, details
     return PASS, [f"master-only スキル {len(d_only)} 件が両ファイルで一致"]
 
+
+DEAD_FILE_PATH_PERM_RE = re.compile(r"^(Write|NotebookEdit|MultiEdit)\(.+\)$")
+
+
+def contract_j() -> tuple[str, list[str]]:
+    """パス付き Write/NotebookEdit/MultiEdit は Claude Code が参照せず起動時警告になる。"""
+    details: list[str] = []
+    sources = [
+        ("settings.json", master_permissions()),
+        ("DEPLOY_PERMISSIONS", DEPLOY_PERMISSIONS),
+        ("MASTER_ONLY_PERMISSIONS", MASTER_ONLY_PERMISSIONS),
+    ]
+    for label, perms in sources:
+        for key in ("allow", "ask", "deny"):
+            dead = sorted(r for r in perms.get(key, []) if DEAD_FILE_PATH_PERM_RE.match(r))
+            if dead:
+                details.append(f"[{label}/{key}] 死んだパス規則: {', '.join(dead)}")
+                details.append("  → Edit(path) に置き換える（Edit が編集系ツールを覆う）")
+    if details:
+        return FAIL, details
+    return PASS, ["settings / DEPLOY / MASTER_ONLY に死んだ Write|NotebookEdit|MultiEdit(path) なし"]
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(
         description="セットアップ資産どうしの契約突合（マスター専用）",
@@ -284,6 +310,7 @@ def main() -> None:
         ("(e) permissions が配布/マスター専用に分類済み", contract_e),
         ("(f) settings.json の hooks 登録が実体と一致", contract_f),
         ("(h) master-only スキルの分類が 2 ファイルで一致", contract_h),
+        ("(j) 死んだ Write|NotebookEdit|MultiEdit(path) が無い", contract_j),
     ]
 
     failed = 0
