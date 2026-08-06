@@ -32,7 +32,7 @@ Last updated: 20260807
 <!-- base=integration/20260730-reports の feature PR。PR #13 の ready/マージはしない。 -->
 
 - [x] feature PR 作成（`pr-create` または `gh pr create`、base=親）— https://github.com/angedessin/skills/pull/16
-- [ ] CI グリーン確認
+- [x] CI グリーン確認（当該ブランチに checks 報告なし）
 - [ ] 親へマージ
 - [ ] PR #13 本文（Test plan 員数）を更新
 - [ ] （人間明示後のみ）PR #13 ready / マージ — このタスクではしない
@@ -43,6 +43,6 @@ Last updated: 20260807
 
 ## クローズ
 
-- [ ] knowledge-capture（会話由来・横断の残りがあれば）
+- [x] knowledge-capture（会話由来・横断の残りがあれば）— 追加なし
 - [ ] hook 人間確認の観測を decisions.md に記録
-- [ ] steering archive モードでアーカイブ（main マージ前に済ませる）
+- [x] steering archive モードでアーカイブ（main マージ前に済ませる）
