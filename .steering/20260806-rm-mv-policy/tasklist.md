@@ -19,8 +19,8 @@ Last updated: 20260806
 
 ## レビュー
 
-- [ ] frontend-code-review（または該当レビュー）の実行
-- [ ] レビュー指摘の修正
+- [x] frontend-code-review の実行（review-result.md）
+- [x] レビュー指摘の修正（H1/H2 + M1–M5）
 - [ ] 修正後の差分再レビュー
 
 ## 知見保存（この PR / ブランチに載せる分）
@@ -30,7 +30,7 @@ Last updated: 20260806
 
 ## デプロイ
 
-- [ ] PR 作成（base: `integration/20260730-reports`）
+- [x] PR 作成（base: `integration/20260730-reports`）— https://github.com/angedessin/skills/pull/15
 - [ ] CI 確認（あれば）
 - [ ] マージ（人間の明示後のみ）
 

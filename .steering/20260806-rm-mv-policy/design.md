@@ -31,9 +31,9 @@ Approved: 20260806
 - Stack: Bash hooks（依存ゼロ・POSIX） / `settings.json` permissions / `scripts/deploy_skills.py`（`DEPLOY_PERMISSIONS` 含む） / `scripts/check_asset_consistency.py`
 - 判定は **deny**（ask に統一しない）
 - PreToolUse は permissions より先。hook 沈黙は deny を救済しない → permissions deny はプロジェクト内に誤爆しない形に限る
-- パス判定は **`tool_input.command` の構造抽出のみ**（全文検査禁止）
+- パス判定は **`tool_input.command` の構造抽出のみ**（全文検査禁止）。抽出は **python3 標準ライブラリ**（jq・追加パッケージ無し）。欠如・失敗は沈黙
 - **抽出失敗・非対象形は沈黙（フェイルオープン）** — deny に倒すと通常 Bash が広く死ぬ。塞ぐのは「パース可能な素の rm/mv + 対象パス」に限る
-- 対象パス文字列の正本は `guard-gated-write.sh` と同じ 3 系統（`CLAUDE.md` / `docs/knowledge/` / `docs/decisions/`）。新 hook 先頭コメントに write hook・`Edit(…)` ask との**手同期**を明記（機械突合は必須にしない）
+- 対象パスは write と同じ 3 系統。delete はディレクトリ裸形もマッチし、`CLAUDE.md` はトークン境界付き。手同期コメントを hook 先頭に維持
 - 片側修正禁止（hook 実体・settings の PreToolUse 登録・`expected_hooks` / `HOOK_REGISTRATIONS`・README / starter-kit / claude-code-config）。本タスクでは permissions / `DEPLOY_PERMISSIONS` は変更しない
 - 検証の正本は `pnpm run …`
 - 親ブランチは `integration/20260730-reports`。feature PR の base は親。マージは人間の明示後のみ
@@ -80,7 +80,7 @@ permissions は現行の粗いネットを維持し、**本タスクでは変更
 | settings | `.claude/settings.json` | PreToolUse に新 hook 登録のみ（permissions は不変） |
 | 配布配線 | `scripts/deploy_skills.py` | `expected_hooks` + `HOOK_REGISTRATIONS` 対追加（無条件同送） |
 | 一貫性検査 | `scripts/check_asset_consistency.py` | 契約 (a)(b)(c)(d)(e)(f)(j) が PASS（ロジック原則不変・分類追随） |
-| フィクスチャ / runner | `tests/hooks/guard-gated-delete/` + `pnpm` script | 発火・沈黙・抽出失敗・write 回帰を機械実行 |
+| フィクスチャ / runner | `tests/hooks/run_fixtures.py` + `pnpm run test:hooks` | 発火・沈黙・抽出失敗・write 回帰を機械実行 |
 | 文書 | `claude-code-config.md` / `README.md` / `docs/starter-kit.md` | 守る形／守らない形・ask vs deny・再起動確認を明記 |
 | バックログ | `.steering/BACKLOG.md` | 節 1 削除 + export ドリフト既知の一文（追従タスクなし） |
 

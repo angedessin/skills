@@ -17,3 +17,12 @@
 
 **決定**: 完了条件の人間確認を PASS とする。
 **観測**: セッション再起動後、Bash で `rm -f docs/knowledge/x.md` をそのまま実行 → `guard-gated-delete` がブロック（人間側で確認）。
+
+## 20260806 — レビュー指摘対応（APPROVED 追認）
+
+**決定**: H1/H2 must-fix + M1–M5 を適用。Status は APPROVED 維持。
+**内容**:
+- JSON 抽出を python3 stdlib に変更（引用パス・`\t`/`\n`）
+- ディレクトリ裸形・`CLAUDE.md` 境界・`&&` 以降除外
+- フィクスチャ A9–A11 / B19–B20、deploy コメント、design 表の runner パスを実態に合わせる
+**理由**: レビュー High のすり抜けと Medium の誤 deny／文書ずれを同一 PR で潰す。

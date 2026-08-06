@@ -65,6 +65,12 @@ CASES: list[dict] = [
         "expect": "silence",
     },
     {"id": "B18", "hook": "guard-gated-delete.sh", "command": "echo docs/knowledge/x.md", "expect": "silence"},
+    # H1/H2/M1/M2 回帰
+    {"id": "A9", "hook": "guard-gated-delete.sh", "command": 'rm "docs/knowledge/x.md"', "expect": "deny"},
+    {"id": "A10", "hook": "guard-gated-delete.sh", "command": "rm -rf docs/knowledge", "expect": "deny"},
+    {"id": "A11", "hook": "guard-gated-delete.sh", "command": "mv docs/knowledge /tmp/", "expect": "deny"},
+    {"id": "B19", "hook": "guard-gated-delete.sh", "command": "rm /tmp/a && ls docs/knowledge/", "expect": "silence"},
+    {"id": "B20", "hook": "guard-gated-delete.sh", "command": "rm CLAUDE.md.bak", "expect": "silence"},
     # D — write hook regression (same runner)
     {"id": "D21", "hook": "guard-gated-write.sh", "command": "echo x > CLAUDE.md", "expect": "ask"},
     {"id": "D22", "hook": "guard-gated-write.sh", "command": "git log", "expect": "silence"},

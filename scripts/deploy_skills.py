@@ -334,9 +334,9 @@ def expected_hooks(skills: list[str] | set[str]) -> list[str]:
     **返り値に入れた hook は HOOK_REGISTRATIONS にも登録すること。** 登録を忘れると
     deploy_guardrails() が KeyError で落ちる。契約 (a) がこれを検出する。
     """
-    # 品質ゲート 2 本 + 書き込み/削除ガードはフェイルオープン / 自己完結なので常に同送する。
-    # guard-gated-write.sh は permissions.ask（Edit(path) 限定）が Bash リダイレクトで迂回されるのを塞ぐ。
-    # guard-gated-delete.sh は同パスへの素の rm/mv を deny（書き込みゲート迂回の削除・移動）。
+    # 品質ゲート 2 本はフェイルオープンで常時同送。書き込み/削除ガードも常時同送だが意味が違う:
+    # guard-gated-write.sh = ヒット時 ask（確認）。guard-gated-delete.sh = ヒット時 deny（硬拒否・配置先でも摩擦あり）。
+    # どちらも抽出失敗・非対象形は沈黙。追加パッケージ無し（delete の JSON 抽出は python3 stdlib）。
     send = [
         "guard-env-read.sh",
         "guard-gated-write.sh",
