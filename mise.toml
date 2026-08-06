@@ -1,0 +1,8 @@
+# skills リポジトリのランタイム（Node / pnpm）
+# 使い方: このディレクトリで `mise install`（未導入ツールだけ入る）
+# 起動: シェルで mise が有効なら `pnpm` / `node` がこの版になる
+# 一時確認: `mise exec -- pnpm --version`
+
+[tools]
+node = "24.14.0"
+pnpm = "10.34.5"

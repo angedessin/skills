@@ -15,7 +15,7 @@ starter-kit.md「配置手順」の機械的な部分（手順 2・3・6 の一�
      session-stop.sh（knowledge-capture 配置時のみ）
      - 配置先に settings.json が無い → permissions + 同送 hooks の登録を持つ settings.json を新規作成
      - 配置先に settings.json が有る → 何も書かず、手動マージ案（JSON 断片）を表示するだけ
-  4. 配置先 .gitignore に .steering ランタイムフラグ 3 行を追記（無い場合のみ）
+  4. 配置先 .gitignore に .steering ランタイムフラグ 4 行を追記（無い場合のみ）
   5. マスターの deployments.md へ配置先を登録（未登録の場合のみ）
 
 しないこと（skill-deploy が案内する残タスク）:
@@ -49,6 +49,7 @@ GITIGNORE_LINES = [
     ".steering/**/.capture-needed",
     ".steering/**/.codify-needed",
     ".steering/**/capture_done",
+    ".steering/.last-rule-audit",
 ]
 
 HOOK_REGISTRATIONS = {
@@ -73,6 +74,19 @@ HOOK_REGISTRATIONS = {
                 {
                     "type": "command",
                     "command": 'bash "$CLAUDE_PROJECT_DIR"/.claude/hooks/guard-gated-write.sh',
+                    "timeout": 10,
+                }
+            ],
+        },
+    ),
+    "guard-gated-delete.sh": (
+        "PreToolUse",
+        {
+            "matcher": "Bash",
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": 'bash "$CLAUDE_PROJECT_DIR"/.claude/hooks/guard-gated-delete.sh',
                     "timeout": 10,
                 }
             ],
@@ -171,27 +185,19 @@ DEPLOY_PERMISSIONS = {
         "Bash(git push*)",
         "Bash(npx *)",
         "Bash(rm -r*)",
+        # ファイルパス規則は Edit(path) のみ（Write(path) は参照されず起動時警告。
+        # Edit が Write / NotebookEdit 等の編集系を覆う — Claude Code permissions 正本）
         "Edit(./.claude/settings.json)",
-        "Write(./.claude/settings.json)",
         "Edit(./.claude/settings.local.json)",
-        "Write(./.claude/settings.local.json)",
         "Edit(./.claude/hooks/**)",
-        "Write(./.claude/hooks/**)",
         "Edit(./CLAUDE.md)",
-        "Write(./CLAUDE.md)",
         # ディレクトリ配下は * / ** / **/* の 3 形式を並べる（単一形式では直下を取りこぼす）
         "Edit(./docs/knowledge/*)",
-        "Write(./docs/knowledge/*)",
         "Edit(./docs/knowledge/**)",
-        "Write(./docs/knowledge/**)",
         "Edit(./docs/knowledge/**/*)",
-        "Write(./docs/knowledge/**/*)",
         "Edit(./docs/decisions/*)",
-        "Write(./docs/decisions/*)",
         "Edit(./docs/decisions/**)",
-        "Write(./docs/decisions/**)",
         "Edit(./docs/decisions/**/*)",
-        "Write(./docs/decisions/**/*)",
     ],
     "deny": [
         # 自動インストールを伴う実行（サプライチェーン対策）。依存管理そのものは止めない
@@ -238,7 +244,6 @@ MASTER_ONLY_PERMISSIONS = {
         # 配置先を超えたグローバルな副作用になる。配置先の settings が
         # ユーザーのホーム設定をゲートするのは越権
         "Edit(~/.claude/CLAUDE.md)",
-        "Write(~/.claude/CLAUDE.md)",
     ],
     "deny": [
         # 配置先の**通常の依存管理**を止めてしまう。マスターは「依存を増やさない」方針だが、
@@ -302,7 +307,7 @@ def ensure_gitignore(target: Path, dry: bool, log: list[str]) -> None:
     existing = gi.read_text(encoding="utf-8") if gi.exists() else ""
     missing = [ln for ln in GITIGNORE_LINES[1:] if ln not in existing]
     if not missing:
-        log.append(".gitignore: フラグ 3 行は登録済み（変更なし）")
+        log.append(".gitignore: フラグ 4 行は登録済み（変更なし）")
         return
     log.append(f".gitignore: {len(missing)} 行追記 → {gi}")
     if not dry:
@@ -329,12 +334,13 @@ def expected_hooks(skills: list[str] | set[str]) -> list[str]:
     **返り値に入れた hook は HOOK_REGISTRATIONS にも登録すること。** 登録を忘れると
     deploy_guardrails() が KeyError で落ちる。契約 (a) がこれを検出する。
     """
-    # 品質ゲート 2 本 + 書き込みガード 2 本はフェイルオープン / 自己完結なので常に同送する。
-    # guard-gated-write.sh は permissions.ask（Edit/Write 限定）が Bash のリダイレクトで
-    # 迂回されるのを塞ぐ。ask と対でなければ防波堤にならないため、ask を配る配置先には必ず要る。
+    # 品質ゲート 2 本はフェイルオープンで常時同送。書き込み/削除ガードも常時同送だが意味が違う:
+    # guard-gated-write.sh = ヒット時 ask（確認）。guard-gated-delete.sh = ヒット時 deny（硬拒否・配置先でも摩擦あり）。
+    # どちらも抽出失敗・非対象形は沈黙。追加パッケージ無し（delete の JSON 抽出は python3 stdlib）。
     send = [
         "guard-env-read.sh",
         "guard-gated-write.sh",
+        "guard-gated-delete.sh",
         "post-edit-lint.sh",
         "stop-typecheck.sh",
     ]
@@ -347,6 +353,23 @@ def expected_hooks(skills: list[str] | set[str]) -> list[str]:
     if {"knowledge-capture", "compound", "steering", "design-doc"} & skills:
         send.append("session-start-check.sh")
     return send
+
+
+def _append_or_merge_hook(hooks_cfg: dict, event: str, entry: dict) -> None:
+    """同一 event+matcher の hooks を 1 エントリにマージして hooks_cfg に載せる。"""
+    matcher = entry.get("matcher")
+    entries = hooks_cfg.setdefault(event, [])
+    for existing in entries:
+        if existing.get("matcher") == matcher:
+            existing.setdefault("hooks", []).extend(entry.get("hooks", []))
+            return
+    # 呼び出し元の entry を共有しない（後続マージで hooks を破壊しない）
+    entries.append(
+        {
+            **{k: v for k, v in entry.items() if k != "hooks"},
+            "hooks": list(entry.get("hooks", [])),
+        }
+    )
 
 
 def deploy_guardrails(target: Path, skills: list[str], dry: bool, log: list[str]) -> None:
@@ -367,7 +390,10 @@ def deploy_guardrails(target: Path, skills: list[str], dry: bool, log: list[str]
     hooks_cfg: dict = {}
     for name in send:
         event, entry = HOOK_REGISTRATIONS[name]
-        hooks_cfg.setdefault(event, []).append(entry)
+        # 同一 event+matcher は 1 エントリに hooks をマージする。
+        # PreToolUse の Bash を配列で分割すると、Claude Code が後段を落とす実測がある
+        # （/hooks に guard-gated-delete が出ず deny が沈黙。20260807）。
+        _append_or_merge_hook(hooks_cfg, event, entry)
     # マスターの settings.json をそのまま配らない（DEPLOY_PERMISSIONS の宣言を参照）
     payload = {"permissions": DEPLOY_PERMISSIONS, "hooks": hooks_cfg}
 

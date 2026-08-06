@@ -105,4 +105,4 @@ metadata:
 - `tdd` — 問題のあるテストを書き直す
 - `e2e` — E2E テストの作成・レビュー（本スキルの対象外領域を担当）
 - `impl-review` — テストコードではなく実装コードをレビューする
-- `frontend-code-review` — レビューのオーケストレーター（フルモード: 7 軸を並列実行 / 軽量モード: test-review・impl-review・review-ui を直列実行）
+- `frontend-code-review` — レビューのオーケストレーター（フルモード: 7 エージェントを並列実行 / 軽量モード: test-review・impl-review・review-ui を直列実行）

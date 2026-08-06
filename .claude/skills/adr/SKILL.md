@@ -2,7 +2,7 @@
 name: adr
 description: "設計判断を ADR（Architecture Decision Record）として起票・維持するマスター専用スキル — 「ADR にして」「この決定を ADR で起票して」「決定を判例集に残して」「この ADR を Superseded にして」などのフレーズが対象。却下した代替案がある決定だけを起票対象とし、近縁 ADR の検出 → ドラフト提示 → 明示承認 → 書き込み、を駆動する。既存 ADR を読むだけ・検索するだけでは起動しない。タスク固有の決定の記録には起動しない（それは decisions.md への追記）。パターン集・行動ルールの保存には起動しない（knowledge-capture / compound の担当）。"
 metadata:
-  version: "1.0"
+  version: "1.1"
 ---
 
 # ADR（マスター専用）
@@ -32,7 +32,7 @@ metadata:
 判定材料は次の順で探す。**あるものを使い、無ければ次へ降りる**:
 
 1. `.steering/[task]/decisions.md`（実装中の技術的判断とその理由）
-2. `.steering/[task]/design.md` の「検討した代替案」
+2. `.steering/[task]/design.md` の「検討した代替案」（付録側の節。境界があっても当該節を開く）
 3. ユーザーが会話で提示した決定内容
 
 **却下した代替案が見つからない場合** → **ここで止まる**。次を伝えて終了する:

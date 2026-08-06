@@ -25,13 +25,13 @@
 
 | 状況 | 言うこと | スキル | 何が起きるか |
 |---|---|---|---|
-| 新機能・タスクを始める | 「X を作りたい」— 仕様書・要件メモ・参考 URL があれば一緒に貼る（design.md に織り込まれる） | design-doc | 設計（目的/スコープ/方針）をまとめ、**承認を求めて止まる**（勝手に実装しない） |
+| 新機能・タスクを始める | 「X を作りたい」— 仕様書・要件メモ・参考 URL があれば一緒に貼る（design.md に織り込まれる） | design-doc | 設計（目的/スコープ/方針）をまとめ、**承認を求めて止まる**（勝手に実装しない）。探索だけなら「SPIKE にする」で Status: SPIKE（ローカル実装可・PR 不可） |
 | テストを先に書いてほしい | 「テストを先に書いて」「既存コードにテスト足して」 | tdd | Red→Green→Refactor で書く。テストリストを提示して承認を待つ |
 | バグ・障害を調べる | 「〜が動かない。調べて」「バグを調査して」 | debug | 再現→仮説→切り分け→根本原因。修正は承認を得てから |
 | コードをレビューしてほしい | 「コードをレビューして」 | frontend-code-review | 変更を複数観点（正当性・セキュリティ・a11y 等）でレビューし指摘を出す |
 | PR を出す | 「PR を作って」 | pr-create | ブランチ作成・PR 本文作成。**プッシュ前に承認を求めて止まる** |
 | 進行中タスクを一覧する | 「進行中のタスクは？」「steering status」 | steering (status) | アクティブタスクと進捗の一覧表を表示 |
-| 途中のタスクを再開する | 「[タスク名] を再開」（複数あるときはこれで指定する） | steering (resume) | design.md・tasklist.md を読んで現在地を要約し「何から始めるか」を確認 |
+| 途中のタスクを再開する | 「[タスク名] を再開」（複数あるときはこれで指定する） | steering (resume) | design.md の**契約コア**と tasklist.md を読んで現在地を要約し「何から始めるか」を確認 |
 | タスクを完了する | 「[タスク名] をアーカイブして」 | steering (archive) | 完了チェック（tasklist 全消化・知見保存済み）を通して `.steering/archived/` へ移動 |
 | フロー全体を通す | 「フロー全体を通してやって」 | feature-pipeline | 設計→実装→レビュー→PR→知見蓄積を順に回す（各境界で承認） |
 | セッションを振り返る | 「振り返りして」 | session-retrospective | セッション中の摩擦（誤発動・手戻り）を `skill-issues.md` に起票 |
@@ -40,12 +40,12 @@
 
 ## 覚えなくていいスキル
 
-- **自動発動・パイプライン内部**: impl-from-design / e2e / review-*（7 軸）/ test-review / impl-review / pr-feedback / knowledge-capture / compound / design-premortem / impl-tournament — design-doc の承認後や作業の流れから接続される
+- **自動発動・パイプライン内部**: impl-from-design / e2e / review-*（5 サブスキル）/ test-review / impl-review / pr-feedback / knowledge-capture / compound / design-premortem / impl-tournament — design-doc の承認後や作業の流れから接続される（フルモードはこれらで 7 エージェント並列）
 - **メンテ・マスター専用**（日常の開発では呼ばない）:
 
 | スキル | いつ実行するか |
 |---|---|
-| rule-audit | CLAUDE.md が肥大化したと感じたとき（compound 数回ごと・月 1 目安の定期剪定。docs/knowledge/ の鮮度点検も兼ねる） |
+| rule-audit | CLAUDE.md が肥大化したと感じたとき、および SessionStart の【rule-audit 月次】ナッジ（最終実施から 30 日以上 or 未実施。スキル配置時のみ）。compound 数回ごと・月 1 目安の定期剪定。docs/knowledge/ の鮮度点検も兼ねる |
 | security-audit | サードパーティのスキル・hooks の採用前、および定期 |
 | empirical-prompt-tuning | スキル自体の品質を実測ベースで改善したいとき（任意・課金） |
 | adr | **マスター専用**。却下した代替案がある決定を ADR として起票したいとき（手動起動。knowledge-capture が decisions.md に残した決定を見て人が呼ぶ） |
@@ -78,12 +78,14 @@ CLAUDE.md のポリシー側を調整する（スキル本文は触らない）�
 「続けて」等の曖昧な指示ではゲートをスキップしない設計になっている。
 
 **Q. `.steering/` は git にコミットする？**
-コミットを推奨する（設計・決定・タスク状態は複数セッション再開と知見還流の入力になる）。ただしランタイムフラグはコミットしない — マスターと同じく `.gitignore` に `.steering/**/.capture-needed`・`.steering/**/.codify-needed`・`.steering/**/capture_done` の 3 行を追加する。
+コミットを推奨する（設計・決定・タスク状態は複数セッション再開と知見還流の入力になる）。ただしランタイムフラグはコミットしない — マスターと同じく `.gitignore` に `.steering/**/.capture-needed`・`.steering/**/.codify-needed`・`.steering/**/capture_done`・`.steering/.last-rule-audit` の 4 行を追加する。
+
+セッション開始で `.capture-needed` が出たら、対象タスクごとに「今 / 後で / スキップ」で選ぶ（一括スキップ禁止）。スキップはフラグ削除だけ（`capture_done` は作らない）で、効果は次の Stop まで — 永久免除ではない。【rule-audit 月次】が出たら別契約の三択（今＝rule-audit / 後で＝残置 / スキップ＝`.steering/.last-rule-audit` 更新で 30 日再ナッジ。capture の次 Stop 寿命とは別）。
 
 **Q. タスクの「完了」はどう扱われる？**
 進捗の実体は `.steering/[task]/tasklist.md` のチェックボックス（作業のたびに Claude が更新する）。
 アーカイブは自動では起きない — あなたが「アーカイブして」と言ったときに、完了チェックを通して
-`.steering/archived/` へ移動する。worktree・ブランチ上で開始したタスクは、**main へのマージ前に
+`.steering/archived/` へ移動する。アーカイブ前の knowledge-capture はハードストップ: `capture_done` があるか、「知見なしでアーカイブ」と明示したときだけ進む（汎用の省略や tasklist のチェック単独では足りない）。worktree・ブランチ上で開始したタスクは、**main へのマージ前に
 アーカイブまで済ませる**（`.steering/` がブランチ間で分岐すると対応漏れが起きる）。
 
 ---
