@@ -83,8 +83,8 @@ except ImportError as e:  # pragma: no cover - 実行環境の異常のみ
 
 SH_RE = re.compile(r"[A-Za-z0-9_-]+\.sh")
 CONTRACT_DEF_RE = re.compile(r"^def contract_([a-z])\(", re.M)
-# 箇条内の「(a) 説明」形のみ。連続 (g)(i) や「(g) と」は拾わないよう ) の直後に空白を要求
-CONTRACT_LETTER_RE = re.compile(r"\(([a-z])\)\s")
+# 箇条内の「(a) 説明」形のみ。`(g)(i) は` のように直前が ) の連続マーカーは除外する
+CONTRACT_LETTER_RE = re.compile(r"(?<!\))\(([a-z])\)\s")
 NPM_SCRIPT_TICK_RE = re.compile(r"`([a-z][a-z0-9:_-]*)`")
 
 PASS, FAIL, SKIP = "PASS", "FAIL", "SKIP"
@@ -338,7 +338,9 @@ def contract_k() -> tuple[str, list[str]]:
     try:
         pkg = json.loads(pkg_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as e:
-        return FAIL, [f"package.json を読めない: {e}"]
+        details.append(f"package.json を読めない: {e}")
+        details.append("→ 員数ハードコードではなく集合一致。直すときは両側を同じコミットで")
+        return FAIL, details
     pkg_scripts = set((pkg.get("scripts") or {}).keys())
 
     npm_bullet = _readme_bullet_after("npm script")

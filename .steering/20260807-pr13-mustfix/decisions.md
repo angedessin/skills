@@ -56,3 +56,11 @@
 **影響**:
 - `validate:assets` 9/9（契約 k 追加）/ `validate` 34/34（tasklist-flow-sync）/ `test:hooks` 35/35
 - **残**: Claude Code 再起動後の人間による deny 発火確認（AI からは観測不可）。確認コマンド例: `rm -f docs/knowledge/x.md` / 複数行 `rm` / `rm -f CLAUDE.md*`
+
+## 20260807 — レビュー指摘トリアージ
+
+**決定**: R1/R3/R4 を must-fix。R2（heredoc 本文の誤 deny）は受容
+**理由**: ユーザー承認。R2 は M1 案 A（改行区切り各行判定）の帰結。heredoc 除外はパーサ拡張＝脅威モデル再定義で別タスク向き
+**影響**:
+- R2: 善意エージェントが heredoc 本文に行頭 `rm …保護パス` を書くと deny される。実削除でなくても摩擦。D1 と同様に完全封鎖しない前提の既知ギャップとして残す
+- フィクスチャに heredoc 沈黙を足さない（受容なので期待を沈黙に固定しない）
