@@ -25,8 +25,8 @@ Last updated: 20260807
 ## 知見保存（この PR / ブランチに載せる分）
 <!-- この変更の説明・落とし穴として残す knowledge は、マージ前に同じブランチへ含める。 -->
 
-- [ ] knowledge-capture スキルの実行（PR 差分に属する知見）
-- [ ] 必要なら docs/ への追記をこのブランチでコミット
+- [x] knowledge-capture スキルの実行（PR 差分に属する知見）
+- [x] 必要なら docs/ への追記をこのブランチでコミット
 
 ## デプロイ
 <!-- base=integration/20260730-reports の feature PR。PR #13 の ready/マージはしない。 -->
