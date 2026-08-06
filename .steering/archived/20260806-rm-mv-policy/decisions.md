@@ -26,3 +26,11 @@
 - ディレクトリ裸形・`CLAUDE.md` 境界・`&&` 以降除外
 - フィクスチャ A9–A11 / B19–B20、deploy コメント、design 表の runner パスを実態に合わせる
 **理由**: レビュー High のすり抜けと Medium の誤 deny／文書ずれを同一 PR で潰す。
+
+## 20260806 — knowledge-capture
+
+**決定**: 追加の knowledge ファイルは作らない。耐久知見は既に次へ反映済み:
+- `docs/knowledge/claude-code-config.md`（ask/deny 層・python3 抽出・裸ディレクトリ・再起動確認）
+- `tests/hooks/run_fixtures.py`（回帰仕様）
+- 本 `decisions.md` / `review-result.md`
+**理由**: 新規トピックを増やすより正本ドキュメントと機械検査に寄せる。

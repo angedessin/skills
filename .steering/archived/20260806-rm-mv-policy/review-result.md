@@ -66,3 +66,18 @@ Range: `integration/20260730-reports...HEAD`（57be75a）
 | M3 | deploy コメント過小評価 | 文言修正 | **済** |
 | M4 | design 表と runner パスずれ | APPROVED 追認 | **済** |
 | M5 | `\t`/`\n` | H1 と同時 | **済**（JSON パーサ） |
+
+## 修正後の差分再レビュー（20260806）
+
+範囲: `db36deb` / `f0be314`（H1–M5 対応）
+
+| 確認 | 結果 |
+|---|---|
+| A9 引用パス deny | PASS |
+| A10/A11 裸ディレクトリ deny | PASS |
+| B19 `&&` 誤 deny 解消 | PASS |
+| B20 `CLAUDE.md.bak` 沈黙 | PASS |
+| 全フィクスチャ | **25/25** |
+| validate:assets | **8/8** |
+
+残 High のすり抜けはフィクスチャで塞がれた。追加の Medium/High なし（再レビュー時点）。
