@@ -29,7 +29,7 @@ Last updated: 20260806
 
 - [x] PR 作成（base = `integration/20260730-reports`）— https://github.com/angedessin/skills/pull/12
 - [x] CI グリーン確認（あれば）— checks 未報告（N/A）
-- [ ] マージは人間の明示指示後のみ
+- [x] マージ完了 — https://github.com/angedessin/skills/pull/12
 
 ## 福利化
 
