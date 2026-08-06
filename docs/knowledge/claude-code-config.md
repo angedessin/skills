@@ -78,19 +78,28 @@ deny は回復不能なので構造抽出が要る。この不変条件は hook 
 ```
 
 **この規律は deny だけでなく `ask`（承認ゲート）にも同じく適用される。** 20260725 に
-「承認前の書き込みを機械で止める」目的で `Edit/Write(./CLAUDE.md)` `Edit/Write(./docs/knowledge/**)`
+「承認前の書き込みを機械で止める」目的で `Edit(./CLAUDE.md)` `Edit(./docs/knowledge/**)`
 を ask に足したが、`allow` の `Bash(git show*)` が前置一致のため `git show X > CLAUDE.md` が
-素通りした（Edit/Write を経由しないので ask が発火しない）。`.env` 保護では Bash と Read を対に
+素通りした（Edit を経由しないので ask が発火しない）。`.env` 保護では Bash と Read を対に
 しているのに、承認ゲートでは片側だけを書いていた。**ゲートしたいパスは、そこへ書けるツール全部を
 塞ぐ**（Bash 側は PreToolUse hook で書き込みリダイレクトを検出する形になる）。
+**ファイルパス規則は `Edit(path)` / `Read(path)` のみ** — `Write(path)` は受け付けられるが参照されず
+起動時警告になる（`Edit` が Write / NotebookEdit 等を覆う。20260806 に死んだ Write 対を削除）。
 
-**ゲートの対象は「書き込み」であって「削除」ではない。** `guard-gated-write.sh` が見るのは
-書き込みリダイレクト（`>` / `>>`）と `tee` のみで、`rm docs/knowledge/x.md` は素通りする
-（`permissions` 側も `rm -r*` / `rm -rf *` しか持たないため、単一ファイルの `rm` に当たらない）。
-20260726 に probe の片付けで実際に素通りした。これは意図的な線引き — 脅威モデルが
-「敵対者」ではなく「停止契約を滑った善意のエージェント」で、実測された素通りはいずれも
-書き込み経路だったため。**「承認制のパス」と書くと削除も含むと読めるので、その表現を使うときは
-書き込み限定であることを併記する。**
+**承認ゲートは書き込みと削除・移動で層が分かれる。** `guard-gated-write.sh` は書き込みリダイレクト
+（`>` / `>>`）と `tee` を **ask**。`guard-gated-delete.sh` は素の `rm` / `mv` で対象パス
+（`CLAUDE.md` / `docs/knowledge/` / `docs/decisions/`）を含むものを **deny**
+（`tool_input.command` の構造抽出 — python3 stdlib。失敗・`&&` / `||` / `;` / `|` 連鎖 /
+`bash -c` / `git rm` / `/bin/rm` は沈黙。改行区切りの複数単純コマンドは各行を判定し、
+**deny は最大 1 JSON**（ヒットで即終了。複数行ヒット時の連結 JSON はフィクスチャの
+厳密 parse と衝突する））。
+permissions の粗い `rm -r*` / `rm -rf *` は別層。`sed -i` 等は脅威モデル外。
+完全封鎖ではない。パスは 3 系統（ディレクトリ裸形も deny、`CLAUDE.md` は境界付き。AFTER にグロブ `*?[{`）。write と手同期。
+**既知ギャップ（受容）**: heredoc 本文の行頭に `rm`/`mv`+保護パスがあると、実削除でなくても deny する
+（改行ループの帰結。除外はシェルパーサ拡張＝別判断）。
+検証: `mise exec -- pnpm run test:hooks`。PreToolUse の実効確認はセッション再起動後に人間が行う。
+**フィクスチャ判定は壊 JSON を部分一致で deny/ask にしない** — `json.loads` 失敗は `unparseable:` に
+倒して FAIL。runner 内自己テストで固定する（本番 hook からは壊 JSON を出せないため）。
 
 **glob は形式を列挙する。** ディレクトリ配下を対象にするなら `docs/knowledge/*`（直下）・`**`・
 `**/*`（入れ子）を並べる。単一形式では直下のファイルを取りこぼしうる（同じ轍を `Read(./**/*.env)`
@@ -121,9 +130,15 @@ deny は回復不能なので構造抽出が要る。この不変条件は hook 
 
 **20260726 追試: セッション再起動後は発火した。** 同じ `guard-gated-write.sh` に対し
 `echo test > docs/decisions/_probe.md` を実行してプロンプトが出ることを人間が確認した。あわせて
-`ask` 側（`Edit` / `Write(./docs/knowledge/*)`）も発火、`PostToolUse` の内容注入も両分岐で発火・
+`ask` 側（`Edit(./docs/knowledge/*)`）も発火、`PostToolUse` の内容注入も両分岐で発火・
 誤発火なし・セッション 1 回制限も期待どおりだった。したがって上表の「しない」は
 **セッション中に追加した場合に限る現象**で、恒久的な不発ではない。原因自体は未解明のまま。
+
+**同一 event+matcher を配列で分割しない（20260807）。** PreToolUse の `Bash` を
+`guard-env-read` / `guard-gated-write` / `guard-gated-delete` の 3 エントリに分けると、
+再起動後でも `/hooks` に delete が出ず deny が沈黙した（ファイルと settings の記述はある）。
+**1 つの `matcher: "Bash"` エントリに hooks を並べる**（PostToolUse と同型）。
+契約 (f) が同一 event+matcher の分割を検出する。deploy も同キーをマージしてから書く。
 
 **運用ルール（変更なし）**: PreToolUse で新しいガードを足したら、**セッションを再起動してから
 実効性を確認する**（下記「hook 変更はセッション開始時に読まれる」）。確認できるまでそのガードを
@@ -131,24 +146,23 @@ deny は回復不能なので構造抽出が要る。この不変条件は hook 
 
 ---
 
-## 配布物（独立フォーク）にも同じ防御が要る
+## 独立フォークへ防御を持ち出したときの教訓（20260726・過去形）
 
 20260725 に master で High（セキュリティ）として塞いだ Bash 迂回路が、20260726 時点で
-配布物 `export/company` では開いたままだった。`settings.example.json` の ask は Edit / Write
-しか持たず、`guard-gated-write.sh` は同梱も登録もされていなかった。
+一方向持ち出し先（当時の `export/company`）では開いたままだった。`settings.example.json` の ask は
+Edit / Write しか持たず、`guard-gated-write.sh` は同梱も登録もされていなかった。
 
-原因は方針の適用範囲の取り違え。`export/company` は「master から同期・伝播しない独立フォーク」
-（2026-07-23 決定）だが、**この方針は機能差分・スタック適応のためのもので、防御の欠陥に
-そのまま適用してはいけない**。にもかかわらず方針が一律に効き、防御の修正だけを例外にする
-仕組みが無かった。
+原因は方針の適用範囲の取り違え。「master から同期・伝播しない独立フォーク」は**機能差分・スタック適応**
+のための方針であり、防御の欠陥にそのまま適用してはいけなかった。にもかかわらず方針が一律に効き、
+防御の修正だけを例外にする仕組みが無かった。気づいたのは偶然だった。
 
-気づいたのは偶然だった — ask の射程を調べる過程で `settings.example.json` を開いたから。
-仕組みでは捕まっていない。**settings.json / hooks の防御を変更したら、その場で配布物側の
-対応要否を確認する。**
+**現行義務（20260730 Frozen handoff 後）**: 会社向け持ち出しセットへの追随・パリティ確認は行わない
+（`deployments.md` の Frozen 注記）。一般法則として残すのは次だけ — **settings.json / hooks の防御を
+変えたら、その場で `deployments.md` に載っている個人配置先（還流あり）への影響を確認する。**
+配置先が 0 件なら確認対象も 0。過去の持ち出し文書（HANDOVER 等）は日常改訂しない。
 
-配布加工の注意: 防御を同梱するときは、hook の理由文に含まれる非同梱スキル名を除去する
-（20260726 は `adr`。残すと配置先で死んだ参照になる）。あわせて配布物内の hook 本数・配置手順を
-同一コミットで揃える（`MANIFEST` / `MIGRATION-GUIDE` / `HANDOVER` の 3 箇所に散っていた）。
+配布加工の注意（一般論）: 防御を同梱するときは、hook の理由文に含まれる非同梱スキル名を除去する
+（残すと配置先で死んだ参照になる）。hook 本数・配置手順は同一コミットで揃える。
 
 ---
 
@@ -237,7 +251,8 @@ AI の編集を機械が検証して差し戻す「閉じたループ」の配�
 
 **配置時の注意:**
 
-- 両 hook はフェイルオープン設計: jq・設定ファイル・`node_modules/.bin/` のツールが無ければ無音で素通し。未整備プロジェクトにコピーしても編集を阻害しない（lint は品質ゲートでありセキュリティゲートではないため。guard 系 hook のフェイルクローズとは方針が逆）
+- `post-edit-lint.sh` はフェイルオープン（lint 設定・`node_modules/.bin/` が無ければ素通し）。`stop-typecheck.sh` は jq・tsconfig・tsc が無ければ素通し（jq を使うのは入力 JSON の `stop_hook_active` 判定）。未整備プロジェクトにコピーしても編集を阻害しない（lint / tsc は品質ゲートでありセキュリティゲートではない）
+- **guard 系**（`guard-env-read` / `guard-gated-write` / `guard-gated-delete`）は jq 非依存。write/env は ask、delete は deny（抽出失敗は沈黙）
 - 配置時に `time pnpm exec tsc --noEmit --incremental` の 2 回目（キャッシュ有効）を計測し、**20〜30 秒を超えるプロジェクトでは stop-typecheck を settings.json から外して CI に移す**（終了のたびに待たされる体感悪化がループの利益を上回る）
 - `tsc --incremental` は `*.tsbuildinfo` を生成する — .gitignore に追加する
 - ツール検出は `node_modules/.bin/` の存在チェック（pnpm 起動オーバーヘッドを毎編集で払わない）。依存をルート以外に置くモノレポでは検出されない

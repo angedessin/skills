@@ -7,12 +7,19 @@
 ## design.md テンプレート
 
 要求の整理（目的 / スコープ / 完了条件）と実装アプローチを1ファイルにまとめる。
+**契約コア**（Status 〜 `## 未解決の論点`）を先頭に連続させ、その直後に境界マーカーを置く。
+実装入口・resume の既定読みはコアまで。マーカーが無い旧ファイルは全文扱い。
 
 ```markdown
 # 設計: [task-name]
 
 Created: [YYYYMMDD]
 Status: **DRAFT — awaiting review**
+
+<!-- Status は DRAFT / SPIKE / APPROVED の 3 値。既定は DRAFT。
+     SPIKE（探索・破棄前提・外向き禁止）の表記例: Status: **SPIKE**
+     読み取り: Status 行の最初の語彙トークン ∈ {DRAFT,SPIKE,APPROVED}、以外は停止。
+     実装可否の正本: DRAFT のみ実装禁止。SPIKE/APPROVED は実装可（SPIKE は外向き不可）。 -->
 
 ## 目的
 
@@ -46,6 +53,17 @@ Status: **DRAFT — awaiting review**
 |---------------|------|------|
 | [name] | `src/...` | [役割] |
 
+## 未解決の論点
+
+- [ ] [人間のレビューが必要な質問や不明点]
+- [ ] [決定インタビュー（Phase 1.5）で先送りした決定・推奨案で仮置きした決定（「推奨案で仮置き」と明記）]
+
+---
+
+<!-- design-doc-boundary: appendix -->
+
+> **付録** — 実装入口・resume の既定では読まない。プレモータム・TDD 突入・乖離調査など、当該節が必要なときだけ読む。人間の Phase 3 承認前は `影響範囲` と `検討した代替案` を必読。
+
 ## データフロー
 
 [テキストまたは ASCII ダイアグラムでデータ・イベントの流れを説明]
@@ -64,11 +82,6 @@ Status: **DRAFT — awaiting review**
 - Integration: [必要な MSW ハンドラー]
 - E2E: [Playwright シナリオ（あれば）]
 
-## 未解決の論点
-
-- [ ] [人間のレビューが必要な質問や不明点]
-- [ ] [決定インタビュー（Phase 1.5）で先送りした決定・推奨案で仮置きした決定（「推奨案で仮置き」と明記）]
-
 ## 検討した代替案
 
 | 代替案 | 却下理由 |
@@ -86,6 +99,15 @@ Status: **DRAFT — awaiting review**
 Status: **APPROVED**
 Approved: [YYYYMMDD]
 ```
+
+SPIKE（探索実装レーン）の Status 表記:
+
+```markdown
+Status: **SPIKE**
+```
+
+SPIKE の意味: 破棄前提のローカル探索。PR / push / マージ禁止。学びは `decisions.md`。
+出口は (a) 破棄、または (b) 契約コア更新のうえ `DRAFT` に戻して通常承認。`SPIKE` → `APPROVED` 直昇格は禁止。
 
 ---
 
@@ -110,6 +132,13 @@ Last updated: [YYYYMMDD]
 - [ ] レビュー指摘の修正（review-result.md を参照）
 - [ ] 修正後の差分再レビュー
 
+## 知見保存（この PR / ブランチに載せる分）
+<!-- この変更の説明・落とし穴として残す knowledge は、マージ前に同じブランチへ含める。 -->
+<!-- 「デプロイのあと」に回すと、後続 PR や別差分に混ざる（20260730）。 -->
+
+- [ ] knowledge-capture スキルの実行（PR 差分に属する知見）
+- [ ] 必要なら docs/ への追記をこのブランチでコミット
+
 ## デプロイ
 <!-- git push してブランチを PR にするフェーズ。CI がないリポジトリはスキップ可。 -->
 <!-- GitHub Actions 等があれば CI グリーンを確認してからマージする。 -->
@@ -121,14 +150,14 @@ Last updated: [YYYYMMDD]
 ## 福利化
 <!-- レビュー・実装で発見したパターンをルール・知識・スキルに昇格するフェーズ。 -->
 <!-- frontend-code-review 完了後に .codify-needed フラグが作成される。 -->
+<!-- マージ後でもよい（昇格は別ゲート）。PR に載せる knowledge 本文とは分ける。 -->
 
 - [ ] compound スキルの実行（パターンをルール・知識に昇格）
 
-## 知見保存
-<!-- セッションの知見を docs/ に永続保存するフェーズ。 -->
-<!-- .capture-needed フラグが次セッション開始時のリマインダーになる。 -->
+## クローズ
+<!-- マージ後の横断知見・アーカイブ。PR 差分に属する知見は上の「知見保存」で済ませる。 -->
 
-- [ ] knowledge-capture スキルの実行
+- [ ] knowledge-capture（会話由来・横断の残りがあれば）
 - [ ] steering archive モードでアーカイブ
 ```
 

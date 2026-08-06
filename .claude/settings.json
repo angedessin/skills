@@ -13,27 +13,16 @@
       "Bash(npx *)",
       "Bash(rm -r*)",
       "Edit(./.claude/settings.json)",
-      "Write(./.claude/settings.json)",
       "Edit(./.claude/settings.local.json)",
-      "Write(./.claude/settings.local.json)",
       "Edit(./.claude/hooks/**)",
-      "Write(./.claude/hooks/**)",
       "Edit(./CLAUDE.md)",
-      "Write(./CLAUDE.md)",
       "Edit(~/.claude/CLAUDE.md)",
-      "Write(~/.claude/CLAUDE.md)",
       "Edit(./docs/knowledge/*)",
-      "Write(./docs/knowledge/*)",
       "Edit(./docs/knowledge/**)",
-      "Write(./docs/knowledge/**)",
       "Edit(./docs/knowledge/**/*)",
-      "Write(./docs/knowledge/**/*)",
       "Edit(./docs/decisions/*)",
-      "Write(./docs/decisions/*)",
       "Edit(./docs/decisions/**)",
-      "Write(./docs/decisions/**)",
-      "Edit(./docs/decisions/**/*)",
-      "Write(./docs/decisions/**/*)"
+      "Edit(./docs/decisions/**/*)"
     ],
     "deny": [
       "Bash(pnpm add *)",
@@ -105,14 +94,14 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-gated-delete.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-env-read.sh",
             "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
+          },
           {
             "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-gated-write.sh",

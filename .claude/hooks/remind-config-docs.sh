@@ -44,7 +44,7 @@ emit() { # $1=カテゴリ  $2=注入する本文
 
 case "$fp" in
   *".claude/settings.json"|*".claude/hooks/"*)
-    emit "config" "設定・hook を編集しました。docs/knowledge/claude-code-config.md の要点（このセッションで 1 回だけ通知）: (1) permissions のルールはツールごとに独立評価される — ゲートしたいパスは Bash / Read / Edit / Write のうち到達可能な全ツール分を揃える。Edit/Write だけの ask は Bash のリダイレクトで迂回される。(2) glob は形式を列挙する — ディレクトリ配下は */**/**/* の 3 形式。単一形式では直下のファイルを取りこぼす。(3) セッション中に追加した hook が効くかはイベント種別で割れる（PostToolUse は即座に効いたが PreToolUse の追加分は効かなかった実測がある・原因未解明）。PreToolUse でガードを足したらセッション再起動後に実効性を確認し、確認できるまで機械的な防御として数えない。書いたことを効いていることの証拠にしない。"
+    emit "config" "設定・hook を編集しました。docs/knowledge/claude-code-config.md の要点（このセッションで 1 回だけ通知）: (1) permissions のファイルパス規則は Edit(path)/Read(path) のみ（Write(path) は死んだ規則で起動時警告）。ゲートしたいパスは Bash / Read / Edit のうち到達可能な全ツール分を揃える。Edit だけの ask は Bash のリダイレクトで迂回される。(2) glob は形式を列挙する — ディレクトリ配下は */**/**/* の 3 形式。単一形式では直下のファイルを取りこぼす。(3) セッション中に追加した hook が効くかはイベント種別で割れる（PostToolUse は即座に効いたが PreToolUse の追加分は効かなかった実測がある・原因未解明）。PreToolUse でガードを足したらセッション再起動後に実効性を確認し、確認できるまで機械的な防御として数えない。書いたことを効いていることの証拠にしない。"
     ;;
 esac
 

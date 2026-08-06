@@ -41,10 +41,10 @@
 
 | スキル | 依存先 | 欠けている場合の挙動 |
 |---|---|---|
-| impl-from-design | design-doc が作る `design.md`（APPROVED） | 止まって design-doc を案内する（実装に入らない） |
+| impl-from-design | design-doc が作る `design.md`（APPROVED または SPIKE） | DRAFT・未知・不在なら止まって案内（実装に入らない）。SPIKE はローカルのみ |
 | impl-from-design（TDD モード） | tdd の `references/patterns.md` | パターン参照なしの縮退（本文の判断軸のみでテストを書く） |
-| frontend-code-review | review-* 7 軸 / impl-review / test-review | 未配置分をスキップして報告する（縮退動作） |
-| compound の自動起動 | frontend-code-review が立てる `.codify-needed`（**書く側**）+ `session-start-check.sh`（SessionStart hook・**読む側**） | フラグ起動が効かないだけ。明示呼び出しで使える。**読む側の hook を欠くとフラグが溜まるだけで一度も拾われない** |
+| frontend-code-review | review-* 5 サブスキル + impl-review + test-review（フルモード 7 エージェント） | 未配置分をスキップして報告する（縮退動作） |
+| compound の自動起動 | frontend-code-review **および** knowledge-capture が立てる `.codify-needed`（**書く側・二重**）+ `session-start-check.sh`（SessionStart hook・**読む側**） | フラグ起動が効かないだけ。明示呼び出しで使える。**読む側の hook を欠くとフラグが溜まるだけで一度も拾われない** |
 | knowledge-capture の自動起動 | `session-stop.sh`（Stop hook・**書く側**）が立てる `.capture-needed` + `session-start-check.sh`（SessionStart hook・**読む側**） | 同上。両方を対で配る（手順 6） |
 | pr-feedback | pr-create | **対で入れる**（提出と往復は対。片方だけでは往復の入口/出口が欠ける） |
 | feature-pipeline | 各フェーズのサブスキル（design-doc / impl-from-design / frontend-code-review / pr-create / pr-feedback / knowledge-capture / compound / e2e / steering） | フェーズごとにディスパッチ前に存在確認し、無いフェーズはスキップして「手動で行ってください」と報告する |
@@ -58,7 +58,7 @@
 |---|---|
 | **どんなスタックでも**（バックエンド・CLI・インフラ含む） | メタワークフロー: design-doc / steering / debug / knowledge-capture / compound / rule-audit / feature-pipeline / empirical-prompt-tuning / security-audit。設計承認ゲート・障害調査・知見蓄積・剪定・セットアップ資産のセキュリティ監査はコードの種類に依存しない |
 | **テストを書くプロジェクト全般** | tdd / test-review / e2e。本文は判断軸のみなので、references/patterns.md を自分のテストスタック（pytest / JUnit / Go test 等）で再生成する |
-| **フロントエンド（React 以外も可）** | frontend-code-review + review-* 全 7 軸。判断軸は概ねフレームワーク中立（a11y / CWV / XSS / correctness）。compatibility とコード例を自分のフレームワークに合わせる |
+| **フロントエンド（React 以外も可）** | frontend-code-review + review-* 全 5 サブスキル（フルモードは 7 エージェント）。判断軸は概ねフレームワーク中立（a11y / CWV / XSS / correctness）。compatibility とコード例を自分のフレームワークに合わせる |
 | **フロントエンド以外でのレビュー** | review-correctness は言語横断で使える（境界条件・null・非同期レース・エラー握りつぶし）。review-a11y / ui / performance は対象外なので配置しない |
 
 既存の開発ワークフロー（レビュー体制・ブランチ運用・チケット管理）があるプロジェクトでは、**スキル本文を書き換えず**、配置先 CLAUDE.md の発動ポリシー側で接続を定義する（例:「PR 作成は既存のチーム運用に従い、feature-pipeline の Phase 3.5 はスキップする」「設計レビューは design.md ではなく既存の Design Doc プロセスに読み替える」）。
@@ -91,11 +91,12 @@
    - **`CLAUDE.md` / `docs/knowledge/**` / `docs/decisions/**` の ask は knowledge-capture・compound・rule-audit を配置する場合に特に重要**。これらのスキルは本文のハードストップで「承認前に書き込まない」を担保しているが、締めを尽くした状態でも承認前の書き込みが 1/4 の頻度で再現した実測がある。ask はその最後の防波堤で、承認制という方針そのものは配置先の CLAUDE.md でも宣言しておく。**ディレクトリ配下は `*` / `**` / `**/*` の 3 形式を並べる**（単一形式では直下のファイルを取りこぼす）
    - 配置先に**既存の settings.json / permissions がある場合は手動マージ**する（丸ごと上書きしない）。方針: **配布サブセット由来**の deny / ask は削らずに追加する。既存の allow と配布サブセットの deny が同じ操作で衝突したら **deny を優先**（安全側に倒す。緩めたい場合は配置先の判断で個別に外す）
    - `.claude/hooks/guard-env-read.sh` をコピーし、settings.json の `hooks.PreToolUse` 登録も移す（deny の前置一致では防げない .env 読み取りの迂回を全文検査で ask に落とす）
-   - **`.claude/hooks/guard-gated-write.sh` もコピーする**（`hooks.PreToolUse` 登録も移す）。permissions の ask は **Edit / Write ツールにしか掛からない**ため、`Bash(git show*)` のような前置一致 allow があると `git show HEAD:x > CLAUDE.md` で迂回できる。**ask と対でなければ防波堤にならない**ので、上の ask を配る配置先には必ず要る。対象は書き込み（`>` / `>>` / `tee`）のみで、`rm` による削除は非対象
+   - **`.claude/hooks/guard-gated-write.sh` もコピーする**（`hooks.PreToolUse` 登録も移す）。permissions のファイルパス ask は **`Edit(path)` のみ**（`Write(path)` は参照されず起動時警告になる。`Edit` が Write 等の編集系ツールを覆う）。それでも `Bash(git show*)` のような前置一致 allow があると `git show HEAD:x > CLAUDE.md` で迂回できる。**ask と対でなければ防波堤にならない**ので、上の ask を配る配置先には必ず要る。対象は書き込み（`>` / `>>` / `tee`）
+   - **`.claude/hooks/guard-gated-delete.sh` もコピーする**（`hooks.PreToolUse` 登録も移す）。同パスへの素の `rm` / `mv` を **deny** する（`&&` / `||` / `;` / `|` 連鎖・`git rm` / `/bin/rm` は対象外＝沈黙。改行区切りの複数単純コマンドは各行を判定。完全封鎖ではない）
    - **品質ゲート 2 本も同送する**: `post-edit-lint.sh`（編集ごとの lint 差し戻し。Biome / ESLint / Stylelint を実行時に自動検出）と `stop-typecheck.sh`（終了宣言時の tsc）。settings.json の `hooks.PostToolUse` / `hooks.Stop` 登録も移す。両方**フェイルオープン**（lint 設定・tsconfig.json が無いプロジェクトでは素通し）なのでスタックを問わず配ってよい。詳細・調整（tsc が遅い場合の外し方等）は docs/knowledge/claude-code-config.md
    - hooks のコマンド登録は `"$CLAUDE_PROJECT_DIR"` 起点の相対参照なので、`.claude/hooks/` に同じ配置でコピーすれば**パスの書き換えは不要**
    - `session-stop.sh`（Stop hook）は **knowledge-capture を配置する場合のみ**コピーする（settings.json の `hooks.Stop` 登録も同時に移す）。この hook が立てる `.capture-needed` は knowledge-capture の起動を促すフラグなので、未配置のまま同送すると「存在しないスキルの実行を促す」実行不能な指示になる
-   - `session-start-check.sh`（SessionStart hook）は **`.steering/` を使うスキル（design-doc / steering / knowledge-capture / compound）を配置する場合にコピーする**（settings.json の `hooks.SessionStart` 登録も同時に移す）。これはフラグを**読む側**で、`.capture-needed` / `.codify-needed` とアクティブタスクを検出して context に注入する。**`session-stop.sh`（書く側）だけを配ると、フラグは毎セッション立つのに拾う主体が居らず、knowledge-capture / compound の「セッション開始時にフラグがあれば起動」が配置先で永久に発火しない**（producer だけ配って consumer が欠ける状態）。`.steering/` が無いプロジェクトでは素通し、jq 不在時もフェイルオープン
+   - `session-start-check.sh`（SessionStart hook）は **`.steering/` を使うスキル（design-doc / steering / knowledge-capture / compound）を配置する場合にコピーする**（settings.json の `hooks.SessionStart` 登録も同時に移す）。これはフラグを**読む側**で、`.capture-needed` / `.codify-needed` とアクティブタスクを検出して context に注入する。加えて `.claude/skills/rule-audit/SKILL.md` があるときだけ【rule-audit 月次】ナッジ（最終実施から 30 日以上 or 未実施）を注入する（スキル不在時は非注入。操作定義は hook 注入文。スキップは `.steering/.last-rule-audit` 更新による 30 日再ナッジで、capture の次 Stop 寿命とは別）。**`session-stop.sh`（書く側）だけを配ると、フラグは毎セッション立つのに拾う主体が居らず、knowledge-capture / compound の「セッション開始時にフラグがあれば起動」が配置先で永久に発火しない**（producer だけ配って consumer が欠ける状態）。`.steering/` が無いプロジェクトでは素通し（jq 非依存）
    - `settings.local.json` はコピーしない（マシン固有の承認履歴）
    - 配置先の `.npmrc` に `ignore-scripts=true` を推奨（install 時の postinstall 実行 = サプライチェーン攻撃の主経路を既定で遮断。ビルドスクリプトが必要なパッケージだけ個別に許可する運用）
    - **配置後、配置先で一度対話セッションを起動して信頼ダイアログを承認する** — 未信頼のワークスペースでは settings.json の permissions.allow が無効化される（deny / hooks は有効）。headless 運用（`claude -p`）を始める前に必須
@@ -106,7 +107,7 @@
    - frontend-code-review 配置時: 小さな diff に「コードをレビューして」→ レビューが実行され指摘（または指摘なしの報告）が返ること
    - hooks / permissions 同送時: **`head .env.local`** の実行を依頼して guard-env-read.sh が確認（ask）に落とすこと。**`cat .env` では検証にならない**（permissions の deny だけで止まるため、hook が動いていなくても同じ結果になる）
    - hooks / permissions 同送時: **配置先の通常コマンドが阻害されていないこと** — 依存インストール（`npm install` 等）とテスト実行を試し、拒否されないことを確認する。配置先に settings.json が無い場合は配布サブセットが丸ごと新規作成されるため、ここが壊れていると「なぜか依存インストールができない」原因不明の摩擦になる
-   - **PreToolUse hook（guard-env-read / guard-gated-write）は配置したセッション中に発火しないことがある。** 効いているかの確認は Claude Code を再起動してから行う。**ask の発火は AI 側から観測できないので、確認は人間が行う**
+   - **PreToolUse hook（guard-env-read / guard-gated-write / guard-gated-delete）は配置したセッション中に発火しないことがある。** 効いているかの確認は Claude Code を再起動してから行う。**ask / deny の発火は AI 側から観測できないので、確認は人間が行う**
 
 ## ドリフト確認と改善の還元
 
@@ -119,11 +120,11 @@
 ```markdown
 ## スキル発動ポリシー
 
-- 新しいタスクを開始するときは design-doc を使う。1 セッション完結の見込みなら会話内設計・複数セッションなら .steering/（どちらにするかは design-doc がユーザーに確認する）。いずれも設計の承認までは実装しない
-- 承認済み design.md からの実装は impl-from-design を使う（実装モードは TDD 推奨）
+- 新しいタスクを開始するときは design-doc を使う。1 セッション完結の見込みなら会話内設計・複数セッションなら .steering/（どちらにするかは design-doc がユーザーに確認する）。**DRAFT は設計の承認まで実装しない**。探索だけなら Status: SPIKE（ローカル実装可・PR 不可）
+- 実装は impl-from-design を使う（APPROVED の本実装、または SPIKE の探索。実装モードは TDD 推奨）
 - 既存コードへのテスト追加・テストファーストの実装は tdd を使う
 - 実装後のコードレビューは frontend-code-review を使う
 - セッションで得た知見は knowledge-capture で docs/ に保存する
-- セッション開始時、未処理フラグ（`.capture-needed` / `.codify-needed`）とアクティブタスクは SessionStart hook が context に注入する。`.capture-needed` があれば「knowledge-capture を実行しますか？」、`.codify-needed` があれば「compound を実行しますか？」とユーザーに確認する（hook を配置していない場合は `.steering/` を自分で確認する）
+- セッション開始時、未処理フラグ（`.capture-needed` / `.codify-needed`）とアクティブタスクは SessionStart hook が context に注入する。`.capture-needed` があれば対象タスクごとに「今 / 後で / スキップ」で確認する（一括スキップ禁止。**操作定義は hook 注入文** — CLAUDE.md が無い／異なる配置先でも足りる。CLAUDE.md への再掲は任意・推奨。スキップは `.capture-needed` のみ削除・効果は次の Stop まで）。`.codify-needed` があれば「compound を実行しますか？」と確認する（三択の後）。【rule-audit 月次】が注入されたら「今 / 後で / スキップ」で確認する（操作定義は hook 注入文。capture とは別契約。スキップは `.steering/.last-rule-audit` 更新・30 日再ナッジ）。hook を配置していない場合は `.steering/` を自分で確認する
 <!-- 配置したスキルに合わせて追記・削除する。行動ルール（プロジェクト固有の規約）はこの下に育てていく -->
 ```

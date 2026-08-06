@@ -2,7 +2,7 @@
 name: feature-pipeline
 description: "機能開発の複数フェーズ（計画→実装→テスト→レビュー→統合→知見蓄積）を一気通貫で回したいときに使うエンドツーエンドのオーケストレーター。発動の合図は『フロー全体を通して/一括で/最初から最後まで/エンドツーエンドで』のように、単一作業ではなく工程全体をまとめて進めたい意図があること。例:『この機能を設計から実装・テストして最後にナレッジ残すまで通してやって』『新機能を計画から知見蓄積まで一括で面倒みて』『フル開発サイクルで回したい、途中の承認は挟んでいい』。既存スキル（design-doc → impl-from-design → frontend-code-review → pr-create → knowledge-capture / compound）を順に呼び出し、主要な判断点（設計承認・指摘トリアージ・マージ・知見保存）で人間の承認ゲートを挟む半自動フロー。`.steering/[task]/` の成果物から現在地を検出して途中フェーズから再開できるため、複数セッションにまたがる機能開発に向く。**単一フェーズだけの依頼では発動しない** — 設計のみは design-doc、承認済み設計からの実装のみは impl-from-design、レビューのみは frontend-code-review、テスト追加のみは tdd、知見保存のみは knowledge-capture、ルール昇格のみは compound を直接使う。CI/CD・デプロイの『パイプライン』や、小さなバグ修正・タスク状況の確認にも使わない。"
 metadata:
-  version: "1.3"
+  version: "1.6"
 ---
 
 # Feature Pipeline
@@ -68,12 +68,16 @@ find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
 
 ### 現在地の判定表
 
-対象タスクの `design.md`・`tasklist.md`・`review-result.md` を確認し、**上から順に評価して最初にマッチした行で確定する。確定したらそれ以降の行は評価しない**（複数行の条件が同時に成立して見えても、上の行が優先）:
+対象タスクの `design.md`・`tasklist.md`・`review-result.md` を確認し、**上から順に評価して最初にマッチした行で確定する。確定したらそれ以降の行は評価しない**（複数行の条件が同時に成立して見えても、上の行が優先）。
+**Status 読み取り規則**: `Status:` 行の最初の語彙トークン（`**` を除く）∈ {DRAFT,SPIKE,APPROVED}。以外・欠落は表の「未知」行で即停止（fail-closed。下位行へ落とさない）。
+現在地判定は Status・tasklist・review-result のみで足りる（design.md の契約コア/付録の境界読み対象外 — 付録全文は読まない）。
 
 | 観測される状態 | 現在地 |
 |---|---|
 | `design.md` が無い | **Phase 1**（計画） |
 | `design.md` の Status が `DRAFT` | **Gate 1 で停止**（設計レビュー待ち。実装に入らない） |
+| `design.md` の Status が `SPIKE` | **即停止**（探索レーンはパイプライン外。破棄または DRAFT 戻し後に再開） |
+| `design.md` の Status が上記以外（未知・欠落） | **即停止**（fail-closed。Status 読み取り規則に従う） |
 | `design.md` が `APPROVED` かつ `tasklist.md` の実装タスクに未チェックあり | **Phase 2**（実装） |
 | 実装タスクが全チェック済み かつ `review-result.md` が無い | **Phase 3**（レビュー） |
 | `review-result.md` が存在し Status が `OPEN` | **Gate 3 で停止**（指摘の修正対応待ち） |
@@ -135,7 +139,10 @@ Gate 1 を通過したことをユーザーに伝えてから Phase 2 を開始�
 
 ## Phase 2 — 実装（impl-from-design）
 
-進む前に `design.md` の Status が `APPROVED` であることを再確認する（DRAFT なら Gate 1 に戻る）。
+進む前に `design.md` の Status が `APPROVED` であることを再確認する。
+- `DRAFT` → Gate 1 に戻る
+- `SPIKE` → **ここで止まる**（探索はパイプライン外。破棄または DRAFT 戻し後に再開）
+- 未知・欠落 → **ここで止まる**（fail-closed）
 
 `impl-from-design` スキルを起動する。これは:
 - `tasklist.md` の実装スコープを確認（無ければユーザーに確認）
@@ -161,8 +168,11 @@ impl-from-design は全タスク完了後に「実装が完了しました」と
 直後の Phase 3 のレビューと Gate 3 が人間の判断点として控えている。遷移は報告するので、
 異議・追加実装の要望が出たらそこで止めて impl-from-design に戻る。
 
-> 実装中に design.md との乖離が生じた場合、impl-from-design 自身が止まってユーザーに
-> 報告する。その場合はこのスキルも待機し、設計変更が必要なら Phase 1 に戻る判断をする。
+> 実装中に design.md との乖離が生じた場合、`impl-from-design` が止まって分類提案する。
+> このスキルも待機する:
+> - **契約コア変更**（または迷ったらコア）→ ユーザーが `design-doc` 方針転換で `Status: **DRAFT**` に戻したら、
+>   Step 0 を再判定して **Gate 1**（設計レビュー）へ戻る。方針転換時に `review-result.md` は破棄される
+> - **APPROVED 追認** → design/tasklist 更新後も Status は APPROVED のまま。**Phase 2 を継続**する（Gate 1 に戻さない）
 
 ---
 
@@ -192,7 +202,10 @@ impl-from-design は全タスク完了後に「実装が完了しました」と
   解消するまでこのゲートを繰り返す。
 - **2（後で対応する）** → `review-result.md` の Status を `DEFERRED` に更新し、未対応の指摘は
   チェックボックスを未チェックのまま残す → Phase 4 へ。Phase 5 のサマリーに未対応として明記する。
+  **設計整合 High（設計契約コア不一致）が残っている場合は必須警告**を出してから続行する
+  （文言は `frontend-code-review` の「設計整合 High のゲート入力」と同じ。警告なしの DEFERRED は禁止）。
 - **3（このまま進める / 指摘なし扱い）** → `review-result.md` の Status を `RESOLVED` に更新 → Phase 4 へ。
+  設計整合 High 残存時は **2 と同様の必須警告**を出してから続行する。
 
 **いずれの選択でも `review-result.md` の Status を `OPEN` から必ず変更する。** `OPEN` のまま Phase 4 に
 進むと、次セッションの Step 0 が再び Gate 3 と判定してパイプラインが前に進めなくなる（resume デッドロック）。
@@ -210,6 +223,10 @@ Gate 3 通過後:
 ## Phase 3.5 — PR / 統合（pr-create）
 
 変更を世に出すフェーズ。`tasklist.md` に「デプロイ」セクションがあればそれに従う。
+
+**PR に載せる知見はここより前に同じブランチへ含める。** この変更の説明・落とし穴として
+`docs/knowledge/` 等へ書く内容を「マージ後の Phase 4」に先送りすると、後続 PR や別差分に混ざる
+（20260730）。Phase 4 は横断・会話残り・compound・アーカイブ用。
 
 1. リポジトリの運用を確認する: PR ベース運用（リモート + CI あり）か、main 直コミット運用か
    - **直コミット運用・CI なし** → このフェーズはコミット済みであることの確認のみでスキップしてよい。`tasklist.md` の「デプロイ」項目に「スキップ（直コミット運用）」と記録して Phase 4 へ
@@ -233,6 +250,10 @@ CI グリーン・レビュー承認を確認したら **ここで止まり**、
 ---
 
 ## Phase 4 — 知見蓄積（knowledge-capture → compound 提案）
+
+**役割の切り分け**: Phase 3.5 より前に「この PR の差分に属する知見」はブランチへ含めてある前提。
+ここは**マージ後に残る分**（会話由来・横断・compound・アーカイブ準備）を扱う。先送りしすぎて
+次タスクの PR に無関係な docs 差分を混ぜない。
 
 ### Step 4a — knowledge-capture
 
