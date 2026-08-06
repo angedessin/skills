@@ -172,27 +172,19 @@ DEPLOY_PERMISSIONS = {
         "Bash(git push*)",
         "Bash(npx *)",
         "Bash(rm -r*)",
+        # ファイルパス規則は Edit(path) のみ（Write(path) は参照されず起動時警告。
+        # Edit が Write / NotebookEdit 等の編集系を覆う — Claude Code permissions 正本）
         "Edit(./.claude/settings.json)",
-        "Write(./.claude/settings.json)",
         "Edit(./.claude/settings.local.json)",
-        "Write(./.claude/settings.local.json)",
         "Edit(./.claude/hooks/**)",
-        "Write(./.claude/hooks/**)",
         "Edit(./CLAUDE.md)",
-        "Write(./CLAUDE.md)",
         # ディレクトリ配下は * / ** / **/* の 3 形式を並べる（単一形式では直下を取りこぼす）
         "Edit(./docs/knowledge/*)",
-        "Write(./docs/knowledge/*)",
         "Edit(./docs/knowledge/**)",
-        "Write(./docs/knowledge/**)",
         "Edit(./docs/knowledge/**/*)",
-        "Write(./docs/knowledge/**/*)",
         "Edit(./docs/decisions/*)",
-        "Write(./docs/decisions/*)",
         "Edit(./docs/decisions/**)",
-        "Write(./docs/decisions/**)",
         "Edit(./docs/decisions/**/*)",
-        "Write(./docs/decisions/**/*)",
     ],
     "deny": [
         # 自動インストールを伴う実行（サプライチェーン対策）。依存管理そのものは止めない
@@ -239,7 +231,6 @@ MASTER_ONLY_PERMISSIONS = {
         # 配置先を超えたグローバルな副作用になる。配置先の settings が
         # ユーザーのホーム設定をゲートするのは越権
         "Edit(~/.claude/CLAUDE.md)",
-        "Write(~/.claude/CLAUDE.md)",
     ],
     "deny": [
         # 配置先の**通常の依存管理**を止めてしまう。マスターは「依存を増やさない」方針だが、
@@ -331,8 +322,9 @@ def expected_hooks(skills: list[str] | set[str]) -> list[str]:
     deploy_guardrails() が KeyError で落ちる。契約 (a) がこれを検出する。
     """
     # 品質ゲート 2 本 + 書き込みガード 2 本はフェイルオープン / 自己完結なので常に同送する。
-    # guard-gated-write.sh は permissions.ask（Edit/Write 限定）が Bash のリダイレクトで
-    # 迂回されるのを塞ぐ。ask と対でなければ防波堤にならないため、ask を配る配置先には必ず要る。
+    # guard-gated-write.sh は permissions.ask（Edit(path) 限定。編集系ツールを覆う）が
+    # Bash のリダイレクトで迂回されるのを塞ぐ。ask と対でなければ防波堤にならないため、
+    # ask を配る配置先には必ず要る。
     send = [
         "guard-env-read.sh",
         "guard-gated-write.sh",

@@ -1,13 +1,14 @@
 #!/bin/bash
 # PreToolUse(Bash) guard: 承認ゲート対象パスへの Bash 経由の書き込みを強制確認（ask）に落とす。
 #
-# なぜ要るか: permissions の ask は Edit / Write ツールにしか掛からない。allow の
+# なぜ要るか: permissions のファイルパス ask は Edit(path) のみ（Write ツール呼び出しも
+# Edit 規則が覆う。Write(path) 規則は死んで起動時警告になる）。allow の
 # `Bash(git diff*)` / `Bash(git show*)` は前置一致なので `git show HEAD:x > CLAUDE.md` が
-# 素通りし、Edit/Write を経由しないぶん ask が発火しない。ファイルに触れる全ツール分の
+# 素通りし、Edit を経由しないぶん ask が発火しない。ファイルに触れる全ツール分の
 # ルールを揃える（docs/knowledge/claude-code-config.md）という規律の Bash 側を担う。
 #
 # 脅威モデル: 敵対者ではなく「停止契約を滑った善意のエージェント」。実測された素通りは
-# いずれも Edit/Write という自然な経路だったため、ここでは明示的な書き込みリダイレクト
+# いずれも Edit/Write ツールという自然な経路だったため、ここでは明示的な書き込みリダイレクト
 # （> / >> / tee）だけを対象にする。sed -i や任意インタプリタ経由までは追わない
 # （際限のない軍拡になり、脅威モデルが違う）。**完全な封鎖ではない**ことを前提に使う。
 #

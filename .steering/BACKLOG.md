@@ -67,8 +67,7 @@
 
 **一次情報**: `.steering/archived/20260725-skillset-hardening/decisions.md` のバックログ節
 
-- **(b) 配布機構の初回実走** — 外部プロジェクトへの実配置。20260726 に tmpdir への実配置で
-  機構の動作は実証したが、**実際の配置先はまだ 0 件**（`deployments.md` の有効行 0）
+- ~~**(b) 配布機構の初回実走**~~ → **完了**（`20260805-first-deployment-run`。`/Users/kentaro/Desktop/_lab/ai/skill-test` へ最小セット配置・`deployments.md` 有効行 1）
 - **(c) 構造改善** — `docs/knowledge/skill-design-patterns.md` が **45KB** に増えており剪定対象
   （`rule-audit` の担当）。依存表の網羅・README のセットアップ節新設も含む
 - **(d) `passthrough_check.py` のハーネス拡張** — `## setup` 節・サンドボックスでの `git init`。
@@ -88,5 +87,4 @@
 - ~~**design↔実装の同期パス明確化**~~ → **完了**（`20260802-design-impl-sync`。方針転換分類表・乖離分類・Axis 1 High・FCR/pipeline ゲート入力・validate キー共存）
 - ~~**ナレッジ鮮度の機械化**~~ → **完了**（`archived/20260804-knowledge-freshness-nudge` / PR #10 → integration。SessionStart 月次ナッジ）
 - **design.md 境界の任意追記** — アクティブ design への `<!-- design-doc-boundary: appendix -->` 追記は任意・強制しない（マーカー無しは全文フォールバックのまま）
-- **配置1件実走** — `deployments.md` 有効行を 1 にする（company はカウントしない）
 - **passthrough シナリオ拡充** — adr / debug / feature-pipeline / impl-from-design / frontend-code-review
