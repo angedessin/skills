@@ -57,7 +57,7 @@
 
 - `guard-gated-write.sh` のリネーム是非（書き込み以外も見るなら名前がずれる）。20260726 時点では
   **リネームしない**と決めた（rm / mv を切り出したので名前と実態が一致した）。このタスクで再検討する
-- 配布物側の同名 hook にも同じ変更が要る。**契約 (g) が差分を検出するので片側修正は落ちる**
+- 配布物側の同名 hook にも同じ変更が要る。**個人配置先との片側修正は差分／ドリフト検出で落ちる**
 - 配布物の `MANIFEST.md` に「対象は書き込みのみ・削除は非対象」と明記済み。変更したらここも直す
   （契約は文書の本文までは見ない）
 
@@ -86,5 +86,4 @@
 - ~~**SPIKE レーン**~~ → **完了**（`archived/20260801-spike-lane` / PR #7 → integration）
 - ~~**design↔実装の同期パス明確化**~~ → **完了**（`20260802-design-impl-sync`。方針転換分類表・乖離分類・Axis 1 High・FCR/pipeline ゲート入力・validate キー共存）
 - ~~**ナレッジ鮮度の機械化**~~ → **完了**（`archived/20260804-knowledge-freshness-nudge` / PR #10 → integration。SessionStart 月次ナッジ）
-- **design.md 境界の任意追記** — アクティブ design への `<!-- design-doc-boundary: appendix -->` 追記は任意・強制しない（マーカー無しは全文フォールバックのまま）
 - ~~**passthrough シナリオ拡充（Gate 1）**~~ → **シナリオ骨格のみ・未実走**（`20260806-passthrough-pipeline-gate1`。`tests/passthrough/feature-pipeline-gate1/`。課金実走は任意）。**残置**: `frontend-code-review` は 20260725 どおり落とし維持。Gate 3.5 は節 2(d) ハーネス拡張前提
