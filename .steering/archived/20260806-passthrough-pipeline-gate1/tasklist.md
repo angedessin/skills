@@ -22,21 +22,23 @@ Last updated: 20260806
 ## 知見保存（この PR / ブランチに載せる分）
 <!-- この変更の説明・落とし穴として残す knowledge は、マージ前に同じブランチへ含める。 -->
 
-- [ ] knowledge-capture スキルの実行（PR 差分に属する知見）
-- [ ] 必要なら docs/ への追記をこのブランチでコミット
+- [x] knowledge-capture スキルの実行（PR 差分に属する知見）— 追加 docs なし（decisions 既記録・skill-design-patterns 追記は採らず）
+- [x] 必要なら docs/ への追記をこのブランチでコミット — 追記なし
 
 ## デプロイ
 
 - [x] PR 作成（base = `integration/20260730-reports`）— https://github.com/angedessin/skills/pull/12
-- [ ] CI グリーン確認（あれば）
+- [x] CI グリーン確認（あれば）— checks 未報告（N/A）
 - [ ] マージは人間の明示指示後のみ
 
 ## 福利化
 
-- [ ] compound スキルの実行（パターンをルール・知識に昇格）
+- [x] compound スキルの実行（パターンをルール・知識に昇格）— 昇格候補ゼロ・codify-log 記録済み
 
 ## クローズ
 
-- [ ] knowledge-capture（会話由来・横断の残りがあれば）
-- [ ] steering archive モードでアーカイブ
-- [ ] （任意）課金実走は skill-test のコスト承認後
+- [x] knowledge-capture（会話由来・横断の残りがあれば）— 案1のみ・追加なし
+- [x] steering archive モードでアーカイブ
+- [ ] （任意）課金実走は skill-test のコスト承認後 — 未実施のまま残置（設計どおり任意）
+
+Archived: 20260806
