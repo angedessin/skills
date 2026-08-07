@@ -1,6 +1,11 @@
 1# 保守メモ — 会社向け持ち出しセット（`export/company/`）
 
-**読み手: このリポジトリ（マスター）の保守者。** 会社へは持ち出さない（持ち出すのは `export/company/` 配下だけ）。
+**読み手: このリポジトリ（マスター）の保守者。** 会社へは持ち出さない。
+
+**持ち出す単位 = `export/company/` 配下のすべて**（`skills/` / `claude-config/` / `MANIFEST.md` /
+`HANDOVER.md` / `MIGRATION-GUIDE.md`）。`export/` 直下の他のもの（この文書・`company-tests/`）は
+**master 側の資産で、持ち出さない**。会社側で実行できないものを配布物に混ぜると、配置する Claude が
+実行を試みて詰まる。
 
 会社側が読む文書は `export/company/` の 3 点（MANIFEST / HANDOVER / MIGRATION-GUIDE）。
 そちらには**配置手順と現状だけ**を書き、マスター前提の手順（ここに書いてあること）は混ぜない
@@ -134,10 +139,10 @@ PY
 
 ### 素通り検査（課金・任意）
 
-シナリオは `export/company/tests/<skill>/scenario.md`。
+シナリオは `export/company-tests/<skill>/scenario.md`（**`export/company/` の外**。master の `passthrough_check.py` に依存し `skill:` もリポジトリ相対なので、持ち出すと会社側では実行不能になる）。
 
 - **`--all` を使わない。** `--all` の走査対象は `tests/passthrough/` 固定で、このセット専用のシナリオを**永久に拾わない**。さらにこのブランチには master 側の `.claude/skills/` と `tests/passthrough/` もそのまま存在するため、`--all` は**master のスキルを検査して PASS を返す**。持ち出しセットを 1 本も見ていないのに「検査済み」に見える
-- **明示指定で回す**: `python3 scripts/passthrough_check.py export/company/tests/<skill>/scenario.md --runs 4`（承認ゲート系は 4 回以上）
+- **明示指定で回す**: `python3 scripts/passthrough_check.py export/company-tests/<skill>/scenario.md --runs 4`（承認ゲート系は 4 回以上）
 - **実行はこのブランチ（worktree）側の `scripts/` から**。スクリプトはルートを実行ファイルの位置から決めるため、main 側の `scripts/` を使うと `export/company/` を解決できない
 - **バックグラウンド実行に載せない**（フォアグラウンド直列）。過去に早期完了誤報で二重課金した事例がある
 - **回す対象の選び方**: 再同期で**本文が変わったスキルだけ**でよい。`git diff HEAD -- export/company/skills/<name>/SKILL.md` が frontmatter だけなら、前回の検証結果がそのまま引き継げる

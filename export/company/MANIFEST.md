@@ -16,6 +16,7 @@
 | `design.md` の Status | `DRAFT` / `SPIKE` / `APPROVED` の **3 値**（英語のまま扱う契約値） | — |
 | コードレビュー | **同梱なし**（会社のレビュープラグインを使う） | — |
 | 由来 | マスターコミット `e02a95da5e73049be07cc501e0cfd34d179b9277`。10 スキルすべて同一 | 各 SKILL.md の `metadata.source-commit` |
+| 持ち出し単位 | このディレクトリ配下の **5 点がすべて** — `skills/` / `claude-config/` / `MANIFEST.md` / `HANDOVER.md` / `MIGRATION-GUIDE.md`。テスト・検証スクリプトは同梱していない | `ls` |
 
 **検証の状態**:
 
