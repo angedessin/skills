@@ -44,5 +44,6 @@ Last updated: 20260807（実装完了・レビュー待ち）
 
 ## 福利化 / 知見保存 / クローズ
 
-- [ ] 必要なら compound / knowledge-capture
+- [x] knowledge-capture 実行（20260807）— Frozen 解除の反映 / 配布文書の読み手・鮮度分離 / 課金検査の対象選定を docs/knowledge/ へ保存
+- [ ] compound（`.codify-needed` 立てた。次セッションで提案される）
 - [ ] archive

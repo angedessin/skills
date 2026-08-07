@@ -18,7 +18,11 @@
 
 # （配置先を追加したら deployments.md に 1 行で登録する。starter-kit.md の配置手順を参照）
 
-# --- Frozen handoff（2026-07-30）---
-# 会社プロジェクトへの一方向持ち込み（export/20260714-company 由来）は Frozen:
-# マスターから更新しない・還流なし・有効行に載せない。再開は会社側からの明示依頼時のみ。
-# 生きた検査（check_export_stopcontract / 資産契約の持ち出し突合）はマスターから除去済み。
+# --- 会社向け持ち出しセット（export/company）---
+# 2026-07-30 に Frozen としたが、2026-08-07 に解除。現行方針は
+# 「原則独立フォーク＋停止契約は上流同期」（正本は export/COMPANY-MAINTENANCE.md）。
+# - 配置先ではないのでこのレジストリの有効行には載せない（還流なし・skill-harvest の対象外）
+# - ただし settings.json / hooks の防御を変えたら export/company/claude-config/ も確認する
+#   （Frozen 中に本文が 2 世代遅れ、防御が丸ごと欠けた実例がある）
+# - 生きた検査（check_export_stopcontract / 資産契約の持ち出し突合）はマスターから除去済みのまま。
+#   完了判定は export/COMPANY-MAINTENANCE.md の検査コマンドで行う
