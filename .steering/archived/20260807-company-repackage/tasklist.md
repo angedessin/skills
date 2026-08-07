@@ -33,17 +33,19 @@ Last updated: 20260807（実装完了・レビュー待ち）
 
 - [x] 3 文書のノイズ監査（配置する Claude 視点）→ 保守者向け 124 行を `export/COMPANY-MAINTENANCE.md` へ分離・MANIFEST を現状先頭に再構成・重複をポインタに縮退
 - [x] 素通り検査 knowledge-capture `--runs 4` → **4/4 PASS**
-- [ ] コードレビュー実施
-- [ ] 指摘修正
+- [x] レビュー方針を判断（20260807）→ **エージェントレビューは見送り**。差分がコード（React/TS）ではなくスキル本文・文書・シェルで frontend-code-review が空振りするため。代わりに機械検査で締めた: 禁止語 grep / hook 登録≡実体 / 素通り検査 4/4 PASS / 文書のパス・節参照の実在確認（死んだ節参照 1 件を検出・修正）
+- [x] 指摘修正 — 上記で検出した 1 件（COMPANY-MAINTENANCE の死んだ節参照）を修正済み
 
 ## デプロイ
 
-- [ ] ユーザー承認後 commit
-- [ ] ユーザー承認後 push
-- [ ] 会社配置は HANDOVER 別セッション
+- [x] ユーザー承認後 commit（`dd962b2` 再パッケージ / `1f1ed94` knowledge-capture）
+- [ ] ユーザー承認後 push ← **archive の直後に実施予定**（ユーザー指定順: レビュー → archive → push）
+- [ ] 会社配置は HANDOVER 別セッション ← このタスクの**対象外**（design.md スコープ外。完了条件ではない）
 
 ## 福利化 / 知見保存 / クローズ
 
 - [x] knowledge-capture 実行（20260807）— Frozen 解除の反映 / 配布文書の読み手・鮮度分離 / 課金検査の対象選定を docs/knowledge/ へ保存
-- [ ] compound（`.codify-needed` 立てた。次セッションで提案される）
-- [ ] archive
+- [x] compound — **今回は見送りと確定**（20260807・ユーザー判断）。今日の学びは docs/knowledge/ に保存済みで、CLAUDE.md ルール化・hook 化へ上げる候補が無かったため。`.codify-needed` はアーカイブ前に削除（archived/ 配下では SessionStart が検出せず、見えないフラグが残るため）
+- [x] archive
+
+Archived: 20260807
