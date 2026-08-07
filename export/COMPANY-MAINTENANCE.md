@@ -163,7 +163,7 @@ PY
 | 文書 | 読み手 | 持つ内容 |
 |---|---|---|
 | `MANIFEST.md` | 配置エンジニア / 配置代行の Claude | 一次情報。中身・除外理由・設定・配置手順の全ステップ |
-| `HANDOVER.md` | 配置作業を代行する Claude | そのまま貼る導入プロンプト。手順の詳細は MANIFEST を指す |
+| `HANDOVER.md` | 冒頭は人 / 区切り線から下は配置代行の Claude | 人向けの使い方・注意 ＋ 貼る範囲（導入プロンプト）。手順の詳細は MANIFEST を指す |
 | `MIGRATION-GUIDE.md` | 導入判断者 | 入れる価値・課題との対応・コスト。手順は持たず MANIFEST を指す |
 
 **hook の本数・依存・スキル数を変えたら、3 文書と `settings.example.json` の `_comment` を同一コミットで直す。**
