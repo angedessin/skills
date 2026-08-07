@@ -108,8 +108,8 @@
      見出しは SKILL.md が参照する §名（§run / §config / §setup / §unit / §component /
      §query-ladder / §network / §state / §api-layer / §coverage）に合わせ、
      Angular に対応物が無い節は省く。**SKILL.md 本文は変更しない**
-5. `CLAUDE.md` に発動ポリシー節を追加する（MANIFEST 末尾の雛形をベースに、この
-   プロジェクトの運用に合わせて調整。**追加内容を提示して承認を得てから書き込む**）
+5. `CLAUDE.md` に発動ポリシー節を追加する（MANIFEST の「CLAUDE.md 雛形（発動ポリシー節）」を
+   ベースに、このプロジェクトの運用に合わせて調整。**追加内容を提示して承認を得てから書き込む**）
 6. `.gitignore` に次の 3 行を追加する:
    `.steering/**/.capture-needed` / `.steering/**/.codify-needed` / `.steering/**/capture_done`
 7. `.npmrc` に `ignore-scripts=true` を設定する（既存の .npmrc がある場合は追記。
