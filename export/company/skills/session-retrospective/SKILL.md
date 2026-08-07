@@ -3,8 +3,7 @@ name: session-retrospective
 description: "セッション終盤にそのセッションの摩擦を棚卸しするメタスキル — 「振り返りして」「レトロして」「セッションの摩擦を記録して」「今日引っかかった点をまとめて」などのフレーズが対象。スキルの誤発動・不発動、ユーザーによる訂正、手戻り・リトライ、パーミッション拒否、指示の曖昧さを会話履歴から抽出し、.steering/[task]/skill-issues.md に起票する。コード・設計の知見保存には起動しない（knowledge-capture を使う）。ルールへの昇格もしない（compound の原料を作るのが役割）。タスク完了のたびに自動起動しない。"
 metadata:
   version: "1.0"
-  source-commit: e90165507d319933f2c07f9538b0a0040e67842e
-  modified: "2026-07-24 アクティブタスク無しの新規作成を追記と別操作と明記し材料名指し禁止を追加（環境圧下の素通り対応）"
+  source-commit: e02a95da5e73049be07cc501e0cfd34d179b9277
 ---
 
 # Session Retrospective

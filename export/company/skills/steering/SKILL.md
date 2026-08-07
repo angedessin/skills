@@ -2,8 +2,8 @@
 name: steering
 description: ".steering/ クロスセッションコンテキスト管理のメタスキル。「new task」「start steering」「[task] を再開」「[task] をアーカイブ」「steering status」「進行中タスクは？」と明示的に言われた場合のみ起動。通常のセッション開始で .steering/ を読むだけの場合や design-doc がコンテキスト設定を担っている場合は自動起動しない。"
 metadata:
-  version: "1.0"
-  source-commit: e90165507d319933f2c07f9538b0a0040e67842e
+  version: "1.3"
+  source-commit: e02a95da5e73049be07cc501e0cfd34d179b9277
 ---
 
 # Steering
@@ -23,13 +23,13 @@ metadata:
 ```
 .steering/
 ├── [YYYYMMDD]-[task-name]/
-│   ├── design.md           (必須 — 目的/スコープ/完了条件を含む。APPROVED になるまで実装禁止)
+│   ├── design.md           (必須 — 契約コアに目的/スコープ/完了条件等。DRAFT のみ実装禁止。SPIKE/APPROVED は実装可（SPIKE は外向き不可）。付録は境界マーカー以降)
 │   ├── tasklist.md         (必須 — セッションごとに更新)
 │   ├── decisions.md        (任意 — タスク固有の決定事項)
 │   ├── blockers.md         (任意 — 未解決の問題)
 │   ├── skill-issues.md     (任意 — スキル自体の不具合記録。compound が読む)
-│   ├── investigation.md    (任意 — 障害調査ログ: 仮説・検証・棄却理由)
-│   ├── review-result.md    (任意: コードレビューの指摘と修正追跡)
+│   ├── investigation.md    (任意 — debug が生成: 障害調査ログ)
+│   ├── review-result.md    (任意: コードレビューの指摘と修正追跡。生成元は問わない)
 │   ├── codify-log.md       (compound が生成 — 昇格履歴)
 │   ├── .capture-needed     (フラグ — knowledge-capture 未実行)
 │   ├── .codify-needed      (フラグ — compound 未実行)
@@ -39,6 +39,9 @@ metadata:
 ```
 
 旧構造のタスク（`requirements.md`・`session-log.md` がある）は読み取り時のみ対応する: あれば読む、新規には作らない。
+
+**Status 読み取り規則**: `Status:` 行の最初の語彙トークン（`**` を除く）∈ {DRAFT,SPIKE,APPROVED}。以外・欠落は停止。
+**実装可否の正本**: DRAFT のみ実装禁止。SPIKE/APPROVED は実装可（SPIKE は外向き不可）。詳細は `references/spec.md`。
 
 詳細仕様: `references/spec.md`
 
@@ -65,9 +68,14 @@ metadata:
 
 **トリガー**: "再開"、"[task] の続き"、新セッションで `.steering/` あり
 
+**`.steering/` ディレクトリ自体が無い場合**（このプロジェクトでまだ一度も使っていない）→ その旨を伝えて終了する。再開する対象が存在しないため、**勝手に `.steering/` を作らない**（新規タスクの開始は init モード、または `design-doc` の担当）。アクティブタスクが 0 件の場合も同じ。
+
 1. `.steering/` のアクティブタスク一覧（`archived/` 除外）を確認
 2. 対象タスクの以下を読む:
-   - `design.md`（目的・設計と Status。旧構造で `requirements.md` があればそれも読む）
+   - `design.md`（**契約コアまで**を既定。`<!-- design-doc-boundary: appendix -->` より前の
+     目的・設計と Status。マーカーが無い旧ファイルは全文。旧構造で `requirements.md` があればそれも読む。
+     **操作定義**: ツールがファイル全文を返しても必須入力は境界より前に限定する。可能なら `Read` の
+     `limit` で境界行まで取得する。付録を要約・推論に使ってはならない）
    - `tasklist.md`（進捗確認）
    - `blockers.md`（なければ「なし」として扱う）
    - `decisions.md`（なければ「記録なし」として扱う）
@@ -77,7 +85,7 @@ metadata:
 ## セッション再開: [task-name]
 
 **目的**: [design.md の目的から一行]
-**設計**: DRAFT / APPROVED
+**設計**: DRAFT / SPIKE / APPROVED
 **進捗**: X/Y tasks チェック済み
 
 ### 残タスク
@@ -98,6 +106,8 @@ metadata:
 
 **トリガー**: "steering status"、"進行中のタスクは？"
 
+**`.steering/` ディレクトリ自体が無い場合** → 「このプロジェクトでは `.steering/` を使っていません」と伝えて終了する（エラーにしない・**作らない**）。ディレクトリはあるがアクティブタスクが 0 件の場合は、アーカイブ済みの直近 3 件だけを表示する。
+
 アクティブタスクの一覧テーブルを表示:
 
 ```
@@ -107,6 +117,7 @@ metadata:
 | タスク | 作成日 | Design | 進捗 |
 |--------|--------|--------|------|
 | [name] | [date] | APPROVED | 3/7 |
+| [name] | [date] | SPIKE | 1/5 |
 | [name] | [date] | DRAFT | 0/5 |
 
 ### アーカイブ済み（直近3件）
@@ -123,17 +134,20 @@ metadata:
 
 **アーカイブ前チェック**:
 - [ ] `tasklist.md` の全項目がチェック済み
-- [ ] `knowledge-capture` スキルが実行済み（または明示的に省略を確認）
+- [ ] knowledge-capture **ハードストップ**（下記充足判定）
+
+**knowledge-capture 充足判定（ハードストップ）**:
+- **充足**: `capture_done` が存在する、またはユーザーが「知見なしでアーカイブ」と明示した
+- **非充足**: 上記どちらも無い → **ここで止まる**。アーカイブ手順に進まない。knowledge-capture を実行するか、「知見なしでアーカイブ」と明示するかを聞く
+- **非充足のままでは通さないもの**: 汎用「省略してアーカイブ」、`tasklist.md` の knowledge-capture `[x]` 単独
 
 チェックを満たしている場合:
 1. `.steering/[date]-[task]` を `.steering/archived/[date]-[task]` に移動
 2. `tasklist.md` の末尾に `Archived: [YYYYMMDD]` を追記
 3. 「アーカイブ完了。`.steering/archived/[task]` に保存されました。」と報告
 
-チェックが不足している場合は、不足している項目をリストして確認を求める。
-ユーザーが「省略してアーカイブ」と明示した場合は未チェック項目をスキップしてアーカイブを実行する。
-
-**knowledge-capture 実行済みの判定**: `capture_done` フラグが存在するか、または `tasklist.md` の knowledge-capture チェックボックスがチェック済みであれば OK（どちらか一方で十分）。
+knowledge-capture 以外のチェックが不足している場合は、不足項目をリストして確認を求める。
+ユーザーが「省略してアーカイブ」と明示した場合は、**knowledge-capture ゲート以外**の未チェック項目をスキップしてアーカイブを実行する（knowledge-capture 未充足なら依然としてここで止まる）。
 
 ---
 
@@ -145,5 +159,5 @@ metadata:
 ## Related skills
 
 - `design-doc` — 新機能タスクの主要な入口（.steering/ の詳細なフロー付き）
-- `knowledge-capture` — アーカイブ前に実行が推奨
+- `knowledge-capture` — アーカイブ前ハードストップ（`capture_done` または「知見なしでアーカイブ」）
 - `impl-from-design` — 実装フェーズで tasklist.md を更新

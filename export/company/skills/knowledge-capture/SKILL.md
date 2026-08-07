@@ -1,10 +1,9 @@
 ---
 name: knowledge-capture
-description: "セッション終了時のプロジェクト知識保存に使うメタスキル。「ナレッジを保存して」「学んだことを記録して」「この決定をドキュメント化して」「セッション終了」と明示的に言われた場合のみ起動。README・仕様書など通常のドキュメント編集の依頼（「ドキュメントを更新して」等）には起動しない — それは知見保存ではなく単なるファイル編集。セッション開始時に .capture-needed ファイルがあれば起動。decisions.md・review-result.md・会話コンテキストから知見を抽出し docs/knowledge/・.steering/decisions.md・CLAUDE.md に分類する。決定の記録は決定・理由・却下案までを担当し、決定記録の定型フォーマットは生成しない。タスク完了のたびに自動起動しない。lint ルール・スキルを作成する compound とは別物。"
+description: "セッション終了時のプロジェクト知識保存に使うメタスキル。「ナレッジを保存して」「学んだことを記録して」「この決定をドキュメント化して」「セッション終了」と明示的に言われた場合のみ起動。README・仕様書など通常のドキュメント編集には起動しない。セッション開始時に .capture-needed ファイルがあれば起動。decisions.md・review-result.md・blockers.md・会話コンテキストから知見を抽出し docs/knowledge/・.steering/decisions.md・CLAUDE.md に分類する。決定の記録は決定・理由・却下案までを担当し、決定記録の定型フォーマットは生成しない。タスク完了のたびに自動起動しない。lint ルール・スキルを作成する compound とは別物。"
 metadata:
-  version: "1.4"
-  source-commit: e90165507d319933f2c07f9538b0a0040e67842e
-  modified: "2026-07-24 Step 4/5 を分割し停止をステップ境界化。さらに提示形式を案・未書き込み化＋ターン境界＋Step 5 差し戻しガードを追加（非決定素通り対応・master 0dd8499 反映）。2026-07-25 多件数滑りの締め一句を追加（案D・master 1ff1701 反映）"
+  version: "1.8"
+  source-commit: e02a95da5e73049be07cc501e0cfd34d179b9277
 ---
 
 # Knowledge Capture
@@ -37,28 +36,34 @@ Claude の外部記憶を構築・更新する。
 `.steering/` のアクティブタスクのフラグと入力ファイルを一括確認する:
 
 ```bash
-find .steering -maxdepth 2 \( -name "decisions.md" -o -name "review-result.md" -o -name ".capture-needed" -o -name ".codify-needed" \) ! -path "*/archived/*"
+find .steering -maxdepth 2 \( -name "decisions.md" -o -name "review-result.md" -o -name "blockers.md" -o -name ".capture-needed" -o -name ".codify-needed" \) ! -path "*/archived/*"
 ```
 
 **フラグ確認（入力ファイルの有無に関係なく独立して処理する。上から順に実行する）:**
 
-- `.capture-needed` が存在する → それがトリガーになっている旨をユーザーに伝える
-- `.codify-needed` が存在する → **入力ファイルの有無に関わらずここで確認する**:
+- `.capture-needed` が存在する → **三択（今 / 後で / スキップ）を `.codify-needed` 確認より先に**提示する（複数タスクがある場合は**タスク単位**。一括スキップ禁止）。SessionStart 経路の操作定義は **`session-start-check.sh` の注入文**（CLAUDE.md が無い／異なる配置先でも hook だけで足りる）。スキル内起動時も同契約を再掲する。CLAUDE.md への再掲は任意（推奨）:
+  - **今** → 当該タスクについて以降の知見収集・保存フローへ進む（完了時は現行どおり `capture_done` を立てる）
+  - **後で** → `.capture-needed` を残して当該タスクの capture は今はやらない（compact/resume で再確認してよい）
+  - **スキップ** → 当該タスクの `.capture-needed` のみ削除して終了枝（`capture_done` は作らない・tasklist の knowledge-capture はチェックしない）。効果は次の Stop まで（Stop フェイルセーフが再立てする）
+  - 対象タスクをすべて「後で」または「スキップ」にしたあと、まだ保存フローに入るタスクが無ければ、下の `.codify-needed` 確認へ進む（スキップしても compound 確認は残す）
+- `.codify-needed` が存在する → **入力ファイルの有無に関わらずここで確認する**（三択の後）:
   「compound スキルも未実行です。先に compound を実行しますか？」
   （compound = ルール・スキルへの昇格、knowledge-capture = ドキュメント保存、両方を順に実施推奨）
   - ユーザーが **Yes** → knowledge-capture をここで中断し、compound スキルを先に実行するよう案内する。compound 完了後にもう一度 knowledge-capture を呼び出してもらう。
   - ユーザーが **No** → そのまま続行する（入力の確認へ進む）。
+  - **例外: 複数フェーズをまとめて進めるオーケストレーターから呼ばれた場合は、この確認を行わず中断もしない。** そのまま続行する。オーケストレーターは knowledge-capture の後に compound を提案する順序を自前で持っており、ここで中断すると承認ゲートと `capture_done` を飛ばしたまま順序が入れ替わる。
 - `capture_done` が既に存在する → このタスクの knowledge-capture は完了済み。再実行の必要はない旨を伝え、追加の知見保存が目的かをユーザーに確認する（目的が無ければここで終了する）
 
-**知見の入力（フラグ確認の後で行う）。入力源は3つで、あるものをすべて使う:**
+**知見の入力（フラグ確認の後で行う）。入力源は4つで、あるものをすべて使う:**
 
 1. `.steering/[task]/decisions.md` — 実装中の技術的判断とその理由
 2. `.steering/[task]/review-result.md` — レビューで発見されたパターン
-3. **現在の会話コンテキスト** — このセッションで得た学び・ハマりどころ（同一セッション内で起動された場合）
+3. `.steering/[task]/blockers.md` — 未解決・解決済みのブロッカー（空ファイル・欠落はスキップ）
+4. **現在の会話コンテキスト** — このセッションで得た学び・ハマりどころ（同一セッション内で起動された場合）
 
-3つとも**得られない場合**（ファイルなし・別セッションからの再開で会話に文脈もない）→ ここで止まる:
+`decisions.md` / `review-result.md` / `blockers.md` がいずれも無く、会話コンテキストからも知見が得られない場合 → ここで止まる:
 ```
-知見の入力が見つかりませんでした（decisions.md / review-result.md なし）。
+知見の入力が見つかりませんでした（decisions.md / review-result.md / blockers.md なし）。
 保存したい知見の内容を直接教えてください。
 ```
 ユーザーが内容を提示したらその内容を「知見」として Step 2 に進む。
@@ -72,6 +77,14 @@ git の変更履歴を確認したい場合は `git log --oneline -20` と `git 
 以下の決定木で各知見の保存先を分類する:
 
 ```
+（入力が blockers.md のエントリの場合は先にこの分岐）
+blockers.md のエントリ?
+  YES → Status / 内容で取捨する（**自動移設・自動削除はしない。案だけドラフトする**）:
+        OPEN かつタスクをまたぐ待ち → `.steering/BACKLOG.md` への移設案
+        解決済み・学びがある → 下の通常分岐（knowledge / decisions 等）へ再分類
+        一回限り・もはや無関係 → 破棄案（blockers.md から削除する案を提示）
+        ※ CLAUDE.md の「取捨は knowledge-capture 時」と対になる出口
+
 設計・アーキテクチャの決定（なぜこの設計にしたか）?
   YES → .steering/[task]/decisions.md（追記）
         + 却下した代替案がある場合は Step 4 で「チームの決定記録に上げるか」の検討を促す
@@ -87,7 +100,7 @@ git の変更履歴を確認したい場合は `git log --oneline -20` と `git 
 Claude Code の短い常時ルール（1行の命令形）?
   YES → CLAUDE.md（project）or ~/.claude/CLAUDE.md（global）
        ※ 行動ルールの詳細化は compound に委譲
-       ※ CLAUDE.md は「読まれる長さ」に保つ（明文化された上限があればそれに従う）
+       ※ CLAUDE.md は肥大化させない（明文化された上限があれば従い、無ければ「読まれる長さに保つ」）
 
 上記のどれにも該当しない一回限りのタスク固有の事象?
   YES → コミットメッセージで十分。ドキュメント保存は不要。
@@ -97,7 +110,7 @@ Claude Code の短い常時ルール（1行の命令形）?
 
 **決定の記録は形式を与えない**: 決定を記録するときは、決定・理由・却下した代替案を
 decisions.md に書くところまでを担当する。**特定の決定記録フォーマット（節構成を持つ
-定型ドラフト）を生成しない** — この組織が独自の決定記録様式を持つ場合、こちらの
+定型ドラフト）を生成しない** — 配置先の組織が独自の決定記録様式を持つ場合、こちらの
 形式を差し出すのは押し付けになる。形式は記録先を持つ側が決める。
 
 **`docs/` ディレクトリが存在しないプロジェクトの場合**: 決定木の保存先はそのまま使い、Step 4 のドラフト提示時に「ディレクトリを新規作成するか・別の置き場にするか」をあわせて確認する。
@@ -153,6 +166,14 @@ grep "[キーワード]" CLAUDE.md ~/.claude/CLAUDE.md 2>/dev/null
 **理由**: [なぜ]
 **代替案**: [却下した代替案とその理由]
 ---
+
+### [blockers 取捨のラベル — 該当時]
+保存先（案）: `.steering/BACKLOG.md` への移設 / docs/knowledge 追記 / blockers.md から削除（破棄）
+書き込む内容（案）:
+---
+[OPEN の待ち内容 / 解決済みの学び / 破棄理由]
+---
+※ blockers.md 自体の削除・BACKLOG への移設は承認後の Step 5 でのみ行う（自動移設しない）
 
 上記はまだ書き込んでいません。採用するものを番号または名前で教えてください。
 ```
@@ -212,8 +233,10 @@ grep "[キーワード]" CLAUDE.md ~/.claude/CLAUDE.md 2>/dev/null
 
 ```markdown
 ## ドキュメント参照（必要なトピック作業時のみ）
-[トピック]作業時: @docs/knowledge/[topic].md
+[トピック]作業時: docs/knowledge/[topic].md を読む
 ```
+
+**既定はこのプレーンなパス表記**（上の見出しが「必要なトピック作業時のみ」である以上、`@` は矛盾する）。全タスクで常時参照させたい知識に限り `@docs/knowledge/[topic].md` にする。大きいファイルを `@` で繋ぐと、そのトピックと無関係なセッションでも全文が展開され固定費になる。
 
 ---
 
@@ -223,18 +246,17 @@ grep "[キーワード]" CLAUDE.md ~/.claude/CLAUDE.md 2>/dev/null
 
 保存完了後:
 
-**福利化（compound）の producer を担保する**: `.codify-needed` は「次セッション開始時に
-compound を促す」ためのフラグで、これを立てる主体はこのスキルだけ（レビュー工程が別手段のため、
-知見保存が福利化ループの起点になる）。立て損なうと福利化が静かに始まらないので、保存完了後に
-必ず処理する:
-
 ```bash
 # .capture-needed フラグを削除
 rm -f .steering/[task]/.capture-needed
 
 # knowledge-capture 完了フラグを作成
 touch .steering/[task]/capture_done
+```
 
+**福利化（compound）の producer を担保する**: `.codify-needed` は「次セッション開始時に compound を促す」ためのフラグで、このスキル一式の中でこれを立てる主体はここだけ（レビュー工程が別手段のため、知見保存が福利化ループの起点になる）。立て損なうと福利化が静かに始まらないので、保存完了後に必ず処理する:
+
+```bash
 # compound 未実行（codify-log.md なし）かつフラグ未設定なら .codify-needed を立てる。
 # 次セッション開始時に compound 実行のリマインダーになる。
 [ -e .steering/[task]/codify-log.md ] || [ -e .steering/[task]/.codify-needed ] || touch .steering/[task]/.codify-needed

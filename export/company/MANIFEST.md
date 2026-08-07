@@ -1,72 +1,28 @@
 # 持ち出しセット — 会社ワークフロー用
 
-> **同梱スキル数の一次情報は `skills/` のディレクトリ数**（`ls skills/ | wc -l` で数える）。本文中の「9 スキル」は provenance（debug 以外の 9 本が同一 source-commit）または日付付き履歴節の記述であり、現在の同梱数ではない。現在は **10 スキル**。
+**この文書が配置手順の一次情報。** 他の 2 文書（HANDOVER / MIGRATION-GUIDE）と食い違ったら、ここが正。
 
-- **マスターコミット**: `e90165507d319933f2c07f9538b0a0040e67842e`
-- **作成日**: 2026-07-14（最終更新: 2026-07-26 — 承認ゲートの穴を塞ぐ `guard-gated-write.sh` を同梱し hook 5 本に。スキルの同梱内容は 2026-07-23 の debug 追加以降 10 スキルのまま）
-- **検証**: 同梱 10 スキル 10/10 PASS（このセット自体に直接実行・2026-07-23）。ローカルパス・個人情報・外部 URL の混入なし（grep 検査済み）
-- 各スキルの frontmatter `metadata.source-commit` にコミットハッシュを記録済み（配置先での手動追記は不要）。9 スキルは上記 `e90165` から、後から追加した debug は master HEAD `dd1bb31` から作成しており provenance が分かれる（debug の該当分岐が e90165 時点には存在せず、実際の複製元 HEAD を記録したため）
-- **Angular 適用版**: マスター（React / Vitest 前提）から、tdd の本文・スコープ（.tsx → .ts / .html）を Angular / Jasmine 向けに書き換え済み。**スキル本文に React / Vitest / pnpm 等の個人スタック語彙は 1 件も残っていない**（機械確認済み。React 前提のコード例を集めた tdd のカートリッジは同梱から外した — 下記「同梱しなかったもの」参照）。**マスターとの diff を確認するときはこの変換分を差し引いて見る**（スキルの手順・停止契約は変えていない。変えたのはスタック語彙とコード例のみ）
+> **配置作業をする場合は「配置先（会社）でやること」から読んでよい。** 前半（このセットの中身・除外理由）は判断のための背景で、手順ではない。
+> 末尾の「変更履歴」は**過去の経緯であって現在の仕様ではない** — hook の本数・スキル数・設定値は、必ずこの上部か実物（`ls skills/` 等）で確認する。
 
-## 2026-07-26 更新の要点（承認ゲートの穴を塞ぐ）
+## このセットの現在の中身（2026-08-07 時点）
 
-スキルの同梱内容に変更なし（10 スキルのまま）。変わったのは `claude-config/` の防御構成だけ。
+| 項目 | 値 | 実物での確認方法 |
+|---|---|---|
+| 同梱スキル | **10**（design-doc / design-premortem / steering / impl-from-design / tdd / knowledge-capture / compound / session-retrospective / rule-audit / debug） | `ls skills/` |
+| 同梱 hook | **6**（session-start-check / session-stop / guard-gated-delete / guard-env-read / guard-gated-write / post-edit-lint） | `ls claude-config/hooks/` |
+| 追加インストール | **不要**。ただし `guard-gated-delete.sh` のみ **python3**（標準ライブラリ）を要求し、無ければ黙って無効化される | `python3 --version` |
+| 対象スタック | Angular / TypeScript / Jasmine | — |
+| `design.md` の Status | `DRAFT` / `SPIKE` / `APPROVED` の **3 値**（英語のまま扱う契約値） | — |
+| コードレビュー | **同梱なし**（会社のレビュープラグインを使う） | — |
+| 由来 | マスターコミット `e02a95da5e73049be07cc501e0cfd34d179b9277`。10 スキルすべて同一 | 各 SKILL.md の `metadata.source-commit` |
 
-- **`guard-gated-write.sh` を同梱・登録（hook 4 本 → 5 本）** — `permissions.ask` は **Edit / Write ツールにしか掛からない**。`allow` に `Bash(git show*)` / `Bash(git diff*)` のような前置一致ルールがあると `git show HEAD:x > CLAUDE.md` が Edit/Write を経由せずに通り、**ask が一度も発火しないまま承認制のファイルが書き換わる**。マスター側では 2026-07-25 のレビューでこれを High（セキュリティ）と判定して塞いだが、配布物側は開いたままだった。PreToolUse(Bash) で `>` / `>>` / `tee` による書き込みを検出して ask に落とす。依存は `grep` のみ
-- **`docs/decisions/` を ask に追加** — 同梱している `rule-audit` が `docs/decisions` を参照するのに、書き込みのゲートが `CLAUDE.md` と `docs/knowledge/` にしか無かった。glob は `*` / `**` / `**/*` の 3 形式を Edit / Write 分だけ並べる（単一形式では直下のファイルを取りこぼす）
-- **ask と hook は対で維持する** — 片方だけでは防波堤にならない。`settings.example.json` の `_comment` にもこの対応関係を明記した
-- **限界を明記** — ゲートの対象は**書き込みのみ**で、`rm` による削除・`sed -i`・任意インタプリタ経由は塞がない。脅威モデルが「敵対者」ではなく「停止契約を滑った善意のエージェント」であるため意図的にこの線で止めている。**「機械的に完全にゲートした」とは言えない**
-- **配置後の確認手順を追記** — PreToolUse hook は配置したセッション中には発火しないことがある（マスターで実測）。再起動後にプローブで確認する手順を MANIFEST の配置手順 2 と HANDOVER に入れた。**ask の発火は AI からは観測できない**ので、確認は人間が行う
-- **配布加工の確認** — hook 本文に非同梱スキル名（`adr` 等）が残っていないことを機械確認済み（マスター版の理由文は `knowledge-capture / compound / adr` を挙げているが、`adr` は非同梱のため配布版から外した）
+**検証の状態**:
 
-## 2026-07-23 更新の要点（debug の追加）
+- 静的検査は全通過 — 非同梱スキル名 0 件 / 個人スタック語彙 0 件 / `tdd/references/patterns.md` 不在 / スキル数 10 / hook 実体 6 本 ≡ `settings.example.json` の登録 ≡ 本文書
+- 停止契約の実地検証 — **knowledge-capture は 4/4 PASS**（2026-08-07、現在の本文に対しフレッシュエージェントで実行）。session-retrospective は本文が前回検証時と完全一致のため再実行していない。その他 8 スキルは実地検証を行っていない（静的検査のみ）
 
-- **debug を同梱**（9 → 10 スキル）。会社のバグ対応向けデザインドキュメントテンプレートは「不具合の再現手順」「根本原因」の記入を求めるが、その調査を担うスキルがセットに無かった。ユーザー確認のうえ追加した（2026-07-22 時点では「障害調査は会社の既存プロセスとの整合を確認してから」として保留していた項目）。
-- **design-doc を debug に再配線**。When NOT to use・description の「バグ・障害の原因調査」を `debug` 名指しに戻した（2026-07-22 の除外時にスキル名参照を全廃していたぶんの復元）。debug 側は既に design-doc へ接続済みで、これで producer/consumer の対が成立する。
-- **配布加工**: pr-feedback 分岐を MR 運用の記述に言い換え（pr-feedback は非同梱）、Related skills の `frontend-code-review` 行を削除。**同梱 10 スキル以外のスキル名は本文に 1 つも残っていない**（機械確認済み）。
-- **provenance の分岐**: debug の `source-commit` は他 9 スキル（`e90165`）と異なり master HEAD `dd1bb31`。該当の pr-feedback 分岐が e90165 時点では未追加だったため、実際の複製元 HEAD を記録した。
-
-## 2026-07-22 更新の要点（レビュー系の除外）
-
-- **レビュー系 8 スキルを除外** — `frontend-code-review` / `impl-review` / `test-review` / `review-a11y` / `review-correctness` / `review-performance` / `review-security` / `review-ui`。コードレビューは**会社のレビュープラグインを使う**方針に決まったため、このセットからは外した。残るスキルがこれらを名指ししていた箇所（Related skills・When NOT to use の振り先・description・tasklist テンプレ）は、スキル名に依存しない記述（「コードレビューを実施する」等）に置き換え済み
-- **`feature-pipeline` を除外** — レビューフェーズを失ったオーケストレーターを維持しない判断。計画→実装→統合→知見蓄積は、各スキル（design-doc → impl-from-design → knowledge-capture / compound）を順に使う運用にする
-- **`review-result.md` は残す（生成元を問わない）** — 会社のレビュープラグイン・人間のレビューなど、どの手段で作られたものでも `.steering/[task]/review-result.md` に置いてあれば `compound` / `knowledge-capture` が知見抽出の入力として読む。テンプレート（design-doc の `references/templates.md`）は旧レビュー軸に依存しない汎用形に書き換え済み。レビュー手段が独自の出力形式を持つならそちらを優先してよい
-- **hook `stop-typecheck.sh` を除外（5 本 → 4 本）** — Angular ではテンプレートの型エラーを検出できず CI・IDE と重複するため。詳細は「マスターから同梱しなかった hook」参照
-- **`.codify-needed` フラグの生成を knowledge-capture に移した** — 従来は frontend-code-review が自動生成していたため、そのまま外すと**フラグを立てる主体が消えて福利化ループが二度と回らなくなる**（読み手だけが残る）。knowledge-capture の最終 Step に「福利化の要否を確認し、見送るならフラグを立てる」手順を追加して閉じた。hook 側の変更は不要
-
-## 2026-07-23 更新の要点（敵対レビューでの指摘対応）
-
-配布前に第三者視点の敵対レビューを実施し、確認された指摘を全件修正した。
-
-- **tdd 本文から別スタック固有の API を除去** — `queryBy*` + `.not.toBeInTheDocument()`（Testing Library / jest-dom）・`includeSource`（Vitest 専用の in-source testing）・`§hook`（React Hooks）が本文に残っており、**Jasmine では実行できないテストを書かせる**状態だった。判断軸（否定アサーションの選び方・種類別の使い分け）だけを残してスタック非依存の記述に置換
-- **テストファイル命名の片側修正を解消** — tdd は `*.spec.ts` を例示していたのに impl-from-design は `Foo.test.[ext]` のままで、**Angular のテストランナーに収集されず「1 件も実行されないまま緑」になる**危険があった。両方を「既存テストを 1 つ開いて命名規則を確認してから作る」に統一
-- **福利化ループの断線を修復** — `.codify-needed` を立てる主体（frontend-code-review）を除外したまま読み手だけ 14 箇所残っており、**compound が二度と自動提案されない**状態だった。生成を knowledge-capture の最終 Step に移設（上記参照）
-- **hook の jq 依存を全廃した** — 当初は「4 本中 3 本が jq に依存し、うち 2 本は無言で無効化される」ことを配置手順に書いて回避しようとしたが、**社内端末に jq を入れさせる前提自体が現実的でない**と判断し、依存を消した。`guard-env-read` は JSON を構造として解釈せず標準入力を全文検査する方式に変更（解析器が不要になるうえ、フィールド名の変更で素通りしない分むしろ堅い）。`session-start-check` / `post-edit-lint` は値の切り出しと出力エスケープを `grep` / `sed` で行う（BSD sed でも動くよう GNU 拡張を使わない）。**4 本とも追加インストール不要**
-- **スモークテストを検証になる形に修正** — `.env` 読み取りは settings の deny だけで止まるため hook の動作確認にならなかった。deny の前置一致をすり抜ける `head .env.local` に変更し、hook 未配置時の期待結果も明記
-- **マスターの運用値の持ち込みを除去** — 「CLAUDE.md は ≤200行 厳守」（compound / knowledge-capture）を「明文化された上限があればそれに従う」に条件化。会社の CLAUDE.md に対して根拠のない削除提案が出るのを防ぐ
-- **design.md テンプレのドリフトを解消** — steering 側のテンプレに `## 調査結果` 節が無く、実装スキルが書き込む対象が存在しない状態だった
-- **tasklist テンプレを GitLab / MR 運用に合わせた** — `gh pr create` / GitHub Actions（マスターの運用）を、MR 作成 → CI グリーン確認 → レビュー承認 → マージ に変更。**この節を進めるスキルは無い**ことをテンプレのコメントに明記した（担当が居ないまま「未チェックだからアーカイブできない」で詰まらないように）
-- **非同梱スキル前提の記述を削除** — 「オーケストレーターから呼ばれた場合」の例外分岐（該当スキルは非同梱）
-- **knowledge-capture の誤発動を抑制** — description の起動フレーズから「ドキュメントを更新して」を外した（README 更新等の日常語で知見保存フローが起動していた）
-
-### ワークフロー通し確認での追加修正
-
-工程の受け渡しを端から端まで追跡し、導線が切れる箇所を 3 件直した。
-
-- **会話内設計を選んだときの影響を、選ばせる時点で伝えるようにした** — `.steering/` を作らない分岐を選ぶと `design.md` が存在しないため、`impl-from-design`（前提チェックで停止）と `design-premortem`（対象不在で停止）が使えなくなる。この副作用が本文に書かれておらず、**選んだ人が後で「スキルが動かない」に突き当たる**状態だった。承認後はその会話の中で実装を進めることも併せて提示する
-- **実装完了時に残り工程を全部提示するようにした** — 一気通貫のオーケストレーターを外したため、`impl-from-design` の「レビューを実施してください」で導線が途切れ、その先（レビュー結果の記録・MR・knowledge-capture・アーカイブ）はフラグ頼みだった。フラグの検出は hook（`session-start-check.sh`）が担うが、hook が何らかの理由で動かないと導線ごと消えるため、フラグに依存しない案内を 1 本通した
-- **デプロイ節に「担当スキルは無い」と明記した** — `steering` の archive 前提は「tasklist.md の全項目チェック済み」だが、デプロイ節を進めるスキルが無いため、**毎タスクここで引っかかる**構造だった。人が実施してチェックする節だと分かるようにした
-
-## 2026-07-22 更新の要点（マスター取り込み分 + 自己完結化）
-
-- **`.steering/` 成果物の見出しが日本語になった** — design.md / tasklist.md のセクション見出し（目的・スコープ・制約・完了条件・アプローチ・主要コンポーネント・データフロー・テスト方針・未解決の論点・検討した代替案 / 実装・レビュー・デプロイ・福利化・知見保存）。**`Status:` 行のキーと値（DRAFT / APPROVED）は英語のまま**維持する — impl-from-design の前提チェックが照合する契約値のため
-- **スキルの出力見出しも日本語化** — 「知見保存ドラフト」（knowledge-capture）・「福利化ドラフト」（compound）など
-- **knowledge-capture が ADR 形式を出さなくなった** — 設計・アーキテクチャの決定は `.steering/[task]/decisions.md` に「決定・理由・却下した代替案」の 3 点で記録する。却下案がある決定にはドラフト末尾に「チームの決定記録に上げるか検討してください」と添えるだけで、**定型フォーマット（節構成を持つ ADR 形式）は生成しない**。会社が独自の決定記録様式を持つ場合に、こちらの形式を押し付けないための変更（形式は記録先を持つ側が決める）。`docs/glossary.md`（語彙・用語集）への分岐も全削除
-- **design.md を書くときの 2 規律が追加** — (1) 固有名（パス・ディレクトリ名・ブランチ名・行番号・既存の運用方針）は書く時点で実在確認する、(2) 主要コンポーネントの表は暫定として扱い、変更対象を表す語で全文検索して確定させる手順を tasklist.md の先頭に入れる。主要コンポーネントの各行には「原本を開かずに妥当性を判定できる情報」を書く
-- **design-doc は v1.8**（Phase 1.5 決定インタビューの停止契約は v1.6 のまま維持）
-- **未同梱スキルへの参照を全廃** — `debug` / `pr-create` / `pr-feedback` / `empirical-prompt-tuning` / `impl-tournament` / `skill-harvest` を名指ししていた箇所（When NOT to use の振り先・Related skills・description・`.steering/` ファイル一覧の生成元表記・tasklist テンプレ）を、スキル名に依存しない記述に置き換えた。**同梱 9 スキル以外のスキル名は本文に 1 つも残っていない**（機械確認済み）。※ 2026-07-23 に debug を同梱へ追加し、design-doc の「バグ・障害の原因調査」参照は `debug` 名指しに復元した（上の「2026-07-23 更新の要点」参照）
-- **配布モデルの記述を除去** — 「マスターを直接編集しない」「skill-harvest でマスターへ還流する」等、このセットには存在しない元リポジトリを前提にした説明をスキル本文から削除した（運用ルールは本 MANIFEST 側にのみ置く）
-- **`tasklist.md` の見出し参照を日本語化に追随** — compound の「`tasklist.md` の Compound チェックボックス」→「「福利化」チェックボックス」（マスター側では未追随の片側修正が残っている箇所）
+**Angular 適用版であること**: マスターは React / Vitest 前提で書かれており、このセットはスタック語彙と MR 運用に置き換えてある（tdd の本文・スコープを Angular / Jasmine 向けに書き換え、React 前提のコード例を集めた `references/patterns.md` は同梱から外した — 下の「同梱しなかったもの」参照）。**スキル本文に React / Vitest / pnpm 等の個人スタック語彙は 1 件も残っていない**（機械確認済み）。
 
 ## 会社ワークフローとの対応
 
@@ -85,32 +41,43 @@
 
 - **レビュー系 8 スキル（frontend-code-review / impl-review / test-review / review-a11y / review-correctness / review-performance / review-security / review-ui）** — 会社のレビュープラグインを使う方針のため除外。方針が変わったらマスターから追加コピーする（その際は残るスキルの「コードレビューを実施する」等の一般記述をスキル名に戻すか、そのままにするか判断する）
 - **feature-pipeline** — レビューフェーズを含むオーケストレーターだったため、レビュー系の除外に伴って外した。工程は各スキルを順に使う（design-doc → impl-from-design → knowledge-capture / compound）
-- **tdd の `references/patterns.md`（カートリッジ）** — 中身が React / Vitest / RTL / MSW / Jotai / pnpm の 272 行で、Angular / Jasmine の本文と矛盾していた（`§hook` は React Hooks 専用で Angular に対応物が無いため、本文の §名リストからも削除した）。誤ったスタックのコード例を持ち込む害が、雛形としての価値を上回るため削除。**tdd は無くても動く**（本文の判断軸は言語非依存で、スキル側にフォールバックを明記済み）。作る場合は上記「配置先でやること」の手順 4 に従う
-- **pr-create / pr-feedback** — PR（MR）運用は会社の既存プロセスとの整合を確認してから。これらのスキル名への参照は本文から全廃済み（debug は 2026-07-23 に同梱へ変更 — 上の「2026-07-23 更新の要点」参照）
+- **tdd の `references/patterns.md`（カートリッジ）** — 中身が React / Vitest / RTL / MSW / Jotai / pnpm の 272 行で、Angular / Jasmine の本文と矛盾していた（`§hook` は React Hooks 専用で Angular に対応物が無いため、本文の §名リストからも削除した）。誤ったスタックのコード例を持ち込む害が、雛形としての価値を上回るため削除。**tdd は無くても動く**（本文の判断軸は言語非依存で、スキル側にフォールバックを明記済み）。作る場合は下の「配置先（会社）でやること」手順 4 に従う
+- **pr-create / pr-feedback** — PR（MR）運用は会社の既存プロセスとの整合を確認してから。これらのスキル名への参照は本文から全廃済み（debug は 2026-07-23 に同梱へ変更）
 - **e2e** — 会社では E2E テストを行っていないため除外。各スキル本文・references・設計テンプレに残っていた `e2e` スキルへの参照と Playwright の例も除去済み（「E2E は対象外」という境界の記述のみ残している）。導入することになったらマスターから追加コピーする
 - **impl-tournament** — N 並列実装で課金が大きい。必要になったら個別判断
 - **adr** — 設計判断を ADR 形式（Context / Decision / Rationale / Consequences / Alternatives）で起票するマスター専用スキル。会社側の決定記録の様式が分からないため同梱しない。同梱の knowledge-capture は「決定・理由・却下した代替案」の 3 点を `.steering/[task]/decisions.md` に残すところまでを担当し、様式の決定は会社側に委ねる
-- **skill-deploy / skill-harvest / skill-test / empirical-prompt-tuning / security-audit** — マスター専用またはメタ運用ツール（rule-audit は 2026-07-15 に同梱へ変更 — compound で増えるルール・知識を独立運用のまま剪定できるようにするため。本文中の未同梱スキルへの参照は除去済み）
+- **skill-deploy / skill-harvest / skill-test / empirical-prompt-tuning / security-audit** — マスター専用またはメタ運用ツール（rule-audit は 2026-07-15 に同梱へ変更 — compound で増えるルール・知識を独立運用のまま剪定できるようにするため）
 
 ## 配置先（会社）でやること
 
 1. `.claude/skills/` に `skills/` 配下のディレクトリをそのままコピーする
-2. **hooks を配置する** — `claude-config/hooks/` の 5 本を配置先の `.claude/hooks/` にコピーする。settings.json のコマンド登録は `"$CLAUDE_PROJECT_DIR"` 起点の相対参照なので、同じ配置ならパスの書き換えは不要
-   - `session-start-check.sh`（SessionStart）: 未処理フラグ・アクティブタスクをセッション開始時に注入
+2. **hooks を配置する** — `claude-config/hooks/` の **6 本**を配置先の `.claude/hooks/` にコピーする。settings.json のコマンド登録は `"$CLAUDE_PROJECT_DIR"` 起点の相対参照なので、同じ配置ならパスの書き換えは不要
+   - `session-start-check.sh`（SessionStart）: 未処理フラグ・アクティブタスク・rule-audit 月次ナッジをセッション開始時に注入
    - `session-stop.sh`（Stop）: `.capture-needed` を立てて knowledge-capture の起動を促す
+   - `guard-gated-delete.sh`（PreToolUse）: `CLAUDE.md` / `docs/knowledge/` / `docs/decisions/` への素の `rm` / `mv` を **deny** する。削除・移動は書き込みゲートの迂回と等価なため。**python3 に依存する**（下記）
    - `guard-env-read.sh`（PreToolUse）: deny の前置一致をすり抜ける .env 読み取りを全文検査で ask に落とす
-   - `guard-gated-write.sh`（PreToolUse）: `CLAUDE.md` / `docs/knowledge/` / `docs/decisions/` への **Bash 経由**の書き込み（`>` / `>>` / `tee`）を ask に落とす。permissions の ask は Edit / Write ツールにしか掛からず、`Bash(git show*)` のような前置一致 allow があると `git show X > CLAUDE.md` で迂回できるため、その穴を塞ぐ。**対象は書き込みのみで、`rm` による削除は非対象**
+   - `guard-gated-write.sh`（PreToolUse）: 同じ 3 パスへの **Bash 経由**の書き込み（`>` / `>>` / `tee`）を ask に落とす。permissions の ask は Edit 規則（Edit/Write 双方を覆う）にしか掛からず、`Bash(git show*)` のような前置一致 allow があると `git show X > CLAUDE.md` で迂回できるため、その穴を塞ぐ
    - `post-edit-lint.sh`（PostToolUse）: 編集ごとの lint 差し戻し（Biome / ESLint / Stylelint を自動検出）。**フェイルオープン**（lint 設定が無ければ素通し）なのでスタックを問わず置いてよい
+
+   **PreToolUse(Bash) の 3 本は 1 つの matcher にまとめて登録する。** matcher を分けて並べると
+   後段の hook が実行されない。`settings.example.json` はまとめた形になっているので、
+   手動マージのときに分割し直さないこと。
 
    **PreToolUse の hook はセッション再起動後に効く。** 配置したセッション中は発火しない場合があるため、
    置いた直後に「効いていない」と判断しない。確認するときは Claude Code を再起動してから
    `echo test > docs/knowledge/_probe.md` を AI に実行させ、確認プロンプトが出るかを**人間が**見る
    （ask の発火は AI 側からは観測できない）。確認できたら `_probe.md` を削除する。
 
-   **前提ツールの追加インストールは不要。** 5 本とも `grep` / `sed` / `find` など POSIX 標準の
-   ユーティリティだけで動く。Claude Code は hook に JSON を標準入力で渡すが、JSON 解析器
-   （`jq` 等）には依存しない設計にしてある — `guard-env-read` / `guard-gated-write` は構造を
-   解釈せず全文を検査し、他の 2 本は必要な値の切り出しと出力のエスケープを標準ユーティリティで行う。
+   **前提ツールの追加インストールは不要。ただし `guard-gated-delete.sh` だけ python3 を要求する。**
+   - 6 本中 5 本（`session-start-check` / `session-stop` / `guard-env-read` / `guard-gated-write` /
+     `post-edit-lint`）は `grep` / `sed` / `find` など POSIX 標準のユーティリティだけで動く。
+     Claude Code は hook に JSON を標準入力で渡すが、JSON 解析器（`jq` 等）には依存しない設計にしてある
+   - `guard-gated-delete.sh` は Bash コマンドを構造として取り出す必要があるため **python3 に依存する**
+     （標準ライブラリのみ。`jq` 等の追加パッケージは不要）。**python3 が無い環境、または JSON 抽出に
+     失敗した場合は沈黙して素通りする（フェイルオープン）** — ゲートが無効になっても警告は出ない。
+     deny に倒すと通常の Bash が広く死ぬためこの設計にしている
+   - **配置後に `python3 --version` が通ることを人間が確認すること。** 通らない環境では削除ゲートが
+     無い前提で運用する（`rm docs/knowledge/x.md` が素通りする）
 3. **settings をマージする** — `claude-config/settings.example.json` を配置先の `.claude/settings.json` に**手動マージ**する（丸ごと上書きしない）。既存の allow と deny が同じ操作で衝突したら **deny を優先**（安全側）。マスターとの差分として **npx は全面 deny** に強化済み（下の「npx 禁止」参照）。また **`CLAUDE.md` / `docs/knowledge/**` / `docs/decisions/**` への書き込みを ask** にしてある — knowledge-capture は本文のハードストップで「承認前に書き込まない」を担保しているが、締めを尽くした状態でも承認前の書き込みが 1/4 の頻度で再現した実測があるため、機械的な最後の防波堤を置いている。**これらの ask エントリは外さないことを推奨する。** ask だけでは Bash のリダイレクトで迂回できるので、`guard-gated-write.sh`（PreToolUse）と**対で**維持すること — 片方だけでは防波堤にならない
 4. **tdd のカートリッジを作る（任意・配置先の AI に依頼する）** — tdd は「エンジン（本文の判断軸）＋カートリッジ（`references/patterns.md` のスタック固有例）」構成だが、**カートリッジは同梱していない**（元は React / Vitest / RTL / MSW 前提の中身で、Angular / Jasmine の本文と矛盾し、誤ったコード例を持ち込む害の方が大きいため削除した）。**無いままでも tdd は動く** — 本文の判断軸は言語非依存で、スキル側にその旨のフォールバックが書いてある。具体例を効かせたければ、配置先で AI に実際のテスト環境（Jasmine の実行基盤・TestBed の使い方・既存 spec の慣習）を調べさせてから作成を依頼する
    - 見出しは本文が参照する §名にする: `§run`（実行コマンド）/ `§config`（ランナー設定）/ `§setup`（共通セットアップ）/ `§unit` / `§component` / `§query-ladder`（クエリ優先順位）/ `§network`（ネットワークモック）/ `§state` / `§api-layer` / `§coverage`。Angular に対応物が無い節は省いてよい
@@ -126,6 +93,9 @@
    - `head .env.local` の実行を依頼 → 確認（ask）に落ちる。**`cat .env` で試さない** — それは
      settings の deny だけで止まるため、hook が動いていなくても同じ結果になり検証にならない
      （`head` は deny の前置一致をすり抜けるので hook しか止められない）
+   - **削除ゲート**（python3 がある環境のみ）: `docs/knowledge/_probe.md` を作ってから
+     `rm docs/knowledge/_probe.md` の実行を依頼 → **拒否（deny）される**。素通りしたら
+     `guard-gated-delete.sh` が効いていない（`python3 --version` を再確認する）
 10. 気づいた不具合・誤発動は `.steering/[task]/skill-issues.md` に起票する（session-retrospective が拾う）。改善は**会社リポジトリ内で直接スキルを編集してよい**（下の「独立運用」参照 — このセットは還流経路を持たないため、通常の「配置先で直接編集しない」ルールは適用しない）
 
 ### npx 禁止（このセットの方針）
@@ -139,6 +109,7 @@
 
 - `validate-skill-edit.sh` — マスター専用（`scripts/validate_skills.py` に依存。スキル編集の機械検証はマスターで行う）
 - `stop-typecheck.sh`（Stop: 終了宣言時の `tsc --noEmit`）— Angular では**テンプレートの型エラーを検出できない**（テンプレートの型チェックは Angular コンパイラの担当で、素の tsc は `.ts` しか見ない）ためカバー範囲が中途半端で、CI と IDE の型チェックと重複する。加えて大きめのコードベースでは実行が 20-30 秒を超え、終了のたびに待たされる。型チェックは CI に任せる方針で除外した
+- `remind-config-docs.sh`（PostToolUse）— マスターの `docs/knowledge/claude-code-config.md` を読むよう促す hook。そのドキュメントを同梱していないため、配置先では存在しないファイルを指す案内になる
 
 ## CLAUDE.md 雛形（発動ポリシー節）
 
@@ -163,18 +134,48 @@
 
 - **スキルの改善は会社リポジトリで直接編集する**。skill-issues.md（session-retrospective が起票）は会社内の改善ループの入力として使う（マスターへの供給ではなく、会社内で完結する自己改善の材料）
 - **編集したら目印を残す**: 編集したスキルの frontmatter `metadata:` に `modified: "YYYY-MM-DD 変更概要"` を追記する。`source-commit` は消さない（持ち込み時点の基準として残す）
+- **例外: スキルの停止契約は独自に書き換えない。** 「承認前に書き込まない」「提示したらここで止まる」等のハードストップは、素通り事例を何度も潰して固めた部分で、その正本はマスター側にある。不備を見つけたら本文を書き換えず `.steering/[task]/skill-issues.md` に起票する
 - **マスターから再持ち込みする場合は丸ごと上書きしない**: `modified` の付いたスキルは会社側の変更を優先し、必要な差分だけ手動マージする（再持ち込みの予定が無ければこの 2 つは無視してよい — 持ち込み後は会社側で育てるのが既定）
-### このセットの検査を回すときの運用ルール（20260725 追加）
 
-- **素通り検査は `--all` を使わない。** `passthrough_check.py --all` の走査対象は `tests/passthrough/` 固定で、このセット専用のシナリオ（`export/company/tests/`）を**永久に拾わない**。さらにこのブランチには master 側の `.claude/skills/` と `tests/passthrough/` もそのまま存在するため、`--all` は**master のスキルを検査して PASS を返す**。持ち出しセットを 1 本も見ていないのに「検査済み」に見える
-- **シナリオは明示指定で回す**: `python3 scripts/passthrough_check.py export/company/tests/<skill>/scenario.md --runs 4`（承認ゲート系は 4 回以上）
-- **実行はこのブランチ（worktree）側の `scripts/` から行う**。スクリプトはルートを実行ファイルの位置から決めるため、main 側の `scripts/` を使うと `export/company/` を解決できない
-- **master をマージしたら停止契約の差分ガードを回す**: `python3 scripts/check_export_stopcontract.py`（引数なしで worktree を自動発見）。master 側の停止契約の改善が持ち出し側に伝播していない箇所が「実質差分」として出る。出力の件数をそのままシナリオ選定に使わず、差分の中身を見て判断する
+---
 
-### このセット（`export/company/`）自体の育成方針（2026-07-23 決定）
+## 変更履歴（経緯の参考 — 現在の仕様ではない）
 
-上の 4 点は**配置後の会社コピー**の運用。ここは**このリポジトリで持つ持ち出しセットそのもの**を今後どう育てるか。
+> **ここから下は過去の経緯。** 各項目に書かれている hook の本数・スキル数・設定値は**その時点の値**であり、現在の値ではない。現在の値は冒頭の表か実物で確認すること。残しているのは「なぜこれを外したのか / なぜこの防御があるのか」を後から追えるようにするため。
 
-- **`export/company/skills/` を直接編集して育てる。マスター（`.claude/skills/`）を upstream として追跡しない。** 会社のコードベースが見えず、こちらで作れるのは汎用の大枠までなので、マスター同期に手間をかけても得るものが少ない（完全独立フォーク方針）。
-- `source-commit` は出所の履歴として残すだけ。**定期的な再エクスポート・マスター差分の取り込みはしない。** 2026-07-23 の「影響範囲」欄の伝播が、マスター起点の最後の同期。以後マスター側の改善はこのセットに自動では入らない。
-- 例外的に、マスターの特定スキルを一度だけ持ち込みたい場合（例: 新スキルが欲しくなった）は `git diff <source-commit> -- .claude/skills/<name>` で差分を見て手動で取り込み、Angular 変換分・E2E 除去分を再適用する。これは一回きりの操作で、継続同期ではない。
+**2026-08-07 — マスター本文の再同期**
+
+docs / hooks だけ新しくスキル本文が古い状態を解消。同梱 10 スキルの本文をマスター `e02a95d` から再同期し、会社向け変換を再適用した。
+
+- 会社側 `metadata.modified` が指す停止契約強化 6 件をマスターと全文突合した結果、**マスターに無い会社独自の停止契約はゼロ**（いずれもマスター由来の逆輸入で取り込み済み。debug と rule-audit はマスターの方が強い）。`modified` を全廃し `source-commit` を統一した
+- この同期で新たに入った停止契約・仕組み: `design.md` の `SPIKE` Status / 契約コアと付録の境界マーカー / steering archive の knowledge-capture ハードストップ / `.capture-needed` の三択契約（今・後で・スキップ）/ rule-audit の月次ナッジ / debug のターン境界停止 / compound の 3 節追加（配置元の直接編集禁止・provenance 一般化・昇格後の既存違反ゼロ）/ knowledge-capture の `blockers.md` 入力源
+- `@docs/knowledge/` 参照をプレーンなパス表記に変更（`@` は毎セッション全文が展開される固定費で、「必要なトピック作業時のみ」という見出しと矛盾するため）
+- `guard-gated-delete.sh` を追加し、`rm` / `mv` による承認ゲート迂回を塞いだ
+- PreToolUse(Bash) の hook 登録を 1 matcher に統合した — **matcher を分けると後段の hook が実行されない**（それまで `guard-gated-write` が実質死んでいた）
+- 除去済みスクリプト `check_export_stopcontract.py` を指す実行手順を削除した
+
+**2026-07-26 — 承認ゲートの穴を塞ぐ**
+
+- `guard-gated-write.sh` を追加。`permissions.ask` はファイル編集ツールにしか掛からず、`allow` に `Bash(git show*)` のような前置一致ルールがあると `git show HEAD:x > CLAUDE.md` が素通りし、**ask が一度も発火しないまま承認制のファイルが書き換わる**。PreToolUse(Bash) で `>` / `>>` / `tee` を検出して ask に落とす
+- `docs/decisions/` を ask に追加。glob は `*` / `**` / `**/*` の 3 形式を並べる（単一形式では直下のファイルを取りこぼす）
+- **ask と hook は対で維持する**（片方だけでは防波堤にならない）。この時点では削除（`rm`）は非対象だったが、2026-08-07 に `guard-gated-delete.sh` で塞いだ。`sed -i`・任意インタプリタ経由は現在も非対象
+
+**2026-07-23 — debug の追加と敵対レビュー対応**
+
+- debug を同梱。会社のバグ対応テンプレートが「再現手順」「根本原因」の記入を求めるのに、調査を担うスキルが無かったため
+- tdd 本文から別スタック固有の API を除去 — `queryBy*` + `.not.toBeInTheDocument()`（Testing Library）・`includeSource`（Vitest 専用）・`§hook`（React Hooks）が残っており、**Jasmine では実行できないテストを書かせる**状態だった
+- テストファイル命名の片側修正を解消 — tdd は `*.spec.ts`、impl-from-design は `Foo.test.[ext]` と食い違い、**テストランナーに収集されず「1 件も実行されないまま緑」になる**危険があった。両方を「既存テストを 1 つ開いて命名規則を確認してから作る」に統一
+- 福利化ループの断線を修復 — `.codify-needed` を立てる主体（レビュー系スキル）を外したまま読み手だけ残り、**compound が二度と自動提案されない**状態だった。生成を knowledge-capture の最終 Step に移設
+- hook の jq 依存を全廃 — **社内端末に jq を入れさせる前提が現実的でない**と判断。`guard-env-read` は JSON を構造として解釈せず全文検査する方式に変更（フィールド名の変更で素通りしない分むしろ堅い）
+- スモークテストを検証になる形に修正 — `.env` 読み取りは settings の deny だけで止まるため hook の動作確認にならなかった。`head .env.local` に変更
+- マスターの運用値の持ち込みを除去 — 「CLAUDE.md は ≤200行 厳守」を「明文化された上限があればそれに従う」に条件化（会社の CLAUDE.md に根拠のない削除提案が出るのを防ぐ）
+- 導線の断裂を 3 件修復 — (1) 会話内設計を選んだときの副作用を選ばせる時点で伝える (2) 実装完了時に残り工程を全部提示する（オーケストレーターを外したため導線がフラグ頼みだった）(3) デプロイ節に「担当スキルは無い」と明記（毎タスクここで詰まる構造だった）
+
+**2026-07-22 — レビュー系の除外と自己完結化**
+
+- レビュー系 8 スキルを除外（コードレビューは会社のレビュープラグインを使う方針）。残るスキルの名指し箇所はスキル名に依存しない記述に置換
+- `feature-pipeline` を除外（レビューフェーズを失ったオーケストレーターを維持しない判断）
+- `review-result.md` は残した（**生成元を問わない**）。どの手段で作られたものでも `.steering/[task]/` に置いてあれば compound / knowledge-capture が入力として読む
+- `.steering/` 成果物とスキル出力の見出しを日本語化。ただし `Status:` 行のキーと値は英語のまま（前提チェックが照合する契約値）
+- knowledge-capture が ADR 形式を出さなくなった — 会社が独自の決定記録様式を持つ場合に押し付けないため。決定・理由・却下した代替案の 3 点を `decisions.md` に残すところまでを担当する
+- 配布モデルの記述を除去 — このセットには存在しない元リポジトリを前提にした説明をスキル本文から削除した

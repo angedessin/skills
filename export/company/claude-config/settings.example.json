@@ -1,5 +1,5 @@
 {
-  "_comment": "配置先の .claude/settings.json に手動マージする雛形（丸ごと上書きしない）。既存 allow と衝突したら deny を優先。マスターとの差分: npx を ask から deny に強化（npx 全面禁止の方針）・validate-skill-edit.sh（マスター専用）と stop-typecheck.sh（Angular ではテンプレートを型チェックできず CI と重複）を hooks から除外。登録している hook 5 本は POSIX 標準ユーティリティのみで動き、追加インストールを必要としない。guard-gated-write.sh は ask（Edit/Write 限定）が Bash のリダイレクトで迂回されるのを塞ぐもので、permissions.ask の CLAUDE.md / docs/knowledge/ / docs/decisions/ と対で維持する（対象は書き込みのみ・削除は非対象）",
+  "_comment": "配置先の .claude/settings.json に手動マージする雛形（丸ごと上書きしない）。既存 allow と衝突したら deny を優先。マスターとの差分: npx を ask から deny に強化（npx 全面禁止の方針）・validate-skill-edit.sh（マスター専用）と stop-typecheck.sh（Angular ではテンプレートを型チェックできず CI と重複）と remind-config-docs.sh（マスターの docs/ 構成前提）を hooks から除外。登録している hook は 6 本。うち 5 本（session-start-check / session-stop / guard-env-read / guard-gated-write / post-edit-lint）は POSIX 標準ユーティリティのみで動き追加インストール不要。guard-gated-delete.sh のみ python3（標準ライブラリのみ・jq 等の追加パッケージは不要）に依存し、python3 が無い環境や JSON 抽出失敗時は沈黙して素通りする（フェイルオープン。ゲートが無効でも通知は出ないので、配置後に python3 の存在を必ず確認する）。PreToolUse(Bash) の 3 本は 1 つの matcher にまとめる（matcher を分けると後段の hook が実行されない）。guard-gated-write.sh は ask（Edit 規則が Edit/Write 双方を覆う）が Bash のリダイレクトで迂回されるのを塞ぎ、guard-gated-delete.sh は rm / mv による迂回を塞ぐ。いずれも permissions.ask の CLAUDE.md / docs/knowledge/ / docs/decisions/ と対で維持する",
   "permissions": {
     "allow": [
       "Bash(ls)",
@@ -104,14 +104,14 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-gated-delete.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-env-read.sh",
             "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
+          },
           {
             "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-gated-write.sh",
