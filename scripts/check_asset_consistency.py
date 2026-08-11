@@ -38,6 +38,9 @@
   (k) README の契約レター集合 ≡ 本スクリプトの contract_*、かつ
       package.json の scripts キー集合 ≡ README「npm script」箇条のバッククォート名
       → 員数や列挙の片側修正を検出する（抽出は下記正規表現に固定）
+  (l) feature-pipeline の Phase / Step 見出しに出るスキル名 ⊆ README「メインワークフロー」図
+      → CLAUDE.md の「ワークフロー図と feature-pipeline は同一コミットで改訂する」を機械化する。
+        フェーズを足してオーケストレーターだけ直し、図を放置した片側修正を検出する
 
   会社向け持ち出しセット用の契約 (g)(i) は 20260730 Frozen handoff で除去済み。
 
@@ -45,6 +48,11 @@
 書式変更で壊れる。全文から *.sh を拾って集合で比べれば、ツリーに書こうが散文に書こうが拾える。
 (d) だけ包含（⊆）なのは、starter-kit の *.sh 言及が手順 6 以外にも存在するため
 （節境界のパースを避ける。等価にすると節の挿入で偽 PASS を生む）。
+
+(l) も包含（⊆）。README の図は debug / tdd / e2e / rule-audit などパイプラインが編成しない
+スキルも描くため、等価にすると常に落ちる。**フェーズの順序は検査対象外** — 図では
+knowledge-capture が [5.5]（PR 前）と [7]（残り）の 2 箇所に出るなど、同じスキルが複数の
+位置に現れるため順序比較は書式変更で壊れやすい。順序のドリフトは人のレビューで見る。
 
 **終了コードの優先順位**: FAIL が 1 件でもあれば 1。2 を返すのは走査の前提そのものが崩れている場合だけ。
 
@@ -387,6 +395,76 @@ def contract_k() -> tuple[str, list[str]]:
     ]
 
 
+MAIN_WORKFLOW_RE = re.compile(r"^## メインワークフロー\s*\n+```\n(.*?)\n```", re.M | re.S)
+# feature-pipeline の Phase / Step 見出し（`## Phase 1 — 計画（design-doc）` 等）。
+# Gate 見出しはスキル名を持たないので拾わなくてよい。
+FP_PHASE_HEAD_RE = re.compile(r"^#{2,3} .*?(?:Phase|Step)\s*[\d.]+[a-z]?\b.*$", re.M)
+
+FEATURE_PIPELINE = MASTER_ROOT / ".claude" / "skills" / "feature-pipeline" / "SKILL.md"
+
+
+def _named_skills(text: str) -> set[str]:
+    """テキスト中に語として出現するスキル名の集合。
+
+    語幹一致を避けるため前後の境界を明示する（`impl-review` が `impl-reviewer` に
+    誤ヒットしない・`review-ui` が `review-ui-x` を拾わない）。
+    """
+    skills_dir = MASTER_ROOT / ".claude" / "skills"
+    if not skills_dir.is_dir():
+        die(f"skills ディレクトリが無い: {skills_dir}")
+    found = set()
+    for p in skills_dir.iterdir():
+        if p.is_dir() and re.search(rf"(?<![\w-]){re.escape(p.name)}(?![\w-])", text):
+            found.add(p.name)
+    return found
+
+
+def contract_l() -> tuple[str, list[str]]:
+    """README のワークフロー図と feature-pipeline のフェーズ構成のドリフト検出。
+
+    フェイルクローズ: 図が見つからない・パイプラインが実在しないのに README が案内している、
+    はいずれも FAIL。「片方が消えたから比較不要」で黙って PASS にすると、
+    死んだ案内が README に残ったまま気づけない。
+    """
+    if not README.exists():
+        die(f"README が無い: {README}")
+    readme_text = README.read_text(encoding="utf-8")
+    m = MAIN_WORKFLOW_RE.search(readme_text)
+    if not m:
+        return FAIL, [
+            "README に「## メインワークフロー」直後のコードブロックが無い",
+            "→ 図の見出し・書式を変えたなら MAIN_WORKFLOW_RE も同じコミットで直す",
+        ]
+    in_diagram = _named_skills(m.group(1))
+
+    if not FEATURE_PIPELINE.is_file():
+        if "feature-pipeline" in in_diagram:
+            return FAIL, [
+                "README の図が feature-pipeline を案内しているが SKILL.md が実在しない",
+            ]
+        return PASS, ["feature-pipeline が無く README も案内していない（比較対象なし）"]
+
+    fp_text = FEATURE_PIPELINE.read_text(encoding="utf-8")
+    phase_heads = "\n".join(FP_PHASE_HEAD_RE.findall(fp_text))
+    if not phase_heads:
+        return FAIL, [
+            "feature-pipeline に Phase / Step 見出しが 1 つも無い",
+            "→ 見出し書式を変えたなら FP_PHASE_HEAD_RE も同じコミットで直す",
+        ]
+    in_pipeline = _named_skills(phase_heads)
+
+    missing = sorted(in_pipeline - in_diagram)
+    if missing:
+        return FAIL, [
+            f"feature-pipeline が編成するのに README の図に無い: {', '.join(missing)}",
+            "→ 図とオーケストレーターは同一コミットで改訂する（CLAUDE.md のスキル管理ルール）",
+        ]
+    return PASS, [
+        f"パイプラインが編成する {len(in_pipeline)} スキルすべてが図に存在"
+        f"（図は {len(in_diagram)} スキルを描画）"
+    ]
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(
         description="セットアップ資産どうしの契約突合（マスター専用）",
@@ -409,6 +487,7 @@ def main() -> None:
         ("(h) master-only スキルの分類が 2 ファイルで一致", contract_h),
         ("(j) 死んだ Write|NotebookEdit|MultiEdit(path) が無い", contract_j),
         ("(k) README の契約レター・npm scripts が実装と一致", contract_k),
+        ("(l) ワークフロー図と feature-pipeline のフェーズが一致", contract_l),
     ]
 
     failed = 0
