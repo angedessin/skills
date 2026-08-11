@@ -11,10 +11,9 @@ design.md（Status: DRAFT）承認後に着手する。プレモータム反映�
       `python3 scripts/validate_skills.py` の件数 / `python3 scripts/check_asset_consistency.py` の件数
 - [x] 未解決の論点 1（測定ログの置き場）→ **(a) `references/` に同梱**で決着（20260811）
 - [x] 未解決の論点 2（472 行で十分か）→ **十分**。追加分割は今は起票しない（20260811）
-- [ ] 未解決の論点 4（`docs/knowledge/review-workflow.md` の重複解消）が済んでいることを確認する
-      — **未了**。`docs/archive/` へのコピーは済んでいるが原本が残っている（`rm` は
-      `guard-gated-delete` が deny するため人が実行する）。本タスクの変更ファイルとは
-      重ならないため、着手の前提としては解除して進めた
+- [x] 未解決の論点 4（`docs/knowledge/review-workflow.md` の重複解消）→ **解消済み**
+      （原本を人が削除・`53288d6`）。着手時点では未了で、本タスクの変更ファイルと重ならないため
+      前提を解除して進めた
 
 ## 1. 変更対象の確定（実装の一部）
 
@@ -69,6 +68,8 @@ design.md の「主要コンポーネント」は**暫定**。表に挙げ漏れ
 
 - [x] 停止契約節が **85 行以下**（見出し行番号の差で確認）
 - [x] `wc -l docs/knowledge/skill-design-patterns.md` → **472 行以下**
+      （実装完了時点で **461 行**・`1eb0be3` で達成。その後 knowledge-capture の追記で
+      **473 行**になっている — 完了条件は実装時点の値で満たしており、追記は別承認の下での増分）
 - [x] `grep -n "素通り検査" docs/knowledge/skill-design-patterns.md` → **許容ヒット 2 件のみ**
       （対象外節 140-208 内の既存 1 件 + 新設した逆ポインタ 1 件）
 - [x] `python3 scripts/validate_skills.py` → 全 PASS（着手時ベースラインと同数）
@@ -80,10 +81,11 @@ design.md の「主要コンポーネント」は**暫定**。表に挙げ漏れ
 
 ## 7. クローズ
 
-- [ ] `git status --short` でステージ内容を確認してからコミットする
-- [ ] `.steering/BACKLOG.md` 節 1(c) から本タスク該当分を削除する
+- [x] `git status --short` でステージ内容を確認してからコミットする
+- [x] `.steering/BACKLOG.md` 節 1(c) から本タスク該当分を削除する
       （依存表の網羅・README セットアップ節新設は**残す** — 本タスクの対象外）
-- [ ] 472 行で目的に見合わないと判断した場合、対象外にした 2 節
+- [x] 472 行で目的に見合わないと判断した場合、対象外にした 2 節
       （検出ツールの4規律 69 行・リポジトリ構成 75 行）の分離を次タスクとして BACKLOG に起票する
-- [ ] `knowledge-capture` の要否を判断する（規律の内容は変えないため不要の見込み）
+- [x] `knowledge-capture` を実行（案 1・3 を採用し skill-design-patterns.md に追記。案 2 は
+      ツール規約であり置き場が違うため見送り）
 - [ ] `steering` スキルの archive モードでアーカイブする
