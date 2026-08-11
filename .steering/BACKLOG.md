@@ -28,6 +28,16 @@
 - **(d) `passthrough_check.py` のハーネス拡張** — `## setup` 節・サンドボックスでの `git init`。
   `feature-pipeline` の Gate 3.5 のような「外向き操作が副作用」の停止契約を判定可能にする
 
+## 1.5 rule-audit の監査スコープ拡張（20260811 のプレモータム由来）
+
+- **`rule-audit` の Step 1 入力に `.claude/skills/*/references/` を足す** — 現在の入力は
+  CLAUDE.md / `docs/knowledge/` / スキル frontmatter で、`references/*.md` は削除テストにも
+  鮮度チェックにもかからない。`20260811-skill-patterns-split` が測定ログを
+  `skill-test/references/passthrough-testing.md` に置くため、監査されない知識の置き場が生まれる。
+  深刻度は低い（測定ログは課金して passthrough を回したときしか増えない）が、
+  `references/` を持つスキルは 10 本あり、他にも腐りうる。一次情報:
+  `.steering/20260811-skill-patterns-split/design.md` のプレモータム所見
+
 ## 2. 既知の環境問題（タスクではない）
 
 - ~~**`pnpm` のバイナリが壊れており実行できない**~~ → **解消済み（2026-07-31）**: 壊れていたのは `~/Library/pnpm` のスタンドアロン。リポジトリ直下の `mise.toml`（node 24.14.0 / pnpm 10.34.5）経由を使う。このディレクトリで mise が有効なら `pnpm` は mise 側が先に解決される。確認: `mise exec -- pnpm --version`
