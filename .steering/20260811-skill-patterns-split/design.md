@@ -1,7 +1,8 @@
 # 設計: skill-patterns-split
 
 Created: 20260811
-Status: **DRAFT — awaiting review**
+Status: **APPROVED**
+Approved: 20260811
 
 <!-- Status は DRAFT / SPIKE / APPROVED の 3 値。既定は DRAFT。
      SPIKE（探索・破棄前提・外向き禁止）の表記例: Status: **SPIKE**
