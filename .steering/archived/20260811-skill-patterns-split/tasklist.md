@@ -88,4 +88,8 @@ design.md の「主要コンポーネント」は**暫定**。表に挙げ漏れ
       （検出ツールの4規律 69 行・リポジトリ構成 75 行）の分離を次タスクとして BACKLOG に起票する
 - [x] `knowledge-capture` を実行（案 1・3 を採用し skill-design-patterns.md に追記。案 2 は
       ツール規約であり置き場が違うため見送り）
-- [ ] `steering` スキルの archive モードでアーカイブする
+- [x] `steering` スキルの archive モードでアーカイブする
+
+---
+
+Archived: 20260811
