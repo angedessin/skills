@@ -69,7 +69,7 @@ find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
 - 1件でも「新規コンポーネント作成 or 既存の複雑なファイルへの変更」を含む → 実行
 - 全件が「単純な定数追加・typo 修正」 → スキップ。「既存コード調査をスキップして実装モードの選択に進みます」と伝えて Step 2 へ（確認不要）
 
-`feature-dev:code-explorer` を起動して以下を調査する（起動できない場合は自分でファイルを探索して代替する）:
+`.claude/agents/codebase-explorer.md` があれば `codebase-explorer` を、無ければ `feature-dev:code-explorer` を起動して以下を調査する（どちらも起動できない場合は自分でファイルを探索して代替する。定義ファイルはあっても種別が未登録で起動に失敗したときも、次の候補へ落とす）:
 - 実装対象に近い既存コードのパターン・規約
 - `design.md` の「主要コンポーネント」が既存コードとどう繋がるか
 - プロジェクト固有の書き方（fetch のラッパー・エラーハンドリング・状態管理など）

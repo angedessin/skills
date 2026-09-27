@@ -115,6 +115,26 @@ git status --porcelain | grep '^??' | cut -c4-
 ディスパッチ前にサブスキルの存在を確認する: `ls .claude/skills/[sub-skill名]/SKILL.md`。
 存在しないサブスキルのエージェントはディスパッチせず、Phase 3 のサマリーに「サブスキル未配置」と記載する（このスキル単体を他プロジェクトに配置した場合に起こる）。全サブスキルが未配置の場合はその旨を伝えて終了する。
 
+### ディスパッチ先の選択（定義があれば使う）
+
+`.claude/agents/[役割名].md` がある軸は、その**役割名を subagent の種別に指定して**ディスパッチする。モデル・エフォート・ツール権限（読み取り専用）は定義側が持つ正本で、ここには書かない。
+定義が無い環境（配置先など）では、従来どおり汎用エージェントに下のテンプレートを渡す。どちらでも、渡す依頼内容とスコープは同じ。
+
+| 軸（下記スコープ節の名前） | 役割名 | サブスキル |
+|---|---|---|
+| test-agent | `review-test` | `test-review` |
+| impl-agent | `review-impl` | `impl-review` |
+| security-agent | `review-security` | `review-security` |
+| perf-agent | `review-performance` | `review-performance` |
+| a11y-agent | `review-a11y` | `review-a11y` |
+| correctness-agent | `review-correctness` | `review-correctness` |
+| ui-agent | `review-ui` | `review-ui` |
+
+定義付きの役割はサブスキルをプリロード済みなので、テンプレートの「まず SKILL.md を読む」は省いてよい。対象ファイル・diff 範囲・重要度の尺度は依頼文で毎回渡す。
+
+- **定義付きの役割は Bash を持たない**（`git diff --output=<path>` などで書き込めてしまうため、読み取り専用を守るには Bash ごと外すしかない）。**差分は呼び出し側が渡す**: Phase 1 の範囲を、作業ツリー内の git 管理外の一時ファイル（例: `.tmp/review.patch`。`.gitignore` されている場所）へ `git diff` で書き出し、そのパスと未追跡ファイルの一覧を依頼文に含める
+- **種別を指定してもディスパッチが `Agent type ... not found` で失敗した場合**（定義ファイルはあるが、このセッションでは未登録。定義を作った直後などに起こる）は、汎用エージェントに下のテンプレートを渡して続行する。定義ファイルの有無だけで分岐を確定しない
+
 ### ディスパッチプロンプトのテンプレート
 
 subagent はセッション履歴もスキル定義も持たない。**サブスキルの SKILL.md パスを明記して、まず読ませる**:

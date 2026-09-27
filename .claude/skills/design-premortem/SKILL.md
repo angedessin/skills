@@ -34,7 +34,7 @@ Status が `APPROVED` の design.md には、**「承認済み設計への遡及
 
 ## Step 1 — 敵対的レビュー
 
-フレッシュな subagent に design.md を渡し、次の固定チェックリストで攻撃させる。
+フレッシュな subagent（`.claude/agents/premortem-attacker.md` があれば `premortem-attacker`、無ければ汎用の subagent）に design.md を渡し、次の固定チェックリストで攻撃させる。チェックリストは依頼文に含めて毎回渡す。定義ファイルはあっても種別が未登録で起動に失敗したときは、汎用の subagent に落とす。
 **常に全文**（契約コア + 付録）を渡す。境界マーカーがあってもコアだけに縮めない。
 
 **渡す情報の切り分け**: 遮断するのは**会話履歴・セッションの文脈**（設計に関与した文脈が

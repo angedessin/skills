@@ -1,7 +1,7 @@
 # Decision: レビュー用のカスタム agent 定義を導入しない（読み取り専用 reviewer agent の見送り）
 
 Date: 20260706
-Status: Accepted
+Status: Superseded by [20260927-subagent-roles-in-agent-definitions](20260927-subagent-roles-in-agent-definitions.md)（再検討トリガー「書き込み経路の観測」が S1 の実測で満たされた）
 
 ## Context
 
