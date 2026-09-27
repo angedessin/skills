@@ -134,7 +134,7 @@ Last updated: [YYYYMMDD]
 
 ## 知見保存（この PR / ブランチに載せる分）
 <!-- この変更の説明・落とし穴として残す knowledge は、マージ前に同じブランチへ含める。 -->
-<!-- 「デプロイのあと」に回すと、後続 PR や別差分に混ざる（20260730）。 -->
+<!-- 「デプロイのあと」に回すと、後続 PR や別差分に混ざる。 -->
 
 - [ ] knowledge-capture スキルの実行（PR 差分に属する知見）
 - [ ] 必要なら docs/ への追記をこのブランチでコミット
@@ -142,10 +142,15 @@ Last updated: [YYYYMMDD]
 ## デプロイ
 <!-- git push してブランチを PR にするフェーズ。CI がないリポジトリはスキップ可。 -->
 <!-- GitHub Actions 等があれば CI グリーンを確認してからマージする。 -->
+<!-- 末尾の `PR:` / `CI:` / `Feedback:` の 3 行はチェックボックスにしない（状態の記録）。feature-pipeline の現在地判定が読む。 -->
+<!-- `PR:` は URL か none / `CI:` は green・failing・none / `Feedback:` は yes（返信待ちの指摘あり）か no。pr-feedback の対応後は no に戻す。 -->
 
 - [ ] PR 作成（`pr-create` スキルまたは `gh pr create`）
 - [ ] CI グリーン確認
 - [ ] マージ
+- PR: none
+- CI: none
+- Feedback: no
 
 ## 福利化
 <!-- レビュー・実装で発見したパターンをルール・知識・スキルに昇格するフェーズ。 -->

@@ -2,7 +2,7 @@
 name: knowledge-capture
 description: "セッション終了時のプロジェクト知識保存に使うメタスキル。「ナレッジを保存して」「学んだことを記録して」「この決定をドキュメント化して」「セッション終了」と明示的に言われた場合のみ起動。README・仕様書など通常のドキュメント編集には起動しない。セッション開始時に .capture-needed ファイルがあれば起動。decisions.md・review-result.md・blockers.md・会話コンテキストから知見を抽出し docs/knowledge/・.steering/decisions.md・CLAUDE.md に分類する。決定の記録は決定・理由・却下案までを担当し、決定記録の定型フォーマットは生成しない。タスク完了のたびに自動起動しない。lint ルール・スキルを作成する compound とは別物。"
 metadata:
-  version: "1.8"
+  version: "1.9"
 ---
 
 # Knowledge Capture
@@ -41,7 +41,7 @@ find .steering -maxdepth 2 \( -name "decisions.md" -o -name "review-result.md" -
 **フラグ確認（入力ファイルの有無に関係なく独立して処理する。上から順に実行する）:**
 
 - `.capture-needed` が存在する → **三択（今 / 後で / スキップ）を `.codify-needed` 確認より先に**提示する（複数タスクがある場合は**タスク単位**。一括スキップ禁止）。SessionStart 経路の操作定義は **`session-start-check.sh` の注入文**（CLAUDE.md が無い／異なる配置先でも hook だけで足りる）。スキル内起動時も同契約を再掲する。CLAUDE.md への再掲は任意（推奨）:
-  - **今** → 当該タスクについて以降の知見収集・保存フローへ進む（完了時は現行どおり `capture_done` を立てる）
+  - **今** → 当該タスクについて以降の知見収集・保存フローへ進む（完了時に立てるフラグは下の「PR 前 / 最終 / 途中の判定」で決まる。実装の途中なら途中 capture でフラグは立たない）
   - **後で** → `.capture-needed` を残して当該タスクの capture は今はやらない（compact/resume で再確認してよい）
   - **スキップ** → 当該タスクの `.capture-needed` のみ削除して終了枝（`capture_done` は作らない・tasklist の knowledge-capture はチェックしない）。効果は次の Stop まで（Stop フェイルセーフが再立てする）
   - 対象タスクをすべて「後で」または「スキップ」にしたあと、まだ保存フローに入るタスクが無ければ、下の `.codify-needed` 確認へ進む（スキップしても compound 確認は残す）
@@ -52,6 +52,13 @@ find .steering -maxdepth 2 \( -name "decisions.md" -o -name "review-result.md" -
   - ユーザーが **No** → そのまま続行する（入力の確認へ進む）。
   - **例外: `feature-pipeline` 等のオーケストレーターから呼ばれた場合は、この確認を行わず中断もしない。** そのまま続行する（`.codify-needed` はレビューフェーズで必ず立つため、パイプライン配下では毎回この分岐に入ってしまう）。オーケストレーターは knowledge-capture の後に compound を提案する順序を自前で持っており、ここで中断すると承認ゲートと `capture_done` を飛ばしたまま順序が入れ替わる。
 - `capture_done` が既に存在する → このタスクの knowledge-capture は完了済み。再実行の必要はない旨を伝え、追加の知見保存が目的かをユーザーに確認する（目的が無ければここで終了する）
+- **PR 前 / 最終 / 途中の判定**（`.steering/[task]/` がある場合のみ。**上から順に評価し、最初に当たったもので確定する**）。マージ前に PR 差分の知見を保存する capture と、マージ後・アーカイブ前に横断の残りを保存する capture は別物として扱う:
+  1. **最終 capture** — 呼び出し元（`feature-pipeline`・`steering` の archive）またはユーザーが「最終」「アーカイブ前」「マージ前にアーカイブ」と指定した。会話由来・横断の残りまで扱い、完了時に `capture_done` を立てる（PR 前の分も包含するので `pr_capture_done` は別に立てなくてよい）
+  2. **最終 capture** — `tasklist.md` に「デプロイ」節が無い、またはその項目がすべてチェック済み（統合が済んでいる・PR 工程を使わない）。扱いと立てるフラグは上と同じ
+  3. **PR 前 capture** — 「デプロイ」節にチェックボックス付きの未チェック項目があり、かつ `review-result.md` の Status が `RESOLVED` か `DEFERRED`（レビュー通過後・統合前）。この PR / ブランチ差分に属する知見だけを扱い、完了時に `pr_capture_done` を立てる（`capture_done` は立てない）
+  4. **途中 capture** — 上のどれにも当たらない（「デプロイ」節に未チェックがあり、レビューが未通過・`review-result.md` が無い・`OPEN`）。実装の途中でのセッション終了時などで、知見は保存するが**完了フラグは立てない**（立てると、レビュー後の PR 前 capture の機会を消す）。`.capture-needed` だけ削除する
+  - `pr_capture_done` が既にある状態で PR 前と判定された → PR 前の分は保存済みの旨を伝え、追加の知見保存が目的かをユーザーに確認する（`capture_done` 既存時と同じ扱い）。**目的が無くて終了する場合も `.capture-needed` は削除する**（残すと催促が空振りし続ける）
+  - 判定に迷うときはユーザーに 1 回だけ確認する。最終を PR 前と誤ると `capture_done` が立たずアーカイブが止まり、PR 前を最終と誤ると PR 前の分が終わったことにならないまま `capture_done` が立つ
 
 **知見の入力（フラグ確認の後で行う）。入力源は4つで、あるものをすべて使う:**
 
@@ -249,8 +256,10 @@ grep "[キーワード]" CLAUDE.md ~/.claude/CLAUDE.md 2>/dev/null
 # .capture-needed フラグを削除
 rm -f .steering/[task]/.capture-needed
 
-# knowledge-capture 完了フラグを作成
-touch .steering/[task]/capture_done
+# 完了フラグを作成（PR 前 / 最終 / 途中は Step 1 の判定に従う）
+touch .steering/[task]/pr_capture_done   # PR 前 capture
+touch .steering/[task]/capture_done      # 最終 capture（steering archive のハードストップが読む）
+# 途中 capture はどちらも作らない（.capture-needed の削除だけ行う）
 ```
 
 **福利化（compound）の producer を二重化する**: `.codify-needed` は通常 `frontend-code-review` が立てるが、それが唯一の producer だと、レビューを通さずこのスキルだけを回したセッションでは福利化ループが静かに始まらない。ここで補完する:
@@ -263,7 +272,7 @@ touch .steering/[task]/capture_done
 
 （compound 実行済み＝`codify-log.md` が存在する場合は立てない。`feature-pipeline` 配下ではフラグはレビューフェーズで既に立っているため、この行は no-op になる。）
 
-`tasklist.md` の knowledge-capture チェックボックスをチェック済みにする（tasklist.md が無ければスキップ）。
+`tasklist.md` の該当チェックボックスをチェック済みにする（tasklist.md が無ければスキップ）。PR 前 capture は「知見保存（この PR / ブランチに載せる分）」節の knowledge-capture 項目、最終 capture は「クローズ」節の knowledge-capture 項目。途中 capture はチェックしない。節が見つからない旧形式の tasklist は、knowledge-capture の項目を 1 つチェックする（最終 capture のとき）。
 
 ---
 

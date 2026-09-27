@@ -2,7 +2,7 @@
 name: steering
 description: ".steering/ クロスセッションコンテキスト管理のメタスキル。「new task」「start steering」「[task] を再開」「[task] をアーカイブ」「steering status」「進行中タスクは？」と明示的に言われた場合のみ起動。通常のセッション開始で .steering/ を読むだけの場合や design-doc がコンテキスト設定を担っている場合は自動起動しない。"
 metadata:
-  version: "1.3"
+  version: "1.4"
 ---
 
 # Steering
@@ -32,7 +32,8 @@ metadata:
 │   ├── codify-log.md       (compound が生成 — 昇格履歴)
 │   ├── .capture-needed     (フラグ — knowledge-capture 未実行)
 │   ├── .codify-needed      (フラグ — compound 未実行)
-│   └── capture_done        (フラグ — knowledge-capture 完了済み)
+│   ├── pr_capture_done     (フラグ — PR 差分に属する知見の保存済み。アーカイブ条件ではない)
+│   └── capture_done        (フラグ — 最終 knowledge-capture 完了済み。アーカイブのハードストップはこちら)
 └── archived/
     └── [YYYYMMDD]-[task-name]/   (完了タスク)
 ```
@@ -137,8 +138,8 @@ metadata:
 
 **knowledge-capture 充足判定（ハードストップ）**:
 - **充足**: `capture_done` が存在する、またはユーザーが「知見なしでアーカイブ」と明示した
-- **非充足**: 上記どちらも無い → **ここで止まる**。アーカイブ手順に進まない。knowledge-capture を実行するか、「知見なしでアーカイブ」と明示するかを聞く
-- **非充足のままでは通さないもの**: 汎用「省略してアーカイブ」、`tasklist.md` の knowledge-capture `[x]` 単独
+- **非充足**: 上記どちらも無い → **ここで止まる**。アーカイブ手順に進まない。knowledge-capture を**最終 capture として**（呼び出し時に「アーカイブ前の最終」と指定して）実行するか、「知見なしでアーカイブ」と明示するかを聞く。マージ前にアーカイブするタスク（デプロイ項目が未チェックのまま）でも、最終と指定すれば `capture_done` が立つ
+- **非充足のままでは通さないもの**: 汎用「省略してアーカイブ」、`tasklist.md` の knowledge-capture `[x]` 単独、`pr_capture_done` 単独（PR 前の分だけで、最終 capture が済んでいない）
 
 チェックを満たしている場合:
 1. `.steering/[date]-[task]` を `.steering/archived/[date]-[task]` に移動

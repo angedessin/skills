@@ -2,7 +2,7 @@
 name: feature-pipeline
 description: "機能開発の複数フェーズ（計画→実装→テスト→レビュー→統合→知見蓄積）を一気通貫で回したいときに使うエンドツーエンドのオーケストレーター。発動の合図は『フロー全体を通して/一括で/最初から最後まで/エンドツーエンドで』のように、単一作業ではなく工程全体をまとめて進めたい意図があること。例:『この機能を設計から実装・テストして最後にナレッジ残すまで通してやって』『新機能を計画から知見蓄積まで一括で面倒みて』『フル開発サイクルで回したい、途中の承認は挟んでいい』。既存スキル（design-doc → impl-from-design → frontend-code-review → pr-create → knowledge-capture / compound）を順に呼び出し、主要な判断点（設計承認・指摘トリアージ・マージ・知見保存）で人間の承認ゲートを挟む半自動フロー。`.steering/[task]/` の成果物から現在地を検出して途中フェーズから再開できるため、複数セッションにまたがる機能開発に向く。**単一フェーズだけの依頼では発動しない** — 設計のみは design-doc、承認済み設計からの実装のみは impl-from-design、レビューのみは frontend-code-review、テスト追加のみは tdd、知見保存のみは knowledge-capture、ルール昇格のみは compound を直接使う。CI/CD・デプロイの『パイプライン』や、小さなバグ修正・タスク状況の確認にも使わない。"
 metadata:
-  version: "1.6"
+  version: "1.7"
 ---
 
 # Feature Pipeline
@@ -72,23 +72,31 @@ find .steering -maxdepth 1 -mindepth 1 -type d ! -name "archived" 2>/dev/null
 **Status 読み取り規則**: `Status:` 行の最初の語彙トークン（`**` を除く）∈ {DRAFT,SPIKE,APPROVED}。以外・欠落は表の「未知」行で即停止（fail-closed。下位行へ落とさない）。
 現在地判定は Status・tasklist・review-result のみで足りる（design.md の契約コア/付録の境界読み対象外 — 付録全文は読まない）。
 
-| 観測される状態 | 現在地 |
-|---|---|
-| `design.md` が無い | **Phase 1**（計画） |
-| `design.md` の Status が `DRAFT` | **Gate 1 で停止**（設計レビュー待ち。実装に入らない） |
-| `design.md` の Status が `SPIKE` | **即停止**（探索レーンはパイプライン外。破棄または DRAFT 戻し後に再開） |
-| `design.md` の Status が上記以外（未知・欠落） | **即停止**（fail-closed。Status 読み取り規則に従う） |
-| `design.md` が `APPROVED` かつ `tasklist.md` の実装タスクに未チェックあり | **Phase 2**（実装） |
-| 実装タスクが全チェック済み かつ `review-result.md` が無い | **Phase 3**（レビュー） |
-| `review-result.md` が存在し Status が `OPEN` | **Gate 3 で停止**（指摘の修正対応待ち） |
-| `review-result.md` の Status が `RESOLVED` または `DEFERRED` かつ `tasklist.md` の「デプロイ」項目に未チェックあり | **Phase 3.5**（PR / 統合。スキップ可） |
-| 「デプロイ」項目に PR URL があり、レビューコメント/CI 失敗が返っている（ユーザーが往復対応を求めた・pr-create が返送を報告した） | **Phase 3.7**（PR 往復 = pr-feedback） |
-| `review-result.md` の Status が `RESOLVED` または `DEFERRED` かつ `capture_done` フラグが無い | **Phase 4**（知見蓄積） |
-| `capture_done` フラグあり | **Phase 5**（クローズ） |
+行 ID は表の契約キー（機械検査がある環境では、判定ロジックの写しと突合される）。行を足したら ID も足す。
+
+| 行 ID | 観測される状態 | 現在地 |
+|---|---|---|
+| `P1` | `design.md` が無い | **Phase 1**（計画） |
+| `G1` | `design.md` の Status が `DRAFT` | **Gate 1 で停止**（設計レビュー待ち。実装に入らない） |
+| `S1` | `design.md` の Status が `SPIKE` | **即停止**（探索レーンはパイプライン外。破棄または DRAFT 戻し後に再開） |
+| `H1` | `design.md` の Status が上記以外（未知・欠落） | **即停止**（fail-closed。Status 読み取り規則に従う） |
+| `P2` | `design.md` が `APPROVED` かつ `tasklist.md` の実装タスクに未チェックあり | **Phase 2**（実装） |
+| `P3` | 実装タスクが全チェック済み かつ `review-result.md` が無い | **Phase 3**（レビュー） |
+| `G3` | `review-result.md` が存在し Status が `OPEN` | **Gate 3 で停止**（指摘の修正対応待ち） |
+| `H2` | `review-result.md` はあるが Status が 3 値以外（未知語彙・Status 行の欠落） | **即停止**（fail-closed。レビューをやり直して上書きしない。Status を確認する） |
+| `P37` | Status が `RESOLVED`/`DEFERRED` かつ デプロイ節の `PR:` が URL（`none` 以外）で `Feedback: yes` かつ デプロイ節に未チェックあり（未マージ） | **Phase 3.7**（PR 往復 = pr-feedback） |
+| `P4a` | Status が `RESOLVED`/`DEFERRED` かつ `pr_capture_done` と `capture_done` のどちらのフラグも無い | **Phase 4**（知見蓄積・PR 前 = この差分に属する知見） |
+| `P35` | Status が `RESOLVED`/`DEFERRED` かつ `tasklist.md` の「デプロイ」項目に未チェックあり | **Phase 3.5**（PR / 統合。スキップ可） |
+| `P4b` | Status が `RESOLVED`/`DEFERRED` かつ `capture_done` フラグが無い | **Phase 4**（知見蓄積・最終 = 会話由来・横断の残り） |
+| `P5` | Status が `RESOLVED`/`DEFERRED` かつ `capture_done` フラグあり | **Phase 5**（クローズ） |
+
+**行順に意味がある 2 箇所**（動かすと壊れる）:
+- `P37` は `P35` より**上**。下に置くと「デプロイ節に未チェックあり」が先に成立し、PR 往復の行に永久に到達しない。`pr-feedback` が対応を終えたら `Feedback: no` に戻すことでこの行を抜ける。デプロイ節が全チェック済み（マージ済み）なら `Feedback:` が古くてもこの行に入らない。
+- `P4a` は `P35` より**上**。tasklist 正本の工程順（知見保存(PR 分) → デプロイ）に合わせる。
 
 `review-result.md` の Status は3値: `OPEN`（未対応の指摘あり・前進不可）／`RESOLVED`（全解消 or 指摘なし扱い）／`DEFERRED`（指摘を残したまま前進すると Gate 3 でユーザーが選択した）。Gate 3 を通過すると `OPEN` は必ず `RESOLVED` か `DEFERRED` に更新される（後述）。**`OPEN` のままにしない** — そうしないと resume で永久に Gate 3 に差し戻る。
 
-**フラグについての注意:** 現在地は上表の `design.md`/`tasklist.md`/`review-result.md` の状態で確定する。`.codify-needed` のようなフラグは判定の入力ではない（`capture_done` だけが最終行で参照される）。例えば「`review-result.md` が OPEN なのに `.codify-needed` がある」のは矛盾ではなく正常 — `.codify-needed` はレビュー実行時（Phase 3）に立つフラグなので、レビュー後・未対応の状態では当然存在する。フラグに引っ張られて下位フェーズと誤判定しない。
+**フラグについての注意:** 現在地は上表の `design.md`/`tasklist.md`/`review-result.md` の状態で確定する。`.codify-needed` のようなフラグは判定の入力ではない（判定の入力になるフラグは `pr_capture_done` と `capture_done` の 2 つだけ）。例えば「`review-result.md` が OPEN なのに `.codify-needed` がある」のは矛盾ではなく正常 — `.codify-needed` はレビュー実行時（Phase 3）に立つフラグなので、レビュー後・未対応の状態では当然存在する。フラグに引っ張られて下位フェーズと誤判定しない。
 
 判定結果を必ずユーザーに伝えてから進む:
 ```
@@ -184,8 +192,8 @@ impl-from-design は全タスク完了後に「実装が完了しました」と
 ### ▣ Gate 3 — 指摘のトリアージ（停止・指摘ゼロなら自動通過）
 
 **重要な指摘が 0 件の場合はこのゲートを提示しない** — トリアージ対象が無いのに止まる理由がない。
-`review-result.md` の Status を `RESOLVED` に更新し、「レビュー指摘なし。統合フェーズに進みます」と
-報告して Phase 3.5 へ自動で進む。
+`review-result.md` の Status を `RESOLVED` に更新し、「レビュー指摘なし。知見保存（PR 前）に進みます」と
+報告して Phase 4（PR 前）へ自動で進む。
 
 指摘が 1 件以上ある場合、frontend-code-review はレビュー結果を提示して停止する。ユーザーに対応方針を選ばせる:
 
@@ -215,8 +223,17 @@ impl-from-design は全タスク完了後に「実装が完了しました」と
 
 Gate 3 通過後:
 ```
-レビュー対応完了。統合フェーズ（PR / CI）に進みます。
+レビュー対応完了。知見保存（PR 前）に進みます。
 ```
+
+---
+
+## Phase 4（PR 前）— この差分に属する知見の保存（判定表 `P4a`）
+
+レビュー通過後・PR 作成の前に、この変更の説明・落とし穴として残す知見を同じブランチへ含める。
+`knowledge-capture` を **PR 前 capture** として起動し（呼び出し時に「PR 前」と指定する）、完了時に `pr_capture_done` を立てる（`capture_done` は立てない）。保存内容の提示と承認は Phase 4（最終）と同じ ▣ Gate 4。
+`docs/` への追記はこのブランチでコミットする。ここでは compound を提案しない（Phase 4 の最終で扱う）。
+PR 工程を使わないタスク（デプロイ節が無い・直コミット運用）は、この節を飛ばして最終 capture だけでよい（`capture_done` が立てば判定表は `P4a` に入らない）。
 
 ---
 
@@ -224,42 +241,39 @@ Gate 3 通過後:
 
 変更を世に出すフェーズ。`tasklist.md` に「デプロイ」セクションがあればそれに従う。
 
-**PR に載せる知見はここより前に同じブランチへ含める。** この変更の説明・落とし穴として
-`docs/knowledge/` 等へ書く内容を「マージ後の Phase 4」に先送りすると、後続 PR や別差分に混ざる
-（20260730）。Phase 4 は横断・会話残り・compound・アーカイブ用。
+**PR に載せる知見は、上の Phase 4（PR 前）で同じブランチへ含めてある前提。** ここへ来てから「マージ後の Phase 4（最終）」に先送りすると、後続 PR や別差分に混ざる。
 
-1. リポジトリの運用を確認する: PR ベース運用（リモート + CI あり）か、main 直コミット運用か
-   - **直コミット運用・CI なし** → このフェーズはコミット済みであることの確認のみでスキップしてよい。`tasklist.md` の「デプロイ」項目に「スキップ（直コミット運用）」と記録して Phase 4 へ
-2. PR ベース運用の場合: `pr-create` スキルで PR を作成する（未配置なら `gh pr create` で代替）
-3. CI の結果を確認する（グリーンになるまで Phase 4 へ進まない。失敗したら修正 — 重い修正は Phase 2 の作法に戻る）
+- **直コミット運用・CI なし** → コミット済みの確認のみでスキップしてよい。スキップするときは**「デプロイ」項目にチェック（`[x]`）を付け**、「スキップ（直コミット運用）」と注記して Phase 4（最終）へ（注記だけだと未チェックが残り、判定表が `P35` から抜けない）
+- **PR ベース運用** → `pr-create` で PR を作成し（未配置なら `gh pr create`）、CI がグリーンになるまで Phase 4（最終）へ進まない
+
+**判定表の `P37` / `P35` は `tasklist.md` デプロイ節の `PR:` / `CI:` / `Feedback:` を読む。** サブスキルの報告を受けるたびに、この 3 行を書き換える（手順は **`references/pr-phases.md`**。同ファイルが無い配置では、この 3 行を自分で `tasklist.md` に記録して進める）。
 
 ### Phase 3.7 — PR 往復（pr-feedback・フィードバックが返っている場合のみ）
 
-PR にレビューコメント・CI 失敗が返っている場合、`pr-feedback` スキルで対応する（未配置なら手動で: コメント/CI を収集 → トリアージ → 承認 → 修正 → 返信）。pr-feedback は内部に 2 つの承認 STOP（対応計画・外向き操作）を持つので、そのゲートを尊重する。フィードバックが無ければこの Phase をスキップして Gate 3.5 へ。
-
-CI 失敗の原因が PR の差分外にあると判明したら `debug` に接続する（pr-feedback の担当外）。
+PR にレビューコメント・CI 失敗が返っている（`Feedback: yes`）ときだけ、`pr-feedback` で対応する。pr-feedback の 2 つの承認 STOP（対応計画・外向き操作）を尊重する。対応後は `Feedback: no` に戻して Gate 3.5 へ。
+CI 失敗の原因が PR の差分外にあると判明したら `debug` に接続する。
 
 ### ▣ Gate 3.5 — マージ判断（停止）
 
 CI グリーン・レビュー承認を確認したら **ここで止まり**、ユーザーにマージ判断を仰ぐ。**マージは外向きの操作 — 承認なしに行わない。**
-マージ完了（またはスキップ判断）後、`tasklist.md` の「デプロイ」項目を更新して Phase 4 へ:
+マージ完了（またはスキップ判断）後、`tasklist.md` の「デプロイ」項目をチェックし、`Feedback:` が `yes` のまま残っていれば `no` に戻してから Phase 4（最終）へ:
 ```
 統合完了。知見蓄積フェーズに進みます。
 ```
 
 ---
 
-## Phase 4 — 知見蓄積（knowledge-capture → compound 提案）
+## Phase 4（最終）— 知見蓄積（knowledge-capture → compound 提案・判定表 `P4b`）
 
-**役割の切り分け**: Phase 3.5 より前に「この PR の差分に属する知見」はブランチへ含めてある前提。
+**役割の切り分け**: 「この PR の差分に属する知見」は Phase 4（PR 前）でブランチへ含めてある前提。
 ここは**マージ後に残る分**（会話由来・横断・compound・アーカイブ準備）を扱う。先送りしすぎて
 次タスクの PR に無関係な docs 差分を混ぜない。
 
 ### Step 4a — knowledge-capture
 
-`knowledge-capture` スキルを起動する。これは `decisions.md`・`review-result.md`・会話から
+`knowledge-capture` スキルを **最終 capture** として起動する（呼び出し時に「最終」と指定する）。これは `decisions.md`・`review-result.md`・会話から
 知見を抽出し、`docs/knowledge/`・`.steering/[task]/decisions.md`・`CLAUDE.md` に振り分けて保存し、
-完了時に `capture_done` フラグを立てる。
+完了時に `capture_done` フラグを立てる（PR 前の分も包含する）。
 
 > CLAUDE.md・docs/ への書き込みは承認制。knowledge-capture が保存内容を提示するので、
 > ユーザーの承認を取ってから保存される。これが ▣ Gate 4。

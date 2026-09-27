@@ -78,7 +78,7 @@ CLAUDE.md のポリシー側を調整する（スキル本文は触らない）�
 「続けて」等の曖昧な指示ではゲートをスキップしない設計になっている。
 
 **Q. `.steering/` は git にコミットする？**
-コミットを推奨する（設計・決定・タスク状態は複数セッション再開と知見還流の入力になる）。ただしランタイムフラグはコミットしない — マスターと同じく `.gitignore` に `.steering/**/.capture-needed`・`.steering/**/.codify-needed`・`.steering/**/capture_done`・`.steering/.last-rule-audit` の 4 行を追加する。
+コミットを推奨する（設計・決定・タスク状態は複数セッション再開と知見還流の入力になる）。ただしランタイムフラグはコミットしない — マスターと同じく `.gitignore` に `.steering/**/.capture-needed`・`.steering/**/.codify-needed`・`.steering/**/capture_done`・`.steering/**/pr_capture_done`・`.steering/.last-rule-audit` の 5 行を追加する。
 
 セッション開始で `.capture-needed` が出たら、対象タスクごとに「今 / 後で / スキップ」で選ぶ（一括スキップ禁止）。スキップはフラグ削除だけ（`capture_done` は作らない）で、効果は次の Stop まで — 永久免除ではない。【rule-audit 月次】が出たら別契約の三択（今＝rule-audit / 後で＝残置 / スキップ＝`.steering/.last-rule-audit` 更新で 30 日再ナッジ。capture の次 Stop 寿命とは別）。
 

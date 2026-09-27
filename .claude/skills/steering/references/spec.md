@@ -22,7 +22,8 @@
 │   ├── codify-log.md          ← compound が生成: パターン昇格の履歴
 │   ├── .capture-needed        ← フラグ: knowledge-capture 未実行を示す
 │   ├── .codify-needed         ← フラグ: compound スキル未実行を示す
-│   └── capture_done           ← フラグ: knowledge-capture 完了済みを示す
+│   ├── pr_capture_done        ← フラグ: PR 差分に属する知見の保存済みを示す（PR 前 capture）
+│   └── capture_done           ← フラグ: 最終 knowledge-capture 完了済みを示す（アーカイブのハードストップ）
 └── archived/
     └── [YYYYMMDD]-[task-name]/  ← 完了タスク（git で永続管理）
 ```
@@ -97,29 +98,50 @@ Status: **SPIKE**
 Last updated: [YYYYMMDD]
 
 ## 実装
-- [ ] [設計から導出したタスク]
-- [ ] テスト作成（TDD: Red フェーズ）
-- [ ] 実装（Green フェーズ）
-- [ ] リファクタリング（Refactor フェーズ）
+
+- [ ] [design.md の主要コンポーネントから導出したタスク]
+- [ ] [タスク2]
+- [ ] テスト作成（TDD Red フェーズ）
+- [ ] 実装（TDD Green フェーズ）
+- [ ] リファクタリング（TDD Refactor フェーズ）
 
 ## レビュー
+
 - [ ] frontend-code-review の実行
 - [ ] レビュー指摘の修正（review-result.md を参照）
 - [ ] 修正後の差分再レビュー
 
+## 知見保存（この PR / ブランチに載せる分）
+<!-- この変更の説明・落とし穴として残す knowledge は、マージ前に同じブランチへ含める。 -->
+<!-- 「デプロイのあと」に回すと、後続 PR や別差分に混ざる。 -->
+
+- [ ] knowledge-capture スキルの実行（PR 差分に属する知見）
+- [ ] 必要なら docs/ への追記をこのブランチでコミット
+
 ## デプロイ
 <!-- git push してブランチを PR にするフェーズ。CI がないリポジトリはスキップ可。 -->
+<!-- GitHub Actions 等があれば CI グリーンを確認してからマージする。 -->
+<!-- 末尾の `PR:` / `CI:` / `Feedback:` の 3 行はチェックボックスにしない（状態の記録）。feature-pipeline の現在地判定が読む。 -->
+<!-- `PR:` は URL か none / `CI:` は green・failing・none / `Feedback:` は yes（返信待ちの指摘あり）か no。pr-feedback の対応後は no に戻す。 -->
+
 - [ ] PR 作成（`pr-create` スキルまたは `gh pr create`）
 - [ ] CI グリーン確認
 - [ ] マージ
+- PR: none
+- CI: none
+- Feedback: no
 
 ## 福利化
 <!-- レビュー・実装で発見したパターンをルール・知識・スキルに昇格するフェーズ。 -->
+<!-- frontend-code-review 完了後に .codify-needed フラグが作成される。 -->
+<!-- マージ後でもよい（昇格は別ゲート）。PR に載せる knowledge 本文とは分ける。 -->
+
 - [ ] compound スキルの実行（パターンをルール・知識に昇格）
 
-## 知見保存
-<!-- セッションの知見を docs/ に永続保存するフェーズ。 -->
-- [ ] knowledge-capture スキルの実行
+## クローズ
+<!-- マージ後の横断知見・アーカイブ。PR 差分に属する知見は上の「知見保存」で済ませる。 -->
+
+- [ ] knowledge-capture（会話由来・横断の残りがあれば）
 - [ ] steering archive モードでアーカイブ
 ```
 
