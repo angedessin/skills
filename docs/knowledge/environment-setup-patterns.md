@@ -18,6 +18,15 @@
 - mise 管理プロジェクトでは `mise exec --` 経由か `node_modules/.bin/` 直叩きを既定にする
 - bare `pnpm`/`node` 呼び出しは非対話シェルでの mise 未有効化を前提に避ける
 
+## Rosetta 下の Bash で `pnpm install` すると biome の x64 バイナリが外れる
+
+このマシンの非対話 Bash は Rosetta 下（`arch` = i386）で mise の Node は x64 だが、pnpm は arm64 版だけを入れるため
+`@biomejs/cli-darwin-x64` が外れて `lint` が MODULE_NOT_FOUND で落ちる（20260921）。
+
+- `node_modules` を再インストールしない。CI 再現は各コマンドを個別に回すだけで足りる
+- 外してしまったら、一時的に `pnpm-workspace.yaml` へ `supportedArchitectures: {os: [darwin], cpu: [x64, arm64]}` を置いて
+  `pnpm install --frozen-lockfile` → 削除する
+
 ---
 
 ※ このファイルは開発が進むにつれ knowledge-capture / compound スキルによって更新される。

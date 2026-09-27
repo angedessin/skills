@@ -269,3 +269,14 @@ AI の編集を機械が検証して差し戻す「閉じたループ」の配�
 - `--allowedTools` は可変長引数で**後続のプロンプトを引数として飲み込む** — `--allowedTools=Bash` の `=` 区切りで書く
 - 非対話モードでは hook の `ask` 判定は deny に落ちる。「Bash を明示 allow した上で、対象コマンドだけが拒否されること」で hook の発火を確認できる
 - 対照実験を必ず入れる: allow 済みコマンド（`git log` 等）が通ることを確認して「全拒否ではなくルール駆動のブロック」だと判別する
+
+## サブエージェント定義（`.claude/agents/`）の落とし穴
+
+- **`tools` に `Bash(git diff *)` と書いても読み取り専用にならない。** `--output=<path>` で任意ファイルへ書け、
+  `git difftool -x '<cmd>'` で任意コマンドを実行でき、`git diff --no-index /dev/null <file>` で `Read` の deny を迂回して読める。
+  読み取り専用の定義は `Read` / `Grep` / `Glob` のみにし、diff は呼び出し側がファイルで渡す。
+  `settings.json` の allow を前置一致（`Bash(git diff*)`）で書いた場合も同じ穴になる（20260921 実測）
+- **作成直後の定義は数ターン種別として未登録**（`Agent type '<name>' not found`。再起動不要で後から登録される）。
+  フォールバックは「定義ファイルがあるか」ではなく「指定して失敗したら汎用エージェントへ落とす」まで書く
+- **散文の「Haiku 相当で」「安価なモデルで」は subagent 起動に何の効果も持たない。** model / effort / tools は定義の
+  frontmatter に書いたときだけ効く（ADR 20260927-subagent-roles-in-agent-definitions）
