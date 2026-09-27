@@ -25,6 +25,7 @@
 純度計測・ポータビリティ（レポートのみ・FAIL にしない）:
   python3 scripts/validate_skills.py --purity        # 各スキル本文のツール固有 API 出現数
   python3 scripts/validate_skills.py --portability   # 配布可スキルのマスター内部前提（日付・固有語）
+  python3 scripts/validate_skills.py --portability --strict  # 同上。1 件でもあれば exit 1（CI 用）
 
 使い方:
   python3 scripts/validate_skills.py                 # .claude/skills/ 全体
@@ -33,7 +34,8 @@
   python3 scripts/validate_skills.py --template      # templates/SKILL.template.md（プレースホルダ許容）
   python3 scripts/validate_skills.py --purity        # ツール純度レポート（FAIL にしない）
   python3 scripts/validate_skills.py --portability   # ポータビリティレポート（FAIL にしない）
-終了コード: 0 = 全 PASS / 1 = FAIL あり / 2 = 使い方の誤り（不明なオプション等）
+  python3 scripts/validate_skills.py --portability --strict  # 混入 1 件以上で exit 1
+終了コード: 0 = 全 PASS / 1 = FAIL あり（--portability --strict は混入あり） / 2 = 使い方の誤り（不明なオプション等）
 """
 import re
 import sys
@@ -71,6 +73,7 @@ MASTER_ONLY = {"skill-test", "skill-harvest", "skill-deploy", "adr"}
 PORTABILITY_VOCAB = [
     "還流", "配布セット", "source-commit", "deployments.md",
     "このマスター", "マスターへ", "マスターの git", "（distributable）",
+    "pipeline_state",
 ]
 
 # design-doc テンプレの契約コア/付録境界（live design.md は対象外・フォールバック全文）
@@ -247,7 +250,7 @@ KNOWLEDGE_FRESHNESS_CHECKS = (
         (
             ("【rule-audit 月次】", "user-guide ナッジ"),
             (".steering/.last-rule-audit", "user-guide マーカー"),
-            ("4 行", "ランタイムフラグ行数"),
+            ("5 行", "ランタイムフラグ行数"),
         ),
     ),
     (
@@ -521,6 +524,7 @@ def portability_hits(skill_dir: Path) -> list[tuple[str, int, str]]:
 
 # main() が分岐として受け付けるフラグの全集合。**分岐を足したらここにも足す**
 # （片側修正だと、実在するフラグが「不明なオプション」で弾かれる）。
+# `--strict` は `--portability` の修飾子（先頭引数にならない）ので含めない。
 KNOWN_FLAGS = ("--help", "-h", "--skill", "--template", "--purity", "--portability")
 
 
@@ -543,7 +547,15 @@ def main() -> None:
         sys.exit(2)
     # ポータビリティレポート（配布可スキルにマスター内部前提が無いか・report-only）
     if args and args[0] == "--portability":
-        root = Path(args[1]) if len(args) > 1 else (
+        # `--strict` は `--portability` の後ろのどこに置いてもよい。走査ルートは strict 以外の最初の引数。
+        # ハイフン始まりの引数は走査ルートにせず使い方の誤りとして弾く（`--stric` の打ち間違いが
+        # 走査ルートとして解釈され Traceback になるのを防ぐ）。
+        strict = "--strict" in args[1:]
+        rest = [a for a in args[1:] if a != "--strict"]
+        if rest and rest[0].startswith("-"):
+            print(f"エラー: 不明なオプション: {rest[0]}（`--portability` の修飾子は --strict のみ）", file=sys.stderr)
+            sys.exit(2)
+        root = Path(rest[0]) if rest else (
             Path(__file__).resolve().parent.parent / ".claude" / "skills"
         )
         dirs = sorted(
@@ -562,9 +574,13 @@ def main() -> None:
                     print(f"      {rel}:{i}  {what}")
         if not any_hit:
             print("混入なし（配布可スキルはクリーン）")
-        sys.exit(0)
+        # 既定は report-only（exit 0）。--strict のときだけ混入を失敗として返す。
+        sys.exit(1 if strict and any_hit else 0)
     # 純度レポートモード（項目8・FAIL にしない・レポートのみ）
     if args and args[0] == "--purity":
+        if len(args) > 1 and args[1].startswith("-"):
+            print(f"エラー: 不明なオプション: {args[1]}（--purity に修飾子は無い）", file=sys.stderr)
+            sys.exit(2)
         root = Path(args[1]) if len(args) > 1 else (
             Path(__file__).resolve().parent.parent / ".claude" / "skills"
         )

@@ -1,0 +1,54 @@
+# 無料の静的検査だけを push / PR ごとに回す。課金を伴う passthrough 実走（--dry-run 無し）は入れない。
+# ローカルでも同じ順で回せる: mise exec -- pnpm run validate など（各 step の run を参照）。
+name: validate
+
+# main への push と、すべての PR で実行する（feature ブランチの push + PR で二重に走らないようにする）
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # 後段の pnpm install / python スクリプトに git の資格情報を残さない
+          persist-credentials: false
+
+      # pnpm の版は package.json の packageManager（pnpm@10.34.5）に従う
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: validate（スキルの構造契約）
+        run: pnpm run validate
+
+      - name: validate:assets（資産どうしの契約突合）
+        run: pnpm run validate:assets
+
+      # 既定は report-only（常に exit 0）なので --strict で混入 1 件を失敗にする
+      - name: portability（配布可スキルへの内部前提の混入・警告 0 件）
+        run: python3 scripts/validate_skills.py --portability --strict
+
+      - name: test:hooks（hook フィクスチャ）
+        run: pnpm run test:hooks
+
+      - name: lint
+        run: pnpm run lint
+
+      - name: passthrough dry-run（無課金の構造確認）
+        run: python3 scripts/passthrough_check.py --all --dry-run
+
+      - name: tests/state（feature-pipeline 判定表）
+        run: python3 tests/state/run.py

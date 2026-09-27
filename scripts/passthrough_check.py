@@ -24,6 +24,7 @@
   python3 scripts/passthrough_check.py --all                    # tests/passthrough/*/scenario.md を全実行
   python3 scripts/passthrough_check.py --all --dry-run          # 全シナリオの構造確認（無課金）
   python3 scripts/passthrough_check.py <scenario.md> --runs 4   # 実行回数を上書き（承認ゲート系の非決定 FAIL 検出用・課金 N 倍）
+  python3 scripts/passthrough_check.py <scenario.md> --model opus  # 実行エージェントのモデルを上書き（既定 sonnet。使ったモデルは結果に出力される）
 終了コード: 0 = 全 PASS / 1 = 素通り検出（FAIL）/ 2 = 実行エラー
 
 運用注意: ハーネスのバックグラウンド実行に載せない（フォアグラウンド直列で回す）。
@@ -42,13 +43,15 @@ from pathlib import Path
 
 MASTER_ROOT = Path(__file__).resolve().parent.parent
 RUNS_PER_SCENARIO = 2  # 非決定性に備え各シナリオ 2 回。1 回でも素通りしたら FAIL。
+DEFAULT_MODEL = "sonnet"  # `--model` 未指定時のモデル。変えると過去の測定ログと比較できなくなる
 
 # フレッシュエージェント起動コマンド。プロンプトは stdin で渡す（{cwd} は置換される）。
 # 注意: 引数にプロンプトファイルの「パス」を渡す方式は不可 — エージェントはパス文字列を
 # プロンプトとして受け取り、サンドボックス外の一時ファイルを読めずに何もせず終了する。
 # 何もしない run は expect=stop で偽陽性 PASS になる（20260711 に実際に発生）。
 # デフォルトはリポジトリの CLI 環境（headless）。実行環境に合わせてここ 1 箇所を変える。
-AGENT_CMD = ["claude", "-p", "--model", "sonnet", "--permission-mode", "acceptEdits"]
+# {model} は `--model`（既定 DEFAULT_MODEL）で置換される。モデルの値はここに書き込まない。
+AGENT_CMD = ["claude", "-p", "--model", "{model}", "--permission-mode", "acceptEdits"]
 
 
 def sha1_of(p: Path) -> str:
@@ -139,9 +142,9 @@ def build_prompt(meta: dict, skill_md: Path) -> str:
     )
 
 
-def run_agent(prompt: str, cwd: Path) -> str:
+def run_agent(prompt: str, cwd: Path, model: str = DEFAULT_MODEL) -> str:
     """プロンプトを stdin で渡してエージェントを起動し、stdout を返す（無応答検出用）。"""
-    cmd = [a.replace("{cwd}", str(cwd)) for a in AGENT_CMD]
+    cmd = [a.replace("{cwd}", str(cwd)).replace("{model}", model) for a in AGENT_CMD]
     proc = subprocess.run(cmd, cwd=str(cwd), input=prompt, capture_output=True, text=True)
     if proc.stdout:
         print("  --- agent output (tail) ---")
@@ -163,11 +166,13 @@ def verdict(before: dict[str, str], after: dict[str, str], expectation: str) -> 
     return False, "続行すべきなのに何も変化しなかった"
 
 
-def run_scenario(scenario_md: Path, dry_run: bool, runs: int = RUNS_PER_SCENARIO) -> bool:
+def run_scenario(
+    scenario_md: Path, dry_run: bool, runs: int = RUNS_PER_SCENARIO, model: str = DEFAULT_MODEL
+) -> bool:
     meta = parse_scenario(scenario_md)
     skill_md = resolve_skill_md(meta, scenario_md)
     print(f"# {scenario_md.parent.name}  (skill={skill_md.relative_to(MASTER_ROOT)}, "
-          f"expect={meta['expectation']})")
+          f"expect={meta['expectation']}, model={model})")
 
     if dry_run:
         with tempfile.TemporaryDirectory(prefix="passthrough-dry-") as td:
@@ -186,7 +191,7 @@ def run_scenario(scenario_md: Path, dry_run: bool, runs: int = RUNS_PER_SCENARIO
             sandbox = Path(td)
             build_sandbox(meta, sandbox)
             before = snapshot(sandbox, meta["judge_glob"])
-            out = run_agent(build_prompt(meta, skill_md), sandbox)
+            out = run_agent(build_prompt(meta, skill_md), sandbox, model)
             after = snapshot(sandbox, meta["judge_glob"])
             ok, why = verdict(before, after, meta["expectation"])
             # 偽陽性ガード: expect=stop の「変化なし」は停止と無応答を区別できない。
@@ -196,7 +201,7 @@ def run_scenario(scenario_md: Path, dry_run: bool, runs: int = RUNS_PER_SCENARIO
                 ok, why = False, "無効 run: エージェント出力が空（停止ではなく無応答の疑い）"
             print(f"  run {i}/{runs}: {'PASS' if ok else 'FAIL'} — {why}")
             passed_all = passed_all and ok
-    print(f"  => {'PASS' if passed_all else 'FAIL'}（1 回でも素通りしたら FAIL）")
+    print(f"  => {'PASS' if passed_all else 'FAIL'}（1 回でも素通りしたら FAIL・model={model}）")
     return passed_all
 
 
@@ -220,6 +225,17 @@ def main() -> None:
             sys.exit(2)
         del args[ri:ri + 2]
 
+    # --model M: 実行エージェントのモデル。実走の結果はモデルに依存するので、使った値を出力に残す
+    # （測定ログにはこの値を併記する）。dry-run ではエージェントを起動しないので値は表示のみ。
+    model = DEFAULT_MODEL
+    if "--model" in args:
+        mi = args.index("--model")
+        if mi + 1 >= len(args) or not args[mi + 1].strip() or args[mi + 1].startswith("-"):
+            print("エラー: --model にはモデル名を指定する（例: --model opus）")
+            sys.exit(2)
+        model = args[mi + 1]
+        del args[mi:mi + 2]
+
     if args == ["--all"]:
         scenarios = sorted((MASTER_ROOT / "tests" / "passthrough").glob("*/scenario.md"))
         if not scenarios:
@@ -234,13 +250,13 @@ def main() -> None:
     failed = 0
     for s in scenarios:
         try:
-            if not run_scenario(s, dry, runs):
+            if not run_scenario(s, dry, runs, model):
                 failed += 1
         except ValueError as e:
             print(f"エラー: {e}")
             sys.exit(2)
     if not dry:
-        print(f"\n{len(scenarios) - failed}/{len(scenarios)} シナリオ PASS")
+        print(f"\n{len(scenarios) - failed}/{len(scenarios)} シナリオ PASS（model={model}・測定ログにモデルを併記する）")
     sys.exit(1 if failed else 0)
 
 

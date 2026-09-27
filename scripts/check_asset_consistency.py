@@ -41,6 +41,27 @@
   (l) feature-pipeline の Phase / Step 見出しに出るスキル名 ⊆ README「メインワークフロー」図
       → CLAUDE.md の「ワークフロー図と feature-pipeline は同一コミットで改訂する」を機械化する。
         フェーズを足してオーケストレーターだけ直し、図を放置した片側修正を検出する
+  (m) feature-pipeline の判定表の行 ID 列（順序つき）≡ scripts/pipeline_state.py の ROW_ORDER、
+      かつ各行の現在地語（Phase / Gate / 即停止）が一致する
+      → 表と関数のどちらかだけ直した片側修正、および行順の入れ替え（Phase 3.7 到達不能型）を検出する。
+        意味（条件・到達可能性・優先順位）は tests/state が関数側で検査する
+  (n) steering/references/spec.md の tasklist テンプレの節見出し列（順序つき）と
+      デプロイ節の `PR:` / `CI:` / `Feedback:` キー ≡ design-doc/references/templates.md（正本）
+      → 写しが正本から工程順ごとずれる片側修正を検出する
+  (o) スキル本文が名指しする agent 名（`.claude/agents/<名>.md` のパス表記と、frontend-code-review の
+      ディスパッチ表の「役割名」列）⊆ `.claude/agents/` の定義名、かつ全定義がいずれかから参照されている
+      → 存在しない agent への死んだ参照と、どのスキルからも呼ばれない孤児定義を検出する（双方向）
+  (p) `.claude/agents/*.md` の frontmatter: 必須キー・既知キーのみ・name = ファイル名・model / effort の値・
+      preload する skills の実在・読み取り専用の定義に書き込み系ツールが混ざらないこと
+      （書き込みを許す定義は WRITABLE_AGENTS に明示列挙する）。読み取り専用の定義に許すツールは
+      Read / Grep / Glob だけのホワイトリスト（Bash は `git diff --output=<path>` で書き込めるため許さない）
+  (r) capture フラグ（capture_done / pr_capture_done）の producer（knowledge-capture が touch する）と
+      consumer（feature-pipeline・steering・hook・.gitignore・deploy_skills・状態機械）が名前で一致し、
+      リポジトリ内で使われるフラグ名が既知の 2 つだけ
+      → producer と consumer のどちらかだけを直す片側修正（Critical 2 と同型）を検出する
+  (q) remind-config-docs.sh が注入する要約 ⇄ その正本（docs/knowledge/）: 要約の各項目の見出し語が
+      要約と正本の両方に存在し、要約の項目数が突合表と一致する
+      → 正本の言い換え・削除で要約だけが古くなる（注入される「要点」が正本と食い違う）ドリフトを検出する
 
   会社向け持ち出しセット用の契約 (g)(i) は 20260730 Frozen handoff で除去済み。
 
@@ -50,9 +71,10 @@
 （節境界のパースを避ける。等価にすると節の挿入で偽 PASS を生む）。
 
 (l) も包含（⊆）。README の図は debug / tdd / e2e / rule-audit などパイプラインが編成しない
-スキルも描くため、等価にすると常に落ちる。**フェーズの順序は検査対象外** — 図では
+スキルも描くため、等価にすると常に落ちる。**(l) はフェーズの順序を見ない** — 図では
 knowledge-capture が [5.5]（PR 前）と [7]（残り）の 2 箇所に出るなど、同じスキルが複数の
-位置に現れるため順序比較は書式変更で壊れやすい。順序のドリフトは人のレビューで見る。
+位置に現れるため順序比較は書式変更で壊れやすい。図の順序のドリフトは人のレビューで見る。
+一方、判定表の行順は (m) が、tasklist テンプレの節順は (n) が機械検査する。
 
 **終了コードの優先順位**: FAIL が 1 件でもあれば 1。2 を返すのは走査の前提そのものが崩れている場合だけ。
 
@@ -401,6 +423,15 @@ MAIN_WORKFLOW_RE = re.compile(r"^## メインワークフロー\s*\n+```\n(.*?)\
 FP_PHASE_HEAD_RE = re.compile(r"^#{2,3} .*?(?:Phase|Step)\s*[\d.]+[a-z]?\b.*$", re.M)
 
 FEATURE_PIPELINE = MASTER_ROOT / ".claude" / "skills" / "feature-pipeline" / "SKILL.md"
+TASKLIST_TEMPLATE = MASTER_ROOT / ".claude" / "skills" / "design-doc" / "references" / "templates.md"
+STEERING_SPEC = MASTER_ROOT / ".claude" / "skills" / "steering" / "references" / "spec.md"
+
+# 判定表の行 `| `P37` | 条件 | **Phase 3.7**（…） |`。先頭セルの行 ID だけを契約キーとして拾う。
+PHASE_ROW_RE = re.compile(r"^\|\s*`([A-Z][0-9A-Za-z]*)`\s*\|")
+# 現在地の語。表は `**Phase 3.7**`・関数側は `Phase 3.7（…）` と装飾が違うので語だけ比べる。
+PHASE_WORD_RE = re.compile(r"(Phase\s*[\d.]+|Gate\s*\d+|即停止)")
+TASKLIST_BLOCK_RE = re.compile(r"```markdown\n(# タスクリスト:.*?)\n```", re.S)
+DEPLOY_KEY_RE = re.compile(r"^- (PR|CI|Feedback):", re.M)
 
 
 def _named_skills(text: str) -> set[str]:
@@ -465,6 +496,396 @@ def contract_l() -> tuple[str, list[str]]:
     ]
 
 
+def _phase_word(text: str) -> str:
+    m = PHASE_WORD_RE.search(text)
+    return re.sub(r"\s+", "", m.group(1)) if m else ""
+
+
+def contract_m() -> tuple[str, list[str]]:
+    """判定表（SKILL.md）と pipeline_state.py の行 ID 列・現在地語の突合。
+
+    フェイルクローズ: 表が 0 行・関数を読めない、はいずれも FAIL。0 行を「差分なし」で
+    PASS にすると、表の書式を変えた瞬間に検査が黙って無効化される。
+    """
+    try:
+        from pipeline_state import PHASE_BY_ROW, ROW_ORDER  # noqa: E402
+    except ImportError as e:
+        return FAIL, [f"scripts/pipeline_state.py を読み込めない: {e}"]
+    if not FEATURE_PIPELINE.is_file():
+        return FAIL, [f"feature-pipeline/SKILL.md が無い: {FEATURE_PIPELINE}"]
+
+    table_ids: list[str] = []
+    table_words: dict[str, str] = {}
+    for line in FEATURE_PIPELINE.read_text(encoding="utf-8").splitlines():
+        m = PHASE_ROW_RE.match(line)
+        if not m:
+            continue
+        table_ids.append(m.group(1))
+        table_words[m.group(1)] = _phase_word(line.rstrip().rstrip("|").rsplit("|", 1)[-1])
+
+    if not table_ids:
+        return FAIL, [
+            "feature-pipeline の判定表に行 ID 付きの行が 1 つも無い",
+            "→ 表の書式を変えたなら PHASE_ROW_RE も同じコミットで直す",
+        ]
+
+    details: list[str] = []
+    dupes = sorted({i for i in table_ids if table_ids.count(i) > 1})
+    if dupes:
+        details.append(f"表に重複した行 ID: {', '.join(dupes)}")
+    only_table = [i for i in table_ids if i not in ROW_ORDER]
+    only_func = [i for i in ROW_ORDER if i not in table_ids]
+    if only_table:
+        details.append(f"表のみ（pipeline_state.py に無い）: {', '.join(only_table)}")
+    if only_func:
+        details.append(f"pipeline_state.py のみ（表に無い）: {', '.join(only_func)}")
+    if not (only_table or only_func or dupes) and table_ids != ROW_ORDER:
+        details.append(f"行順が違う — 表: {' > '.join(table_ids)}")
+        details.append(f"              関数: {' > '.join(ROW_ORDER)}")
+        details.append("行順は判定の優先順位そのもの。入れ替えると到達不能な行が生まれる")
+    for row_id in ROW_ORDER:
+        if row_id in table_words and table_words[row_id] != _phase_word(PHASE_BY_ROW[row_id]):
+            details.append(
+                f"{row_id} の現在地語が違う — 表: {table_words[row_id] or '(なし)'}"
+                f" / 関数: {_phase_word(PHASE_BY_ROW[row_id]) or '(なし)'}"
+            )
+    if details:
+        details.append("→ 表（SKILL.md）と関数（pipeline_state.py）は同一コミットで直す。意味は tests/state が検査する")
+        return FAIL, details
+    return PASS, [f"判定表 {len(table_ids)} 行の ID・順序・現在地語が pipeline_state.py と一致"]
+
+
+def _tasklist_template(path: Path) -> tuple[list[str], list[str], list[str]] | None:
+    """tasklist テンプレの (節見出し列, デプロイ節キー列, チェックボックス項目列)。テンプレが見つからなければ None。"""
+    if not path.is_file():
+        return None
+    m = TASKLIST_BLOCK_RE.search(path.read_text(encoding="utf-8"))
+    if not m:
+        return None
+    block = m.group(1)
+    return re.findall(r"^## .+$", block, re.M), DEPLOY_KEY_RE.findall(block), re.findall(r"^- \[ \] .+$", block, re.M)
+
+
+def contract_n() -> tuple[str, list[str]]:
+    """steering の tasklist テンプレ（写し）が design-doc の正本と同じ工程順か。"""
+    canonical = _tasklist_template(TASKLIST_TEMPLATE)
+    copy = _tasklist_template(STEERING_SPEC)
+    if canonical is None:
+        return FAIL, [f"正本に tasklist テンプレが無い: {TASKLIST_TEMPLATE}"]
+    if copy is None:
+        return FAIL, [f"写しに tasklist テンプレが無い: {STEERING_SPEC}"]
+    if not canonical[0]:
+        return FAIL, ["正本の tasklist テンプレに `## ` 見出しが 1 つも無い"]
+    if not canonical[1] or not canonical[2]:
+        return FAIL, [
+            "正本の tasklist テンプレからデプロイ節のキー（`- PR:` 等）またはチェックボックス項目が 1 つも抽出できない",
+            "→ 書式を変えたなら DEPLOY_KEY_RE 等も同じコミットで直す（0 件どうしの一致を PASS にしない）",
+        ]
+
+    details: list[str] = []
+    if canonical[0] != copy[0]:
+        details.append("節見出し列（順序つき）が違う")
+        details.append(f"  正本 templates.md: {' > '.join(h[3:] for h in canonical[0])}")
+        details.append(f"  写し spec.md     : {' > '.join(h[3:] for h in copy[0])}")
+    if canonical[1] != copy[1]:
+        details.append(
+            f"デプロイ節のキーが違う — 正本: {canonical[1] or '(なし)'} / 写し: {copy[1] or '(なし)'}"
+        )
+    if canonical[2] != copy[2]:
+        only_canon = [i for i in canonical[2] if i not in copy[2]]
+        only_copy = [i for i in copy[2] if i not in canonical[2]]
+        details.append(f"チェックボックス項目（順序つき）が違う — 正本のみ: {only_canon or '(なし)'} / 写しのみ: {only_copy or '(なし)'}")
+    if details:
+        details.append("→ 正本は design-doc/references/templates.md。写しを正本に合わせて直す")
+        return FAIL, details
+    return PASS, [
+        f"節見出し {len(canonical[0])} 件・デプロイ節キー {len(canonical[1])} 件・"
+        f"チェックボックス項目 {len(canonical[2])} 件が正本と一致"
+    ]
+
+
+AGENTS_DIR = MASTER_ROOT / ".claude" / "agents"
+SKILLS_DIR = MASTER_ROOT / ".claude" / "skills"
+FRONTEND_CODE_REVIEW = SKILLS_DIR / "frontend-code-review" / "SKILL.md"
+
+# 本文が agent を名指す 2 つの書式だけを契約として拾う（スキル名と語が重なるため語一致では区別できない）:
+#   1. `.claude/agents/<名>.md` のパス表記
+#   2. frontend-code-review のディスパッチ表 `| test-agent | `review-test` | ... |` の役割名列
+AGENT_PATH_RE = re.compile(r"\.claude/agents/([a-z][a-z0-9-]*)\.md")
+DISPATCH_ROW_RE = re.compile(r"^\|\s*[a-z0-9-]+-agent\s*\|\s*`([a-z][a-z0-9-]*)`\s*\|", re.M)
+
+# 書き込み系ツールを持ってよい定義。ここに無い定義は読み取り専用でなければならない。
+WRITABLE_AGENTS = {"tournament-variant"}
+AGENT_REQUIRED_KEYS = ("name", "description", "tools", "model")
+# 公式 docs（Create custom subagents）が定義するキー。打ち間違いが黙って無視されるのを防ぐ。
+AGENT_KNOWN_KEYS = {
+    "name", "description", "tools", "disallowedTools", "model", "effort", "skills", "permissionMode",
+    "maxTurns", "mcpServers", "hooks", "memory", "background", "omitClaudeMd", "isolation", "color",
+    "initialPrompt", "experimental",
+}
+AGENT_MODELS = {"sonnet", "opus", "haiku", "fable", "inherit"}
+AGENT_EFFORTS = {"low", "medium", "high", "xhigh", "max"}
+# 読み取り専用の定義に許すツール（ホワイトリスト）。Bash は `Bash(git diff *)` のように絞っても
+# `--output=<path>` でファイルが書け、`git symbolic-ref` は ref を書き換えられるため、Bash ごと許さない。
+# 黒名簿方式（Edit / Write を禁止）だと、引用符付き・`Agent`・`mcp__*`・`WebFetch` などが抜ける。
+READONLY_TOOLS = {"Read", "Grep", "Glob"}
+
+
+def _agent_frontmatter(text: str) -> dict[str, object] | None:
+    """agent 定義の frontmatter を `キー: 値` と `- 要素` の限られた書式で読む（標準ライブラリのみ）。"""
+    m = re.match(r"^---\n(.*?)\n---\n", text, re.S)
+    if not m:
+        return None
+    result: dict[str, object] = {}
+    key = None
+    for line in m.group(1).splitlines():
+        item = re.match(r"^\s+-\s+(.*)$", line)
+        if item and key is not None:
+            if not isinstance(result.get(key), list):
+                result[key] = []
+            result[key].append(item.group(1).strip())  # type: ignore[union-attr]
+            continue
+        kv = re.match(r"^([A-Za-z][A-Za-z0-9]*):\s*(.*)$", line)
+        if kv:
+            key = kv.group(1)
+            result[key] = kv.group(2).strip() if kv.group(2).strip() else []
+    return result
+
+
+def _agent_names() -> list[str] | None:
+    if not AGENTS_DIR.is_dir():
+        return None
+    return sorted(p.stem for p in AGENTS_DIR.glob("*.md"))
+
+
+def contract_o() -> tuple[str, list[str]]:
+    """スキル本文の agent 参照 ⇄ `.claude/agents/` の定義（死んだ参照と孤児定義の双方向）。"""
+    defs = _agent_names()
+    if not defs:
+        return FAIL, [f".claude/agents/ に定義が 1 つも無い: {AGENTS_DIR}"]
+    if not FRONTEND_CODE_REVIEW.is_file():
+        return FAIL, [f"frontend-code-review/SKILL.md が無い: {FRONTEND_CODE_REVIEW}"]
+
+    dispatch_roles = set(DISPATCH_ROW_RE.findall(FRONTEND_CODE_REVIEW.read_text(encoding="utf-8")))
+    if not dispatch_roles:
+        return FAIL, [
+            "frontend-code-review にディスパッチ表（`| xxx-agent | `役割名` | ... |`）の行が 1 つも無い",
+            "→ 表の書式を変えたなら DISPATCH_ROW_RE も同じコミットで直す",
+        ]
+    path_refs: set[str] = set()
+    for f in sorted(SKILLS_DIR.glob("*/SKILL.md")) + sorted(SKILLS_DIR.glob("*/references/*.md")):
+        path_refs |= set(AGENT_PATH_RE.findall(f.read_text(encoding="utf-8")))
+
+    refs = dispatch_roles | path_refs
+    dangling = sorted(refs - set(defs))
+    orphans = sorted(set(defs) - refs)
+    details: list[str] = []
+    if dangling:
+        details.append(f"定義の無い agent を名指ししている: {', '.join(dangling)}")
+    if orphans:
+        details.append(f"どのスキルからも参照されない定義: {', '.join(orphans)}")
+    if details:
+        details.append("→ スキル本文の参照と .claude/agents/ の定義は同一コミットで直す")
+        return FAIL, details
+    return PASS, [f"agent 定義 {len(defs)} 本すべてが参照され、参照はすべて定義に解決する"]
+
+
+def _unquote(item: str) -> str:
+    return item.strip().strip("\"'")
+
+
+def _agent_list(value: object) -> list[str] | None:
+    """frontmatter の複数値（`- a` の列 / `a, b`）を要素のリストにする。インライン配列 `[a, b]` は None。"""
+    if isinstance(value, list):
+        return [_unquote(v) for v in value]
+    text = str(value or "").strip()
+    if text.startswith("["):
+        return None
+    return [_unquote(t) for t in text.split(",") if t.strip()]
+
+
+def contract_p() -> tuple[str, list[str]]:
+    """`.claude/agents/*.md` の frontmatter 検査（必須キー・値・実在・読み取り専用）。"""
+    names = _agent_names()
+    if not names:
+        return FAIL, [f".claude/agents/ に定義が 1 つも無い: {AGENTS_DIR}"]
+    skill_names = {p.name for p in SKILLS_DIR.iterdir() if p.is_dir()} if SKILLS_DIR.is_dir() else set()
+
+    details: list[str] = []
+    for name in names:
+        fm = _agent_frontmatter((AGENTS_DIR / f"{name}.md").read_text(encoding="utf-8"))
+        if fm is None:
+            details.append(f"{name}: frontmatter（`---` で囲んだ先頭ブロック）が読めない")
+            continue
+        for key in AGENT_REQUIRED_KEYS:
+            if not fm.get(key):
+                details.append(f"{name}: 必須キー `{key}` が無い（または空）")
+        unknown = sorted(set(fm) - AGENT_KNOWN_KEYS)
+        if unknown:
+            details.append(f"{name}: 未知のキー {', '.join(unknown)}（打ち間違いは黙って無視される）")
+        if fm.get("name") and fm["name"] != name:
+            details.append(f"{name}: name（{fm['name']}）がファイル名と違う")
+        model = fm.get("model")
+        if isinstance(model, str) and model not in AGENT_MODELS and not model.startswith("claude-"):
+            details.append(f"{name}: model `{model}` は既知の値ではない（{', '.join(sorted(AGENT_MODELS))} か claude-*）")
+        effort = fm.get("effort")
+        if effort is not None and effort not in AGENT_EFFORTS:
+            details.append(f"{name}: effort `{effort}` は既知の値ではない（{', '.join(sorted(AGENT_EFFORTS))}）")
+
+        skills = _agent_list(fm.get("skills") or [])
+        if skills is None:
+            details.append(f"{name}: skills のインライン配列 `[...]` は読めない（`- name` の列で書く）")
+        else:
+            for skill in skills:
+                if skill not in skill_names:
+                    details.append(f"{name}: preload する skills `{skill}` が .claude/skills/ に無い")
+
+        tool_list = _agent_list(fm.get("tools"))
+        if tool_list is None:
+            details.append(f"{name}: tools のインライン配列 `[...]` は読めない（`- Read` の列かカンマ区切りで書く）")
+        elif name not in WRITABLE_AGENTS:
+            for tool in tool_list:
+                if tool not in READONLY_TOOLS:
+                    details.append(
+                        f"{name}: 読み取り専用のはずが `{tool}` を持つ"
+                        f"（許可は {', '.join(sorted(READONLY_TOOLS))} のみ。Bash は git の --output などで書き込めるため持たせない）"
+                    )
+    stale = sorted(WRITABLE_AGENTS - set(names))
+    if stale:
+        details.append(f"WRITABLE_AGENTS に定義の無い名前: {', '.join(stale)}")
+    if details:
+        details.append("→ 書き込みを許す定義は WRITABLE_AGENTS に明示列挙する。読み取り専用の定義に足すなら意図を確認する")
+        return FAIL, details
+    return PASS, [
+        f"agent 定義 {len(names)} 本の frontmatter が契約どおり"
+        f"（書き込み可は {', '.join(sorted(WRITABLE_AGENTS))} のみ・他は {', '.join(sorted(READONLY_TOOLS))} だけ）"
+    ]
+
+
+# capture フラグ（capture_done / pr_capture_done）の producer / consumer。フラグ名は文字列で
+# 散らばっているため、片側だけ直す（Critical 2 と同型）と検査が黙って通る。名前で突合する。
+FLAG_PRODUCER = SKILLS_DIR / "knowledge-capture" / "SKILL.md"
+FLAG_CONSUMERS = {
+    # フラグ名: そのフラグを読む / 除外する / 案内する場所（producer 以外）
+    "pr_capture_done": (
+        ".claude/skills/feature-pipeline/SKILL.md",
+        ".claude/skills/steering/SKILL.md",
+        ".claude/skills/steering/references/spec.md",
+        ".gitignore",
+        "scripts/deploy_skills.py",
+        "scripts/pipeline_state.py",
+    ),
+    "capture_done": (
+        ".claude/skills/feature-pipeline/SKILL.md",
+        ".claude/skills/steering/SKILL.md",
+        ".claude/skills/steering/references/spec.md",
+        ".claude/hooks/session-stop.sh",
+        ".gitignore",
+        "scripts/deploy_skills.py",
+        "scripts/pipeline_state.py",
+    ),
+}
+FLAG_TOKEN_RE = re.compile(r"[A-Za-z0-9_]*capture_done[A-Za-z0-9_]*")
+FLAG_SCAN_GLOBS = (
+    ".claude/skills/*/SKILL.md", ".claude/skills/*/references/*.md", ".claude/hooks/*.sh",
+    "scripts/*.py", "tests/state/*.py", ".gitignore", "README.md", "docs/user-guide.md",
+)
+
+
+def contract_r() -> tuple[str, list[str]]:
+    """capture フラグの producer（knowledge-capture）と consumer の名前突合。
+
+    - producer が各フラグを `touch` している
+    - 各 consumer がそのフラグ名を含む（`capture_done` の検査は `pr_capture_done` を数えない）
+    - リポジトリ全体で使われているフラグ名が既知の 2 つだけ（`post_capture_done` 等の打ち間違い・新設の検出）
+    フェイルクローズ: producer / consumer のファイルが読めなければ FAIL。
+    """
+    if not FLAG_PRODUCER.is_file():
+        return FAIL, [f"producer が無い: {FLAG_PRODUCER}"]
+    producer_text = FLAG_PRODUCER.read_text(encoding="utf-8")
+
+    details: list[str] = []
+    for flag, consumers in FLAG_CONSUMERS.items():
+        if not re.search(rf"touch \.steering/\[task\]/{flag}\b", producer_text):
+            details.append(f"{flag}: producer（knowledge-capture/SKILL.md）に `touch .steering/[task]/{flag}` が無い")
+        token = re.compile(rf"(?<![A-Za-z0-9_]){flag}\b")
+        for rel in consumers:
+            path = MASTER_ROOT / rel
+            if not path.is_file():
+                details.append(f"{flag}: consumer が読めない: {rel}")
+            elif not token.search(path.read_text(encoding="utf-8")):
+                details.append(f"{flag}: consumer {rel} がこのフラグ名を含まない（片側修正の可能性）")
+
+    seen: dict[str, set[str]] = {}
+    for pattern in FLAG_SCAN_GLOBS:
+        for path in sorted(MASTER_ROOT.glob(pattern)):
+            if path == Path(__file__).resolve():
+                continue  # この検査自身の説明文・メッセージは走査しない
+            for tok in set(FLAG_TOKEN_RE.findall(path.read_text(encoding="utf-8"))):
+                seen.setdefault(tok, set()).add(str(path.relative_to(MASTER_ROOT)))
+    for tok in sorted(set(seen) - set(FLAG_CONSUMERS)):
+        details.append(f"未知のフラグ名 `{tok}`（{', '.join(sorted(seen[tok]))}）— 打ち間違いか、新設なら FLAG_CONSUMERS に足す")
+    if details:
+        details.append("→ フラグの producer と consumer は同一コミットで直す（意味は tests/state が検査する）")
+        return FAIL, details
+    return PASS, [f"フラグ {len(FLAG_CONSUMERS)} 種の producer と consumer {sum(len(c) for c in FLAG_CONSUMERS.values())} 箇所が名前で一致"]
+
+
+REMIND_HOOK = HOOKS_DIR / "remind-config-docs.sh"
+# hook が注入する要約の各項目 `(N) ...` を代表する見出し語。**要約と正本の両方に存在すること**。
+# 要約の項目を足したら、ここにも見出し語を足す（項目数の一致も検査する）。
+REMIND_SUMMARIES = {
+    "config": (
+        "docs/knowledge/claude-code-config.md",
+        ("Write(path)", "glob は形式を列挙する", "イベント種別"),
+    ),
+    "skills": (
+        "docs/knowledge/skill-design-patterns.md",
+        ("ハードストップ", "片側修正", "責務境界", "日付付き"),
+    ),
+}
+REMIND_EMIT_RE = re.compile(r'^\s*emit "([a-z]+)" "(.*)"\s*$', re.M)
+REMIND_ITEM_RE = re.compile(r"\(\d\)")
+
+
+def contract_q() -> tuple[str, list[str]]:
+    """remind-config-docs.sh の注入要約 ⇄ 正本（docs/knowledge/）のドリフト検査。
+
+    フェイルクローズ: hook・正本・emit 行のどれかが読めないときは FAIL（比較対象なしで PASS にしない）。
+    """
+    if not REMIND_HOOK.is_file():
+        return FAIL, [f"hook が無い: {REMIND_HOOK}"]
+    emitted = dict(REMIND_EMIT_RE.findall(REMIND_HOOK.read_text(encoding="utf-8")))
+
+    details: list[str] = []
+    for category, (doc_rel, anchors) in REMIND_SUMMARIES.items():
+        summary = emitted.get(category)
+        if summary is None:
+            details.append(f"{category}: hook に emit \"{category}\" の行が無い（書式を変えたなら REMIND_EMIT_RE も直す）")
+            continue
+        doc = MASTER_ROOT / doc_rel
+        if not doc.is_file():
+            details.append(f"{category}: 正本が無い: {doc_rel}")
+            continue
+        doc_text = doc.read_text(encoding="utf-8")
+        item_count = len(REMIND_ITEM_RE.findall(summary))
+        if item_count != len(anchors):
+            details.append(
+                f"{category}: 要約の項目数（{item_count}）が突合表の見出し語の数（{len(anchors)}）と違う"
+                " — 項目を足した・消したなら REMIND_SUMMARIES も同じコミットで直す"
+            )
+        for anchor in anchors:
+            if anchor not in summary:
+                details.append(f"{category}: 見出し語「{anchor}」が hook の要約に無い（要約を言い換えたなら突合表を直す）")
+            if anchor not in doc_text:
+                details.append(f"{category}: 見出し語「{anchor}」が正本 {doc_rel} に無い（正本が変わって要約だけが古い可能性）")
+    if details:
+        details.append("→ 要約は正本の要点。正本を直したら要約も、要約を直したら正本との整合も確認する")
+        return FAIL, details
+    total = sum(len(a) for _, a in REMIND_SUMMARIES.values())
+    return PASS, [f"注入要約 {len(REMIND_SUMMARIES)} 系統・見出し語 {total} 件が要約と正本の両方に存在"]
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(
         description="セットアップ資産どうしの契約突合（マスター専用）",
@@ -488,6 +909,12 @@ def main() -> None:
         ("(j) 死んだ Write|NotebookEdit|MultiEdit(path) が無い", contract_j),
         ("(k) README の契約レター・npm scripts が実装と一致", contract_k),
         ("(l) ワークフロー図と feature-pipeline のフェーズが一致", contract_l),
+        ("(m) 判定表の行 ID・順序が pipeline_state.py と一致", contract_m),
+        ("(n) tasklist テンプレの写しが正本と同じ工程順", contract_n),
+        ("(o) スキル本文の agent 参照が .claude/agents/ の定義と一致", contract_o),
+        ("(p) agent 定義の frontmatter が契約どおり（読み取り専用を含む）", contract_p),
+        ("(q) hook の注入要約が正本（docs/knowledge/）と食い違っていない", contract_q),
+        ("(r) capture フラグの producer と consumer が名前で一致", contract_r),
     ]
 
     failed = 0
