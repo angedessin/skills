@@ -52,3 +52,6 @@ jobs:
 
       - name: tests/state（feature-pipeline 判定表）
         run: python3 tests/state/run.py
+
+      - name: tests/assets（検査器が壊した入力で FAIL すること）
+        run: python3 tests/assets/run.py
