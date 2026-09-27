@@ -87,19 +87,10 @@ deny は回復不能なので構造抽出が要る。この不変条件は hook 
 起動時警告になる（`Edit` が Write / NotebookEdit 等を覆う。20260806 に死んだ Write 対を削除）。
 
 **承認ゲートは書き込みと削除・移動で層が分かれる。** `guard-gated-write.sh` は書き込みリダイレクト
-（`>` / `>>`）と `tee` を **ask**。`guard-gated-delete.sh` は素の `rm` / `mv` で対象パス
-（`CLAUDE.md` / `docs/knowledge/` / `docs/decisions/`）を含むものを **deny**
-（`tool_input.command` の構造抽出 — python3 stdlib。失敗・`&&` / `||` / `;` / `|` 連鎖 /
-`bash -c` / `git rm` / `/bin/rm` は沈黙。改行区切りの複数単純コマンドは各行を判定し、
-**deny は最大 1 JSON**（ヒットで即終了。複数行ヒット時の連結 JSON はフィクスチャの
-厳密 parse と衝突する））。
-permissions の粗い `rm -r*` / `rm -rf *` は別層。`sed -i` 等は脅威モデル外。
-完全封鎖ではない。パスは 3 系統（ディレクトリ裸形も deny、`CLAUDE.md` は境界付き。AFTER にグロブ `*?[{`）。write と手同期。
-**既知ギャップ（受容）**: heredoc 本文の行頭に `rm`/`mv`+保護パスがあると、実削除でなくても deny する
-（改行ループの帰結。除外はシェルパーサ拡張＝別判断）。
-検証: `mise exec -- pnpm run test:hooks`。PreToolUse の実効確認はセッション再起動後に人間が行う。
-**フィクスチャ判定は壊 JSON を部分一致で deny/ask にしない** — `json.loads` 失敗は `unparseable:` に
-倒して FAIL。runner 内自己テストで固定する（本番 hook からは壊 JSON を出せないため）。
+（`>` / `>>`）と `tee` を **ask**、`guard-gated-delete.sh` は素の `rm` / `mv` で保護パス
+（`CLAUDE.md` / `docs/knowledge/` / `docs/decisions/`）を含むものを **deny** する。どちらも完全封鎖ではない
+（コマンド連鎖・`bash -c`・`git rm`・`sed -i` は沈黙。git の `--output=` 経由の書き込みは未対処 — BACKLOG §0）。
+判定仕様の正本は hook 本体とフィクスチャ（`mise exec -- pnpm run test:hooks`）で、ここに写さない。
 
 **glob は形式を列挙する。** ディレクトリ配下を対象にするなら `docs/knowledge/*`（直下）・`**`・
 `**/*`（入れ子）を並べる。単一形式では直下のファイルを取りこぼしうる（同じ轍を `Read(./**/*.env)`
@@ -115,24 +106,8 @@ permissions の粗い `rm -r*` / `rm -rf *` は別層。`sed -i` 等は脅威モ
 プロンプトの有無を聞く」形にして初めて成立した。**AI が単独で「ゲートは効いている」と結論できる
 のは additionalContext 系だけ**で、ask は必ず人間に聞く。
 
-**セッション中に追加した hook が効くかは、イベント種別によって挙動が割れる（20260725 実測・未解明）。**
-同一セッションで次の 3 つが同時に観測された:
-
-| hook | 登録タイミング | 発火 |
-|---|---|---|
-| `PreToolUse(Bash)` の 1 本目（セッション開始時から存在） | 開始時 | **する** |
-| `PreToolUse(Bash)` の追加分（配列 2 番目 / 独立 matcher の両方を試行） | セッション中 | **しない** |
-| `PostToolUse(Edit\|Write)` の追加分 | セッション中 | **する（登録直後）** |
-
-追加した PreToolUse hook はスクリプト単体では実ペイロードで正しく発火し、登録構造も正しかった。
-つまり本体でも登録でもない要因が残っている。**PostToolUse が即座に効いた以上「設定が再読込
-されない」では説明できない。**
-
-**20260726 追試: セッション再起動後は発火した。** 同じ `guard-gated-write.sh` に対し
-`echo test > docs/decisions/_probe.md` を実行してプロンプトが出ることを人間が確認した。あわせて
-`ask` 側（`Edit(./docs/knowledge/*)`）も発火、`PostToolUse` の内容注入も両分岐で発火・
-誤発火なし・セッション 1 回制限も期待どおりだった。したがって上表の「しない」は
-**セッション中に追加した場合に限る現象**で、恒久的な不発ではない。原因自体は未解明のまま。
+**セッション中に追加した hook が効くかはイベント種別で割れる** — PreToolUse の追加分は発火せず、PostToolUse の
+追加分は即時に効いた（原因は未解明）。セッション再起動後は発火する（20260725-26 実測）。
 
 **同一 event+matcher を配列で分割しない（20260807）。** PreToolUse の `Bash` を
 `guard-env-read` / `guard-gated-write` / `guard-gated-delete` の 3 エントリに分けると、
@@ -146,23 +121,18 @@ permissions の粗い `rm -r*` / `rm -rf *` は別層。`sed -i` 等は脅威モ
 
 ---
 
-## 独立フォークへ防御を持ち出したときの教訓（20260726・過去形）
+## 独立フォーク（`export/company`）にも防御は追随させる
 
-20260725 に master で High（セキュリティ）として塞いだ Bash 迂回路が、20260726 時点で
-一方向持ち出し先（当時の `export/company`）では開いたままだった。`settings.example.json` の ask は
-Edit / Write しか持たず、`guard-gated-write.sh` は同梱も登録もされていなかった。
+会社向け持ち出しセットは `export/company` ブランチ（worktree `../skills-export-company`）で独立に育てる。
+**同梱スキルの顔ぶれ・スタック語彙などの機能判断はマスターに合わせないが、hooks / settings / 停止契約の防御は
+マスターを上流として追随させる**（2026-08-07 改訂。20260730 の Frozen handoff は解除済み）。
 
-原因は方針の適用範囲の取り違え。「master から同期・伝播しない独立フォーク」は**機能差分・スタック適応**
-のための方針であり、防御の欠陥にそのまま適用してはいけなかった。にもかかわらず方針が一律に効き、
-防御の修正だけを例外にする仕組みが無かった。気づいたのは偶然だった。
-
-**現行義務（20260730 Frozen handoff 後）**: 会社向け持ち出しセットへの追随・パリティ確認は行わない
-（`deployments.md` の Frozen 注記）。一般法則として残すのは次だけ — **settings.json / hooks の防御を
-変えたら、その場で `deployments.md` に載っている個人配置先（還流あり）への影響を確認する。**
-配置先が 0 件なら確認対象も 0。過去の持ち出し文書（HANDOVER 等）は日常改訂しない。
-
-配布加工の注意（一般論）: 防御を同梱するときは、hook の理由文に含まれる非同梱スキル名を除去する
-（残すと配置先で死んだ参照になる）。hook 本数・配置手順は同一コミットで揃える。
+- 防御を変えたら、その場で `export/company` 側に同じ穴が無いかを見る。手順・変換レシピ・検査コマンドの正本は
+  そのブランチの `export/COMPANY-MAINTENANCE.md`
+- 「独立フォークだから同期しない」は機能差分のための方針で、防御の欠陥に適用しない（20260726 に master で塞いだ
+  Bash 迂回路が持ち出し先で開いたままだった実例がある）
+- `deployments.md` の個人配置先（還流あり）への影響も同時に確認する
+- 配布加工の注意: 防御を同梱するときは、hook の理由文に含まれる非同梱スキル名を除去する（配置先で死んだ参照になる）
 
 ---
 
@@ -200,54 +170,10 @@ lint 検証ループの実装（20260705）で確立した 2 原則:
 
 ---
 
-※ このファイルは開発が進むにつれ knowledge-capture / compound スキルによって更新される。
-
----
-
-## CLAUDE.md の @参照は毎セッション展開される
-
-`@docs/knowledge/foo.md` 形式の参照は「必要なときに読む」ではなく、
-**セッション開始時に毎回中身がコンテキストへ展開される**（skill-design-patterns.md で実測）。
-
-- 常時読ませたい行動知識だけに `@` を付ける（コンテキスト固定費になる自覚を持つ）
-- 「必要時に読む」を意図するならプレーンなパス表記にする
-  （例: 「settings.json 作業時: docs/knowledge/claude-code-config.md を読む」）
-- 参照切れの `@` は無害に無視される。事前に空ファイルを作る必要はないが、
-  rule-audit の参照整合チェックで検出・掃除する
-
----
-
 ## lint 検証ループ hook の配布（post-edit-lint / stop-typecheck）
 
-AI の編集を機械が検証して差し戻す「閉じたループ」の配布物（20260704-lint-verification-loop で作成・検証済み）。
-このリポジトリがマスター。配置先で直接編集せず、改善はマスターに還元して再コピーで配る。
-
-**コピーするファイル（2 本）:**
-
-- `.claude/hooks/post-edit-lint.sh` — Edit/Write のたびに編集ファイルだけを lint。Biome（`biome.json(c)`）→ ESLint（`eslint.config.*`、Biome 不在時のみ）→ Stylelint（scss/css）を自動検出。自動修正で残る違反を exit 2 + stderr で AI に差し戻す
-- `.claude/hooks/stop-typecheck.sh` — 終了宣言時に `tsc --noEmit --incremental`（`tsconfig.json` がある場合のみ）。`stop_hook_active` ガード付き
-
-**settings.json スニペット:**
-
-```jsonc
-"hooks": {
-  "PostToolUse": [
-    {
-      "matcher": "Edit|Write",
-      "hooks": [
-        { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-edit-lint.sh", "timeout": 30 }
-      ]
-    }
-  ],
-  "Stop": [
-    {
-      "hooks": [
-        { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/stop-typecheck.sh", "timeout": 120 }
-      ]
-    }
-  ]
-}
-```
+AI の編集を機械が検証して差し戻す「閉じたループ」の配布物（`post-edit-lint.sh` / `stop-typecheck.sh`）。
+同送と settings 登録は `deploy_skills.py` が行い、手順は `docs/starter-kit.md`。ここには配置時の判断材料だけを置く。
 
 **配置時の注意:**
 
@@ -269,6 +195,8 @@ AI の編集を機械が検証して差し戻す「閉じたループ」の配�
 - `--allowedTools` は可変長引数で**後続のプロンプトを引数として飲み込む** — `--allowedTools=Bash` の `=` 区切りで書く
 - 非対話モードでは hook の `ask` 判定は deny に落ちる。「Bash を明示 allow した上で、対象コマンドだけが拒否されること」で hook の発火を確認できる
 - 対照実験を必ず入れる: allow 済みコマンド（`git log` 等）が通ることを確認して「全拒否ではなくルール駆動のブロック」だと判別する
+
+---
 
 ## サブエージェント定義（`.claude/agents/`）の落とし穴
 

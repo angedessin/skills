@@ -27,6 +27,3 @@
 - 外してしまったら、一時的に `pnpm-workspace.yaml` へ `supportedArchitectures: {os: [darwin], cpu: [x64, arm64]}` を置いて
   `pnpm install --frozen-lockfile` → 削除する
 
----
-
-※ このファイルは開発が進むにつれ knowledge-capture / compound スキルによって更新される。

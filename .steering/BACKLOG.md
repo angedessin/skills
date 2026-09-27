@@ -12,18 +12,13 @@
 
 ---
 
-## 既知の文書ドリフト（タスクではない）
-
-- **export/company MANIFEST 等の「書き込みのみ・削除は非対象」**: マスターは `guard-gated-delete` で削除・移動を deny するが、company / export は Frozen のため追随しない。**既知・今回非対応（追従タスクなし）**（`20260806-rm-mv-policy`）
-
----
-
 ## 0. 【最優先】承認制ゲート / deny の抜け道（`20260917-report-driven-improvements` のレビュー S7・S8 由来）
 
 既存の設定・hook（そのタスクの差分外）で、実測で抜けられることが確認済み。詳細は同タスクの `review-result.md`（アーカイブ後は `archived/` 配下）。
 
 - **S7**: `guard-gated-write.sh` が `git ... --output=CLAUDE.md` / `--output=.claude/settings.json` を素通りさせる（`>` / `tee` しか見ない）。承認制ゲートを Bash 経由で無音で越えられる
 - **S8**: `settings.json` の allow が前置一致の `Bash(git diff*)` 等で、`git difftool -x '<cmd>'` が任意コマンドを実行できる。`git diff --no-index /dev/null ~/.ssh/id_rsa` で `Read(~/.ssh/**)` の deny と `.env` ガードを迂回して読める
+- **export/company への追随**: 防御はマスターに追随させる方針（`docs/knowledge/claude-code-config.md`「独立フォークにも防御は追随させる」）。S7/S8 を直したら `export/company` ブランチにも同じ修正を当てる。あわせて、旧「Frozen のため追随しない」として放置していた `guard-gated-delete`（削除・移動の deny）の company 未同梱も同期漏れとして扱う
 
 
 ## 0.5 CI の actions 更新（期限あり: 2026-10-19）
