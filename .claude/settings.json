@@ -1,13 +1,6 @@
 {
   "permissions": {
-    "allow": [
-      "Bash(ls)",
-      "Bash(ls *)",
-      "Bash(git status*)",
-      "Bash(git diff*)",
-      "Bash(git log*)",
-      "Bash(git show*)"
-    ],
+    "allow": ["Bash(ls)", "Bash(ls *)"],
     "ask": [
       "Bash(git push*)",
       "Bash(npx *)",

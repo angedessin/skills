@@ -83,14 +83,25 @@ deny は回復不能なので構造抽出が要る。この不変条件は hook 
 素通りした（Edit を経由しないので ask が発火しない）。`.env` 保護では Bash と Read を対に
 しているのに、承認ゲートでは片側だけを書いていた。**ゲートしたいパスは、そこへ書けるツール全部を
 塞ぐ**（Bash 側は PreToolUse hook で書き込みリダイレクトを検出する形になる）。
+Claude Code（2.1.283）もリダイレクト先を検査するが、見るのは Edit の allow / deny・保護パス・作業ディレクトリで
+**ask は見ない** — acceptEdits で `git show HEAD:a > CLAUDE.md` が `Edit(./CLAUDE.md)` の ask をすり抜けて
+上書きされた（20260927 headless 実測。`tee` は止まった）。組み込み検査があっても hook は外せない。
 **ファイルパス規則は `Edit(path)` / `Read(path)` のみ** — `Write(path)` は受け付けられるが参照されず
 起動時警告になる（`Edit` が Write / NotebookEdit 等を覆う。20260806 に死んだ Write 対を削除）。
 
-**承認ゲートは書き込みと削除・移動で層が分かれる。** `guard-gated-write.sh` は書き込みリダイレクト
-（`>` / `>>`）と `tee` を **ask**、`guard-gated-delete.sh` は素の `rm` / `mv` で保護パス
-（`CLAUDE.md` / `docs/knowledge/` / `docs/decisions/`）を含むものを **deny** する。どちらも完全封鎖ではない
-（コマンド連鎖・`bash -c`・`git rm`・`sed -i` は沈黙。git の `--output=` 経由の書き込みは未対処 — BACKLOG §0）。
+**承認ゲートは書き込みと削除・移動で層が分かれる。** `guard-gated-write.sh` はリダイレクト・`tee`・`git mv` を
+**ask**（対象は hook 冒頭の `# GATED_PATHS:` 行 = permissions.ask の Edit 対象。契約 (s) が突合）、
+`guard-gated-delete.sh` は素の `rm` / `mv` で `CLAUDE.md` / `docs/knowledge/` / `docs/decisions/` を含むものを
+**deny** する（意図的に 3 系統）。どちらも完全封鎖ではない（`bash -c`・`git rm`・`sed -i`・cd 後の相対パスは沈黙）。
 判定仕様の正本は hook 本体とフィクスチャ（`mise exec -- pnpm run test:hooks`）で、ここに写さない。
+
+**allow に git の読み取り系を書かない（組み込みの読み取り専用判定を上書きする）。** Claude Code には
+組み込みの読み取り専用コマンド判定があり、git の読み取り形は allow 無しでもプロンプトなしで動く。
+しかも `--output=<file>`・`difftool -x '<cmd>'`・`--ext-diff`・作業ツリー外のパス（`--no-index` を書かない
+`git diff /dev/null ../x` も含む）は止める（default / acceptEdits で実測）。ところが `Bash(git diff*)` のような
+前置一致の allow を書くと、この判定より先に allow が当たり、それらが**無音で通る**（`difftool -x 'touch pwned'` が
+実行された。20260927 headless 実測）。「読み取りだから allow してよい」は逆効果で、allow が穴の原因になる。
+契約 (t) が settings / `DEPLOY_PERMISSIONS` の allow に git が入るのを落とす。
 
 **glob は形式を列挙する。** ディレクトリ配下を対象にするなら `docs/knowledge/*`（直下）・`**`・
 `**/*`（入れ子）を並べる。単一形式では直下のファイルを取りこぼしうる（同じ轍を `Read(./**/*.env)`
@@ -104,7 +115,12 @@ deny は回復不能なので構造抽出が要る。この不変条件は hook 
 **観測の分担を決めてから測る。** `ask` のプロンプトは人間にしか見えず、`hook` の
 `additionalContext` は AI にしか見えない。20260726 の確認は「AI がプローブを実行 → 人間に
 プロンプトの有無を聞く」形にして初めて成立した。**AI が単独で「ゲートは効いている」と結論できる
-のは additionalContext 系だけ**で、ask は必ず人間に聞く。
+のは additionalContext 系だけ**で、ask は必ず人間に聞く。ただし headless（`claude -p`）では ask が拒否に
+落ち、ブロック理由（hook の reason を含む）がモデルに返るので、下の「headless での検証」節の手順なら AI が機械的に判定できる。
+
+**人間確認のプローブは、hook だけが守るパスで作る（20260927）。** `.claude/` は Claude Code 組み込みの保護パスでも止まるので、
+プロンプトが出ても hook の証拠にならない。`docs/knowledge/zz-probe.md` のような、hook だけが守るパスを使う。
+プロンプトを拒否するとターンが中断されるので、プローブは 1 回の依頼につき 1 つにする。
 
 **セッション中に追加した hook が効くかはイベント種別で割れる** — PreToolUse の追加分は発火せず、PostToolUse の
 追加分は即時に効いた（原因は未解明）。セッション再起動後は発火する（20260725-26 実測）。
@@ -121,17 +137,16 @@ deny は回復不能なので構造抽出が要る。この不変条件は hook 
 
 ---
 
-## 独立フォーク（`export/company`）にも防御は追随させる
+## 独立フォークにも防御は追随させる
 
-会社向け持ち出しセットは `export/company` ブランチ（worktree `../skills-export-company`）で独立に育てる。
-**同梱スキルの顔ぶれ・スタック語彙などの機能判断はマスターに合わせないが、hooks / settings / 停止契約の防御は
-マスターを上流として追随させる**（2026-08-07 改訂。20260730 の Frozen handoff は解除済み）。
+会社向け持ち出しセット（`export/company` ブランチ）は **2026-09-29 に保守を終了した**。ブランチはローカルと origin に
+凍結して残してあり、worktree は外した。保守手順の正本だった `export/COMPANY-MAINTENANCE.md` も、そのブランチに残っている。
+今後、独立フォークや持ち出しセットを作るときは、次の教訓を使う。
 
-- 防御を変えたら、その場で `export/company` 側に同じ穴が無いかを見る。手順・変換レシピ・検査コマンドの正本は
-  そのブランチの `export/COMPANY-MAINTENANCE.md`
-- 「独立フォークだから同期しない」は機能差分のための方針で、防御の欠陥に適用しない（20260726 に master で塞いだ
-  Bash 迂回路が持ち出し先で開いたままだった実例がある）
-- `deployments.md` の個人配置先（還流あり）への影響も同時に確認する
+- **同梱スキルの顔ぶれ・スタック語彙などの機能判断はマスターに合わせなくてよいが、hooks / settings / 停止契約の防御は
+  マスターを上流として追随させる**。「独立フォークだから同期しない」は機能差分のための方針で、防御の欠陥には適用しない
+  （20260726 に master で塞いだ Bash 迂回路が、持ち出し先で開いたままだった実例がある）
+- 防御を変えたら、その場でフォーク側と配置先（`deployments.md`）に同じ穴が無いかを見る
 - 配布加工の注意: 防御を同梱するときは、hook の理由文に含まれる非同梱スキル名を除去する（配置先で死んだ参照になる）
 
 ---
@@ -168,6 +183,12 @@ lint 検証ループの実装（20260705）で確立した 2 原則:
 - **無音の自動修正をしない**: hook がファイルを書き換えたら「reformatted: [file]」の 1 行を `additionalContext`（PostToolUse の JSON 出力）で AI に返す。無音の書き換えは AI のファイル状態の記憶を古くし、次の Edit の old_string 不一致（二次被害）を招く
 - **人間向けの装飾出力を AI に流さない**: 進捗バー・罫線・カラー・サマリはコンテキストの浪費。診断行（ファイル:行:ルール:メッセージ）だけを grep で抽出して stderr に返す。診断行ゼロの失敗（設定エラー等）のみ生出力にフォールバック
 
+**コマンドを構造で判定する guard は、次の 3 つを取りこぼしやすい（20260929 レビューで実測）。**
+
+- 作業ディレクトリを変えるオプション: `git -C <dir> mv a b` は、オペランドだけを見ても対象パスが現れない。`-C` の値と合成してから照合する
+- 前置ラッパー: `env FOO=1 tee X` / `exec git mv ...` / `sudo tee X`。先頭トークンでコマンドを判定するなら、ラッパーと、値を取るオプション（`env -u NAME`・`sudo -u USER`）を読み飛ばす
+- 大文字小文字: macOS の既定のファイルシステムは大文字小文字を区別しないので、`> CLAUDE.MD` でも実ファイルが書き換わる。パスの照合は大文字小文字を区別しない（ask なら誤検知の代償は小さい）
+
 ---
 
 ## lint 検証ループ hook の配布（post-edit-lint / stop-typecheck）
@@ -178,7 +199,7 @@ AI の編集を機械が検証して差し戻す「閉じたループ」の配�
 **配置時の注意:**
 
 - `post-edit-lint.sh` はフェイルオープン（lint 設定・`node_modules/.bin/` が無ければ素通し）。`stop-typecheck.sh` は jq・tsconfig・tsc が無ければ素通し（jq を使うのは入力 JSON の `stop_hook_active` 判定）。未整備プロジェクトにコピーしても編集を阻害しない（lint / tsc は品質ゲートでありセキュリティゲートではない）
-- **guard 系**（`guard-env-read` / `guard-gated-write` / `guard-gated-delete`）は jq 非依存。write/env は ask、delete は deny（抽出失敗は沈黙）
+- **guard 系**（`guard-env-read` / `guard-gated-write` / `guard-gated-delete`）は jq 非依存。write/env は ask、delete は deny。write / delete の JSON 抽出は python3 標準ライブラリ — python3 不在・抽出失敗時、write は全文 grep（`.claude/` 系を除く 3 系統）に縮退し、delete は沈黙する。**縮退中の write は `.claude/settings*.json` / `.claude/hooks/` と `git mv` を守らない**（6 系統中 3 系統。`.claude/` を全文で見ると transcript_path と恒常的に衝突するため）。`.claude/` 系を Bash から守るのは python3 がある環境だけ — 配置先では `python3 --version` を確認する
 - 配置時に `time pnpm exec tsc --noEmit --incremental` の 2 回目（キャッシュ有効）を計測し、**20〜30 秒を超えるプロジェクトでは stop-typecheck を settings.json から外して CI に移す**（終了のたびに待たされる体感悪化がループの利益を上回る）
 - `tsc --incremental` は `*.tsbuildinfo` を生成する — .gitignore に追加する
 - ツール検出は `node_modules/.bin/` の存在チェック（pnpm 起動オーバーヘッドを毎編集で払わない）。依存をルート以外に置くモノレポでは検出されない
@@ -195,6 +216,11 @@ AI の編集を機械が検証して差し戻す「閉じたループ」の配�
 - `--allowedTools` は可変長引数で**後続のプロンプトを引数として飲み込む** — `--allowedTools=Bash` の `=` 区切りで書く
 - 非対話モードでは hook の `ask` 判定は deny に落ちる。「Bash を明示 allow した上で、対象コマンドだけが拒否されること」で hook の発火を確認できる
 - 対照実験を必ず入れる: allow 済みコマンド（`git log` 等）が通ることを確認して「全拒否ではなくルール駆動のブロック」だと判別する
+- **permission 自体の挙動を測るときは、ユーザー設定と未信頼の問題を外す**（20260927）: scratchpad の使い捨てリポジトリで
+  `--setting-sources project,local`（ユーザー設定の allow / hooks を外す）を付け、allow は `--allowedTools`、ask / hooks は
+  `--settings '<json>'` で与える（未信頼のワークスペースでは project の allow が警告付きで無視される）。プロンプトは
+  `--` の後ろに置けば `--allowedTools` に飲み込まれない。モデルは判定に影響しないので haiku でよく、`--max-budget-usd` で上限を付ける。
+  結果は必ずファイルの有無など副作用で裏取りする（モデルの自己申告だけにしない）
 
 ---
 
@@ -203,7 +229,8 @@ AI の編集を機械が検証して差し戻す「閉じたループ」の配�
 - **`tools` に `Bash(git diff *)` と書いても読み取り専用にならない。** `--output=<path>` で任意ファイルへ書け、
   `git difftool -x '<cmd>'` で任意コマンドを実行でき、`git diff --no-index /dev/null <file>` で `Read` の deny を迂回して読める。
   読み取り専用の定義は `Read` / `Grep` / `Glob` のみにし、diff は呼び出し側がファイルで渡す。
-  `settings.json` の allow を前置一致（`Bash(git diff*)`）で書いた場合も同じ穴になる（20260921 実測）
+  `settings.json` の allow を前置一致（`Bash(git diff*)`）で書いた場合も同じ穴になる（20260921 実測）。
+  settings 側は allow から git を外せば組み込みの判定が塞ぐ（上の「allow に git の読み取り系を書かない」）
 - **作成直後の定義は数ターン種別として未登録**（`Agent type '<name>' not found`。再起動不要で後から登録される）。
   フォールバックは「定義ファイルがあるか」ではなく「指定して失敗したら汎用エージェントへ落とす」まで書く
 - **散文の「Haiku 相当で」「安価なモデルで」は subagent 起動に何の効果も持たない。** model / effort / tools は定義の

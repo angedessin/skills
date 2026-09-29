@@ -177,10 +177,9 @@ DEPLOY_PERMISSIONS = {
     "allow": [
         "Bash(ls)",
         "Bash(ls *)",
-        "Bash(git status*)",
-        "Bash(git diff*)",
-        "Bash(git log*)",
-        "Bash(git show*)",
+        # git の読み取り系は allow に書かない（契約 (t)）。Claude Code 組み込みの読み取り専用判定が
+        # プロンプトなしで通し、--output / difftool -x / 作業ツリー外は止める。前置一致の allow
+        # （`Bash(git diff*)` 等）はその判定を上書きして危険な形まで許す（20260927 headless 実測）
     ],
     "ask": [
         "Bash(git push*)",
@@ -337,7 +336,8 @@ def expected_hooks(skills: list[str] | set[str]) -> list[str]:
     """
     # 品質ゲート 2 本はフェイルオープンで常時同送。書き込み/削除ガードも常時同送だが意味が違う:
     # guard-gated-write.sh = ヒット時 ask（確認）。guard-gated-delete.sh = ヒット時 deny（硬拒否・配置先でも摩擦あり）。
-    # どちらも抽出失敗・非対象形は沈黙。追加パッケージ無し（delete の JSON 抽出は python3 stdlib）。
+    # 追加パッケージ無し（JSON 抽出はどちらも python3 stdlib）。python3 不在・抽出失敗時、
+    # write は全文 grep（元の 3 系統）に縮退し、delete は沈黙する。
     send = [
         "guard-env-read.sh",
         "guard-gated-write.sh",

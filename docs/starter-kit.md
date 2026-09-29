@@ -85,13 +85,14 @@
    - **npm プロジェクト**では `pnpm test` → `npm test --`、`pnpm run X` → `npm run X --`、`pnpm exec <bin>` → `npx <bin>` に置き換える。**npx は対象が未導入だとレジストリ取得 → 即実行が走る**ため、ローカル導入済みバイナリの実行にのみ使い、`.npmrc` に `ignore-scripts=true` を設定する（手順 6 参照）
 5. **CLAUDE.md に発動ポリシー節を作る** — 下の雛形から。雛形は最小セット前提なので、他のセット構成では各スキルの description の発動フレーズを元に 1 行ずつ書き換える。行動ルールは配置先で育てる（マスターの CLAUDE.md を丸ごとコピーしない）
 6. **ガードレールも同送する（サプライチェーン対策）** — スキルだけコピーすると、references が指示する `npx` 実行等に対する防御が配置先に存在しない状態になる:
-   - **permissions は「マスターの settings.json をそのままコピー」ではない。** `deploy_skills.py` の `DEPLOY_PERMISSIONS`（配布用サブセット）を取り込む（npx / rm -r / git push の ask・自動インストールを伴う実行（`npx -y` / dlx / bunx）の deny・env / 鍵ファイルの Read deny・ガードレール自己改変の ask・**`CLAUDE.md` / `docs/knowledge/**` / `docs/decisions/**` への書き込みの ask**）
+   - **permissions は「マスターの settings.json をそのままコピー」ではない。** `deploy_skills.py` の `DEPLOY_PERMISSIONS`（配布用サブセット）を取り込む（npx / rm -r / git push の ask・自動インストールを伴う実行（`npx -y` / dlx / bunx）の deny・env / 鍵ファイルの Read deny・ガードレール自己改変の ask・**`CLAUDE.md` / `docs/knowledge/**` / `docs/decisions/**` への書き込みの ask**。allow は `ls` だけで git は含めない）
    - **配らないものがある**（`MASTER_ONLY_PERMISSIONS`）: パッケージインストールの deny（`npm install` / `pnpm add` 等）は「マスターは依存を増やさない」という**このリポジトリ固有の方針**であり、配置先に配ると**配置直後から依存インストールが全部拒否される**。`~/.claude/CLAUDE.md` の ask も配置先を超えたグローバルな副作用になるため配らない
    - **配布サブセットはベースラインであって最終形ではない。** 最終的なセキュリティルールは**配布先に依存する**。`skill-deploy` の dry-run 提示の段階で、配置先の事情（社内方針・CI の制約・使っているパッケージマネージャ）に合わせて調整する
    - **`CLAUDE.md` / `docs/knowledge/**` / `docs/decisions/**` の ask は knowledge-capture・compound・rule-audit を配置する場合に特に重要**。これらのスキルは本文のハードストップで「承認前に書き込まない」を担保しているが、締めを尽くした状態でも承認前の書き込みが 1/4 の頻度で再現した実測がある。ask はその最後の防波堤で、承認制という方針そのものは配置先の CLAUDE.md でも宣言しておく。**ディレクトリ配下は `*` / `**` / `**/*` の 3 形式を並べる**（単一形式では直下のファイルを取りこぼす）
    - 配置先に**既存の settings.json / permissions がある場合は手動マージ**する（丸ごと上書きしない）。方針: **配布サブセット由来**の deny / ask は削らずに追加する。既存の allow と配布サブセットの deny が同じ操作で衝突したら **deny を優先**（安全側に倒す。緩めたい場合は配置先の判断で個別に外す）
    - `.claude/hooks/guard-env-read.sh` をコピーし、settings.json の `hooks.PreToolUse` 登録も移す（deny の前置一致では防げない .env 読み取りの迂回を全文検査で ask に落とす）
-   - **`.claude/hooks/guard-gated-write.sh` もコピーする**（`hooks.PreToolUse` 登録も移す）。permissions のファイルパス ask は **`Edit(path)` のみ**（`Write(path)` は参照されず起動時警告になる。`Edit` が Write 等の編集系ツールを覆う）。それでも `Bash(git show*)` のような前置一致 allow があると `git show HEAD:x > CLAUDE.md` で迂回できる。**ask と対でなければ防波堤にならない**ので、上の ask を配る配置先には必ず要る。対象は書き込み（`>` / `>>` / `tee`）
+   - **`.claude/hooks/guard-gated-write.sh` もコピーする**（`hooks.PreToolUse` 登録も移す）。permissions のファイルパス ask は **`Edit(path)` のみ**（`Write(path)` は参照されず起動時警告になる。`Edit` が Write 等の編集系ツールを覆う）。Bash のリダイレクト先は Claude Code 自体も検査するが **ask を見ない**ため、`git show HEAD:x > CLAUDE.md` は ask をすり抜けうる（acceptEdits で実測）。**ask と対でなければ防波堤にならない**ので、上の ask を配る配置先には必ず要る。対象はリダイレクト・`tee`・`git mv`、パスは hook 冒頭の `# GATED_PATHS:` 行（ask の Edit 対象と揃える）。JSON 抽出に python3（標準ライブラリ）を使い、無ければ `.claude/` 系を除く 3 系統の全文検査に縮退する
+   - **allow に git のルール（`Bash(git diff*)` 等）を足さない。** git の読み取り形は Claude Code 組み込みの判定でプロンプトなしに動き、`--output` での書き込み・`difftool -x` での任意実行・作業ツリー外の読み取りは止まる。前置一致の allow はこの判定を上書きし、それらを無音で許してしまう（20260927 実測）。既存の settings.json に残っていれば削除する
    - **`.claude/hooks/guard-gated-delete.sh` もコピーする**（`hooks.PreToolUse` 登録も移す）。同パスへの素の `rm` / `mv` を **deny** する（`&&` / `||` / `;` / `|` 連鎖・`git rm` / `/bin/rm` は対象外＝沈黙。改行区切りの複数単純コマンドは各行を判定。完全封鎖ではない）
    - **品質ゲート 2 本も同送する**: `post-edit-lint.sh`（編集ごとの lint 差し戻し。Biome / ESLint / Stylelint を実行時に自動検出）と `stop-typecheck.sh`（終了宣言時の tsc）。settings.json の `hooks.PostToolUse` / `hooks.Stop` 登録も移す。両方**フェイルオープン**（lint 設定・tsconfig.json が無いプロジェクトでは素通し）なのでスタックを問わず配ってよい。詳細・調整（tsc が遅い場合の外し方等）は docs/knowledge/claude-code-config.md
    - hooks のコマンド登録は `"$CLAUDE_PROJECT_DIR"` 起点の相対参照なので、`.claude/hooks/` に同じ配置でコピーすれば**パスの書き換えは不要**
@@ -107,6 +108,7 @@
    - frontend-code-review 配置時: 小さな diff に「コードをレビューして」→ レビューが実行され指摘（または指摘なしの報告）が返ること
    - hooks / permissions 同送時: **`head .env.local`** の実行を依頼して guard-env-read.sh が確認（ask）に落とすこと。**`cat .env` では検証にならない**（permissions の deny だけで止まるため、hook が動いていなくても同じ結果になる）
    - hooks / permissions 同送時: **配置先の通常コマンドが阻害されていないこと** — 依存インストール（`npm install` 等）とテスト実行を試し、拒否されないことを確認する。配置先に settings.json が無い場合は配布サブセットが丸ごと新規作成されるため、ここが壊れていると「なぜか依存インストールができない」原因不明の摩擦になる
+   - hooks / permissions 同送時: `git diff --output=/tmp/smoke.txt` の実行を依頼し、**確認（プロンプト）が出る**こと。出ずに実行されたら、allow に前置一致の git ルールが残っている
    - **PreToolUse hook（guard-env-read / guard-gated-write / guard-gated-delete）は配置したセッション中に発火しないことがある。** 効いているかの確認は Claude Code を再起動してから行う。**ask / deny の発火は AI 側から観測できないので、確認は人間が行う**
 
 ## ドリフト確認と改善の還元

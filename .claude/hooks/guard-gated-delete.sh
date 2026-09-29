@@ -11,8 +11,9 @@
 # 守らない形: `cd … && rm` / `… || …` / `;` / `|` 連鎖 / `bash -c` / `git rm` / `/bin/rm` /
 #            抽出失敗 — いずれも沈黙（フェイルオープン。deny に倒すと通常 Bash が広く死ぬ）。
 #
-# パス正本（guard-gated-write.sh / permissions Edit ask と手同期・3 系統）:
+# 対象パス（意図的に 3 系統。guard-gated-write.sh の GATED_PATHS から .claude/ 系を除いたもの）:
 #   CLAUDE.md / docs/knowledge / docs/decisions
+#   .claude/ の削除・移動は対象外（別の穴として扱う）。write 側の契約 (s) の突合対象にはしない。
 #   delete 側はディレクトリ裸形（末尾 / 無し）もマッチ。CLAUDE.md はトークン境界付き。
 #   AFTER 境界は空白・引用に加えグロブ/ブレースメタ * ? [ {（`.` は入れない — CLAUDE.md.bak 沈黙）。
 #

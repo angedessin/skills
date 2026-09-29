@@ -11,20 +11,19 @@
 **このファイル自体はアクティブタスク一覧に出ない。**
 
 ---
-
-## 0. 【最優先】承認制ゲート / deny の抜け道（`20260917-report-driven-improvements` のレビュー S7・S8 由来）
-
-既存の設定・hook（そのタスクの差分外）で、実測で抜けられることが確認済み。詳細は同タスクの `review-result.md`（アーカイブ後は `archived/` 配下）。
-
-- **S7**: `guard-gated-write.sh` が `git ... --output=CLAUDE.md` / `--output=.claude/settings.json` を素通りさせる（`>` / `tee` しか見ない）。承認制ゲートを Bash 経由で無音で越えられる
-- **S8**: `settings.json` の allow が前置一致の `Bash(git diff*)` 等で、`git difftool -x '<cmd>'` が任意コマンドを実行できる。`git diff --no-index /dev/null ~/.ssh/id_rsa` で `Read(~/.ssh/**)` の deny と `.env` ガードを迂回して読める
-- **export/company への追随**: 防御はマスターに追随させる方針（`docs/knowledge/claude-code-config.md`「独立フォークにも防御は追随させる」）。S7/S8 を直したら `export/company` ブランチにも同じ修正を当てる。あわせて、旧「Frozen のため追随しない」として放置していた `guard-gated-delete`（削除・移動の deny）の company 未同梱も同期漏れとして扱う
-
-
+1
 ## 0.5 CI の actions 更新（期限あり: 2026-10-19）
 
 - `actions/checkout@v4` / `setup-node@v4` / `pnpm/action-setup@v4` に Node 20 deprecation の注記（run 36321311662）。Node 24 対応のメジャーへ上げ、SHA 固定するかも判断する（`20260917-report-driven-improvements` の decisions 20260921「確認手段が無いため固定しない」の再検討）
 - ubuntu-latest は 2026-10-19 から Ubuntu 26 へ移行する。移行後の初回 run を確認する
+
+---
+
+## 0.6 guard-gated-delete の取りこぼし（`20260927-gate-bypass-s7-s8` のレビュー由来・Low）
+
+- 対象パスの照合が大文字小文字を区別する。`rm CLAUDE.MD` は沈黙するが、macOS の既定のファイルシステムでは実ファイルが消える（write hook は 20260929 に `re.I` で対処済み）
+- 先頭トークンで rm / mv を判定するため、`FOO=1 rm docs/knowledge/x.md` のような代入前置で沈黙する。ヘッダの「守らない形」にも載っていない
+- delete は deny なので、誤検知の代償が write（ask）より大きい。直すときはフィクスチャの silence ケースを先に厚くする
 
 ---
 
@@ -101,4 +100,4 @@
 ### ユーザー側で実行が要る実測
 
 - マスターで `/skill-doctor` を実行し、結果をこの節に貼る（組み込みコマンドでこのセッションからは実行できない。20260927 に元タスクのクローズ条件から外した — 元タスクはアーカイブするため、貼り先を元タスクの decisions.md からここへ変更）
-- 配置先（`skill-test` / `hospital-search-mock`）でも同じ `/skill-doctor` を実行して結果を貼る
+- ~~配置先（`skill-test` / `hospital-search-mock`）でも同じ `/skill-doctor` を実行して結果を貼る~~ → 不要（20260929 時点で登録済みの配置先は 0 件。hospital-search-mock は 0927、skill-test は 0929 に登録解除）

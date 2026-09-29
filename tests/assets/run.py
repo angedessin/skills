@@ -122,6 +122,35 @@ R_CASES: list[tuple[str, Mutation]] = [
 ]
 
 
+# --- (s) 書き込み hook の対象パス ≡ permissions.ask の Edit(./...) -------------------
+S_CASES: list[tuple[str, str, Mutation]] = [
+    ("hook", "マーカー行から .claude/hooks/ を消す", lambda t: t.replace(" .claude/hooks/", "", 1)),
+    ("hook", "マーカー行そのものを消す", drop_lines(r"^# GATED_PATHS:.*\n")),
+    ("settings", "ask から Edit(./docs/decisions/...) の 3 形式を消す", lambda t: re.sub(r',\s*"Edit\(\./docs/decisions/[^"]*\)"', "", t)),
+    ("settings", "ask に Edit(./README.md) を足す（hook 側に無い）", lambda t: t.replace('"Edit(./CLAUDE.md)",', '"Edit(./CLAUDE.md)",\n      "Edit(./README.md)",', 1)),
+]
+
+# --- (t) allow に git を書かない --------------------------------------------------
+T_CASES: list[tuple[str, Mutation]] = [
+    ("allow に Bash(git diff *) を足す", lambda t: t.replace('"Bash(ls *)"', '"Bash(git diff *)",\n      "Bash(ls *)"', 1)),
+    ("allow に Bash(git log*) を足す", lambda t: t.replace('"Bash(ls *)"', '"Bash(git log*)",\n      "Bash(ls *)"', 1)),
+    ("allow に Bash( git show*) を足す（括弧直後の空白）", lambda t: t.replace('"Bash(ls *)"', '"Bash( git show*)",\n      "Bash(ls *)"', 1)),
+]
+
+
+def deploy_git_allow_case() -> tuple[str, list[str]]:
+    """(t) の DEPLOY_PERMISSIONS 側。import 済みの dict なのでファイルではなくモジュール変数を差し替える。"""
+    label = "(t) DEPLOY_PERMISSIONS の allow に Bash(git diff*) を足す → FAIL"
+    original = cac.DEPLOY_PERMISSIONS
+    mutated = dict(original, allow=[*original.get("allow", []), "Bash(git diff*)"])
+    cac.DEPLOY_PERMISSIONS = mutated
+    try:
+        status, _ = cac.contract_t()
+    finally:
+        cac.DEPLOY_PERMISSIONS = original
+    return label, [] if status == cac.FAIL else [f"DEPLOY_PERMISSIONS: {status} を返した（偽の緑）"]
+
+
 def run_contract(
     letter: str,
     contract: Callable[[], tuple[str, list[str]]],
@@ -167,6 +196,17 @@ def all_results() -> list[tuple[str, list[str]]]:
         "r", cac.contract_r, {"FLAG_PRODUCER": cac.FLAG_PRODUCER}, "knowledge-capture/SKILL.md", R_CASES,
         lambda c: [c["FLAG_PRODUCER"]],
     )
+    for side, label, fn in S_CASES:
+        results += run_contract(
+            "s", cac.contract_s, {"HOOKS_DIR": cac.HOOKS_DIR, "SETTINGS": cac.SETTINGS},
+            "guard-gated-write.sh + settings.json", [(label, fn)],
+            (lambda c: [c["HOOKS_DIR"] / "guard-gated-write.sh"]) if side == "hook" else (lambda c: [c["SETTINGS"]]),
+        )
+    results += run_contract(
+        "t", cac.contract_t, {"SETTINGS": cac.SETTINGS}, "settings.json", T_CASES,
+        lambda c: [c["SETTINGS"]],
+    )
+    results.append(deploy_git_allow_case())
     return results
 
 

@@ -59,6 +59,11 @@
       consumer（feature-pipeline・steering・hook・.gitignore・deploy_skills・状態機械）が名前で一致し、
       リポジトリ内で使われるフラグ名が既知の 2 つだけ
       → producer と consumer のどちらかだけを直す片側修正（Critical 2 と同型）を検出する
+  (s) guard-gated-write.sh の `# GATED_PATHS:` 行 ≡ マスター settings の permissions.ask にある
+      Edit(./...)（ディレクトリの */**/**/* は 1 つに畳む・~/ 起点は除外）
+      → Edit の ask だけ足して Bash 経由の書き込みが素通りする（またはその逆の）片側修正を検出する
+  (t) マスター settings と DEPLOY_PERMISSIONS の allow に `Bash(git ...)` のルールが無い
+      → 組み込みの読み取り専用判定を前置一致の allow で上書きし、--output / difftool -x を開けるのを防ぐ
   (q) remind-config-docs.sh が注入する要約 ⇄ その正本（docs/knowledge/）: 要約の各項目の見出し語が
       要約と正本の両方に存在し、要約の項目数が突合表と一致する
       → 正本の言い換え・削除で要約だけが古くなる（注入される「要点」が正本と食い違う）ドリフトを検出する
@@ -348,6 +353,65 @@ def contract_j() -> tuple[str, list[str]]:
     if details:
         return FAIL, details
     return PASS, ["settings / DEPLOY / MASTER_ONLY に死んだ Write|NotebookEdit|MultiEdit(path) なし"]
+
+
+GATED_MARKER_RE = re.compile(r"^# GATED_PATHS:[ \t]*(.+)$", re.M)
+EDIT_PROJECT_RE = re.compile(r"^Edit\(\./(.+)\)$")
+GLOB_SUFFIX_RE = re.compile(r"/(\*\*/\*|\*\*|\*)$")
+
+
+def contract_s() -> tuple[str, list[str]]:
+    """書き込み hook の GATED_PATHS ≡ permissions.ask の Edit(./...)（ディレクトリの 3 形式は 1 つに畳む）。
+
+    ゲートしたいパスは到達できる全ツール分を塞ぐ（Edit は permissions、Bash は hook）。
+    片方にだけ足すと、もう片方の経路が開いたまま残る。~/ 起点の規則はプロジェクト外なので対象外。
+    guard-gated-delete.sh は意図的に 3 系統で、この突合に入れない。
+    """
+    hook = HOOKS_DIR / "guard-gated-write.sh"
+    if not hook.is_file():
+        return FAIL, [f"{hook.name} が無い"]
+    m = GATED_MARKER_RE.search(hook.read_text(encoding="utf-8"))
+    if not m:
+        return FAIL, [f"{hook.name} に '# GATED_PATHS:' 行が無い（対象パスの正本）"]
+    hook_set = set(m.group(1).split())
+    ask_set: set[str] = set()
+    for rule in master_permissions().get("ask", []):
+        e = EDIT_PROJECT_RE.match(rule)
+        if not e:
+            continue
+        path = e.group(1)
+        g = GLOB_SUFFIX_RE.search(path)
+        ask_set.add(path[: g.start()] + "/" if g else path)
+    details: list[str] = []
+    if hook_set - ask_set:
+        details.append(f"hook にだけある（Edit の ask が無い）: {', '.join(sorted(hook_set - ask_set))}")
+    if ask_set - hook_set:
+        details.append(f"ask にだけある（Bash 経由の書き込みが素通り）: {', '.join(sorted(ask_set - hook_set))}")
+    if details:
+        details.append("  → guard-gated-write.sh の GATED_PATHS と settings.json の Edit(./...) ask を揃える")
+        return FAIL, details
+    return PASS, [f"GATED_PATHS ≡ Edit(./...) ask（{len(hook_set)} 系統）"]
+
+
+GIT_ALLOW_RE = re.compile(r"^Bash\(\s*git\b")
+
+
+def contract_t() -> tuple[str, list[str]]:
+    """allow に git のルールを置かない（マスター settings と DEPLOY_PERMISSIONS）。
+
+    Claude Code 組み込みの読み取り専用判定は git の読み取り形をプロンプトなしで通し、
+    --output / difftool -x / 作業ツリー外のパスは止める。前置一致の allow（`Bash(git diff*)` 等）は
+    その判定を上書きして危険な形まで許す（20260927 headless 実測）。
+    """
+    details: list[str] = []
+    for label, perms in (("settings.json", master_permissions()), ("DEPLOY_PERMISSIONS", DEPLOY_PERMISSIONS)):
+        bad = sorted(r for r in perms.get("allow", []) if GIT_ALLOW_RE.match(r))
+        if bad:
+            details.append(f"[{label}/allow] git のルール: {', '.join(bad)}")
+    if details:
+        details.append("  → 削除する（git の読み取りは組み込みの判定に任せる。allow は危険な形まで許す）")
+        return FAIL, details
+    return PASS, ["settings / DEPLOY の allow に git のルールなし"]
 
 
 def _readme_bullet_after(heading_substr: str) -> str:
@@ -915,6 +979,8 @@ def main() -> None:
         ("(p) agent 定義の frontmatter が契約どおり（読み取り専用を含む）", contract_p),
         ("(q) hook の注入要約が正本（docs/knowledge/）と食い違っていない", contract_q),
         ("(r) capture フラグの producer と consumer が名前で一致", contract_r),
+        ("(s) 書き込み hook の対象パスが permissions.ask と一致", contract_s),
+        ("(t) allow に git のルールが無い", contract_t),
     ]
 
     failed = 0
