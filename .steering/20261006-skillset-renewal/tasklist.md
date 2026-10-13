@@ -6,6 +6,14 @@ Last updated: 20261013（git-flow への移行を反映）
 
 - [x] `/doctor prompt-audit` と `/skill-doctor` を `claude -p` で実行し、結果を measure/ と decisions.md に残した
 
+## 0.5 評価の試作（design.md の承認前。`feature/eval-pilot` で行う）
+
+- [ ] サンプルアプリの最小版を `~/Desktop/_lab/ai/skills-eval-app/` に作る
+- [ ] 現行の design-doc を評価用の `plugin.json` で包み、ケースを 2 件書く（無料）
+- [ ] 費用を見積もってユーザーの承認を取り、小さく回す（2 ケース × 3 回 × 2 条件）
+- [ ] 確かめる: plugin として読み込まれるか・準備スクリプトでの複製とテスト実行（`node_modules` を含む）・`tool_used` による停止の判定・`append_system_prompt` での CLAUDE.md の近似・1 回あたりの実費
+- [ ] 結果を decisions.md に残し、設計を直すか承認するかをユーザーと決める
+
 ## 1. 準備
 
 - [ ] リポジトリ `angedessin/skills` を非公開にする（ユーザーの操作）。非公開になったことを `gh repo view --json visibility` で確かめる
