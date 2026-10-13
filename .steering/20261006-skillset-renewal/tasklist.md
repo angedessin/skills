@@ -1,6 +1,6 @@
 # タスクリスト: skillset-renewal
 
-Last updated: 20261013（評価の試作の再実行を反映）
+Last updated: 20261013（design.md 承認）
 
 ## 0. 計測（実施済み）
 
@@ -15,7 +15,8 @@ Last updated: 20261013（評価の試作の再実行を反映）
 - [x] 再実行（結果は decisions.md。hook での注入は動いた。直した `src/` 判定の確認と、B・C の CLAUDE.md を plugin 同梱の SessionStart hook で注入できるかの確認。design-doc 2 ケース × あり・なし × `--runs 1` の 4 実行。前後の `/usage` を記録して 1 実行あたりの利用枠を測る。`--keep-temp` を付ける）
 - [x] A の定義を決める（推奨案で決定: 素のモデル＋スキルに触れない CLAUDE.md。共通部分は `append_system_prompt`、スキルに触れる部分は B・C の plugin の hook で注入）
 - [x] 本番の規模を、測った利用枠から見積もってユーザーと決める（決定: まず設計グループの約 70 実行だけ。週間枠の消費を測ってから残りを決める。全体の見込みは約 440 実行・5 時間枠 11 回分）
-- [ ] 結果を decisions.md に残し、設計を直すか承認するかをユーザーと決める
+- [x] 結果を decisions.md に残し、設計を直すか承認するかをユーザーと決める（20261013 承認）
+- [ ] `feature/eval-pilot` を PR で develop にマージする
 
 ## 1. 準備
 

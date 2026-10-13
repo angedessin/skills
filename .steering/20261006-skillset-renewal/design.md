@@ -1,7 +1,7 @@
 # 設計: skillset-renewal
 
 Created: 20261006（v4: ゼロベース刷新・評価で決める）
-Status: **DRAFT — awaiting review**
+Status: **APPROVED**（20261013・ユーザー承認）
 
 <!-- Status は DRAFT / SPIKE / APPROVED の 3 値。既定は DRAFT。
      読み取り: Status 行の最初の語彙トークン ∈ {DRAFT,SPIKE,APPROVED}、以外は停止。
