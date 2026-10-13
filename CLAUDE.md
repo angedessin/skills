@@ -22,7 +22,12 @@ Tech stack: React / TypeScript / Vitest / React Testing Library / MSW / Playwrig
 4. `.steering/` のアクティブタスクをすべて読んでから作業開始
 5. 複数のアクティブタスクがある場合はどれを再開するか確認
 
-worktree・ブランチ上で開始したタスクは、main へのマージ前にアーカイブまで済ませる（`.steering/` がブランチ間で分岐すると、他のセッションからタスクが見えない・アーカイブ済みがアクティブに見える等の対応漏れが起きる）
+## ブランチ運用（git-flow）
+
+- 統合ブランチは develop。main へは release ブランチで出す。git-flow CLI は使わず素の git（`checkout -b`・`merge --no-ff`）で操作する
+- 作業は develop から `feature/*` を切り、develop へは PR でマージする。typo・1〜2 ファイルの微修正だけは develop へ直接コミットしてよい
+- 大きなタスクはマージ用の feature ブランチを切り、子ブランチから PR で集める。子ブランチは `feature/x/child` のような階層名にしない（同名ブランチと ref が衝突する）
+- feature ブランチで開始したタスクは、develop へのマージ前にアーカイブまで済ませる（`.steering/` がブランチ間で分岐すると、他のセッションからタスクが見えない・アーカイブ済みがアクティブに見える等の対応漏れが起きる）
 
 ## スキル管理ルール
 

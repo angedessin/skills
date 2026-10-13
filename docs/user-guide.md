@@ -85,7 +85,7 @@ CLAUDE.md のポリシー側を調整する（スキル本文は触らない）�
 **Q. タスクの「完了」はどう扱われる？**
 進捗の実体は `.steering/[task]/tasklist.md` のチェックボックス（作業のたびに Claude が更新する）。
 アーカイブは自動では起きない — あなたが「アーカイブして」と言ったときに、完了チェックを通して
-`.steering/archived/` へ移動する。アーカイブ前の knowledge-capture はハードストップ: `capture_done` があるか、「知見なしでアーカイブ」と明示したときだけ進む（汎用の省略や tasklist のチェック単独では足りない）。worktree・ブランチ上で開始したタスクは、**main へのマージ前に
+`.steering/archived/` へ移動する。アーカイブ前の knowledge-capture はハードストップ: `capture_done` があるか、「知見なしでアーカイブ」と明示したときだけ進む（汎用の省略や tasklist のチェック単独では足りない）。feature ブランチで開始したタスクは、**develop へのマージ前に
 アーカイブまで済ませる**（`.steering/` がブランチ間で分岐すると対応漏れが起きる）。
 
 ---
