@@ -170,9 +170,9 @@ Status: **DRAFT — awaiting review**
 
 | スキル | 扱い |
 |---|---|
-| `pr-create` | 新しい型で書き直し、push と PR 作成の前で止まるかを passthrough で確かめる |
+| `pr-create` | 新しい型で書き直し、push と PR 作成の前で止まるかを `plugin eval` のケース（`tool_used` の `max: 0`）で確かめる |
 | `debug`・`pr-feedback`・`security-audit`・`impl-tournament` | 削除する。必要になったら新しい型で作り直す |
-| `adr`・`skill-test`（マスター専用） | 評価の対象外（マスターの保守用）。書き直しだけ行う |
+| `adr`・`skill-test`（マスター専用） | 評価の対象外（マスターの保守用）。書き直しだけ行う。skill-test は、静的検査と `plugin eval` の実行（課金の見積もりと承認を含む）をまとめる薄い入口に作り直す（自作の passthrough は削除するため） |
 ### スキルの評価
 
 公式の skill-creator が勧める「スキルあり・なしの比較」を、3 条件に広げる。
@@ -183,13 +183,17 @@ Status: **DRAFT — awaiting review**
 | B: 現行 | 現行のスキル（タグ `pre-renewal-20261006` の版） |
 | C: 書き直し版 | 新しい「書き方の型」でゼロから書いたスキル |
 
-- **評価の場所:** 評価専用のサンプルアプリ（React・TypeScript・Vitest・React Testing Library・MSW・Playwright）。リポジトリの外に作り、条件ごとにまっさらな状態から始める
+- **評価の道具:** Claude Code 公式の `claude plugin eval`（v2.1.296 で確認）。自作の実行スクリプトは作らない（自作の Python の保守が刷新の理由の一つで、CLI の変化への追従も自分の負担になるため）。評価のケースは刷新の後も回帰テストとして残す
+  - B・C はそれぞれ評価用の `plugin.json` で plugin として読み込ませる（配布はコピーのまま。`plugin.json` は評価のためだけに置く）
+  - A（素のモデル）は道具の no-plugin baseline を使う。B を流すときに A も回し、C を流すときは `--ablation none` で A を重ねて払わない
+  - 機能がサーバー側で止められた場合（公式ドキュメントに記載あり）に限り、自作の実行スクリプトで代える
+- **評価の場所:** 評価専用のサンプルアプリ（React・TypeScript・Vitest・React Testing Library・MSW・Playwright）。リポジトリの外に作り、ケースの準備スクリプト（`context.scaffold_script`）で毎回の空の作業場所に複製する
 - **課題の数:** 候補スキル 1 本あたり 2〜3 件
 - **採点の観点**
   - **結果の質:** 課題ごとに採点基準を先に書く（例: テストが振る舞いを検証しているか・設計から逸脱していないか）
-  - **停止契約:** 止まるべき場所で止まったか。passthrough の判定を流用する
-  - **コスト:** トークン量と所要時間（`claude -p --output-format json` で記録する）
-- **採点の方法:** 採点基準に沿って、結果を見せない別の agent が採点する。最終判断はユーザーが結果を見て行う
+  - **停止契約:** 止まるべき場所で止まったか。`tool_used` の採点（`max: 0`）で、外向きの操作（`git push`・`gh pr create` など）を試みなかったかを判定する
+  - **コスト:** トークン量と所要時間（道具の JSON 結果から取る）
+- **採点の方法:** 機械で判定できるもの（ファイル・ツール呼び出し・正規表現）は機械で判定する。残りは採点基準に沿って `llm` の採点役が判定する。最終判断はユーザーが結果を見て行う
 - **判定のルール**（上から順に当てはめる）
 
   | 結果 | 判定 |
@@ -205,16 +209,25 @@ Status: **DRAFT — awaiting review**
 
 **評価の手順の固定**（結論が歪まないようにする）
 
+道具が満たすもの:
+
+| 問題 | 道具での扱い |
+|---|---|
+| 混入 | 毎回、隔離された非対話セッションで動く。ユーザー設定・hooks・CLAUDE.md・MCP・他の plugin・メモリは読み込まれない。作業場所も毎回空から始まる |
+| ばらつき | 課題 × 条件ごとに 3 回回し、平均で比べる（既定の `runs: 3`）。停止契約は 3 回中 1 回でも破れたら不合格 |
+| 費用 | 費用の見積もりが結果に出る。`--max-cost-usd` で上限を掛ける |
+
+自分で用意するもの:
+
 | 問題 | 対策 |
 |---|---|
-| 混入 | 他の plugin・ユーザー設定・auto memory が全条件に入る。評価専用の設定で実行する（`--setting-sources` でユーザー設定を外し、auto memory を切る。使えるフラグは実行前に公式ドキュメントで確かめる）。1 回ごとにサンプルアプリを別のパスへ新しく複製する |
-| B の再現 | 現行のスキルは scripts・hook・CLAUDE.md・`.steering/` の構成に依存する。タグから、`.claude/` 全体・CLAUDE.md・必要な scripts をまとめた「B の一式」を作って入れる。条件ごとに入れるもの（CLAUDE.md の有無など）を表で定義する |
-| 権限モード | `claude -p` では、承認が要る操作は答える人がいないので拒否され、A でも止まったように見える。権限モードを固定（acceptEdits）し、停止は「Claude がその操作を試みたか」をツール呼び出しのログ（`--output-format stream-json`）で判定する |
-| ばらつき | 課題 × 条件ごとに 3 回回し、平均で比べる。停止契約は 3 回中 1 回でも破れたら不合格 |
+| B の再現 | 現行のスキルは scripts・hook・CLAUDE.md・`.steering/` の構成に依存する。タグから、スキル・agent・hook・必要な scripts をまとめた「B の plugin」を作る。プロジェクトの CLAUDE.md は隔離で読み込まれない（準備スクリプトで書いても読まれない）ため、`append_system_prompt` で近似する。この近似は B に不利な方向の差になることを判定時に考慮する |
+| ツールの許可 | 許可していないツールはセッションから消え、試みも記録されない。停止の判定が無意味にならないよう、Write・Edit・Bash を `--allow-tools` で許可する（Bash は OS の sandbox 内で動き、ネットワークは使えない） |
+| サンプルアプリの準備 | 準備スクリプトは 120 秒の制限があり、実行中の Bash はネットワークを使えない。`pnpm install` 済みの `node_modules` ごと複製する手順にする |
 | 課題の有利な作り込み | C を書き始める前に、課題・採点基準・仕込みバグをコミットして固定する。普段の作業に近い課題も混ぜる。再評価用に、使わない課題を各グループ 1 件取っておく |
-| 採点の偏り | 採点前に、条件がわかる痕跡（スキル名・`.steering/` の見出しなど）を伏せる。採点役は実行と別のモデルにする。グループごとに 2 件を人も採点し、採点役との一致を確かめる |
+| 採点の偏り | `llm` の採点役は会話のログを見るとスキル名から条件がわかるため、最終回答と生成ファイル（`focus: last_message` / `source: file`）を中心に採点する。採点役は `--judge-model` で実行と別のモデルにする。グループごとに 2 件を人も採点し、採点役との一致を確かめる |
 | バージョンの変化 | Claude Code のバージョンとモデル名を毎回の結果に記録する。評価の期間中は自動更新を止める |
-| 対話が要る課題 | 承認待ちで止まる・2 セッション目で再開する課題は、`--resume` と台本化したユーザーの返答で進める |
+| 対話が要る課題 | 承認待ちで止まる・続きから再開する課題は、会話の記録（`context.history_file`）から 1 ターン再開する形で書く。複数ターンの台本は書けないため、課題を 1 ターンの区切りに分ける |
 | 材料 | 現行の skill-issues.md・blockers.md・decisions.md に残る「モデルが実際に崩れた事例」を、白紙化の前に抜き出して課題の候補にする |
 
 - **回し方**
@@ -357,9 +370,9 @@ Status: **DRAFT — awaiting review**
 - SSH での `git push` と `gh pr create` が通る（`excludedCommands` 経由）
 - ブランチ切り替えとマージが通る
 
-**評価と passthrough の実行場所**
+**評価の実行場所**
 
-`claude -p` を起動する評価・passthrough は、sandbox を有効にした Claude Code の中からではなく、通常のターミナルから実行する。sandbox の中からだと、Anthropic の API への通信と、リポジトリ外の評価アプリへの書き込みが通らないため。
+`claude plugin eval` は、sandbox を有効にした Claude Code の中からではなく、通常のターミナルから実行する。sandbox の中からだと、Anthropic の API への通信と、リポジトリ外の評価アプリへの書き込みが通らないため。
 
 配置先向けの雛形は `templates/settings.template.json` に置く。中身は permissions・sandbox・配る hook の登録の 3 つ。公式の位置づけでは、`.claude/settings.json` はプロジェクトごとにコミットして共有する設定。スキル側の `allowed-tools` は「スキルの使用中は確認なしで使ってよいツール」を許可するもので、制限には使えない。
 
@@ -439,7 +452,7 @@ Status: **DRAFT — awaiting review**
 - [x] **PR グループの評価方法** → 評価しない（評価の規模の決定に従う）。評価専用リポジトリは作らない
 - [x] **評価の規模と、評価しない既定** → 推奨案（ユーザー決定。「課金してでもやるべきことに絞る」）
   - 評価するのは、利用の中心になる 4 グループ（設計・実装・レビュー・知識）だけ
-  - 調査・PR・その他（debug・pr-create・pr-feedback・security-audit・impl-tournament）は評価せずに決める。停止契約を持つ pr-create は新しい型で書き直し、passthrough で確かめる。それ以外は削除し、必要になったら作り直す
+  - 調査・PR・その他（debug・pr-create・pr-feedback・security-audit・impl-tournament）は評価せずに決める。停止契約を持つ pr-create は新しい型で書き直し、`plugin eval` の停止のケースで確かめる。それ以外は削除し、必要になったら作り直す
   - **やめる条件:** 1 グループ目（設計）の実費が見込みの 2 倍を超えたら、残りのグループを課題 1 件・1 回に縮める
 - [x] **評価で普段の plugin を外すか** → 比較（A・B・C）では外す。加えて、採用が決まった一式を普段の環境（plugin あり）で 1 回だけ流す（ユーザー決定）
   - 外す理由: 外さないと、差がスキルによるものか plugin によるものか切り分けられない
@@ -610,7 +623,7 @@ premortem-attacker で実施した（会話の文脈なし・リポジトリ参�
 - 静的: `validate`・`validate:assets`・`test:hooks`・`lint`・`tests/assets` を新構成に追従させ、グループごとに緑にする
 - スキル: 「スキルの評価」節の 3 条件比較をグループごとに行う（利用枠を消費する。1 グループ目の実費を見てから規模を決める）
 - レビュー: `tests/review-eval/` を現行と新方式で回し、誤検知率と見逃しを比べる（利用枠を消費する）
-- 停止契約: passthrough の dry-run を全シナリオで緑にし、実走は design-doc・pr-create・knowledge-capture の 3 本（課金・承認制）
+- 停止契約: `plugin eval` の停止のケース（`tool_used` の `max: 0`）で確かめる。対象は design-doc・pr-create・knowledge-capture の 3 本（課金・承認制）。自作の passthrough（`passthrough_check.py`・`tests/passthrough/`）は置き換えが済んだら削除する
 - 配置: 検証用の使い捨て配置先に README の手順でコピーし、スキル・hook の発火・sandbox 下での lint と typecheck を確かめる。依存の一覧の抜けは validate で検査する
 
 ## 検討した代替案

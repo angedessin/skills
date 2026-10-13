@@ -35,9 +35,8 @@ Last updated: 20261013（git-flow への移行を反映）
 
 - [ ] サンプルアプリを作る（置き場所と中身は論点のとおり）。1 回ごとに別のパスへ新しく複製する手順を用意する
 - [ ] タグから「B の一式」（`.claude/` 全体・CLAUDE.md・必要な scripts）を作り、条件ごとに入れるものの表を書く
-- [ ] 評価専用の設定（ユーザー設定と plugin を外す・auto memory を切る・権限モード固定）に使えるフラグを公式ドキュメントで確かめる
 - [ ] グループごとに作業課題（スキル 1 本あたり 2〜3 件）・再評価用の課題 1 件・採点基準を書き、ユーザーに確認してコミットで固定する（C を書き始める前）
-- [ ] 評価の実行スクリプトを作る（条件 A・B・C の切り替え、3 回の試行、stream-json からの停止判定、バージョンとコストの記録、`--resume` と台本での返答、痕跡を伏せて別のモデルで採点）
+- [ ] 評価のケースを `claude plugin eval` の形式で書く（B・C 用の評価用 `plugin.json`、サンプルアプリを複製する準備スクリプト、停止の判定は `tool_used`、続きからの再開は `history_file`、採点は最終回答と生成ファイル中心で `--judge-model` を実行と別のモデルに。B の CLAUDE.md は `append_system_prompt` で近似）
 - [ ] `tests/review-eval/` を作る（過去の誤検知・真の指摘＋仕込みバグ＋公開事例）。仕込みバグは新しい agent の観点を書く前に固定する
 - [ ] 現行レビュー（タグの一式）の基準値を取り、人がラベル付けする
 - [ ] 評価は、sandbox を有効にした Claude Code の中ではなく通常のターミナルから実行する
@@ -52,7 +51,7 @@ Last updated: 20261013（git-flow への移行を反映）
 - [ ] 採用した一式を普段の環境（plugin あり）で 1 回流し、誤発動・二重実行が無いか確かめる
 - [ ] マスター専用（adr・skill-test）を新しい型で書き直す
 - [ ] 各グループの判定を decisions.md に残す
-- [ ] 残したスキルごとに回帰テスト用のテストケースを残す（評価の課題を転用する。形式は `claude plugin eval` の case.yaml を第一候補にし、合わなければ評価の実行スクリプトの形式で残す）
+- [ ] 残したスキルごとに回帰テスト用のテストケースを残す（評価の課題を転用する。形式は `claude plugin eval`）
 - [ ] 書き直し後のスキルに prompt-audit をもう一度回す
 - [ ] `CLAUDE.md` を 50 行以内の行動ルールに書き直す（小さな作業の決め方を含む）
 - [ ] `templates/`・`prompts/`・`docs/user-guide.md`・`docs/starter-kit.md`・`README.md` を直す
@@ -75,8 +74,9 @@ Last updated: 20261013（git-flow への移行を反映）
 
 ## 8. 検証
 
-- [ ] 静的検査（`validate`・`validate:assets`・`test:hooks`・`lint`・`tests/assets`）と passthrough の dry-run が緑
-- [ ] passthrough の実走（design-doc・pr-create・knowledge-capture。課金・承認制。通常のターミナルから実行する）
+- [ ] 静的検査（`validate`・`validate:assets`・`test:hooks`・`lint`・`tests/assets`）が緑
+- [ ] 停止のケースを `plugin eval` で実走する（design-doc・pr-create・knowledge-capture。課金・承認制。通常のターミナルから実行する）
+- [ ] 自作の passthrough（`passthrough_check.py`・`tests/passthrough/`）を削除する
 - [ ] 検証用の使い捨て配置先に README の手順でコピーし、スキル・hook の発火・sandbox 下での lint と typecheck を確かめる
 
 ## レビュー
