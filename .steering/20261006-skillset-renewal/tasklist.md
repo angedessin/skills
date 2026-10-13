@@ -16,7 +16,7 @@ Last updated: 20261013（design.md 承認）
 - [x] A の定義を決める（推奨案で決定: 素のモデル＋スキルに触れない CLAUDE.md。共通部分は `append_system_prompt`、スキルに触れる部分は B・C の plugin の hook で注入）
 - [x] 本番の規模を、測った利用枠から見積もってユーザーと決める（決定: まず設計グループの約 70 実行だけ。週間枠の消費を測ってから残りを決める。全体の見込みは約 440 実行・5 時間枠 11 回分）
 - [x] 結果を decisions.md に残し、設計を直すか承認するかをユーザーと決める（20261013 承認）
-- [ ] `feature/eval-pilot` を PR で develop にマージする
+- [ ] `feature/eval-pilot` を PR で develop にマージする（PR #17 作成済み・CI 緑・マージは人間判断待ち）
 
 ## 1. 準備
 
