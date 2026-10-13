@@ -12,6 +12,9 @@ Last updated: 20261013（git-flow への移行を反映）
 - [x] 現行の design-doc を評価用の `plugin.json` で包み、ケースを 2 件書く（無料。`eval-pilot/`。実行環境の確認用に smoke 1 件を追加）
 - [x] 費用を見積もってユーザーの承認を取り、小さく回す（縮小版: `--runs 1` の 6 実行に変更。結果は decisions.md）
 - [x] 確かめる: plugin として読み込まれるか・準備スクリプトでの複製とテスト実行（`node_modules` を含む）・`tool_used` による停止の判定・`append_system_prompt` での CLAUDE.md の近似・1 回あたりの実費
+- [ ] 再実行（次セッション。直した `src/` 判定の確認と、B・C の CLAUDE.md を plugin 同梱の SessionStart hook で注入できるかの確認。design-doc 2 ケース × あり・なし × `--runs 1` の 4 実行。前後の `/usage` を記録して 1 実行あたりの利用枠を測る。`--keep-temp` を付ける）
+- [ ] A の定義を決める（推奨: 素のモデル＋スキルに触れない CLAUDE.md。共通部分は `append_system_prompt`、スキルに触れる部分は B・C の plugin の hook で注入）
+- [ ] 本番の規模を、測った利用枠から見積もってユーザーと決める（今の見込み: 約 440 実行、Pro で 2〜3 週間）
 - [ ] 結果を decisions.md に残し、設計を直すか承認するかをユーザーと決める
 
 ## 1. 準備
