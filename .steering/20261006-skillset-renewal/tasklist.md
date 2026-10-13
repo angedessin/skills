@@ -52,6 +52,7 @@ Last updated: 20261013（git-flow への移行を反映）
 - [ ] 採用した一式を普段の環境（plugin あり）で 1 回流し、誤発動・二重実行が無いか確かめる
 - [ ] マスター専用（adr・skill-test）を新しい型で書き直す
 - [ ] 各グループの判定を decisions.md に残す
+- [ ] 残したスキルごとに回帰テスト用のテストケースを残す（評価の課題を転用する。形式は `claude plugin eval` の case.yaml を第一候補にし、合わなければ評価の実行スクリプトの形式で残す）
 - [ ] 書き直し後のスキルに prompt-audit をもう一度回す
 - [ ] `CLAUDE.md` を 50 行以内の行動ルールに書き直す（小さな作業の決め方を含む）
 - [ ] `templates/`・`prompts/`・`docs/user-guide.md`・`docs/starter-kit.md`・`README.md` を直す
