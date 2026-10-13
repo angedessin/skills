@@ -1,0 +1,136 @@
+# 決定事項: skillset-renewal
+
+## 20261006 — 決定インタビューの回答（4 件とも推奨案）
+
+**決定**:
+1. 可搬性: Claude Code ネイティブに寄せる（frontmatter 拡張・バンドル機能を使う）
+2. 配布: plugin と自前マーケットプレイスに移行し、deploy / harvest のスクリプトを撤去する
+3. 削減の強さ: 大胆に統合する（29 本 → 15 本前後）と同時に本文を全面的に書き直す
+4. 学習ループ: セッション開始ごとの三択をやめ、auto memory と手動起動に寄せる。capture の確認はアーカイブ時の 1 回だけ
+
+**理由**: 公式ドキュメント（2026-10-06 取得。design.md の付録「調査結果」）の指針に沿う。実利用は Claude Code が中心で、標準機能との重複を減らす効果が大きい。
+**影響**: ADR 20260722-agentskills-non-adoption と 20260612-manual-copy-skill-distribution を Superseded にする。
+
+## 20261006 — プレモータム反映に伴う設計変更
+
+**決定**:
+1. 配置先は登録 0 件だったため、検証は使い捨ての配置先で行う
+2. `disable-model-invocation` は project-setup だけに付ける。pr-create・feature-pipeline は自然文で発動させ、停止契約で止める
+3. 停止契約は SKILL.md 本文に残し、`<!-- stop-contract -->` で囲む。強い語はこの中だけで使う
+4. アーカイブはマージ前（CLAUDE.md に合わせる）。capture の確認はアーカイブ前の 1 回にする
+5. フラグの代わりに、tasklist の「知見保存」節を状態機械の観測値にする
+6. 資産の変更と検査器の変更は同じコミットに入れる。guard の登録は plugin での発火を確認したコミットで外す
+7. 知見の正本は docs/knowledge のまま。auto memory は補助にする
+8. 20260722 ADR は 1・2 だけを改訂し、npx / uvx 不採用（3）は維持する
+
+**理由**: premortem-attacker の所見のうち、事実で確認できたもの（design.md 付録「プレモータム所見」）。
+**影響**: design.md の完了条件・主要コンポーネント・データフローを改訂した。
+
+## 20261006 — タスクは分割しない
+
+**決定**: 1 タスクのまま進める（推奨は 3 分割だった）
+**理由**: ユーザーの選択。分割すると本文を二度書き直す手間が出る
+**影響**: tasklist の 4〜7 を独立したコミット群にし、群ごとに静的検査を緑にして途中の壊れを防ぐ
+
+## 20261006 — Claude Code 専用にする（Cursor は対象外）
+
+**決定**: Claude Code plugin で配り、Cursor からの利用は対象外にする
+**理由**: ユーザーの選択。Cursor の公式ドキュメントは Claude Code の plugin 形式（`.claude-plugin/plugin.json`）にも plugin の `hooks/hooks.json` にも触れておらず、両立には `.claude/` へのコピーか二形式の plugin が要る（design.md 付録「Cursor の互換性」）
+**影響**: plugin に移したスキル・agent・hook は Cursor から読まれなくなる。マスターを Cursor で編集すると guard hook が効かない。`when_to_use` などの Claude Code 専用 frontmatter は制約なく使える
+
+## 20261006 — 計測結果（`claude -p` で実行。生データは measure/）
+
+**prompt-audit**（measure/prompt-audit.txt）: 所見 10 件（High 1・Medium 5・Low 4）。強調表現・思考誘導・旧モデル向けの回避策はほとんど無い。停止・承認系の文は壊れやすい操作の契約で、残すべきと判定。High は empirical-prompt-tuning の「確認なしで直接修正」と CLAUDE.md の承認制の矛盾。
+
+**skill-doctor**（measure/skill-doctor.txt。Claude Code の利用だけ。Cursor は含まない）:
+- よく使う: design-doc 73 回・impl-from-design 53・steering 38・frontend-code-review 34・knowledge-capture 29・compound 19・design-premortem 9
+- 一度も使っていない: impl-tournament・pr-feedback・security-audit・test-review
+- ほぼ使っていない: feature-pipeline 3 回（最終 95 日前）・empirical-prompt-tuning 2 回（122 日前）・tdd 1 回・e2e 1 回・session-retrospective 1 回
+- 一覧の常時コストは 1 本あたり約 40〜230 トークン。プロジェクト 29 本の合計は 3,000 トークン弱
+- pr-create がプロジェクトとユーザー（`~/.claude/skills/`）の両方にあり、二重に載っている
+- claude.ai から同期したスキル 8 本が一度も使われていない（リポジトリ外）
+
+**影響**: 「全面書き直しで強い語を減らす」前提は弱い。統合の効果は context ではなく保守の削減。よく使うスキルは統合せず改善に留め、使っていないスキルを削る方針に改める。
+
+## 20261006 — ユーザー指摘を受けた方針変更
+
+**決定**:
+1. 刷新前の状態に git タグを打ち、`.steering/archived/` を作業ツリーから消す。`docs/knowledge/` と ADR は白紙から始め、必要なものだけ審査して持ち込む
+2. feature-pipeline を削除する（各スキルが安定するまでオーケストレーションは作らない）
+3. `settings.json` の中身を見直す（sandbox の導入・重複の整理・`$schema`）。配置先には project-setup が `settings.json`（permissions と plugin の有効化）を書く
+4. コードレビューを公式 code-review plugin の構成（少数の agent が高確度の指摘だけを出し、指摘ごとに検証する）を参考に作り直す。誤検知と見逃しの両方を改善したいので、過去の review-result.md から評価セットを作って測る
+5. 計測を設計の前に移す（実施済み）
+
+**理由**: ユーザーの指摘と計測結果。
+**影響**: design.md を全面的に書き直した（v3）。
+
+## 20261006 — 2 回目の指摘への回答で決まったこと
+
+**決定**:
+1. 旧 ADR は削除する（タグから参照）
+2. BACKLOG は棚卸しして、本タスクに取り込むか捨てる（design.md の棚卸し案）
+3. feature-pipeline の削除で了承
+4. レビューは公式の構成で作り直す。精度が低い原因は、領域のずれ（過去 13 件はすべてスキル・hook・Python が対象）・検証の工程が無いこと・規約の知識が薄いこと、と推定した
+5. steering は統合しない。ワークフローを作業の大きさで 3 段階に分け、design.md に書いた
+6. 評価セットなどの課金を伴う実行は了承済み。費用は最初の 1 件で実測してから全体を見積もる
+
+**理由**: ユーザーの回答と、BACKLOG・過去のレビュー対象・sandbox の公式ドキュメントの確認結果。
+**影響**: sandbox で guard hook 3 本を置き換える案を足した。sandbox の有効化はスキルの削除の後に置く。
+
+## 20261006 — ゼロベースで全面刷新し、評価で決める（v4）
+
+**決定**: 全スキルをゼロベースで作り直す。構造の判断で消すもの以外は、評価専用のサンプルアプリで「素のモデル・現行・書き直し版」を比べて、残す・置き換える・削除するを決める
+**理由**: ユーザーの指摘どおり、skill-doctor はマスターのメタ作業での利用しか数えておらず、フロントエンドでの価値を示さない。prompt-audit も静的チェックで効果を測らない。v3 の「改善に留める」は弱いデータを強い根拠として扱っていた
+**影響**: 評価の土台（サンプルアプリ・課題・採点基準）が新たに必要。利用枠の消費が増えるので、1 グループ目の実費を見てから規模を決める。claude はサブスクリプション利用（ユーザー回答）
+
+## 20261006 — plugin は非公開で配る
+
+**決定**: リポジトリ `angedessin/skills`（現在 PUBLIC）を、作業の前にユーザーが非公開にする。plugin と marketplace はこのリポジトリから非公開で配る
+**理由**: 公式の仕様で、非公開リポジトリの marketplace は各マシンの git 認証情報で読める。現状は公開のため、`.steering/` の作業記録（案件名など）も誰でも読める。履歴にも残るので先に非公開にする
+**影響**: 非公開化はユーザーの操作（外向き）。マスターの読み込み方をローカル marketplace に変える案を論点に加えた
+
+## 20261006 — マスターは `--plugin-dir` で読み込む
+
+**決定**: マスターでは `claude --plugin-dir ./plugins/frontend-workflow` で起動し、配置先と同じ plugin 扱いでスキルを読む
+**理由**: ユーザーの選択（推奨案）。配置先と同じ扱いで試せ、プロジェクトスキルとしての名前衝突が起きない
+**影響**: `debug` の改名は不要になる可能性が高い（名前空間での共存を確認する）。編集の反映方法を tasklist の 7 で確認する
+**補足（同日・プレモータム 2 回目）**: この決定の後、ローカル marketplace に変える案を論点に加えたため、確定ではなく論点に戻した。データフローも論点の扱いに揃えた
+
+## 20261006 — v4 プレモータム 2 回目の反映
+
+**決定**:
+- sandbox では承認制のパスを守らない（`denyWrite` をやめる）。guard-gated-write・guard-gated-delete は残し、guard-env-read だけを sandbox の `denyRead` で置き換える
+- 評価と passthrough は通常のターミナルから実行する
+- 3 条件評価に、隔離・B の一式・権限モードの固定・3 回の試行・閾値・事前固定・採点の盲検化・バージョン記録を足す
+
+**理由**:
+- sandbox には ask が無い。`denyWrite` にすると git の操作も承認の余地なく失敗する
+- Claude Code には削除のツールが無い（公式のツール一覧で確認）
+- 評価の手順が固定されていないと、結論（削除・置き換え）が混入や採点の偏りで歪む
+
+**影響**: BACKLOG 0.6 は「捨てる」から「残す」に変えた。人の判断が要る論点を 6 件足した（git 操作の除外・`failIfUnavailable`・評価の規模・plugin の除外・ラベル付け・段階的マージ）。非公開化の副作用の確認も足した
+
+## 20261006 — プレモータム 2 回目の論点への回答
+
+**決定**:
+- 評価は設計・実装・レビュー・知識の 4 グループに絞る。pr-create は評価せずに書き直し、debug・pr-feedback・security-audit・impl-tournament は削除する
+- 親ブランチ `renew/skillset` を作り、区切りごとに子ブランチから親へマージする。main へは最後に 1 回だけマージする
+- git の作業ツリー操作は `excludedCommands` で sandbox の外に出す
+- `failIfUnavailable` は、マスターでは true、配置先の雛形では false にする
+
+**理由**: ユーザーの回答。評価の規模は「課金してでもやるべきことに絞る」。親ブランチにすれば、段階的にマージしても CLAUDE.md のアーカイブ規則とぶつからない（ユーザーの提案）
+**影響**: PR グループの評価専用リポジトリは不要になった。debug の名前の論点も消えた
+**追記（同日・2）**: 残りの論点への回答。sandbox は変更案のとおり。サンプルアプリは `~/Desktop/_lab/ai/skills-eval-app/`。小さな作業は Claude が段階を宣言する。knowledge は新しいスキルが参照しそうな候補だけを人がレビューする。レビュー評価は約 28 件 × 3 回。install scope は project。マスターはローカル marketplace で読み込む（`--plugin-dir` の決定を置き換え）。非公開化の副作用は、CI が 1 回 15〜25 秒でブランチ保護も無いため影響なしと確認した
+**追記（同日・3）**: `disableBypassPermissionsMode` は入れる。plugin の名前は `frontend-workflow`。CI は削除する（一人で使うリポジトリで、配置先は plugin の version が上がったときだけ更新を受け取るため、version を上げる前のローカル検査で代える）。BACKLOG 0.5 は不要になった
+**追記（同日・4）配布を plugin からコピー配布に戻す**: plugin のスキルは配置先で書き換えられず、1 本単位でオフにもできない（公式の plugins-reference・skills で確認）。ユーザーは配置先でスキル全体をカスタマイズ・調整したい。そこで skill-deploy・skill-harvest・`deploy_skills.py` は削除せず作り直す。配置先での書き換えを正式に認め（CLAUDE.md の「配置先で直接編集しない」を撤回）、再コピーは `source-commit` 版を基準にした 3-way マージで行う。plugin の名前・install scope・マスターの読み込み経路の決定は取り消し
+**追記（同日・5）配布用の仕組みを撤去する**: 配布は最初の 1 回のコピーだけで、以後は配置先で育てる（ユーザーの提案に Claude も同意）。更新と回収は「マスターと配置先を揃え続ける」ための仕組みで、この前提では要らない。実際の配置先は検証用の 1 件だけで、スキル 2 本と約 760 行の Python に見合わない。skill-deploy・skill-harvest・`deploy_skills.py`・`check_deploy_drift.py`・`deployments*.md` は削除し、README のコピー手順・依存の一覧（validate で突き合わせる）と settings の雛形だけを残す。追記 4 の 3-way マージ案は取り消し
+**追記（同日・6）**: スキルの改善はマスターでだけ行い、配置先からのフィードバックは受け付けない（ユーザー決定）。改善の材料は、サンプルアプリでの評価とマスターでの利用。実案件の気づきをユーザーがマスターで課題にするのは自由だが、そのための仕組みは作らない
+**追記（同日）**: plugin は比較では外し、採用した一式を普段の環境で 1 回流す。レビュー評価の誤検知判定は人が行い、重複と既存ラベルを除いて新しい指摘だけを見る（ユーザー回答）
+
+
+
+## 20261013 — マージ用 feature ブランチで刷新する
+
+**決定**: 刷新は develop から切ったマージ用ブランチ `feature/skillset-renewal` に集める。区切りごとの子ブランチ（`feature/renewal-01-reset` など）からマージ用ブランチへ PR でマージし、develop へは最後に 1 回だけ戻す。main へは release ブランチで出す（親ブランチ `renew/skillset` の決定を置き換え）
+**理由**: リポジトリが git-flow に移行した（本タスクの外で実施。運用ルールは CLAUDE.md）。マージ用ブランチはユーザーの提案。刷新の途中ではスキルや検査器が揃わない時期があり、マージ用ブランチで受ければ develop には完成した状態だけが入る
+**影響**: design.md の制約と「段階的にマージするか」、tasklist の 1 とデプロイを改訂した。子ブランチに `feature/skillset-renewal/...` の階層名は使えない（同名ブランチとの ref の衝突）

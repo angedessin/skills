@@ -1,0 +1,109 @@
+# タスクリスト: skillset-renewal
+
+Last updated: 20261013（git-flow への移行を反映）
+
+## 0. 計測（実施済み）
+
+- [x] `/doctor prompt-audit` と `/skill-doctor` を `claude -p` で実行し、結果を measure/ と decisions.md に残した
+
+## 1. 準備
+
+- [ ] リポジトリ `angedessin/skills` を非公開にする（ユーザーの操作）。非公開になったことを `gh repo view --json visibility` で確かめる
+前提: git-flow への移行（`develop` の作成・CLAUDE.md のブランチ運用）が済んでいること。移行は本タスクの外で行う
+
+- [ ] develop からマージ用ブランチ `feature/skillset-renewal` を作り、タグ `pre-renewal-20261006` を打ってリモートに push する。区切り（2〜3 / 4〜5 / 6〜7）ごとに子ブランチ（`feature/renewal-01-reset` など）をマージ用ブランチから切り、マージ用ブランチへ PR でマージする
+- [ ] 過去の review-result.md から、誤検知と修正済みの指摘を抜き出し、指摘時点のコミットを特定する（評価セットの材料。特定できないものは使わない）
+- [ ] skill-issues.md・blockers.md・decisions.md から「モデルが実際に崩れた事例」を抜き出す（評価課題の材料）
+- [ ] 現行 `docs/knowledge/` 3 ファイルから、新しいスキルが参照しそうな項目だけを候補に絞り、その候補だけをユーザーにレビューしてもらう
+- [ ] BACKLOG を棚卸しする案を作り、ユーザーに確認する
+
+## 2. 白紙化
+
+- [ ] `.steering/archived/` を作業ツリーから削除する
+- [ ] `docs/knowledge/` を作り直す（承認した項目だけ）
+- [ ] 旧 ADR 10 本を削除し、刷新の ADR を 1 本書く
+- [ ] BACKLOG を棚卸し案（design.md）どおりに直す
+
+## 3. 構造の判断で削る（検査・passthrough シナリオ・README の記述を同じコミットで消す）
+
+- [ ] feature-pipeline・`pipeline_state.py`・`tests/state/` を削除する（README のワークフロー図も同じコミットで直す）
+- [ ] empirical-prompt-tuning を削除する
+- [ ] フラグを撤去する: `session-stop.sh` を削除し、`session-start-check.sh` を縮める（スキル本文のフラグ記述は 5 の書き直しで消える）
+- [ ] skill-deploy・skill-harvest・`deploy_skills.py`・`check_deploy_drift.py`・`deployments*.md` を削除する（permissions の雛形とコピー手順は 7 で作る）
+
+## 4. 評価の土台
+
+- [ ] サンプルアプリを作る（置き場所と中身は論点のとおり）。1 回ごとに別のパスへ新しく複製する手順を用意する
+- [ ] タグから「B の一式」（`.claude/` 全体・CLAUDE.md・必要な scripts）を作り、条件ごとに入れるものの表を書く
+- [ ] 評価専用の設定（ユーザー設定と plugin を外す・auto memory を切る・権限モード固定）に使えるフラグを公式ドキュメントで確かめる
+- [ ] グループごとに作業課題（スキル 1 本あたり 2〜3 件）・再評価用の課題 1 件・採点基準を書き、ユーザーに確認してコミットで固定する（C を書き始める前）
+- [ ] 評価の実行スクリプトを作る（条件 A・B・C の切り替え、3 回の試行、stream-json からの停止判定、バージョンとコストの記録、`--resume` と台本での返答、痕跡を伏せて別のモデルで採点）
+- [ ] `tests/review-eval/` を作る（過去の誤検知・真の指摘＋仕込みバグ＋公開事例）。仕込みバグは新しい agent の観点を書く前に固定する
+- [ ] 現行レビュー（タグの一式）の基準値を取り、人がラベル付けする
+- [ ] 評価は、sandbox を有効にした Claude Code の中ではなく通常のターミナルから実行する
+
+## 5. グループごとの書き直しと評価（設計 → 実装 → レビュー → 知識の順）
+
+- [ ] 設計（design-doc・steering・design-premortem）: 書き直し → A・B・C を回す → 判定。ここで実費を測り、残りの規模をユーザーと決める
+- [ ] 実装（impl-from-design・tdd・e2e）
+- [ ] レビュー（frontend-code-review と agent を公式の構成で作り直し、review-* スキル・impl-review・test-review を削除する。評価セットで誤検知と見逃しを比べる）
+- [ ] 知識（knowledge-capture・compound・rule-audit・session-retrospective）
+- [ ] 評価しないスキル: pr-create を新しい型で書き直す。debug・pr-feedback・security-audit・impl-tournament を削除する（README の記述も同じコミットで消す）
+- [ ] 採用した一式を普段の環境（plugin あり）で 1 回流し、誤発動・二重実行が無いか確かめる
+- [ ] マスター専用（adr・skill-test）を新しい型で書き直す
+- [ ] 各グループの判定を decisions.md に残す
+- [ ] 書き直し後のスキルに prompt-audit をもう一度回す
+- [ ] `CLAUDE.md` を 50 行以内の行動ルールに書き直す（小さな作業の決め方を含む）
+- [ ] `templates/`・`prompts/`・`docs/user-guide.md`・`docs/starter-kit.md`・`README.md` を直す
+
+## 6. settings.json
+
+- [ ] スキルの削除（3・5）が済んでいることを確かめる（sandbox 下では `.claude/` への書き込みが標準で禁止される）
+- [ ] `tests/sandbox/` を作る（hook・lint・pnpm・検査スクリプトが動く、`.env` を `cat`・`grep -r`・`python` で読めない、SSH の push・`gh pr create`・ブランチ切り替え・マージが通る）
+- [ ] `.claude/settings.json` を変更案（design.md）どおりに直し、`tests/sandbox/` を流す
+- [ ] guard-env-read を削除する（guard-gated-write・guard-gated-delete は残す）
+
+## 7. 配る準備
+
+- [ ] `templates/settings.template.json` を作る（permissions・sandbox・配る hook の登録）
+- [ ] README にコピー手順と依存の一覧（一緒に持っていくもの・マスター専用の印）を書く
+- [ ] validate に、依存の一覧と実際のスキル・agent の参照の突き合わせを足す
+- [ ] `check_asset_consistency.py`・`tests/assets/`・`validate_skills.py` を新構成に合わせる
+- [ ] `.github/workflows/validate.yml` を削除する
+- [ ] CLAUDE.md の配布のルール（配置先で直接編集しない・マスターに還元して再コピー・配布分類の確認）を撤去する（CLAUDE.md の書き直しに含める）
+
+## 8. 検証
+
+- [ ] 静的検査（`validate`・`validate:assets`・`test:hooks`・`lint`・`tests/assets`）と passthrough の dry-run が緑
+- [ ] passthrough の実走（design-doc・pr-create・knowledge-capture。課金・承認制。通常のターミナルから実行する）
+- [ ] 検証用の使い捨て配置先に README の手順でコピーし、スキル・hook の発火・sandbox 下での lint と typecheck を確かめる
+
+## レビュー
+
+- [ ] frontend-code-review の実行（新方式）
+- [ ] レビュー指摘の修正（review-result.md を参照）
+- [ ] 修正後の差分再レビュー
+
+## 知見保存（この PR / ブランチに載せる分）
+
+- [ ] knowledge-capture スキルの実行（PR 差分に属する知見）
+- [ ] 必要なら docs/ への追記をこのブランチでコミット
+
+## デプロイ
+
+- [ ] PR 作成（`pr-create` スキルまたは `gh pr create`）
+- [ ] ローカルの静的検査が緑（CI は削除済み）
+- [ ] `feature/skillset-renewal` → develop のマージ（その前にアーカイブを済ませる）
+- [ ] release ブランチで main へ出す
+- PR: none
+- CI: none
+- Feedback: no
+
+## 福利化
+
+- [ ] compound スキルの実行（パターンをルール・知識に昇格）
+
+## クローズ
+
+- [ ] knowledge-capture（会話由来・横断の残りがあれば）
+- [ ] steering archive モードでアーカイブ（マージ前）
