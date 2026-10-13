@@ -10,8 +10,8 @@ Last updated: 20261013（git-flow への移行を反映）
 
 - [x] サンプルアプリの最小版を `~/Desktop/_lab/ai/skills-eval-app/` に作る（商品検索・MSW・テスト 3 件。git 管理）
 - [x] 現行の design-doc を評価用の `plugin.json` で包み、ケースを 2 件書く（無料。`eval-pilot/`。実行環境の確認用に smoke 1 件を追加）
-- [ ] 費用を見積もってユーザーの承認を取り、小さく回す（2 ケース × 3 回 × 2 条件）
-- [ ] 確かめる: plugin として読み込まれるか・準備スクリプトでの複製とテスト実行（`node_modules` を含む）・`tool_used` による停止の判定・`append_system_prompt` での CLAUDE.md の近似・1 回あたりの実費
+- [x] 費用を見積もってユーザーの承認を取り、小さく回す（縮小版: `--runs 1` の 6 実行に変更。結果は decisions.md）
+- [x] 確かめる: plugin として読み込まれるか・準備スクリプトでの複製とテスト実行（`node_modules` を含む）・`tool_used` による停止の判定・`append_system_prompt` での CLAUDE.md の近似・1 回あたりの実費
 - [ ] 結果を decisions.md に残し、設計を直すか承認するかをユーザーと決める
 
 ## 1. 準備

@@ -14,7 +14,7 @@ cp -R .claude/skills/design-doc eval-pilot/skills/
 
 ```bash
 cd eval-pilot
-claude plugin eval . --scaffold --allow-tools Write Edit "Bash(pnpm test*)" "Bash(find *)" "Bash(ls *)" "Bash(mkdir *)" --no-publish --max-cost-usd 10
+claude plugin eval . --scaffold --allow-tools Write Edit "Bash(pnpm test*)" "Bash(find *)" "Bash(ls *)" "Bash(mkdir *)" --no-publish --keep-temp --max-cost-usd 10
 ```
 
 ケースの準備スクリプトは `~/Desktop/_lab/ai/skills-eval-app/` を毎回の空の作業場所へ複製する（`node_modules` を含む）。
