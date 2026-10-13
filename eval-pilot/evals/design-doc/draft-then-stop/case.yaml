@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: draft-then-stop
+description: 質問が不要なときは design.md を DRAFT で作り、実装に入らずにレビュー待ちで止まる（Phase 2〜3）
+tags: [pilot, design-doc, stop]
+context:
+  scaffold_script: fixture.sh
