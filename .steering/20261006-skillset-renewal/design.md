@@ -179,13 +179,14 @@ Status: **DRAFT — awaiting review**
 
 | 条件 | 中身 |
 |---|---|
-| A: 素のモデル | スキルなし（Claude Code の標準とバンドルスキルだけ） |
+| A: 素のモデル | スキルなし（Claude Code の標準とバンドルスキルだけ）。CLAUDE.md のうちスキルに触れない部分だけを持つ |
 | B: 現行 | 現行のスキル（タグ `pre-renewal-20261006` の版） |
 | C: 書き直し版 | 新しい「書き方の型」でゼロから書いたスキル |
 
 - **評価の道具:** Claude Code 公式の `claude plugin eval`（v2.1.296 で確認）。自作の実行スクリプトは作らない（自作の Python の保守が刷新の理由の一つで、CLI の変化への追従も自分の負担になるため）。評価のケースは刷新の後も回帰テストとして残す
   - B・C はそれぞれ評価用の `plugin.json` で plugin として読み込ませる（配布はコピーのまま。`plugin.json` は評価のためだけに置く）
   - A（素のモデル）は道具の no-plugin baseline を使う。B を流すときに A も回し、C を流すときは `--ablation none` で A を重ねて払わない
+  - CLAUDE.md の扱い: スキルに触れない部分（ブランチ運用・承認制など）は `append_system_prompt` で全条件に入れる。スキルに触れる部分（「design-doc を使う」など）は B・C の plugin 同梱の SessionStart hook でだけ注入する（試作で、隔離下でも plugin の hook が動き、no-plugin の条件には入らないことを確認した）。実際の作業では CLAUDE.md が常にあるため、それとの差でスキルの価値を測る
   - 機能がサーバー側で止められた場合（公式ドキュメントに記載あり）に限り、自作の実行スクリプトで代える
 - **評価の場所:** 評価専用のサンプルアプリ（React・TypeScript・Vitest・React Testing Library・MSW・Playwright）。リポジトリの外に作り、ケースの準備スクリプト（`context.scaffold_script`）で毎回の空の作業場所に複製する
 - **課題の数:** 候補スキル 1 本あたり 2〜3 件
@@ -221,7 +222,7 @@ Status: **DRAFT — awaiting review**
 
 | 問題 | 対策 |
 |---|---|
-| B の再現 | 現行のスキルは scripts・hook・CLAUDE.md・`.steering/` の構成に依存する。タグから、スキル・agent・hook・必要な scripts をまとめた「B の plugin」を作る。プロジェクトの CLAUDE.md は隔離で読み込まれない（準備スクリプトで書いても読まれない）ため、`append_system_prompt` で近似する。この近似は B に不利な方向の差になることを判定時に考慮する |
+| B の再現 | 現行のスキルは scripts・hook・CLAUDE.md・`.steering/` の構成に依存する。タグから、スキル・agent・hook・必要な scripts をまとめた「B の plugin」を作る。プロジェクトの CLAUDE.md は隔離で読み込まれない（準備スクリプトで書いても読まれない）ため、上の「CLAUDE.md の扱い」のとおり `append_system_prompt` と plugin の hook に分けて近似する。この近似は B に不利な方向の差になりうることを判定時に考慮する |
 | ツールの許可 | 許可していないツールはセッションから消え、試みも記録されない。停止の判定が無意味にならないよう、Write・Edit・Bash を `--allow-tools` で許可する（Bash は OS の sandbox 内で動き、ネットワークは使えない） |
 | サンプルアプリの準備 | 準備スクリプトは 120 秒の制限があり、実行中の Bash はネットワークを使えない。`pnpm install` 済みの `node_modules` ごと複製する手順にする |
 | 課題の有利な作り込み | C を書き始める前に、課題・採点基準・仕込みバグをコミットして固定する。普段の作業に近い課題も混ぜる。再評価用に、使わない課題を各グループ 1 件取っておく |
