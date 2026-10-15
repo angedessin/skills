@@ -33,7 +33,7 @@ Last updated: 20261015（白紙化: CI・archived・knowledge）
 
 - [x] `.steering/archived/` を作業ツリーから削除する（20261015。追跡外の空フラグ 34 個もユーザー承認で削除）
 - [x] `docs/knowledge/` を空で作り直す（現行 3 ファイルを削除。フロントエンドの知識は 5 の評価で実際に間違えたところから溜める）。同じコミットで CLAUDE.md・hook（guard-gated-write・remind-config-docs）・`validate_skills.py`・`check_asset_consistency.py` の参照を外し、静的検査が緑のままか確かめる（承認制のファイルはそのとき承認を取る。スキル本文・README・テンプレートの死んだ参照は書き直しまで許容）（20261015。remind-config-docs.sh も削除。ユーザー承認）
-- [ ] 旧 ADR 10 本を削除し、刷新の ADR を 1 本書く
+- [x] 旧 ADR 10 本を削除する（20261015。ADR の運用をやめ、刷新の ADR は書かない。ユーザー決定。CLAUDE.md の ADR 行も削除）
 - [x] `.steering/BACKLOG.md` を削除する（棚卸しはしない。`session-start-check.sh` のバックログ注入も同じコミットで外す）（20261015 済み。knowledge-capture 本文の BACKLOG への言及は書き直しまで残す）
 - [x] `.github/workflows/validate.yml` を削除する（20261015 済み。7 から前倒し。2026-10-19 の ubuntu-latest 移行より前に）
 
@@ -41,6 +41,7 @@ Last updated: 20261015（白紙化: CI・archived・knowledge）
 
 - [ ] feature-pipeline・`pipeline_state.py`・`tests/state/` を削除する（README のワークフロー図も同じコミットで直す）
 - [ ] empirical-prompt-tuning を削除する
+- [ ] adr スキルと `tests/passthrough/adr/` を削除する（20261015 決定。書き直さない。README・validate・deploy の分類・他スキルの言及を同じコミットで直す）
 - [ ] フラグを撤去する: `session-stop.sh` を削除し、`session-start-check.sh` を縮める（スキル本文のフラグ記述は 5 の書き直しで消える）
 - [ ] skill-deploy・skill-harvest・`deploy_skills.py`・`check_deploy_drift.py`・`deployments*.md` を削除する（permissions の雛形とコピー手順は 7 で作る）
 
@@ -62,7 +63,7 @@ Last updated: 20261015（白紙化: CI・archived・knowledge）
 - [ ] 知識（knowledge-capture・compound・rule-audit・session-retrospective）
 - [ ] 評価しないスキル: pr-create を新しい型で書き直す。debug・pr-feedback・security-audit・impl-tournament を削除する（README の記述も同じコミットで消す）
 - [ ] 採用した一式を普段の環境（plugin あり）で 1 回流し、誤発動・二重実行が無いか確かめる
-- [ ] マスター専用（adr・skill-test）を新しい型で書き直す
+- [ ] マスター専用（skill-test）を新しい型で書き直す
 - [ ] 各グループの判定を decisions.md に残す
 - [ ] 残したスキルごとに回帰テスト用のテストケースを残す（評価の課題を転用する。形式は `claude plugin eval`）
 - [ ] 書き直し後のスキルに prompt-audit をもう一度回す
@@ -75,6 +76,7 @@ Last updated: 20261015（白紙化: CI・archived・knowledge）
 - [ ] `tests/sandbox/` を作る（hook・lint・pnpm・検査スクリプトが動く、`.env` を `cat`・`grep -r`・`python` で読めない、SSH の push・`gh pr create`・ブランチ切り替え・マージが通る）
 - [ ] `.claude/settings.json` を変更案（design.md）どおりに直し、`tests/sandbox/` を流す
 - [ ] guard-env-read を削除する（guard-gated-write・guard-gated-delete は残す）
+- [ ] 承認ゲートの対象から `docs/decisions/` を外す（guard hook 2 本・permissions.ask・`DEPLOY_PERMISSIONS`・契約 (s)・フィクスチャ・`tests/assets`）。`docs/decisions/.gitkeep` も消す
 - [ ] guard-gated-delete の取りこぼし（大文字小文字・`FOO=1 rm` の代入前置）を、hook の冒頭コメントに「守らない形」として移すか捨てる（旧 BACKLOG 0.6）
 - [ ] 残す guard hook 2 本の冒頭コメントに、旧 knowledge の落とし穴を移す（パス判定は command を取り出してから・Bash 経由の承認迂回・`git -C`／前置ラッパー／大文字小文字の取りこぼし。knowledge-candidates.md）。移す前に今のバージョンで成り立つかを `tests/sandbox/` で確かめる
 
