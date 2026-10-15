@@ -29,7 +29,6 @@
 │   ├── settings.json                  # パーミッション・フック設定
 │   ├── hooks/
 │   │   ├── session-start-check.sh     # 開始時に未処理フラグ・rule-audit 月次ナッジ・アクティブタスクを context へ注入
-│   │   ├── session-stop.sh            # セッション終了時に .capture-needed フラグを作成
 │   │   ├── guard-env-read.sh          # .env 系に触れる Bash を ask に落とす（全文検査）
 │   │   ├── guard-gated-write.sh       # 承認制パスへの Bash 経由の書き込みを ask に落とす
 │   │   ├── guard-gated-delete.sh      # 承認制パスへの素の rm/mv を deny する
@@ -185,16 +184,13 @@ design-premortem   impl-tournament                          session-retrospectiv
 ```
 
 - セッション中にスキルの誤発動・曖昧な指示に気づいたら `.steering/[task]/skill-issues.md` に記録する（CLAUDE.md ルール。decisions.md / skill-issues.md / blockers.md への追記は承認不要 — 内容の取捨選択は compound / knowledge-capture 時に行う）
-- compound がルールを増やし、`rule-audit` が定期監査（削除テスト）で刈る — 追加と剪定の両輪で CLAUDE.md の肥大化を構造的に抑える。SessionStart は `.claude/skills/rule-audit/SKILL.md` があるとき、最終実施から 30 日以上（または未実施）なら【rule-audit 月次】ナッジを注入する（操作定義は hook 注入文。スキップは `.steering/.last-rule-audit` 更新による 30 日再ナッジ）
-- Stop hook が knowledge-capture 未実行タスクに `.capture-needed` フラグを作成し、次セッション開始時に「今 / 後で / スキップ」でリマインドされる（スキップは次の Stop までの催促解除。アーカイブ前は `capture_done` または「知見なしでアーカイブ」が要る）
-- frontend-code-review 完了時、および knowledge-capture 完了時（`codify-log.md` が無ければ）に `.codify-needed` フラグが作成され、compound への引き継ぎになる（producer 二重化）
+- compound がルールを増やし、`rule-audit` が定期監査（削除テスト）で刈る — 追加と剪定の両輪で CLAUDE.md の肥大化を構造的に抑える
 
 ---
 
 ## インフラ・設定
 
-- **SessionStart Hook** (`.claude/hooks/session-start-check.sh`): `.steering/` を走査し、未処理フラグ（`.capture-needed` / `.codify-needed`）とアクティブタスク一覧を context に注入する。`.capture-needed` 時は対象タスクごとの「今 / 後で / スキップ」確認を促す（**操作定義はこの注入文**。CLAUDE.md 再掲は任意。スキップ効果は次の Stop まで）。`.claude/skills/rule-audit/SKILL.md` があるとき、最終実施から 30 日以上（または未実施）なら【rule-audit 月次】の「今 / 後で / スキップ」も注入する（操作定義はこの注入文。スキップは `.steering/.last-rule-audit` 更新による 30 日再ナッジ。capture の次 Stop 寿命とは別）。フラグの**読む側** — これが無いと Stop hook が立てたフラグは誰にも拾われない。`.steering/` が無い環境ではフェイルオープン（jq 非依存）
-- **Stop Hook** (`.claude/hooks/session-stop.sh`): アクティブタスクに `capture_done` がなければ `.capture-needed` フラグを作成するだけの軽量フック（セッション記録は git が持つ）。成果物（*.md）の無いタスク・作りたて（design/tasklist のみかつ未チェック）はスキップする。スキップでフラグを消しても `capture_done` が無ければ次の Stop で再立てする
+- **SessionStart Hook** (`.claude/hooks/session-start-check.sh`): `.steering/` のアクティブタスク一覧を context に注入する（compact 後の再読リマインドを兼ねる）。`.steering/` が無い環境では素通し
 - **PreToolUse Guard** (`.claude/hooks/guard-env-read.sh`): Bash コマンド全文を検査し、`.env` 系に触れるものを ask に落とす（deny の前置一致では防げない head/sed/base64 等の迂回対策）。jq 非依存
 - **承認ゲートの Bash 側（書き込み）** (`.claude/hooks/guard-gated-write.sh`): permissions.ask の Edit 対象と同じパス（`CLAUDE.md` / `docs/knowledge/` / `docs/decisions/` / `.claude/settings*.json` / `.claude/hooks/`。正本は hook 冒頭の `# GATED_PATHS:` 行）への **Bash 経由**の書き込み（リダイレクト・`tee`）と `git mv` を ask に落とす。Claude Code 自体もリダイレクト先を検査するが、見るのは Edit の allow / deny だけで **ask を見ない**（acceptEdits で `git show HEAD:x > CLAUDE.md` が ask をすり抜けた実測がある）ため、その穴を塞ぐ。`tool_input.command` を python3（標準ライブラリ）で構造抽出し、連鎖のすべての部分を判定する。python3 が無ければ全文 grep（`.claude/` 系を除く 3 系統）に縮退する。**permissions の allow に git を書かない**のは別の層の対策（契約 (t)）
 - **承認ゲートの Bash 側（削除・移動）** (`.claude/hooks/guard-gated-delete.sh`): 同パスへの **素の `rm` / `mv`** を **deny** する（`tool_input.command` を python3 で構造抽出。失敗・`&&` / `||` / `;` / `|` 連鎖・`bash -c` / `git rm` / `/bin/rm` は沈黙＝完全封鎖ではない。改行区切りの複数単純コマンドは各行を判定する）。permissions の粗い `rm -rf *` 等は別層として維持。検証: `mise exec -- pnpm run test:hooks`
