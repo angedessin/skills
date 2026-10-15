@@ -345,7 +345,7 @@ Status: **APPROVED**（20261013・ユーザー承認）
       "allowedDomains": ["github.com", "*.github.com", "registry.npmjs.org"]
     }
   },
-  "hooks": { "…": "guard-gated-write・guard-gated-delete と、マスター専用（validate-skill-edit・remind-config-docs）" }
+  "hooks": { "…": "guard-gated-write・guard-gated-delete と、マスター専用（validate-skill-edit）。remind-config-docs は 20261015 に削除（旧 knowledge の要点を注入するため）" }
 }
 ```
 

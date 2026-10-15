@@ -1,6 +1,6 @@
 # タスクリスト: skillset-renewal
 
-Last updated: 20261015（評価の材料を抜き出し）
+Last updated: 20261015（白紙化: CI・archived・knowledge）
 
 ## 0. 計測（実施済み）
 
@@ -31,11 +31,11 @@ Last updated: 20261015（評価の材料を抜き出し）
 
 ## 2. 白紙化
 
-- [ ] `.steering/archived/` を作業ツリーから削除する
-- [ ] `docs/knowledge/` を空で作り直す（現行 3 ファイルを削除。フロントエンドの知識は 5 の評価で実際に間違えたところから溜める）。同じコミットで CLAUDE.md・hook（guard-gated-write・remind-config-docs）・`validate_skills.py`・`check_asset_consistency.py` の参照を外し、静的検査が緑のままか確かめる（承認制のファイルはそのとき承認を取る。スキル本文・README・テンプレートの死んだ参照は書き直しまで許容）
+- [x] `.steering/archived/` を作業ツリーから削除する（20261015。追跡外の空フラグ 34 個もユーザー承認で削除）
+- [x] `docs/knowledge/` を空で作り直す（現行 3 ファイルを削除。フロントエンドの知識は 5 の評価で実際に間違えたところから溜める）。同じコミットで CLAUDE.md・hook（guard-gated-write・remind-config-docs）・`validate_skills.py`・`check_asset_consistency.py` の参照を外し、静的検査が緑のままか確かめる（承認制のファイルはそのとき承認を取る。スキル本文・README・テンプレートの死んだ参照は書き直しまで許容）（20261015。remind-config-docs.sh も削除。ユーザー承認）
 - [ ] 旧 ADR 10 本を削除し、刷新の ADR を 1 本書く
 - [ ] `.steering/BACKLOG.md` を削除する（棚卸しはしない。`session-start-check.sh` のバックログ注入も同じコミットで外す）
-- [ ] `.github/workflows/validate.yml` を削除する（7 から前倒し。2026-10-19 の ubuntu-latest 移行より前に）
+- [x] `.github/workflows/validate.yml` を削除する（20261015 済み。7 から前倒し。2026-10-19 の ubuntu-latest 移行より前に）
 
 ## 3. 構造の判断で削る（検査・passthrough シナリオ・README の記述を同じコミットで消す）
 
