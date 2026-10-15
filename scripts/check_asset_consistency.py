@@ -38,13 +38,6 @@
   (k) README の契約レター集合 ≡ 本スクリプトの contract_*、かつ
       package.json の scripts キー集合 ≡ README「npm script」箇条のバッククォート名
       → 員数や列挙の片側修正を検出する（抽出は下記正規表現に固定）
-  (l) feature-pipeline の Phase / Step 見出しに出るスキル名 ⊆ README「メインワークフロー」図
-      → CLAUDE.md の「ワークフロー図と feature-pipeline は同一コミットで改訂する」を機械化する。
-        フェーズを足してオーケストレーターだけ直し、図を放置した片側修正を検出する
-  (m) feature-pipeline の判定表の行 ID 列（順序つき）≡ scripts/pipeline_state.py の ROW_ORDER、
-      かつ各行の現在地語（Phase / Gate / 即停止）が一致する
-      → 表と関数のどちらかだけ直した片側修正、および行順の入れ替え（Phase 3.7 到達不能型）を検出する。
-        意味（条件・到達可能性・優先順位）は tests/state が関数側で検査する
   (n) steering/references/spec.md の tasklist テンプレの節見出し列（順序つき）と
       デプロイ節の `PR:` / `CI:` / `Feedback:` キー ≡ design-doc/references/templates.md（正本）
       → 写しが正本から工程順ごとずれる片側修正を検出する
@@ -56,7 +49,7 @@
       （書き込みを許す定義は WRITABLE_AGENTS に明示列挙する）。読み取り専用の定義に許すツールは
       Read / Grep / Glob だけのホワイトリスト（Bash は `git diff --output=<path>` で書き込めるため許さない）
   (r) capture フラグ（capture_done / pr_capture_done）の producer（knowledge-capture が touch する）と
-      consumer（feature-pipeline・steering・hook・.gitignore・deploy_skills・状態機械）が名前で一致し、
+      consumer（steering・hook・.gitignore・deploy_skills）が名前で一致し、
       リポジトリ内で使われるフラグ名が既知の 2 つだけ
       → producer と consumer のどちらかだけを直す片側修正（Critical 2 と同型）を検出する
   (s) guard-gated-write.sh の `# GATED_PATHS:` 行 ≡ マスター settings の permissions.ask にある
@@ -478,142 +471,11 @@ def contract_k() -> tuple[str, list[str]]:
     ]
 
 
-MAIN_WORKFLOW_RE = re.compile(r"^## メインワークフロー\s*\n+```\n(.*?)\n```", re.M | re.S)
-# feature-pipeline の Phase / Step 見出し（`## Phase 1 — 計画（design-doc）` 等）。
-# Gate 見出しはスキル名を持たないので拾わなくてよい。
-FP_PHASE_HEAD_RE = re.compile(r"^#{2,3} .*?(?:Phase|Step)\s*[\d.]+[a-z]?\b.*$", re.M)
-
-FEATURE_PIPELINE = MASTER_ROOT / ".claude" / "skills" / "feature-pipeline" / "SKILL.md"
 TASKLIST_TEMPLATE = MASTER_ROOT / ".claude" / "skills" / "design-doc" / "references" / "templates.md"
 STEERING_SPEC = MASTER_ROOT / ".claude" / "skills" / "steering" / "references" / "spec.md"
 
-# 判定表の行 `| `P37` | 条件 | **Phase 3.7**（…） |`。先頭セルの行 ID だけを契約キーとして拾う。
-PHASE_ROW_RE = re.compile(r"^\|\s*`([A-Z][0-9A-Za-z]*)`\s*\|")
-# 現在地の語。表は `**Phase 3.7**`・関数側は `Phase 3.7（…）` と装飾が違うので語だけ比べる。
-PHASE_WORD_RE = re.compile(r"(Phase\s*[\d.]+|Gate\s*\d+|即停止)")
 TASKLIST_BLOCK_RE = re.compile(r"```markdown\n(# タスクリスト:.*?)\n```", re.S)
 DEPLOY_KEY_RE = re.compile(r"^- (PR|CI|Feedback):", re.M)
-
-
-def _named_skills(text: str) -> set[str]:
-    """テキスト中に語として出現するスキル名の集合。
-
-    語幹一致を避けるため前後の境界を明示する（`impl-review` が `impl-reviewer` に
-    誤ヒットしない・`review-ui` が `review-ui-x` を拾わない）。
-    """
-    skills_dir = MASTER_ROOT / ".claude" / "skills"
-    if not skills_dir.is_dir():
-        die(f"skills ディレクトリが無い: {skills_dir}")
-    found = set()
-    for p in skills_dir.iterdir():
-        if p.is_dir() and re.search(rf"(?<![\w-]){re.escape(p.name)}(?![\w-])", text):
-            found.add(p.name)
-    return found
-
-
-def contract_l() -> tuple[str, list[str]]:
-    """README のワークフロー図と feature-pipeline のフェーズ構成のドリフト検出。
-
-    フェイルクローズ: 図が見つからない・パイプラインが実在しないのに README が案内している、
-    はいずれも FAIL。「片方が消えたから比較不要」で黙って PASS にすると、
-    死んだ案内が README に残ったまま気づけない。
-    """
-    if not README.exists():
-        die(f"README が無い: {README}")
-    readme_text = README.read_text(encoding="utf-8")
-    m = MAIN_WORKFLOW_RE.search(readme_text)
-    if not m:
-        return FAIL, [
-            "README に「## メインワークフロー」直後のコードブロックが無い",
-            "→ 図の見出し・書式を変えたなら MAIN_WORKFLOW_RE も同じコミットで直す",
-        ]
-    in_diagram = _named_skills(m.group(1))
-
-    if not FEATURE_PIPELINE.is_file():
-        if "feature-pipeline" in in_diagram:
-            return FAIL, [
-                "README の図が feature-pipeline を案内しているが SKILL.md が実在しない",
-            ]
-        return PASS, ["feature-pipeline が無く README も案内していない（比較対象なし）"]
-
-    fp_text = FEATURE_PIPELINE.read_text(encoding="utf-8")
-    phase_heads = "\n".join(FP_PHASE_HEAD_RE.findall(fp_text))
-    if not phase_heads:
-        return FAIL, [
-            "feature-pipeline に Phase / Step 見出しが 1 つも無い",
-            "→ 見出し書式を変えたなら FP_PHASE_HEAD_RE も同じコミットで直す",
-        ]
-    in_pipeline = _named_skills(phase_heads)
-
-    missing = sorted(in_pipeline - in_diagram)
-    if missing:
-        return FAIL, [
-            f"feature-pipeline が編成するのに README の図に無い: {', '.join(missing)}",
-            "→ 図とオーケストレーターは同一コミットで改訂する（CLAUDE.md のスキル管理ルール）",
-        ]
-    return PASS, [
-        f"パイプラインが編成する {len(in_pipeline)} スキルすべてが図に存在"
-        f"（図は {len(in_diagram)} スキルを描画）"
-    ]
-
-
-def _phase_word(text: str) -> str:
-    m = PHASE_WORD_RE.search(text)
-    return re.sub(r"\s+", "", m.group(1)) if m else ""
-
-
-def contract_m() -> tuple[str, list[str]]:
-    """判定表（SKILL.md）と pipeline_state.py の行 ID 列・現在地語の突合。
-
-    フェイルクローズ: 表が 0 行・関数を読めない、はいずれも FAIL。0 行を「差分なし」で
-    PASS にすると、表の書式を変えた瞬間に検査が黙って無効化される。
-    """
-    try:
-        from pipeline_state import PHASE_BY_ROW, ROW_ORDER  # noqa: E402
-    except ImportError as e:
-        return FAIL, [f"scripts/pipeline_state.py を読み込めない: {e}"]
-    if not FEATURE_PIPELINE.is_file():
-        return FAIL, [f"feature-pipeline/SKILL.md が無い: {FEATURE_PIPELINE}"]
-
-    table_ids: list[str] = []
-    table_words: dict[str, str] = {}
-    for line in FEATURE_PIPELINE.read_text(encoding="utf-8").splitlines():
-        m = PHASE_ROW_RE.match(line)
-        if not m:
-            continue
-        table_ids.append(m.group(1))
-        table_words[m.group(1)] = _phase_word(line.rstrip().rstrip("|").rsplit("|", 1)[-1])
-
-    if not table_ids:
-        return FAIL, [
-            "feature-pipeline の判定表に行 ID 付きの行が 1 つも無い",
-            "→ 表の書式を変えたなら PHASE_ROW_RE も同じコミットで直す",
-        ]
-
-    details: list[str] = []
-    dupes = sorted({i for i in table_ids if table_ids.count(i) > 1})
-    if dupes:
-        details.append(f"表に重複した行 ID: {', '.join(dupes)}")
-    only_table = [i for i in table_ids if i not in ROW_ORDER]
-    only_func = [i for i in ROW_ORDER if i not in table_ids]
-    if only_table:
-        details.append(f"表のみ（pipeline_state.py に無い）: {', '.join(only_table)}")
-    if only_func:
-        details.append(f"pipeline_state.py のみ（表に無い）: {', '.join(only_func)}")
-    if not (only_table or only_func or dupes) and table_ids != ROW_ORDER:
-        details.append(f"行順が違う — 表: {' > '.join(table_ids)}")
-        details.append(f"              関数: {' > '.join(ROW_ORDER)}")
-        details.append("行順は判定の優先順位そのもの。入れ替えると到達不能な行が生まれる")
-    for row_id in ROW_ORDER:
-        if row_id in table_words and table_words[row_id] != _phase_word(PHASE_BY_ROW[row_id]):
-            details.append(
-                f"{row_id} の現在地語が違う — 表: {table_words[row_id] or '(なし)'}"
-                f" / 関数: {_phase_word(PHASE_BY_ROW[row_id]) or '(なし)'}"
-            )
-    if details:
-        details.append("→ 表（SKILL.md）と関数（pipeline_state.py）は同一コミットで直す。意味は tests/state が検査する")
-        return FAIL, details
-    return PASS, [f"判定表 {len(table_ids)} 行の ID・順序・現在地語が pipeline_state.py と一致"]
 
 
 def _tasklist_template(path: Path) -> tuple[list[str], list[str], list[str]] | None:
@@ -829,27 +691,23 @@ FLAG_PRODUCER = SKILLS_DIR / "knowledge-capture" / "SKILL.md"
 FLAG_CONSUMERS = {
     # フラグ名: そのフラグを読む / 除外する / 案内する場所（producer 以外）
     "pr_capture_done": (
-        ".claude/skills/feature-pipeline/SKILL.md",
         ".claude/skills/steering/SKILL.md",
         ".claude/skills/steering/references/spec.md",
         ".gitignore",
         "scripts/deploy_skills.py",
-        "scripts/pipeline_state.py",
     ),
     "capture_done": (
-        ".claude/skills/feature-pipeline/SKILL.md",
         ".claude/skills/steering/SKILL.md",
         ".claude/skills/steering/references/spec.md",
         ".claude/hooks/session-stop.sh",
         ".gitignore",
         "scripts/deploy_skills.py",
-        "scripts/pipeline_state.py",
     ),
 }
 FLAG_TOKEN_RE = re.compile(r"[A-Za-z0-9_]*capture_done[A-Za-z0-9_]*")
 FLAG_SCAN_GLOBS = (
     ".claude/skills/*/SKILL.md", ".claude/skills/*/references/*.md", ".claude/hooks/*.sh",
-    "scripts/*.py", "tests/state/*.py", ".gitignore", "README.md", "docs/user-guide.md",
+    "scripts/*.py", ".gitignore", "README.md", "docs/user-guide.md",
 )
 
 
@@ -887,7 +745,7 @@ def contract_r() -> tuple[str, list[str]]:
     for tok in sorted(set(seen) - set(FLAG_CONSUMERS)):
         details.append(f"未知のフラグ名 `{tok}`（{', '.join(sorted(seen[tok]))}）— 打ち間違いか、新設なら FLAG_CONSUMERS に足す")
     if details:
-        details.append("→ フラグの producer と consumer は同一コミットで直す（意味は tests/state が検査する）")
+        details.append("→ フラグの producer と consumer は同一コミットで直す")
         return FAIL, details
     return PASS, [f"フラグ {len(FLAG_CONSUMERS)} 種の producer と consumer {sum(len(c) for c in FLAG_CONSUMERS.values())} 箇所が名前で一致"]
 
@@ -914,8 +772,6 @@ def main() -> None:
         ("(h) master-only スキルの分類が 2 ファイルで一致", contract_h),
         ("(j) 死んだ Write|NotebookEdit|MultiEdit(path) が無い", contract_j),
         ("(k) README の契約レター・npm scripts が実装と一致", contract_k),
-        ("(l) ワークフロー図と feature-pipeline のフェーズが一致", contract_l),
-        ("(m) 判定表の行 ID・順序が pipeline_state.py と一致", contract_m),
         ("(n) tasklist テンプレの写しが正本と同じ工程順", contract_n),
         ("(o) スキル本文の agent 参照が .claude/agents/ の定義と一致", contract_o),
         ("(p) agent 定義の frontmatter が契約どおり（読み取り専用を含む）", contract_p),

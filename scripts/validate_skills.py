@@ -14,7 +14,7 @@
   8. 既定の .claude/skills 走査時: design-doc/references/templates.md に
      design-doc-boundary: appendix がある（契約コア/付録境界）
   9. 既定走査時: design↔実装同期パスのキー共存（design-doc 方針転換 / impl-from-design
-     乖離分類 / impl-review・frontend-code-review・feature-pipeline の設計整合ゲート）。
+     乖離分類 / impl-review・frontend-code-review の設計整合ゲート）。
      キーワード並びのみ検査し、手順の実行正否は見ない（空文で通る限界あり）
   10. 既定走査時: capture 粒度（三択 UX / archive ハードストップ）のキー共存。
       キーワード並びのみ。空文で通る限界あり（design-impl-sync と同型）
@@ -73,7 +73,6 @@ MASTER_ONLY = {"skill-test", "skill-harvest", "skill-deploy", "adr"}
 PORTABILITY_VOCAB = [
     "還流", "配布セット", "source-commit", "deployments.md",
     "このマスター", "マスターへ", "マスターの git", "（distributable）",
-    "pipeline_state",
 ]
 
 # design-doc テンプレの契約コア/付録境界（live design.md は対象外・フォールバック全文）
@@ -116,14 +115,6 @@ DESIGN_IMPL_SYNC_CHECKS = (
             ("design 同期が先", "ゲート入力明示"),
             ("必須警告", "DEFERRED 時警告"),
             ("Axis 1 をスキップしない", "軽量でも Axis 1"),
-        ),
-    ),
-    (
-        "feature-pipeline",
-        (
-            ("APPROVED 追認", "乖離待機の追認分岐"),
-            ("Gate 1", "DRAFT 戻し時の Gate 1"),
-            ("必須警告", "設計整合 DEFERRED 警告"),
         ),
     ),
 )

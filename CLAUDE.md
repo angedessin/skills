@@ -5,7 +5,7 @@ Tech stack: React / TypeScript / Vitest / React Testing Library / MSW / Playwrig
 ## .steering ルール
 
 新しいタスクを開始するときは必ず:
-1. `design-doc` スキルを使い `.steering/[YYYYMMDD]-[task]/` を作成（1セッションで完結する見込みのタスクは、design-doc がユーザーに確認して会話内設計が選ばれた場合のみ `.steering/` を作らず縮退する。Claude の見積もりだけで縮退を確定しない。feature-pipeline 配下では常に作成）
+1. `design-doc` スキルを使い `.steering/[YYYYMMDD]-[task]/` を作成（1セッションで完結する見込みのタスクは、design-doc がユーザーに確認して会話内設計が選ばれた場合のみ `.steering/` を作らず縮退する。Claude の見積もりだけで縮退を確定しない）
 2. `design.md`（会話内設計の場合は設計方針）の提示後は人間のレビュー待ちで止まること（実装に入らない）
 3. 作業完了後は必ず `tasklist.md` を更新すること
 
@@ -37,7 +37,6 @@ Tech stack: React / TypeScript / Vitest / React Testing Library / MSW / Playwrig
 - スキルの横展開は人が選んで配置先プロジェクトの `.claude/skills/` に手動コピーする。配置先で直接編集せず、改善はこのリポジトリ（マスター）に還元して再コピーで配る
 - スキルは自己完結に書く: CLAUDE.md・docs/・`.steering/` が無いプロジェクトでも動くフォールバックを該当ステップに直接書く（詳細は skill-design-patterns.md）
 - スキルを変更するタスクでは、変更対象ごとに配布分類（配布可 / master-only）を先に確認する（配布可スキルに master-only スキル名を書くと配置先で死んだ参照になる）
-- README のワークフロー図と feature-pipeline スキルは同一コミットで改訂する（図とオーケストレーターのドリフト防止）
 
 ## 自律実行の境界
 

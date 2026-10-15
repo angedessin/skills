@@ -92,28 +92,6 @@ P_CASES: list[tuple[str, Mutation]] = [
     ("Bash(git diff *)（--output で書ける）", with_tools("tools:\n  - Read\n  - Bash(git diff *)\n")),
 ]
 
-# --- (m) 判定表 ↔ pipeline_state.py -------------------------------------------------
-
-
-def swap_first_two_rows(s: str) -> str:
-    lines = s.split("\n")
-    idx = [i for i, line in enumerate(lines) if cac.PHASE_ROW_RE.match(line)]
-    lines[idx[0]], lines[idx[1]] = lines[idx[1]], lines[idx[0]]
-    return "\n".join(lines)
-
-
-def drop_first_row(s: str) -> str:
-    lines = s.split("\n")
-    first = next(i for i, line in enumerate(lines) if cac.PHASE_ROW_RE.match(line))
-    return "\n".join(lines[:first] + lines[first + 1:])
-
-
-M_CASES: list[tuple[str, Mutation]] = [
-    ("表の行を 1 つ消す", drop_first_row),
-    ("表の先頭 2 行を入れ替える（到達不能の原因）", swap_first_two_rows),
-    ("行 ID の書式を崩す（0 行）", lambda s: re.sub(r"^\|\s*`([A-Z][0-9A-Za-z]*)`", r"| \1", s, flags=re.M)),
-]
-
 # --- (r) capture フラグの producer ------------------------------------------------
 
 R_CASES: list[tuple[str, Mutation]] = [
@@ -187,10 +165,6 @@ def all_results() -> list[tuple[str, list[str]]]:
     results += run_contract(
         "p", cac.contract_p, {"AGENTS_DIR": cac.AGENTS_DIR}, P_TARGET, P_CASES,
         lambda c: [c["AGENTS_DIR"] / P_TARGET],
-    )
-    results += run_contract(
-        "m", cac.contract_m, {"FEATURE_PIPELINE": cac.FEATURE_PIPELINE}, "feature-pipeline/SKILL.md", M_CASES,
-        lambda c: [c["FEATURE_PIPELINE"]],
     )
     results += run_contract(
         "r", cac.contract_r, {"FLAG_PRODUCER": cac.FLAG_PRODUCER}, "knowledge-capture/SKILL.md", R_CASES,
