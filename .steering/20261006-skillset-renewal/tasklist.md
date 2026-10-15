@@ -1,6 +1,6 @@
 # タスクリスト: skillset-renewal
 
-Last updated: 20261015（白紙化: CI・archived・knowledge）
+Last updated: 20261015（2 白紙化・3 構造の削除 完了）
 
 ## 0. 計測（実施済み）
 
@@ -42,7 +42,7 @@ Last updated: 20261015（白紙化: CI・archived・knowledge）
 - [x] feature-pipeline・`pipeline_state.py`・`tests/state/` を削除する（README のワークフロー図も同じコミットで直す）（20261015。契約 (l)(m) も削除）
 - [x] empirical-prompt-tuning を削除する（20261015）
 - [x] adr スキルと `tests/passthrough/adr/` を削除する（20261015 済み。guard-gated-write の警告文の adr は 6 で直す）（20261015 決定。書き直さない。README・validate・deploy の分類・他スキルの言及を同じコミットで直す）
-- [ ] フラグを撤去する: `session-stop.sh` を削除し、`session-start-check.sh` を縮める（スキル本文のフラグ記述は 5 の書き直しで消える）
+- [x] フラグを撤去する: `session-stop.sh` を削除し、`session-start-check.sh` を縮める（スキル本文のフラグ記述は 5 の書き直しで消える）（20261015 済み。このタスクの `.capture-needed` は残っているが催促は出ない。知見保存の項目で回収する）
 - [x] skill-deploy・skill-harvest・`deploy_skills.py`・`check_deploy_drift.py`・`deployments*.md` を削除する（permissions の雛形とコピー手順は 7 で作る）（20261015 済み。`check_asset_consistency.py`・`tests/assets/` も丸ごと削除。ユーザー決定）
 
 ## 4. 評価の土台
