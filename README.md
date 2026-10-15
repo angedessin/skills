@@ -38,13 +38,9 @@
 │   │   └── validate-skill-edit.sh     # SKILL.md 等の編集時に検証を自動実行（master-only）
 │   └── skills/                        # スキル定義（下の一覧を参照）
 ├── .steering/                         # クロスセッション コンテキスト（複数セッションタスクのみ）
-├── deployments.example.md             # 配置先レジストリの雛形（追跡。実体 deployments.md は .gitignore＝ローカル限定）
 ├── scripts/
 │   ├── validate_skills.py             # スキル frontmatter・構造の機械検証（マスター専用）
-│   ├── passthrough_check.py           # 素通り検査（ハードストップの実地検証・課金・任意）
-│   ├── deploy_skills.py               # 配置先へのスキル・ガードレール同送（skill-deploy が使う）
-│   ├── check_deploy_drift.py          # 配置先ドリフト検出・issues 還流（読み取り専用）
-│   └── check_asset_consistency.py     # 資産どうしの契約突合（片側修正の検出・違反で exit 1）
+│   └── passthrough_check.py           # 素通り検査（ハードストップの実地検証・課金・任意）
 ├── prompts/                           # 人が貼って使うマスター専用プロンプト（非配布）
 │   └── adversarial-skill-review.md    # スキル本文の敵対的レビュー（横断／個別の二層）
 ├── templates/                         # スキル作成用メタ雛形（SKILL.template.md・README.md）
@@ -92,7 +88,7 @@
 [9] アーカイブ    steering archive
 
 定期（フェーズ外）: rule-audit — ルールの削除テスト・統合・GC ／ security-audit — セットアップ資産のセキュリティ監査（サードパーティ採用前・定期）
-マスター保守（フェーズ外）: skill-test — スキルの回帰テスト ／ skill-harvest — 配置先からの還流
+マスター保守（フェーズ外）: skill-test — スキルの回帰テスト
 ```
 
 ### スキル間の関係図
@@ -109,7 +105,7 @@ design-premortem   impl-tournament                          session-retrospectiv
 （設計の穴出し）    （N 並列実装の比較）                     （セッション摩擦の採掘）
 ```
 
-- マスター専用: `skill-test`（回帰テスト）/ `skill-deploy`（新規・追加配置）/ `skill-harvest`（配置先の還流）は配布せずマスターで保守に使う
+- マスター専用: `skill-test`（回帰テスト）は配布せずマスターで保守に使う
 
 ---
 
@@ -173,8 +169,6 @@ design-premortem   impl-tournament                          session-retrospectiv
 | スキル | 役割 |
 |---|---|
 | [`skill-test`](.claude/skills/skill-test/SKILL.md) | スキルの回帰テストを2層で編成。静的層（`validate_skills.py`・無料・毎回）+ 実行層（`passthrough_check.py`・課金・任意）。**実行層はコスト明示 + 承認必須・hooks 接続禁止** |
-| [`skill-harvest`](.claude/skills/skill-harvest/SKILL.md) | 配置先からの還流。`deployments.md` の各配置先の再コピー候補・ドリフト・溜まった skill-issues.md を `check_deploy_drift.py`（読み取り専用）で収集。**配置先への書き込みは承認制** |
-| [`skill-deploy`](.claude/skills/skill-deploy/SKILL.md) | 新規・追加配置の実行版（starter-kit 配置手順 1〜7 を駆動）。セット選択 → dry-run 提示 → 明示承認 → `deploy_skills.py` 実行 → 残タスク案内。**配置先への書き込みは承認制**。配置済みスキルの更新・回収は skill-harvest |
 
 ---
 
@@ -188,7 +182,6 @@ design-premortem   impl-tournament                          session-retrospectiv
 過去の昇格:    codify-log.md × review-result.md 突合 ←──────────┘
                （ルールが効いていなければルール自体を改善）
 スキル不具合 → 該当 SKILL.md 修正 + skill-test で検証
-配置先 → 還流:  session-retrospective（配置先で併配）→ skill-issues.md → skill-harvest → マスターの compound
 ```
 
 - セッション中にスキルの誤発動・曖昧な指示に気づいたら `.steering/[task]/skill-issues.md` に記録する（CLAUDE.md ルール。decisions.md / skill-issues.md / blockers.md への追記は承認不要 — 内容の取捨選択は compound / knowledge-capture 時に行う）
@@ -207,14 +200,11 @@ design-premortem   impl-tournament                          session-retrospectiv
 - **承認ゲートの Bash 側（削除・移動）** (`.claude/hooks/guard-gated-delete.sh`): 同パスへの **素の `rm` / `mv`** を **deny** する（`tool_input.command` を python3 で構造抽出。失敗・`&&` / `||` / `;` / `|` 連鎖・`bash -c` / `git rm` / `/bin/rm` は沈黙＝完全封鎖ではない。改行区切りの複数単純コマンドは各行を判定する）。permissions の粗い `rm -rf *` 等は別層として維持。検証: `mise exec -- pnpm run test:hooks`
 - **検証スクリプト** (`scripts/validate_skills.py`): name 一致・description・行数・アストラル面絵文字・metadata.version・When NOT to use 見出し・停止契約の構造（承認語彙 → ハードストップ）の 7 項目を機械検証。`--purity` でツール純度レポート（本文のツール固有語彙の出現数・FAIL にしない）。スキル改訂時と配置前に実行する（PostToolUse hook でも自動実行）
 - **素通り検査** (`scripts/passthrough_check.py`): ハードストップが実地で守られるかを、フレッシュエージェントの実行前後の SHA1 差分で機械判定（課金・任意・デフォルトでは回さない）。シナリオは `tests/passthrough/[skill]/scenario.md`。`--dry-run` で無課金の構造確認。編成は `skill-test` スキル
-- **npm script** (package.json scripts): `validate`（静的検査）/ `validate:portability`（配布可スキルの内部前提混入）/ `validate:assets`（下記の契約突合）/ `test:hooks`（PreToolUse hook フィクスチャ）/ `lint`（Biome）。検証コマンドを散文から探さずに済むようにしている
-- **agent 定義** (`.claude/agents/`, **master-only・配布しない**): サブスキルを実行する役割ごとに `model` / `effort` / `tools` を持たせた定義 12 本 — レビュー 7 軸（`review-*`・読み取り専用・軸ごとに effort を変える）/ `premortem-attacker` / `codebase-explorer` / `knowledge-scanner` / `tournament-variant`（唯一の書き込み可）/ `tournament-scorer`。読み取り専用の定義は `Read` / `Grep` / `Glob` だけを持つ（`Bash(git diff *)` でも `--output=<path>` でファイルを書けるため、Bash ごと外し、差分は呼び出し側が渡す）。モデル・エフォート・権限の値は**定義側だけ**に書き、スキル本文は役割名で指すだけにする（散文で「安価なモデルで」と書いても subagent 起動には効かない）。定義が無い環境（配置先）では、本文のフォールバック（汎用エージェント / 自己実行）に落ちる。スキル本文との参照と frontmatter は `validate:assets` が検査する
-- **静的検査はローカルで回す**（CI は 20261015 に削除）: `validate`・`validate:assets`・`test:hooks`・`lint` と、`python3 tests/assets/run.py`（検査器そのものの回帰。契約 (n)(p)(r)(s)(t) が壊した入力で FAIL し、偽の緑を出さないこと）
-- **資産どうしの契約突合** (`scripts/check_asset_consistency.py`): 「同じ情報が複数箇所にある」箇所を機械で突合し、**片側修正を検出する**。検査する契約 — (a) 同送 hook が `HOOK_REGISTRATIONS` に登録済みか（死んだ登録も検出）/ (b) `.claude/hooks/` の全ファイルが「同送」か「master-only」に分類済みか / (c) README の hook 記述が実体と一致するか / (d) 同送 hook が配置手順に載っているか / (e) permissions が配布用とマスター専用に分類済みか（未分類・ドリフト・死んだ分類・重複の 4 方向）/ (f) **`settings.json` の hooks 登録が実体と一致するか**（置いたのに登録を忘れて一度も発火しない、を検出）/ (h) `MASTER_ONLY`（配布分類）が `deploy_skills.py` と `validate_skills.py` で一致するか / (j) 死んだ `Write|NotebookEdit|MultiEdit(path)` が無いか / (k) README の契約レター集合と npm scripts 一覧が実装と一致するか / (n) `steering/references/spec.md` の tasklist テンプレが `design-doc/references/templates.md`（正本）と節見出しの順序・デプロイ節の `PR:` / `CI:` / `Feedback:` キーまで一致するか / (o) スキル本文が名指しする agent（`.claude/agents/<名>.md` のパス表記と `frontend-code-review` のディスパッチ表の役割名）が `.claude/agents/` の定義と双方向に一致するか（死んだ参照と孤児定義の検出）/ (p) agent 定義の frontmatter が契約どおりか（必須キー・既知キーのみ・model / effort の値・preload する skills の実在・読み取り専用の定義が `Read` / `Grep` / `Glob` 以外のツールを持たないこと） / (r) capture フラグ（`capture_done` / `pr_capture_done`）の producer（`knowledge-capture`）と consumer（`steering`・hook・`.gitignore`・`deploy_skills.py`）が名前で一致するか（片側修正の検出） / (s) `guard-gated-write.sh` の `# GATED_PATHS:` 行と permissions.ask の `Edit(./...)` が同じパス集合か（Edit だけ・Bash だけを塞ぐ片側修正の検出） / (t) マスター settings と `DEPLOY_PERMISSIONS` の allow に `Bash(git ...)` が無いか（前置一致の allow は Claude Code 組み込みの読み取り専用判定を上書きし、`--output` での書き込みや `difftool -x` での任意実行まで許すため）。**違反で exit 1**。この検査は「`expected_hooks()` に足したが `HOOK_REGISTRATIONS` に登録し忘れて配置が全滅する」型が 2 度起きたことから作られている（うち 1 度は、まさに同じ漏れをルール化したコミット自身が再発させた）。会社向け持ち出しセット用の旧契約と `check_export_stopcontract.py` は 20260730 に Frozen handoff として除去済み
+- **npm script** (package.json scripts): `validate`（静的検査）/ `validate:portability`（配布可スキルの内部前提混入）/ `test:hooks`（PreToolUse hook フィクスチャ）/ `lint`（Biome）。検証コマンドを散文から探さずに済むようにしている
+- **agent 定義** (`.claude/agents/`, **master-only・配布しない**): サブスキルを実行する役割ごとに `model` / `effort` / `tools` を持たせた定義 12 本 — レビュー 7 軸（`review-*`・読み取り専用・軸ごとに effort を変える）/ `premortem-attacker` / `codebase-explorer` / `knowledge-scanner` / `tournament-variant`（唯一の書き込み可）/ `tournament-scorer`。読み取り専用の定義は `Read` / `Grep` / `Glob` だけを持つ（`Bash(git diff *)` でも `--output=<path>` でファイルを書けるため、Bash ごと外し、差分は呼び出し側が渡す）。モデル・エフォート・権限の値は**定義側だけ**に書き、スキル本文は役割名で指すだけにする（散文で「安価なモデルで」と書いても subagent 起動には効かない）。定義が無い環境（配置先）では、本文のフォールバック（汎用エージェント / 自己実行）に落ちる
+- **静的検査はローカルで回す**（CI は 20261015 に削除）: `validate`・`test:hooks`・`lint`
 - **敵対的スキルレビュー** (`prompts/adversarial-skill-review.md`): スキル**本文の中身**を敵対的に精読するプロンプト（人が貼って使う・フレッシュな subagent 推奨）。境界の重複と空白・オーケストレーターとの契約ズレ・片側修正・死んだ参照・迂回経路・配布分類違反を、静的検査と素通り検査の**間**の層として拾う。ファイルは一切変更せず、証拠つきの指摘と方向性1行だけを提示して止まる
 - **品質ゲート hooks** (`.claude/hooks/post-edit-lint.sh` / `stop-typecheck.sh` / `validate-skill-edit.sh`): 編集ごとの lint 差し戻し・終了宣言時の tsc・SKILL.md 編集時の `validate_skills.py` 自動実行。前 2 本はフェイルオープン（設定が無ければ素通し）なのでスタックを問わず配れる
-- **配置スクリプト** (`scripts/deploy_skills.py`): 配置先へのスキル本体とガードレール（hooks・permissions・.gitignore）の同送。`--dry-run` / `--overwrite`。master-only スキルと master-only hook は配置対象から除外される。**permissions はマスターの settings.json をそのまま配らず、`DEPLOY_PERMISSIONS` に明示列挙した配布用サブセットを配る** — マスターの deny には「このリポジトリは依存を増やさない」というマスター固有の方針（`npm install` 等の deny）が混ざっており、そのまま配ると配置先の開発フローを止めるため。**配布サブセットはベースラインであって最終形ではない**（最終的なセキュリティルールは配布先に依存するので、dry-run 提示で調整する）。編成は `skill-deploy` スキル
-- **ドリフト検出** (`scripts/check_deploy_drift.py`, argparse・`--help` あり): 配置先スキルの直接編集・マスター先行・記録なしの3分類 + **hooks の未配置 / 内容差分**（同送すべき hook が配置先に無い・内容がずれている）+ 溜まった skill-issues.md を収集（読み取り専用）。同送すべき hook の判定は `deploy_skills.py` の `expected_hooks()` を import して単一情報源にしている。引数なしで `deployments.md` の全配置先をループ。編成は `skill-harvest` スキル
 - **settings.json**: パッケージインストール（dlx / bunx / npx -y 含む）・`.env` / 鍵ファイル読み取り（Bash / Read 両方）・破壊的 git 操作・`rm -rf` を deny。素の `npx` / `rm -r` / `git push` / ガードレール自身（settings・hooks）の変更は ask。加えて **`CLAUDE.md` / `docs/knowledge/` / `docs/decisions/` への書き込みも ask**（ディレクトリ配下は `*` / `**` / `**/*` の**3形式を列挙**する — 単一形式では直下のファイルを取りこぼしうる。根拠は docs/knowledge/claude-code-config.md の「glob はプレフィックス形とサフィックス形の両方を列挙する」） — CLAUDE.md が宣言している「CLAUDE.md・docs/ への書き込みは承認制」に機械的な裏づけを与えるもの（本文のハードストップだけでは knowledge-capture が承認前に書き込む破れが 1/4 の頻度で再現したため、`skill-design-patterns.md` の「摩擦が実証されてから機械の別防御を足す」に従って追加）。配置先への同送手順は [docs/starter-kit.md](docs/starter-kit.md) 手順 6
 
 ---

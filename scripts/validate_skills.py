@@ -69,7 +69,7 @@ _APPROVAL_NEGATIONS = ["承認不要", "承認なし", "承認は不要", "承�
 #      パス（docs/decisions/YYYYMMDD 等・直前が "/"）は除外。
 #   2. マスター固有語（配置先に存在しない仕組みを前提にした語）。
 # 分類の一次情報は docs/starter-kit.md の配布可否表。この集合が変わったら同表と揃える。
-MASTER_ONLY = {"skill-test", "skill-harvest", "skill-deploy"}
+MASTER_ONLY = {"skill-test"}
 PORTABILITY_VOCAB = [
     "還流", "配布セット", "source-commit", "deployments.md",
     "このマスター", "マスターへ", "マスターの git", "（distributable）",
@@ -213,12 +213,6 @@ KNOWLEDGE_FRESHNESS_CHECKS = (
         ".gitignore",
         (
             (".steering/.last-rule-audit", "gitignore マーカー"),
-        ),
-    ),
-    (
-        "scripts/deploy_skills.py",
-        (
-            (".steering/.last-rule-audit", "deploy GITIGNORE_LINES"),
         ),
     ),
     (
