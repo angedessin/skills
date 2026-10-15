@@ -116,11 +116,6 @@
             "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/validate-skill-edit.sh",
             "timeout": 15
-          },
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/remind-config-docs.sh",
-            "timeout": 10
           }
         ]
       }
@@ -132,10 +127,6 @@
             "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/stop-typecheck.sh",
             "timeout": 120
-          },
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-stop.sh"
           }
         ]
       }

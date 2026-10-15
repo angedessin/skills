@@ -10,7 +10,7 @@
 # なぜ要るか: permissions のファイルパス ask は Edit(path) のみ（Write ツール呼び出しも Edit 規則が覆う）。
 # Bash のリダイレクト先は Claude Code 自体も検査するが、見るのは Edit の allow / deny と作業ディレクトリで
 # ask は見ない — acceptEdits では `git show HEAD:a > CLAUDE.md` が ask をすり抜けて上書きされた（20260927 実測）。
-# ファイルに触れる全ツール分のルールを揃える（docs/knowledge/claude-code-config.md）規律の Bash 側を担う。
+# ファイルに触れる全ツール分のルールを揃える規律の Bash 側を担う。
 #
 # 守る形（ask）: 連鎖（&& || ; | 改行 { } ( )）のすべての部分について
 #   - 出力リダイレクト（> >> &> 2> >| 等）の先が対象パス

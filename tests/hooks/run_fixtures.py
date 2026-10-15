@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[2]
 HOOKS = ROOT / ".claude" / "hooks"
 
 # guard-gated-write.sh のヘッダにある対象パスの正本（1 行）。runner はここからケースを自動生成し、
-# check_asset_consistency.py の契約 (s) は permissions.ask と突合する。
+# permissions.ask との一致は 6 の tests/sandbox で検査する（旧 check_asset_consistency.py の契約 (s)）。
 GATED_MARKER_RE = re.compile(r"^# GATED_PATHS:[ \t]*(.+)$", re.MULTILINE)
 
 # expect: "deny" | "ask" | "silence"

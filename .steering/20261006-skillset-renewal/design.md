@@ -92,7 +92,7 @@ Status: **APPROVED**（20261013・ユーザー承認）
 - [ ] 新しいレビューが現行より誤検知の平均件数を下げ、仕込みバグの検出数を減らしていない（評価セットで計測し、結果を decisions.md に残す）
 - [ ] 書き直し後のスキルに対して prompt-audit をもう一度回し、High・Medium の所見が無い
 - [ ] 検証用の使い捨て配置先に README の手順でコピーし、スキル・hook・sandbox 下での lint と typecheck が動くことを確認した（ログを decisions.md に残す）
-- [ ] 静的検査（`validate`・`validate:assets`・`test:hooks`・`lint`・`tests/assets`）が新構成で緑
+- [ ] 静的検査（`validate`・`test:hooks`・`lint`・`tests/sandbox`）が新構成で緑
 - [ ] `CLAUDE.md` が行動ルールだけで 50 行以内（独自目標。validate で行数を検査する）
 - [ ] decisions.md の判定表とスキルの集合が一致する（validate で突き合わせる）
 
@@ -103,7 +103,7 @@ Status: **APPROVED**（20261013・ユーザー承認）
 1. **白紙化**
    - タグを打つ
    - `.steering/archived/` を撤去する。その前に、レビュー評価セットの材料（過去の review-result.md）を抜き出しておく
-   - knowledge・ADR は新しい形で作り直す。持ち込むのは、審査を通った落とし穴だけにする
+   - knowledge は空で作り直す。ADR の運用はやめる（20261015 に変更）
 2. **構造の判断で削る**（評価を待たない）
    - feature-pipeline・状態機械・フラグ・配布用の仕組み（skill-deploy・skill-harvest とスクリプト）を、検査と一緒に消す
 3. **評価の土台を作る**
@@ -172,7 +172,7 @@ Status: **APPROVED**（20261013・ユーザー承認）
 |---|---|
 | `pr-create` | 新しい型で書き直し、push と PR 作成の前で止まるかを `plugin eval` のケース（`tool_used` の `max: 0`）で確かめる |
 | `debug`・`pr-feedback`・`security-audit`・`impl-tournament` | 削除する。必要になったら新しい型で作り直す |
-| `adr`・`skill-test`（マスター専用） | 評価の対象外（マスターの保守用）。書き直しだけ行う。skill-test は、静的検査と `plugin eval` の実行（課金の見積もりと承認を含む）をまとめる薄い入口に作り直す（自作の passthrough は削除するため） |
+| `skill-test`（マスター専用） | 評価の対象外（マスターの保守用）。書き直しだけ行う。adr は 20261015 に削除へ変更（ADR の運用をやめるため）。skill-test は、静的検査と `plugin eval` の実行（課金の見積もりと承認を含む）をまとめる薄い入口に作り直す（自作の passthrough は削除するため） |
 ### スキルの評価
 
 公式の skill-creator が勧める「スキルあり・なしの比較」を、3 条件に広げる。
@@ -345,7 +345,7 @@ Status: **APPROVED**（20261013・ユーザー承認）
       "allowedDomains": ["github.com", "*.github.com", "registry.npmjs.org"]
     }
   },
-  "hooks": { "…": "guard-gated-write・guard-gated-delete と、マスター専用（validate-skill-edit・remind-config-docs）" }
+  "hooks": { "…": "guard-gated-write・guard-gated-delete と、マスター専用（validate-skill-edit）。remind-config-docs は 20261015 に削除（旧 knowledge の要点を注入するため）" }
 }
 ```
 
@@ -401,7 +401,7 @@ Status: **APPROVED**（20261013・ユーザー承認）
 | もの | 中身 |
 |---|---|
 | README のコピー手順 | コピーするディレクトリ（`.claude/skills/<選んだもの>`・`.claude/agents/`・`.claude/hooks/`）と、settings の雛形の使い方 |
-| README の依存の一覧 | 一緒に持っていくもの（例: impl-from-design には design-doc、frontend-code-review にはレビュー agent）と、マスター専用の印（adr・skill-test）。手でコピーすると片方だけ持っていく事故が起きるため。validate が一覧と実際の参照を突き合わせる |
+| README の依存の一覧 | 一緒に持っていくもの（例: impl-from-design には design-doc、frontend-code-review にはレビュー agent）と、マスター専用の印（skill-test）。手でコピーすると片方だけ持っていく事故が起きるため。validate が一覧と実際の参照を突き合わせる |
 | `templates/settings.template.json` | permissions・sandbox・配る hook の登録。配置先でゼロから書くと抜けが出るため |
 
 - スキルは自己完結に書く（配置先に CLAUDE.md・docs・`.steering/` が無くても動く）。スキルの書き直しの中で守る
@@ -414,7 +414,7 @@ Status: **APPROVED**（20261013・ユーザー承認）
 | git タグ | `pre-renewal-20261006` を最初に打ち、リモートに push する（旧資料をタグから参照するため） |
 | `.steering/archived/` | レビュー評価セットの材料を抜き出したあと、作業ツリーから削除する。参照はタグから |
 | `docs/knowledge/` | 空で作り直す（20261015 に変更・ユーザー決定）。現行 3 ファイルからは持ち込まない。残す価値のある落とし穴は、使うコードの隣（guard hook の冒頭コメント・settings 雛形の README・検査スクリプトの docstring）へ、今のバージョンで確かめてから移す。経緯は decisions.md と knowledge-candidates.md |
-| `docs/decisions/`（ADR） | 現行の 10 本を削除する（ユーザー了承）。新しい ADR を 1 本（刷新の決定）書き、旧 ADR はタグから参照する |
+| `docs/decisions/`（ADR） | 現行の 10 本を削除し、ADR の運用をやめる（20261015 に変更・ユーザー決定）。刷新の ADR は書かない（design.md と decisions.md が記録）。adr スキルも削除する。旧 ADR はタグから参照する |
 | `.steering/BACKLOG.md` | 丸ごと削除する（20261015 に変更・ユーザー決定）。項目ごとの棚卸しはしない。全項目が刷新で削る・作り直す仕組みの課題で、決着の必要な項目は本設計で決着済みのため。刷新後の候補は本設計の「対象外」にある。バックログの仕組みを持つか（ファイル・GitHub Issues・持たない）は、`session-start-check.sh` を縮めるときと CLAUDE.md の書き直しで決める |
 | guard-gated-delete の取りこぼし（旧 BACKLOG 0.6） | 6 で hook の冒頭コメントに「守らない形」として移すか捨てる |
 | 参照の切断 | `docs/knowledge/` の削除で 14 ファイルの参照が切れる。CLAUDE.md・hook・検査スクリプトの参照は削除と同じコミットで外す（承認制のファイルはそのとき承認を取る）。スキル本文・README・テンプレートは書き直しで消えるので、それまで死んだ参照を許容する |
@@ -432,7 +432,7 @@ Status: **APPROVED**（20261013・ユーザー承認）
 | guard-gated-write・guard-gated-delete | 残す（sandbox には ask が無いため）。配置先にもコピーで配る |
 | guard-env-read | sandbox の `denyRead` で置き換えて削除する。配置先には settings の雛形で sandbox を配る |
 | post-edit-lint・stop-typecheck | 残す。配置先にもコピーで配る |
-| `scripts/check_asset_consistency.py`・`tests/assets/` | 撤去した仕組みの契約を消す。資産の変更と同じコミットで直す |
+| `scripts/check_asset_consistency.py`・`tests/assets/` | 丸ごと削除する（20261015 に変更・ユーザー決定）。契約の大半は配布の仕組みや書き直す資産を守るもので、直しながら残すと消える予定の検査を延命させる。settings を守る (s)(t)(j) は `tests/sandbox/` に移す |
 | `scripts/validate_skills.py` | 撤去したスキルに紐づく項目を消す |
 
 ## 未解決の論点
@@ -613,7 +613,7 @@ premortem-attacker で実施した（会話の文脈なし・リポジトリ参�
 
 ## テスト方針
 
-- 静的: `validate`・`validate:assets`・`test:hooks`・`lint`・`tests/assets` を新構成に追従させ、グループごとに緑にする
+- 静的: `validate`・`test:hooks`・`lint`・`tests/sandbox` を新構成に追従させ、グループごとに緑にする
 - スキル: 「スキルの評価」節の 3 条件比較をグループごとに行う（利用枠を消費する。1 グループ目の実費を見てから規模を決める）
 - レビュー: `tests/review-eval/` を現行と新方式で回し、誤検知率と見逃しを比べる（利用枠を消費する）
 - 停止契約: `plugin eval` の停止のケース（`tool_used` の `max: 0`）で確かめる。対象は design-doc・pr-create・knowledge-capture の 3 本（課金・承認制）。自作の passthrough（`passthrough_check.py`・`tests/passthrough/`）は置き換えが済んだら削除する
