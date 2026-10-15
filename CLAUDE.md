@@ -58,8 +58,6 @@ CLAUDE.md は行動ルールのみ。知識の倉庫にしない（毎回コン�
 | 設計判断（ADR） | `docs/decisions/[date]-[slug].md`（`adr` スキルで起票。却下した代替案がある決定のみ） |
 | タスク固有の決定 | `.steering/[task]/decisions.md` |
 
-## ドキュメント参照（必要なトピック作業時のみ）
+## 環境
 
-スキル作成・改善時: docs/knowledge/skill-design-patterns.md を読む（`@` 参照にしない — 毎セッション読み込ませると全タスクの固定費になる。`templates/SKILL.template.md` の冒頭にも読む指示がある）
-settings.json・hooks 作業時: docs/knowledge/claude-code-config.md を読む（@参照にしない — 毎セッション読み込ませない）
-環境構築・ツール導入時: docs/knowledge/environment-setup-patterns.md を読む（mise 下で bare pnpm/node を呼ばない・$schema をバージョン推測で先に書かない）
+- mise 管理下では Bash から素の pnpm / node を呼ばず、`mise exec --` を使う

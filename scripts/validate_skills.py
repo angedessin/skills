@@ -363,10 +363,8 @@ def check_tasklist_flow_sync(repo_root: Path) -> list[str]:
     """FCR 次ステップの知見保存→デプロイ順と、工程 6 語のキー共存を検査する。"""
     errors: list[str] = []
     fcr = repo_root / ".claude" / "skills" / "frontend-code-review" / "SKILL.md"
-    patterns = repo_root / "docs" / "knowledge" / "skill-design-patterns.md"
     for p, rel in (
         (fcr, ".claude/skills/frontend-code-review/SKILL.md"),
-        (patterns, "docs/knowledge/skill-design-patterns.md"),
     ):
         if not p.is_file():
             errors.append(f"{rel} が存在しない（tasklist-flow-sync）")

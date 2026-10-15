@@ -151,9 +151,6 @@ HOOK_REGISTRATIONS = {
 # 定数にしてある理由: 以前は expected_hooks() の docstring に散文で書かれていたため、
 # 「配るべきなのに配られていない」と「意図的に配らない」を機械が区別できなかった。
 MASTER_ONLY_HOOKS = {
-    # 注入する本文がマスターの docs/knowledge/ のパスと内容に依存する。
-    # 配置先には該当ファイルが無く、死んだ参照を注入することになる。
-    "remind-config-docs.sh",
     # scripts/validate_skills.py に依存する。配置先にスクリプトが無いため
     # フェイルオープンで素通しし、置いても効かない。
     "validate-skill-edit.sh",

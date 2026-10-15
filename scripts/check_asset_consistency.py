@@ -64,9 +64,6 @@
       → Edit の ask だけ足して Bash 経由の書き込みが素通りする（またはその逆の）片側修正を検出する
   (t) マスター settings と DEPLOY_PERMISSIONS の allow に `Bash(git ...)` のルールが無い
       → 組み込みの読み取り専用判定を前置一致の allow で上書きし、--output / difftool -x を開けるのを防ぐ
-  (q) remind-config-docs.sh が注入する要約 ⇄ その正本（docs/knowledge/）: 要約の各項目の見出し語が
-      要約と正本の両方に存在し、要約の項目数が突合表と一致する
-      → 正本の言い換え・削除で要約だけが古くなる（注入される「要点」が正本と食い違う）ドリフトを検出する
 
   会社向け持ち出しセット用の契約 (g)(i) は 20260730 Frozen handoff で除去済み。
 
@@ -895,61 +892,6 @@ def contract_r() -> tuple[str, list[str]]:
     return PASS, [f"フラグ {len(FLAG_CONSUMERS)} 種の producer と consumer {sum(len(c) for c in FLAG_CONSUMERS.values())} 箇所が名前で一致"]
 
 
-REMIND_HOOK = HOOKS_DIR / "remind-config-docs.sh"
-# hook が注入する要約の各項目 `(N) ...` を代表する見出し語。**要約と正本の両方に存在すること**。
-# 要約の項目を足したら、ここにも見出し語を足す（項目数の一致も検査する）。
-REMIND_SUMMARIES = {
-    "config": (
-        "docs/knowledge/claude-code-config.md",
-        ("Write(path)", "glob は形式を列挙する", "イベント種別"),
-    ),
-    "skills": (
-        "docs/knowledge/skill-design-patterns.md",
-        ("ハードストップ", "片側修正", "責務境界", "日付付き"),
-    ),
-}
-REMIND_EMIT_RE = re.compile(r'^\s*emit "([a-z]+)" "(.*)"\s*$', re.M)
-REMIND_ITEM_RE = re.compile(r"\(\d\)")
-
-
-def contract_q() -> tuple[str, list[str]]:
-    """remind-config-docs.sh の注入要約 ⇄ 正本（docs/knowledge/）のドリフト検査。
-
-    フェイルクローズ: hook・正本・emit 行のどれかが読めないときは FAIL（比較対象なしで PASS にしない）。
-    """
-    if not REMIND_HOOK.is_file():
-        return FAIL, [f"hook が無い: {REMIND_HOOK}"]
-    emitted = dict(REMIND_EMIT_RE.findall(REMIND_HOOK.read_text(encoding="utf-8")))
-
-    details: list[str] = []
-    for category, (doc_rel, anchors) in REMIND_SUMMARIES.items():
-        summary = emitted.get(category)
-        if summary is None:
-            details.append(f"{category}: hook に emit \"{category}\" の行が無い（書式を変えたなら REMIND_EMIT_RE も直す）")
-            continue
-        doc = MASTER_ROOT / doc_rel
-        if not doc.is_file():
-            details.append(f"{category}: 正本が無い: {doc_rel}")
-            continue
-        doc_text = doc.read_text(encoding="utf-8")
-        item_count = len(REMIND_ITEM_RE.findall(summary))
-        if item_count != len(anchors):
-            details.append(
-                f"{category}: 要約の項目数（{item_count}）が突合表の見出し語の数（{len(anchors)}）と違う"
-                " — 項目を足した・消したなら REMIND_SUMMARIES も同じコミットで直す"
-            )
-        for anchor in anchors:
-            if anchor not in summary:
-                details.append(f"{category}: 見出し語「{anchor}」が hook の要約に無い（要約を言い換えたなら突合表を直す）")
-            if anchor not in doc_text:
-                details.append(f"{category}: 見出し語「{anchor}」が正本 {doc_rel} に無い（正本が変わって要約だけが古い可能性）")
-    if details:
-        details.append("→ 要約は正本の要点。正本を直したら要約も、要約を直したら正本との整合も確認する")
-        return FAIL, details
-    total = sum(len(a) for _, a in REMIND_SUMMARIES.values())
-    return PASS, [f"注入要約 {len(REMIND_SUMMARIES)} 系統・見出し語 {total} 件が要約と正本の両方に存在"]
-
-
 def main() -> None:
     ap = argparse.ArgumentParser(
         description="セットアップ資産どうしの契約突合（マスター専用）",
@@ -977,7 +919,6 @@ def main() -> None:
         ("(n) tasklist テンプレの写しが正本と同じ工程順", contract_n),
         ("(o) スキル本文の agent 参照が .claude/agents/ の定義と一致", contract_o),
         ("(p) agent 定義の frontmatter が契約どおり（読み取り専用を含む）", contract_p),
-        ("(q) hook の注入要約が正本（docs/knowledge/）と食い違っていない", contract_q),
         ("(r) capture フラグの producer と consumer が名前で一致", contract_r),
         ("(s) 書き込み hook の対象パスが permissions.ask と一致", contract_s),
         ("(t) allow に git のルールが無い", contract_t),
