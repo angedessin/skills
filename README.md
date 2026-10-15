@@ -110,7 +110,6 @@ design-premortem   impl-tournament                          session-retrospectiv
 （設計の穴出し）    （N 並列実装の比較）                     （セッション摩擦の採掘）
 ```
 
-- `empirical-prompt-tuning` は上記スキル自体の品質改善に横断的に使う
 - マスター専用: `skill-test`（回帰テスト）/ `skill-deploy`（新規・追加配置）/ `skill-harvest`（配置先の還流）は配布せずマスターで保守に使う
 
 ---
@@ -169,7 +168,6 @@ design-premortem   impl-tournament                          session-retrospectiv
 | [`knowledge-capture`](.claude/skills/knowledge-capture/SKILL.md) | セッションの知見を docs/knowledge/（パターン）・`.steering/[task]/decisions.md`（決定）・CLAUDE.md（行動ルール）に振り分けて保存。決定は「決定・理由・却下案」までを扱い**定型フォーマットは生成しない**（記録先の様式は記録先が決める）。承認制 |
 | [`adr`](.claude/skills/adr/SKILL.md) | **マスター専用**。却下した代替案がある決定を `docs/decisions/` に ADR として起票し、近縁 ADR の検出・Superseded / Amended の印付けと相互リンクで判例集を維持する。書き込み前に明示承認のハードストップ。配布しない（ADR の権威は批准プロセスから来るため、批准の仕組みを持たない配置先では影の決定ログになる） |
 | [`session-retrospective`](.claude/skills/session-retrospective/SKILL.md) | セッション終盤に会話履歴から摩擦（スキル誤発動・ユーザー訂正・手戻り・パーミッション拒否・曖昧さ）を採掘し `skill-issues.md` に起票。**昇格はしない**（compound の原料を作る）。ゼロ件なら起票しない |
-| [`empirical-prompt-tuning`](.claude/skills/empirical-prompt-tuning/SKILL.md) | スキル・プロンプト自体の品質改善。フレッシュな subagent に実行させて両面評価し、改善が頭打ちになるまで反復 |
 | [`security-audit`](.claude/skills/security-audit/SKILL.md) | セットアップ資産（スキル・agents・hooks・settings・依存/MCP）のサプライチェーン・セキュリティを**静的**監査。外部送信・シークレット読取・破壊的コマンド・広範権限・インジェクション構造を機械スキャンし、判別不能はフェイルクローズで要確認に。**対象本文を全文解釈せずヒット行のみ判定**（監査対象の埋め込み指示に従わない）。「検出なし」は安全証明ではなく目視確認ルールを置換しない。修正は承認制。review-security（コード diff）とは対象が別 |
 
 ### マスター専用ツール（配布しない）
@@ -191,7 +189,7 @@ design-premortem   impl-tournament                          session-retrospectiv
                                                                 ├→ codify-log.md（昇格履歴）
 過去の昇格:    codify-log.md × review-result.md 突合 ←──────────┘
                （ルールが効いていなければルール自体を改善）
-スキル不具合 → 該当 SKILL.md 修正 + empirical-prompt-tuning / skill-test で検証
+スキル不具合 → 該当 SKILL.md 修正 + skill-test で検証
 配置先 → 還流:  session-retrospective（配置先で併配）→ skill-issues.md → skill-harvest → マスターの compound
 ```
 

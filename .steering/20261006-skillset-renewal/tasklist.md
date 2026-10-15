@@ -39,8 +39,8 @@ Last updated: 20261015（白紙化: CI・archived・knowledge）
 
 ## 3. 構造の判断で削る（検査・passthrough シナリオ・README の記述を同じコミットで消す）
 
-- [ ] feature-pipeline・`pipeline_state.py`・`tests/state/` を削除する（README のワークフロー図も同じコミットで直す）
-- [ ] empirical-prompt-tuning を削除する
+- [x] feature-pipeline・`pipeline_state.py`・`tests/state/` を削除する（README のワークフロー図も同じコミットで直す）（20261015。契約 (l)(m) も削除）
+- [x] empirical-prompt-tuning を削除する（20261015）
 - [ ] adr スキルと `tests/passthrough/adr/` を削除する（20261015 決定。書き直さない。README・validate・deploy の分類・他スキルの言及を同じコミットで直す）
 - [ ] フラグを撤去する: `session-stop.sh` を削除し、`session-start-check.sh` を縮める（スキル本文のフラグ記述は 5 の書き直しで消える）
 - [ ] skill-deploy・skill-harvest・`deploy_skills.py`・`check_deploy_drift.py`・`deployments*.md` を削除する（permissions の雛形とコピー手順は 7 で作る）
