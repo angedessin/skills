@@ -1,6 +1,6 @@
 # タスクリスト: skillset-renewal
 
-Last updated: 20261013（design.md 承認）
+Last updated: 20261015（PR #17 マージ・非公開化）
 
 ## 0. 計測（実施済み）
 
@@ -16,11 +16,11 @@ Last updated: 20261013（design.md 承認）
 - [x] A の定義を決める（推奨案で決定: 素のモデル＋スキルに触れない CLAUDE.md。共通部分は `append_system_prompt`、スキルに触れる部分は B・C の plugin の hook で注入）
 - [x] 本番の規模を、測った利用枠から見積もってユーザーと決める（決定: まず設計グループの約 70 実行だけ。週間枠の消費を測ってから残りを決める。全体の見込みは約 440 実行・5 時間枠 11 回分）
 - [x] 結果を decisions.md に残し、設計を直すか承認するかをユーザーと決める（20261013 承認）
-- [ ] `feature/eval-pilot` を PR で develop にマージする（PR #17 作成済み・CI 緑・マージは人間判断待ち）
+- [x] `feature/eval-pilot` を PR で develop にマージする（PR #17。20261015 マージ）
 
 ## 1. 準備
 
-- [ ] リポジトリ `angedessin/skills` を非公開にする（ユーザーの操作）。非公開になったことを `gh repo view --json visibility` で確かめる
+- [x] リポジトリ `angedessin/skills` を非公開にする（ユーザーの操作）。非公開になったことを `gh repo view --json visibility` で確かめる（20261015 確認済み）
 前提: git-flow への移行（`develop` の作成・CLAUDE.md のブランチ運用）が済んでいること。移行は本タスクの外で行う
 
 - [ ] develop からマージ用ブランチ `feature/skillset-renewal` を作り、タグ `pre-renewal-20261006` を打ってリモートに push する。区切り（2〜3 / 4〜5 / 6〜7）ごとに子ブランチ（`feature/renewal-01-reset` など）をマージ用ブランチから切り、マージ用ブランチへ PR でマージする
