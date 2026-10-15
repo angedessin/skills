@@ -1,6 +1,6 @@
 # タスクリスト: skillset-renewal
 
-Last updated: 20261013（git-flow への移行を反映）
+Last updated: 20261013（design.md 承認）
 
 ## 0. 計測（実施済み）
 
@@ -8,11 +8,15 @@ Last updated: 20261013（git-flow への移行を反映）
 
 ## 0.5 評価の試作（design.md の承認前。`feature/eval-pilot` で行う）
 
-- [ ] サンプルアプリの最小版を `~/Desktop/_lab/ai/skills-eval-app/` に作る
-- [ ] 現行の design-doc を評価用の `plugin.json` で包み、ケースを 2 件書く（無料）
-- [ ] 費用を見積もってユーザーの承認を取り、小さく回す（2 ケース × 3 回 × 2 条件）
-- [ ] 確かめる: plugin として読み込まれるか・準備スクリプトでの複製とテスト実行（`node_modules` を含む）・`tool_used` による停止の判定・`append_system_prompt` での CLAUDE.md の近似・1 回あたりの実費
-- [ ] 結果を decisions.md に残し、設計を直すか承認するかをユーザーと決める
+- [x] サンプルアプリの最小版を `~/Desktop/_lab/ai/skills-eval-app/` に作る（商品検索・MSW・テスト 3 件。git 管理）
+- [x] 現行の design-doc を評価用の `plugin.json` で包み、ケースを 2 件書く（無料。`eval-pilot/`。実行環境の確認用に smoke 1 件を追加）
+- [x] 費用を見積もってユーザーの承認を取り、小さく回す（縮小版: `--runs 1` の 6 実行に変更。結果は decisions.md）
+- [x] 確かめる: plugin として読み込まれるか・準備スクリプトでの複製とテスト実行（`node_modules` を含む）・`tool_used` による停止の判定・`append_system_prompt` での CLAUDE.md の近似・1 回あたりの実費
+- [x] 再実行（結果は decisions.md。hook での注入は動いた。直した `src/` 判定の確認と、B・C の CLAUDE.md を plugin 同梱の SessionStart hook で注入できるかの確認。design-doc 2 ケース × あり・なし × `--runs 1` の 4 実行。前後の `/usage` を記録して 1 実行あたりの利用枠を測る。`--keep-temp` を付ける）
+- [x] A の定義を決める（推奨案で決定: 素のモデル＋スキルに触れない CLAUDE.md。共通部分は `append_system_prompt`、スキルに触れる部分は B・C の plugin の hook で注入）
+- [x] 本番の規模を、測った利用枠から見積もってユーザーと決める（決定: まず設計グループの約 70 実行だけ。週間枠の消費を測ってから残りを決める。全体の見込みは約 440 実行・5 時間枠 11 回分）
+- [x] 結果を decisions.md に残し、設計を直すか承認するかをユーザーと決める（20261013 承認）
+- [ ] `feature/eval-pilot` を PR で develop にマージする（PR #17 作成済み・CI 緑・マージは人間判断待ち）
 
 ## 1. 準備
 
@@ -44,7 +48,7 @@ Last updated: 20261013（git-flow への移行を反映）
 - [ ] サンプルアプリを作る（置き場所と中身は論点のとおり）。1 回ごとに別のパスへ新しく複製する手順を用意する
 - [ ] タグから「B の一式」（`.claude/` 全体・CLAUDE.md・必要な scripts）を作り、条件ごとに入れるものの表を書く
 - [ ] グループごとに作業課題（スキル 1 本あたり 2〜3 件）・再評価用の課題 1 件・採点基準を書き、ユーザーに確認してコミットで固定する（C を書き始める前）
-- [ ] 評価のケースを `claude plugin eval` の形式で書く（B・C 用の評価用 `plugin.json`、サンプルアプリを複製する準備スクリプト、停止の判定は `tool_used`、続きからの再開は `history_file`、採点は最終回答と生成ファイル中心で `--judge-model` を実行と別のモデルに。B の CLAUDE.md は `append_system_prompt` で近似）
+- [ ] 評価のケースを `claude plugin eval` の形式で書く（B・C 用の評価用 `plugin.json`、サンプルアプリを複製する準備スクリプト、停止の判定は `tool_used`、続きからの再開は `history_file`、採点は最終回答と生成ファイル中心で `--judge-model` を実行と別のモデルに。CLAUDE.md はスキルに触れない部分を `append_system_prompt`、触れる部分を B・C の plugin の SessionStart hook で入れる）
 - [ ] `tests/review-eval/` を作る（過去の誤検知・真の指摘＋仕込みバグ＋公開事例）。仕込みバグは新しい agent の観点を書く前に固定する
 - [ ] 現行レビュー（タグの一式）の基準値を取り、人がラベル付けする
 - [ ] 評価は、sandbox を有効にした Claude Code の中ではなく通常のターミナルから実行する
