@@ -43,7 +43,7 @@ Last updated: 20261015（白紙化: CI・archived・knowledge）
 - [x] empirical-prompt-tuning を削除する（20261015）
 - [x] adr スキルと `tests/passthrough/adr/` を削除する（20261015 済み。guard-gated-write の警告文の adr は 6 で直す）（20261015 決定。書き直さない。README・validate・deploy の分類・他スキルの言及を同じコミットで直す）
 - [ ] フラグを撤去する: `session-stop.sh` を削除し、`session-start-check.sh` を縮める（スキル本文のフラグ記述は 5 の書き直しで消える）
-- [ ] skill-deploy・skill-harvest・`deploy_skills.py`・`check_deploy_drift.py`・`deployments*.md` を削除する（permissions の雛形とコピー手順は 7 で作る）
+- [x] skill-deploy・skill-harvest・`deploy_skills.py`・`check_deploy_drift.py`・`deployments*.md` を削除する（permissions の雛形とコピー手順は 7 で作る）（20261015 済み。`check_asset_consistency.py`・`tests/assets/` も丸ごと削除。ユーザー決定）
 
 ## 4. 評価の土台
 
@@ -76,7 +76,8 @@ Last updated: 20261015（白紙化: CI・archived・knowledge）
 - [ ] `tests/sandbox/` を作る（hook・lint・pnpm・検査スクリプトが動く、`.env` を `cat`・`grep -r`・`python` で読めない、SSH の push・`gh pr create`・ブランチ切り替え・マージが通る）
 - [ ] `.claude/settings.json` を変更案（design.md）どおりに直し、`tests/sandbox/` を流す
 - [ ] guard-env-read を削除する（guard-gated-write・guard-gated-delete は残す）
-- [ ] 承認ゲートの対象から `docs/decisions/` を外す（guard hook 2 本・permissions.ask・`DEPLOY_PERMISSIONS`・契約 (s)・フィクスチャ・`tests/assets`）。`docs/decisions/.gitkeep` も消す
+- [ ] 承認ゲートの対象から `docs/decisions/` を外す（guard hook 2 本・permissions.ask・フィクスチャ）。`docs/decisions/.gitkeep` も消す。guard-gated-write の警告文の adr と、コメントの `check_asset_consistency.py` 契約 (s) への参照も直す
+- [ ] 旧 `check_asset_consistency.py` の契約 (s)(t)(j) を `tests/sandbox/` に移す: guard-gated-write の `# GATED_PATHS:` 行 ≡ permissions.ask の `Edit(./...)`・allow に `Bash(git ...)` が無い・死んだ `Write|NotebookEdit|MultiEdit(path)` が無い
 - [ ] guard-gated-delete の取りこぼし（大文字小文字・`FOO=1 rm` の代入前置）を、hook の冒頭コメントに「守らない形」として移すか捨てる（旧 BACKLOG 0.6）
 - [ ] 残す guard hook 2 本の冒頭コメントに、旧 knowledge の落とし穴を移す（パス判定は command を取り出してから・Bash 経由の承認迂回・`git -C`／前置ラッパー／大文字小文字の取りこぼし。knowledge-candidates.md）。移す前に今のバージョンで成り立つかを `tests/sandbox/` で確かめる
 
@@ -85,12 +86,12 @@ Last updated: 20261015（白紙化: CI・archived・knowledge）
 - [ ] `templates/settings.template.json` を作る（permissions・sandbox・配る hook の登録）。README の手順に「allow に git の読み取り系を書かない」を添える（今のバージョンで確かめてから）
 - [ ] README にコピー手順と依存の一覧（一緒に持っていくもの・マスター専用の印）を書く
 - [ ] validate に、依存の一覧と実際のスキル・agent の参照の突き合わせを足す
-- [ ] `check_asset_consistency.py`・`tests/assets/`・`validate_skills.py` を新構成に合わせる（残すスクリプトには、検査スクリプトの規律と hook の JSON を `printf` で確かめる件を docstring に移す。残さなければ捨てる）
+- [ ] `validate_skills.py` を新構成に合わせる（`check_asset_consistency.py`・`tests/assets/` は 3 で削除済み。新構成で本当に要る突き合わせだけを、必要になったら書く。残すスクリプトには、検査スクリプトの規律と hook の JSON を `printf` で確かめる件を docstring に移す）
 - [ ] CLAUDE.md の配布のルール（配置先で直接編集しない・マスターに還元して再コピー・配布分類の確認）を撤去する（CLAUDE.md の書き直しに含める）
 
 ## 8. 検証
 
-- [ ] 静的検査（`validate`・`validate:assets`・`test:hooks`・`lint`・`tests/assets`）が緑
+- [ ] 静的検査（`validate`・`test:hooks`・`lint`・`tests/sandbox`）が緑
 - [ ] 停止のケースを `plugin eval` で実走する（design-doc・pr-create・knowledge-capture。課金・承認制。通常のターミナルから実行する）
 - [ ] 自作の passthrough（`passthrough_check.py`・`tests/passthrough/`）を削除する
 - [ ] 検証用の使い捨て配置先に README の手順でコピーし、スキル・hook の発火・sandbox 下での lint と typecheck を確かめる

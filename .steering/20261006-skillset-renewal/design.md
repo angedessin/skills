@@ -92,7 +92,7 @@ Status: **APPROVED**（20261013・ユーザー承認）
 - [ ] 新しいレビューが現行より誤検知の平均件数を下げ、仕込みバグの検出数を減らしていない（評価セットで計測し、結果を decisions.md に残す）
 - [ ] 書き直し後のスキルに対して prompt-audit をもう一度回し、High・Medium の所見が無い
 - [ ] 検証用の使い捨て配置先に README の手順でコピーし、スキル・hook・sandbox 下での lint と typecheck が動くことを確認した（ログを decisions.md に残す）
-- [ ] 静的検査（`validate`・`validate:assets`・`test:hooks`・`lint`・`tests/assets`）が新構成で緑
+- [ ] 静的検査（`validate`・`test:hooks`・`lint`・`tests/sandbox`）が新構成で緑
 - [ ] `CLAUDE.md` が行動ルールだけで 50 行以内（独自目標。validate で行数を検査する）
 - [ ] decisions.md の判定表とスキルの集合が一致する（validate で突き合わせる）
 
@@ -432,7 +432,7 @@ Status: **APPROVED**（20261013・ユーザー承認）
 | guard-gated-write・guard-gated-delete | 残す（sandbox には ask が無いため）。配置先にもコピーで配る |
 | guard-env-read | sandbox の `denyRead` で置き換えて削除する。配置先には settings の雛形で sandbox を配る |
 | post-edit-lint・stop-typecheck | 残す。配置先にもコピーで配る |
-| `scripts/check_asset_consistency.py`・`tests/assets/` | 撤去した仕組みの契約を消す。資産の変更と同じコミットで直す |
+| `scripts/check_asset_consistency.py`・`tests/assets/` | 丸ごと削除する（20261015 に変更・ユーザー決定）。契約の大半は配布の仕組みや書き直す資産を守るもので、直しながら残すと消える予定の検査を延命させる。settings を守る (s)(t)(j) は `tests/sandbox/` に移す |
 | `scripts/validate_skills.py` | 撤去したスキルに紐づく項目を消す |
 
 ## 未解決の論点
@@ -613,7 +613,7 @@ premortem-attacker で実施した（会話の文脈なし・リポジトリ参�
 
 ## テスト方針
 
-- 静的: `validate`・`validate:assets`・`test:hooks`・`lint`・`tests/assets` を新構成に追従させ、グループごとに緑にする
+- 静的: `validate`・`test:hooks`・`lint`・`tests/sandbox` を新構成に追従させ、グループごとに緑にする
 - スキル: 「スキルの評価」節の 3 条件比較をグループごとに行う（利用枠を消費する。1 グループ目の実費を見てから規模を決める）
 - レビュー: `tests/review-eval/` を現行と新方式で回し、誤検知率と見逃しを比べる（利用枠を消費する）
 - 停止契約: `plugin eval` の停止のケース（`tool_used` の `max: 0`）で確かめる。対象は design-doc・pr-create・knowledge-capture の 3 本（課金・承認制）。自作の passthrough（`passthrough_check.py`・`tests/passthrough/`）は置き換えが済んだら削除する
