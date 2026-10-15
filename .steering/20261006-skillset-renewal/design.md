@@ -36,7 +36,7 @@ Status: **APPROVED**（20261013・ユーザー承認）
 - 白紙化
   - `.steering/archived/` の撤去
   - `docs/knowledge/` と `docs/decisions/` の作り直し
-  - BACKLOG の棚卸し
+  - BACKLOG の削除
 - `CLAUDE.md`・`README.md`・`docs/user-guide.md`・`docs/starter-kit.md`・`templates/`・`prompts/`
 - `scripts/`・`tests/`（撤去した仕組みの検査を消し、新構成に合わせる）
 - CI（`.github/workflows/validate.yml`）の削除。静的検査はローカルで回す
@@ -305,7 +305,7 @@ Status: **APPROVED**（20261013・ユーザー承認）
 
 - **Bash の文字列パターンは抜けやすい:** 公式も「Bash の引数を制限するパターンは脆い」と明記している。`sh -c` 経由やパス指定で呼ぶと deny が効かない
   - 現状はこれを自作の guard hook 3 本（guard-gated-write・guard-gated-delete・guard-env-read）と大量の deny で補っている
-  - hook 側も取りこぼしが残っている（BACKLOG 0.6）
+  - hook 側も取りこぼしが残っている（旧 BACKLOG 0.6）
 - **sandbox が無い:** sandbox は Bash とその子プロセスを OS レベルで制限する（macOS は Seatbelt）
   - 標準で `.claude/` の設定・skills・agents・hooks への書き込みを禁止する
   - `denyWrite` と `denyRead` で任意のパスを足せる
@@ -413,23 +413,13 @@ Status: **APPROVED**（20261013・ユーザー承認）
 |---|---|
 | git タグ | `pre-renewal-20261006` を最初に打ち、リモートに push する（旧資料をタグから参照するため） |
 | `.steering/archived/` | レビュー評価セットの材料を抜き出したあと、作業ツリーから削除する。参照はタグから |
-| `docs/knowledge/` | 新しく作り直す。現行 3 ファイルから持ち込むのは、公式ドキュメントに無く、無いと Claude が間違える落とし穴のうち、新しいスキルが参照しそうなものだけ。Claude が候補を絞り、その候補だけを人がレビューする |
+| `docs/knowledge/` | 空で作り直す（20261015 に変更・ユーザー決定）。現行 3 ファイルからは持ち込まない。残す価値のある落とし穴は、使うコードの隣（guard hook の冒頭コメント・settings 雛形の README・検査スクリプトの docstring）へ、今のバージョンで確かめてから移す。経緯は decisions.md と knowledge-candidates.md |
 | `docs/decisions/`（ADR） | 現行の 10 本を削除する（ユーザー了承）。新しい ADR を 1 本（刷新の決定）書き、旧 ADR はタグから参照する |
-| `.steering/BACKLOG.md` | 全項目が過去のタスクを基準にしているので、棚卸しして本タスクに取り込むか捨てる（下表）。ファイル自体は残し、刷新後の候補だけを置く |
+| `.steering/BACKLOG.md` | 丸ごと削除する（20261015 に変更・ユーザー決定）。項目ごとの棚卸しはしない。全項目が刷新で削る・作り直す仕組みの課題で、決着の必要な項目は本設計で決着済みのため。刷新後の候補は本設計の「対象外」にある。バックログの仕組みを持つか（ファイル・GitHub Issues・持たない）は、`session-start-check.sh` を縮めるときと CLAUDE.md の書き直しで決める |
+| guard-gated-delete の取りこぼし（旧 BACKLOG 0.6） | 6 で hook の冒頭コメントに「守らない形」として移すか捨てる |
+| 参照の切断 | `docs/knowledge/` の削除で 14 ファイルの参照が切れる。CLAUDE.md・hook・検査スクリプトの参照は削除と同じコミットで外す（承認制のファイルはそのとき承認を取る）。スキル本文・README・テンプレートは書き直しで消えるので、それまで死んだ参照を許容する |
+| CI | 白紙化で削除する（20261015 に 7 から前倒し）。2026-10-19 の ubuntu-latest の移行で壊れうること、非公開化で実行時間が無料枠を使うため |
 | `.gitignore` のフラグ行 | 古いフラグが混入しないよう残す |
-
-### BACKLOG の棚卸し（案）
-
-| 節 | 内容 | 扱い |
-|---|---|---|
-| 0.5 | CI の actions 更新（期限 2026-10-19） | 捨てる（CI ごと削除するため） |
-| 0.6 | guard-gated-delete の取りこぼし | 残す（guard-gated-delete は sandbox で置き換えず残すため。本タスクの対象外） |
-| 1 | 依存表の網羅・README の節新設・passthrough のハーネス拡張（feature-pipeline の Gate 3.5 用） | 捨てる（README は書き直す。feature-pipeline は削除する） |
-| 1.5 | rule-audit が `references/` を監査しない | 本タスクに取り込む（rule-audit の改善で入力に足す） |
-| 1.6 | tasklist の一括 `[x]` を実体と照合するルール | 本タスクに取り込む（CLAUDE.md の書き直しで判断する） |
-| 2 | mise 経由の pnpm | 捨てる（knowledge 持ち込み候補として審査する） |
-| 3 | 20260730 レポートの後続（ほぼ完了） | 捨てる |
-| 4 | データ待ちの 7 項目 | 本タスクで決着する（配布の作り直し・sandbox・skill-doctor の計測・レビュー軸の再編）。承認ゲートの再編は、停止契約を残す方針で決着とする |
 
 ### スキル以外の撤去と移設
 
@@ -616,7 +606,7 @@ premortem-attacker で実施した（会話の文脈なし・リポジトリ参�
 - リグレッション懸念:
   - 新しいレビューで見逃しが増える（評価セットで計測し、増えたら構成を戻す）
   - sandbox で hook（stop-typecheck・post-edit-lint）が動かなくなる（先に確かめる）
-  - knowledge の白紙化で、過去に踏んだ落とし穴を再び踏む（持ち込みの審査で補う）
+  - knowledge の白紙化で、過去に踏んだ落とし穴を再び踏む（使うコードの隣へ移した分と、評価で見つかった分で補う）
   - feature-pipeline の削除で、工程のつなぎを毎回手で指示する手間が増える（増えたら薄く作り直す）
   - マスターの改善が既存の配置先に届かない（育てる方針として受け入れる）
   - 実案件での不具合がマスターに届かず、マスターの改善がメタ作業とサンプルアプリに偏る（サンプルアプリの評価課題を、実作業に近い形に保つことで補う）
