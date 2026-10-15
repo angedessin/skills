@@ -39,6 +39,8 @@ Last updated: 20261015（2 白紙化・3 構造の削除 完了）
 
 ## 3. 構造の判断で削る（検査・passthrough シナリオ・README の記述を同じコミットで消す）
 
+区切り 1（2〜3）: `feature/renewal-01-reset` → `feature/skillset-renewal` の PR #18（20261015 作成・マージは人間判断待ち）
+
 - [x] feature-pipeline・`pipeline_state.py`・`tests/state/` を削除する（README のワークフロー図も同じコミットで直す）（20261015。契約 (l)(m) も削除）
 - [x] empirical-prompt-tuning を削除する（20261015）
 - [x] adr スキルと `tests/passthrough/adr/` を削除する（20261015 済み。guard-gated-write の警告文の adr は 6 で直す）（20261015 決定。書き直さない。README・validate・deploy の分類・他スキルの言及を同じコミットで直す）
