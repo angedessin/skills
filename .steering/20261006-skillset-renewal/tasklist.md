@@ -26,13 +26,13 @@ Last updated: 20261015（評価の材料を抜き出し）
 - [x] develop からマージ用ブランチ `feature/skillset-renewal` を作り、タグ `pre-renewal-20261006` を打ってリモートに push する（20261015。タグは develop の `22da4db`）。区切り（2〜3 / 4〜5 / 6〜7）ごとに子ブランチ（`feature/renewal-01-reset` など）をマージ用ブランチから切り、マージ用ブランチへ PR でマージする
 - [x] 過去の review-result.md から、誤検知と修正済みの指摘を抜き出し、指摘時点のコミットを特定する（評価セットの材料。特定できないものは使わない）（20261015。eval-material.md。真の指摘 21 件・誤検知 4 件）
 - [x] skill-issues.md・blockers.md・decisions.md から「モデルが実際に崩れた事例」を抜き出す（評価課題の材料）（20261015。eval-material.md。候補 17 件）
-- [ ] 現行 `docs/knowledge/` 3 ファイルから、新しいスキルが参照しそうな項目だけを候補に絞り、その候補だけをユーザーにレビューしてもらう
+- [x] 現行 `docs/knowledge/` 3 ファイルから、新しいスキルが参照しそうな項目だけを候補に絞り、その候補だけをユーザーにレビューしてもらう（20261015。knowledge は空で始め、残す項目はコードの隣へ移す。knowledge-candidates.md）
 - [ ] BACKLOG を棚卸しする案を作り、ユーザーに確認する
 
 ## 2. 白紙化
 
 - [ ] `.steering/archived/` を作業ツリーから削除する
-- [ ] `docs/knowledge/` を作り直す（承認した項目だけ）
+- [ ] `docs/knowledge/` を空で作り直す（現行 3 ファイルを削除。フロントエンドの知識は 5 の評価で実際に間違えたところから溜める）
 - [ ] 旧 ADR 10 本を削除し、刷新の ADR を 1 本書く
 - [ ] BACKLOG を棚卸し案（design.md）どおりに直す
 
@@ -74,13 +74,14 @@ Last updated: 20261015（評価の材料を抜き出し）
 - [ ] `tests/sandbox/` を作る（hook・lint・pnpm・検査スクリプトが動く、`.env` を `cat`・`grep -r`・`python` で読めない、SSH の push・`gh pr create`・ブランチ切り替え・マージが通る）
 - [ ] `.claude/settings.json` を変更案（design.md）どおりに直し、`tests/sandbox/` を流す
 - [ ] guard-env-read を削除する（guard-gated-write・guard-gated-delete は残す）
+- [ ] 残す guard hook 2 本の冒頭コメントに、旧 knowledge の落とし穴を移す（パス判定は command を取り出してから・Bash 経由の承認迂回・`git -C`／前置ラッパー／大文字小文字の取りこぼし。knowledge-candidates.md）。移す前に今のバージョンで成り立つかを `tests/sandbox/` で確かめる
 
 ## 7. 配る準備
 
-- [ ] `templates/settings.template.json` を作る（permissions・sandbox・配る hook の登録）
+- [ ] `templates/settings.template.json` を作る（permissions・sandbox・配る hook の登録）。README の手順に「allow に git の読み取り系を書かない」を添える（今のバージョンで確かめてから）
 - [ ] README にコピー手順と依存の一覧（一緒に持っていくもの・マスター専用の印）を書く
 - [ ] validate に、依存の一覧と実際のスキル・agent の参照の突き合わせを足す
-- [ ] `check_asset_consistency.py`・`tests/assets/`・`validate_skills.py` を新構成に合わせる
+- [ ] `check_asset_consistency.py`・`tests/assets/`・`validate_skills.py` を新構成に合わせる（残すスクリプトには、検査スクリプトの規律と hook の JSON を `printf` で確かめる件を docstring に移す。残さなければ捨てる）
 - [ ] `.github/workflows/validate.yml` を削除する
 - [ ] CLAUDE.md の配布のルール（配置先で直接編集しない・マスターに還元して再コピー・配布分類の確認）を撤去する（CLAUDE.md の書き直しに含める）
 
