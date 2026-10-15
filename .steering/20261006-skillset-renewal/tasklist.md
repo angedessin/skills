@@ -1,6 +1,6 @@
 # タスクリスト: skillset-renewal
 
-Last updated: 20261015（PR #17 マージ・非公開化）
+Last updated: 20261015（評価の材料を抜き出し）
 
 ## 0. 計測（実施済み）
 
@@ -24,8 +24,8 @@ Last updated: 20261015（PR #17 マージ・非公開化）
 前提: git-flow への移行（`develop` の作成・CLAUDE.md のブランチ運用）が済んでいること。移行は本タスクの外で行う
 
 - [x] develop からマージ用ブランチ `feature/skillset-renewal` を作り、タグ `pre-renewal-20261006` を打ってリモートに push する（20261015。タグは develop の `22da4db`）。区切り（2〜3 / 4〜5 / 6〜7）ごとに子ブランチ（`feature/renewal-01-reset` など）をマージ用ブランチから切り、マージ用ブランチへ PR でマージする
-- [ ] 過去の review-result.md から、誤検知と修正済みの指摘を抜き出し、指摘時点のコミットを特定する（評価セットの材料。特定できないものは使わない）
-- [ ] skill-issues.md・blockers.md・decisions.md から「モデルが実際に崩れた事例」を抜き出す（評価課題の材料）
+- [x] 過去の review-result.md から、誤検知と修正済みの指摘を抜き出し、指摘時点のコミットを特定する（評価セットの材料。特定できないものは使わない）（20261015。eval-material.md。真の指摘 21 件・誤検知 4 件）
+- [x] skill-issues.md・blockers.md・decisions.md から「モデルが実際に崩れた事例」を抜き出す（評価課題の材料）（20261015。eval-material.md。候補 17 件）
 - [ ] 現行 `docs/knowledge/` 3 ファイルから、新しいスキルが参照しそうな項目だけを候補に絞り、その候補だけをユーザーにレビューしてもらう
 - [ ] BACKLOG を棚卸しする案を作り、ユーザーに確認する
 
