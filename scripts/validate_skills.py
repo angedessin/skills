@@ -260,13 +260,6 @@ KNOWLEDGE_FRESHNESS_CHECKS = (
             ("30 日再ナッジ", "README スキップ寿命"),
         ),
     ),
-    (
-        "docs/decisions/20260715-docs-lifecycle-tiers.md",
-        (
-            ("20260804", "Amendment 日付"),
-            ("【rule-audit 月次】", "Amendment ナッジ"),
-        ),
-    ),
 )
 
 # tasklist 工程表の同期（20260807-pr13-mustfix）。
