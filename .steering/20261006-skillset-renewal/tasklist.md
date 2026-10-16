@@ -52,10 +52,10 @@ Last updated: 20261016（4 設計グループの採点基準を固定）
 20261015 決定: 4 は設計グループの分だけ先に作る（サンプルアプリ・B の一式・設計グループの課題と採点基準・plugin eval のケース）。他グループの課題・`tests/review-eval/`・現行レビューの基準値は、そのグループの順番が来たときに作る（C を書く前に固定する原則はグループ単位で守る）。CLAUDE.md の共通部分は今の CLAUDE.md から取り、評価の期間中は固定する。B のスキルに触れる部分はタグの CLAUDE.md から取る
 
 - [x] サンプルアプリを作る（置き場所と中身は論点のとおり）。1 回ごとに別のパスへ新しく複製する手順を用意する（20261016。設計グループは今の 1 画面で足りるため追加なし。複製は準備スクリプトの `cp -cR`。eval-design-group.md の 3）
-- [ ] タグから「B の一式」（`.claude/` 全体・CLAUDE.md・必要な scripts）を作り、条件ごとに入れるものの表を書く（20261016 表は済み。設計グループの B は 3 スキル＋premortem-attacker＋hook 1 本で、scripts は不要。一式はケースと一緒に作る）
+- [x] タグから「B の一式」（`.claude/` 全体・CLAUDE.md・必要な scripts）を作り、条件ごとに入れるものの表を書く（20261016 設計グループの分。B は 3 スキル＋premortem-attacker＋hook 1 本で、scripts は不要。`eval/prepare.sh b` がタグから組む。他グループは順番が来たら `prepare.sh` に足す）
 - [x] 設計グループの課題（D1 絞り込みの設計・D2 曖昧な依頼・D3 小さな依頼・S1 再開・S2 未承認での実装依頼・P1 穴を仕込んだ設計・再評価用 D4）の採点基準を書き、全条件共通の CLAUDE.md（`.steering` の行動ルール 5 行を含む）を固定する（20261015 決定）（20261016 固定。eval-design-group.md）
 - [ ] グループごとに作業課題（スキル 1 本あたり 2〜3 件）・再評価用の課題 1 件・採点基準を書き、ユーザーに確認してコミットで固定する（C を書き始める前）
-- [ ] 評価のケースを `claude plugin eval` の形式で書く（B・C 用の評価用 `plugin.json`、サンプルアプリを複製する準備スクリプト、停止の判定は `tool_used`、続きからの再開は `history_file`、採点は最終回答と生成ファイル中心で `--judge-model` を実行と別のモデルに。CLAUDE.md はスキルに触れない部分を `append_system_prompt`、触れる部分を B・C の plugin の SessionStart hook で入れる）
+- [x] 評価のケースを `claude plugin eval` の形式で書く（20261016 設計グループの 6 件＋再評価用 D4。`eval/`。B と C は 1 つの plugin ディレクトリの中身を入れ替え、ケースは 1 か所。`history_file` は使わず、再開は準備スクリプトで `.steering/` を置く形にした。B・C 用の評価用 `plugin.json`、サンプルアプリを複製する準備スクリプト、停止の判定は `tool_used`、続きからの再開は `history_file`、採点は最終回答と生成ファイル中心で `--judge-model` を実行と別のモデルに。CLAUDE.md はスキルに触れない部分を `append_system_prompt`、触れる部分を B・C の plugin の SessionStart hook で入れる）
 - [ ] `tests/review-eval/` を作る（過去の誤検知・真の指摘＋仕込みバグ＋公開事例）。仕込みバグは新しい agent の観点を書く前に固定する
 - [ ] 現行レビュー（タグの一式）の基準値を取り、人がラベル付けする
 - [ ] 評価は、sandbox を有効にした Claude Code の中ではなく通常のターミナルから実行する
