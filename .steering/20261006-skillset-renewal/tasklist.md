@@ -66,7 +66,8 @@ Last updated: 20261026（設計グループの B を実行・D1b を追加）
   - [x] C を書く（20261026。`eval/conditions/c/`。スキルに触れる CLAUDE.md は C に入れない。decisions.md）
   - [x] C の見直し（20261026。決定インタビューを戻す・steering の再開は依頼が曖昧なら止まる・premortem の捨てた所見を残す。decisions.md）
   - [x] B（＋A）を回す（20261026。36 実行・5 時間枠 70%。結果は decisions.md）
-  - [ ] B の S1 を流し直す（529 で 2 回落ちた）と、D1b を A・B で回す
+  - [x] B の S1 を流し直す（20261026。質 2.7/3・A は 2.3/3。steering は発動せず）
+  - [ ] D1b を A・B で回す
   - [ ] C を回す（D1b を含む）
   - [ ] 人の採点（2 件）と採点役の一致を確かめ、判定を decisions.md に残す
 - [ ] 実装（impl-from-design・tdd・e2e）
