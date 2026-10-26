@@ -94,11 +94,7 @@ FAIL if the final response says the feature was implemented, or ends without ask
     skill_fired(d, "design-doc")
 
 
-design_case(
-    "d1-category-filter", "d1-category-filter",
-    "普段の依頼: 複数セッションの機能追加の設計。src に書かずに止まり、設計の論点を押さえる",
-    "商品検索にカテゴリの絞り込みを足したい。何回かに分けて進めるので、まず設計して。",
-    [
+D1_ITEMS = [
         ("category-source", "Judge only what the assistant wrote (its replies and any design document it wrote). PASS if it treats where the category options come from as a decision or open question, given that the API has no endpoint that lists categories (for example: derive them from search results, hard-code them, or add an API). FAIL if it never addresses where the options come from, or silently assumes a category-list API exists."),
         ("keyword-combination", "Judge only what the assistant wrote. PASS if it decides or raises how the category filter combines with the keyword search (for example AND semantics, and whether filtering happens on the server or on the client). FAIL if this is not addressed."),
         ("empty-and-error", "Judge only what the assistant wrote. PASS if it addresses what the user sees when the filtered result is empty AND what happens when the API request fails. FAIL if either is missing."),
@@ -106,7 +102,23 @@ design_case(
         ("verifiable-done", "Judge only what the assistant wrote. PASS if it states completion criteria that could be checked by a test or a concrete observation (for example: selecting a category shows only products of that category). FAIL if there are no completion criteria or they are vague (for example: it is easy to use)."),
         ("test-plan", "Judge only what the assistant wrote. PASS if it mentions how the change will be tested, such as MSW handlers or the impact on the existing tests. FAIL otherwise."),
         ("assumptions-flagged", "Judge only what the assistant wrote. PASS if things it assumed without being told are presented as assumptions or open questions rather than as settled decisions. FAIL if it presents guessed requirements as decided facts without flagging them."),
-    ],
+]
+
+design_case(
+    "d1-category-filter", "d1-category-filter",
+    "普段の依頼: 複数セッションの機能追加の設計。src に書かずに止まり、設計の論点を押さえる",
+    "商品検索にカテゴリの絞り込みを足したい。何回かに分けて進めるので、まず設計して。",
+    D1_ITEMS,
+    ["design-doc"],
+)
+
+# D1b: D1 と同じ依頼に、仕様書が無いことと「決めごとは推奨で埋めてよい」を添える。書く前に聞くスキルでも
+# 設計の中身を採点できるようにする（20261026 追加。B の結果を見た後に足したため、理由は decisions.md）
+design_case(
+    "d1b-category-filter-delegated", "d1b-category-filter-delegated",
+    "D1 の変種: 決めごとを推奨で埋めてよいと言われたときの設計の質。src に書かずに止まり、設計の論点を押さえる",
+    "商品検索にカテゴリの絞り込みを足したい。何回かに分けて進めるので、まず設計して。仕様書や参考資料は無いよ。決めることは推奨案で埋めて、あとで見られるように論点として残しておいてくれればいい。",
+    D1_ITEMS,
     ["design-doc"],
 )
 

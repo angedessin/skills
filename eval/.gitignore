@@ -5,3 +5,4 @@
 /hooks/skill-claude-md.md
 evals/**/results/
 evals/results/
+/results-*.json

@@ -1,6 +1,6 @@
 # タスクリスト: skillset-renewal
 
-Last updated: 20261026（5 設計グループの C を作成）
+Last updated: 20261026（設計グループの B を実行・D1b を追加）
 
 ## 0. 計測（実施済み）
 
@@ -65,7 +65,9 @@ Last updated: 20261026（5 設計グループの C を作成）
 - [ ] 設計（design-doc・steering・design-premortem）: 書き直し → A・B・C を回す → 判定。ここで実費を測り、残りの規模をユーザーと決める
   - [x] C を書く（20261026。`eval/conditions/c/`。スキルに触れる CLAUDE.md は C に入れない。decisions.md）
   - [x] C の見直し（20261026。決定インタビューを戻す・steering の再開は依頼が曖昧なら止まる・premortem の捨てた所見を残す。decisions.md）
-  - [ ] 費用を見積もって承認を取り、通常のターミナルから B（＋A）・C を回す
+  - [x] B（＋A）を回す（20261026。36 実行・5 時間枠 70%。結果は decisions.md）
+  - [ ] B の S1 を流し直す（529 で 2 回落ちた）と、D1b を A・B で回す
+  - [ ] C を回す（D1b を含む）
   - [ ] 人の採点（2 件）と採点役の一致を確かめ、判定を decisions.md に残す
 - [ ] 実装（impl-from-design・tdd・e2e）
 - [ ] レビュー（frontend-code-review と agent を公式の構成で作り直し、review-* スキル・impl-review・test-review を削除する。評価セットで誤検知と見逃しを比べる）
