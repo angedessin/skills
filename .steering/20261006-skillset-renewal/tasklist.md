@@ -77,7 +77,7 @@ Last updated: 20261026（設計グループの B を実行・D1b を追加）
 - [ ] 実装（impl-from-design・tdd・e2e）
   - [x] 課題と採点基準を固定する（20261027。eval-impl-group.md）
   - [x] ケースを `plugin eval` の形で書き、B の一式を準備スクリプトに足す（20261027。`eval/evals/impl/`・`prepare.sh b|c impl`）
-  - [ ] C を書く
+  - [x] C を書く（20261027。`eval/conditions/c/impl/`。ユーザーのレビュー待ち）
   - [ ] 費用の承認を取り、B（＋A）・C を回して判定する
 - [ ] レビュー（frontend-code-review と agent を公式の構成で作り直し、review-* スキル・impl-review・test-review を削除する。評価セットで誤検知と見逃しを比べる）
 - [ ] 知識（knowledge-capture・compound・rule-audit・session-retrospective）
