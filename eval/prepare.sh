@@ -9,6 +9,8 @@ cond="${1:-}"
 TAG=pre-renewal-20261006
 SKILLS=(design-doc steering design-premortem)
 AGENTS=(premortem-attacker)
+# 設計グループの判定（20261027）: design-doc・steering は C に置き換え、design-premortem は削除
+C_FROM_MASTER=(design-doc steering)
 
 case "${cond}" in
   b|c) ;;
@@ -28,8 +30,9 @@ if [ "${cond}" = b ]; then
   cp -R "$tmp/.claude/skills/." skills/
   cp -R "$tmp/.claude/agents/." agents/
 else
-  [ -d conditions/c/skills ] || { echo "conditions/c/skills がまだ無い" >&2; exit 1; }
-  cp -R conditions/c/skills/. skills/
+  # 採用が決まったグループの C はマスターの .claude/skills/ が正本（評価した版は git の履歴にある）
+  for s in "${C_FROM_MASTER[@]}"; do cp -R "../.claude/skills/$s" skills/; done
+  [ -d conditions/c/skills ] && cp -R conditions/c/skills/. skills/
   [ -d conditions/c/agents ] && cp -R conditions/c/agents/. agents/
 fi
 [ -f "conditions/${cond}/skill-claude-md.md" ] && cp "conditions/${cond}/skill-claude-md.md" hooks/

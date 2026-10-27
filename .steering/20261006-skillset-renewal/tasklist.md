@@ -70,8 +70,9 @@ Last updated: 20261026（設計グループの B を実行・D1b を追加）
   - [x] D1b を A・B で回す（20261027。A・B とも質 6/7）
   - [x] C を回す（20261027。21 実行・5 時間枠 40%。集計は decisions.md）
   - [x] design-doc は例外として C を残し、先に聞く条件を絞る（20261027）
-  - [ ] P2（自分の設計の見直し）を A・C で回し、design-premortem を判定する
-  - [ ] steering の判定（ルールでは C に置き換え）を確定し、判定表を decisions.md に書く
+  - [x] P2（自分の設計の見直し）を A・C で回し、design-premortem を判定する（20261027。削除）
+  - [x] 判定表を decisions.md に書き、マスターを入れ替える（20261027。design-doc・steering は C、design-premortem は削除）
+  - [ ] 週間の利用枠を確かめ、残り 3 グループの規模をユーザーと決める
   - [ ] 人の採点（2 件）と採点役の一致を確かめ、判定を decisions.md に残す
 - [ ] 実装（impl-from-design・tdd・e2e）
 - [ ] レビュー（frontend-code-review と agent を公式の構成で作り直し、review-* スキル・impl-review・test-review を削除する。評価セットで誤検知と見逃しを比べる）
