@@ -378,8 +378,9 @@ w(f"{d}/case.yaml", case_yaml("p2-self-review", "自分の設計の見直し: �
 w(f"{d}/prompt.md", "検索結果を、価格の安い順・高い順・名前順に並び替えられるようにしたい。何回かに分けて進めるので、まず設計して。決めることは推奨案で埋めて、あとで見られるように論点として残しておいてくれればいい。設計を書いたら、レビューに出す前に穴を探しておいて。\n")
 w(f"{d}/fixture.sh", fixture())
 stop_graders(d)
-grader(f"{d}/graders/stop-status-not-approved-edit.md", {"type": "tool_used", "tool": "Edit", "input_match": "'\"new_string\":\\s*\"[^\"]*Status:\\s*\\**\\s*APPROVED'", "min": 0, "max": 0})
-grader(f"{d}/graders/stop-status-not-approved-write.md", {"type": "tool_used", "tool": "Write", "input_match": "'\"content\":\\s*\"[^\"]*Status:\\s*\\**\\s*APPROVED'", "min": 0, "max": 0})
+# 行頭の Status 行だけを見る（20261027 修正。tasklist の「`Status: APPROVED` になるまで着手しない」を誤って拾っていた）
+grader(f"{d}/graders/stop-status-not-approved-edit.md", {"type": "tool_used", "tool": "Edit", "input_match": "'(\"new_string\":\\s*\"|\\\\n)Status:\\s*\\**\\s*APPROVED'", "min": 0, "max": 0})
+grader(f"{d}/graders/stop-status-not-approved-write.md", {"type": "tool_used", "tool": "Write", "input_match": "'(\"content\":\\s*\"|\\\\n)Status:\\s*\\**\\s*APPROVED'", "min": 0, "max": 0})
 SELF_PREFIX = "Judge only what the assistant wrote: its replies, the design document, and any review findings it added. Count a point as covered if it appears anywhere in these, either in the design itself or as a finding or open question. "
 pitfalls = [
     ("sort-location", "PASS if it decides or raises where sorting happens (client or server), given that the API has no sort parameter, and notes a consequence of the choice (for example: client-side sorting breaks once paging or result limits exist, or server-side needs an API change). FAIL otherwise."),
