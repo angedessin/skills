@@ -379,3 +379,10 @@
 **理由**: 「穴を探して」と頼めば素のモデルが同じ質で探せた。スキルが足していた subagent の手順は点を上げず、費用を 1.7〜2.5 倍にした。失うのは「思い出させる」役目だけで、それは design-doc の 1 行で残す
 **影響**: validate の契約 8（design-doc の付録境界）と契約 9 の design-doc 側のキーを外した（design-doc を書き直し、付録境界と方針転換の手順をやめたため）。静的検査は validate 27/27・test:hooks 100/100・lint で緑。impl-from-design・frontend-code-review・impl-tournament・skill-test・README・docs に design-premortem や付録境界への死んだ参照が残るが、2 の方針どおり書き直しまで許容する。`tests/passthrough/design-premortem/` は削除し、design-doc の passthrough（旧い振る舞いの台本）は 8 の passthrough 削除まで残す。P1・P2 のケースは回帰テストとして残す（スキルが無いので `ind-skill-fired` は落ちる）。上の 1 行は評価していない
 **判定表の注記**: 1 ターンの評価で、セッションをまたぐ価値は S1 で一部しか測っていない。B はタグの CLAUDE.md の一部を hook で入れる近似。採点役は haiku で、長い trace で取りこぼす疑いがある（人の採点 1 件で 1 項目ずれた。判定は変わらない）。評価の実費は 75 実行・5 時間枠の約 1.65 回分
+
+## 20261027 — design-premortem を手動専用のコマンドとして戻す
+
+**決定**: 削除した design-premortem と premortem-attacker を、評価した C の版（01201c9）で戻す。SKILL.md に `disable-model-invocation: true` を付け、人が `/design-premortem` で呼んだときだけ動く手動専用のコマンドにする（引数で design.md のパスを渡せる）。design-doc の STOP の 1 行は「レビューの前に `/design-premortem` で設計の穴探しもできます」に変えた。評価で消したスキルを戻してよいのは「自動では発動させず、決まった手順の入口として人が呼ぶもの」に限る。自動発動のスキルとして戻すのは、評価で差が出たときだけ（ユーザー決定）
+**理由**: 評価が答えたのは「頼んだときにスキルがあると質が上がるか」（上がらない）で、「決まった観点・出力・歯止め（APPROVED では止まる・Status を変えない・捨てた所見を残す）で、いつでも同じように呼べる入口が要るか」は測っていない。その場で頼む方式は頼み方で観点と出力が揺れる。公式ドキュメント（20261027 取得）で、`disable-model-invocation: true` は Claude が自分では読み込まず、説明文もコンテキストに載らず、`/name` でだけ動くと確かめた。費用が 1.7〜2.5 倍で質が同じという評価の結果は、人が承知のうえで呼ぶ場合には削除の理由にならない
+**却下した案**: 削除のままにして、その都度頼む（手順が揃わない）。自動発動のスキルとして戻す（評価で差が無い）
+**影響**: 前の決定の「design-premortem と premortem-attacker を削除」を取り消す。評価用の `prepare.sh c` には入れない（手動専用で、プロンプトでは発動しないため）。P1・P2 のケースは素のモデルの穴探しの回帰テストとして使う

@@ -9,7 +9,7 @@ cond="${1:-}"
 TAG=pre-renewal-20261006
 SKILLS=(design-doc steering design-premortem)
 AGENTS=(premortem-attacker)
-# 設計グループの判定（20261027）: design-doc・steering は C に置き換え、design-premortem は削除
+# 設計グループの判定（20261027）: design-doc・steering は C に置き換え。design-premortem は手動専用（disable-model-invocation）で残したので、プロンプトでは発動しない。評価の C には入れない
 C_FROM_MASTER=(design-doc steering)
 
 case "${cond}" in
