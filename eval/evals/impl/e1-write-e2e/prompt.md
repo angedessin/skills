@@ -1,0 +1,1 @@
+検索の主要な流れの E2E テストを Playwright で書いて。`e2e/search.spec.ts` に置いて。Playwright はまだ入っていないので、設定ファイルと spec を書くところまででいい（インストールと実行はこちらでやる）。

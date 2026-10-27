@@ -75,6 +75,10 @@ Last updated: 20261026（設計グループの B を実行・D1b を追加）
   - [ ] 週間の利用枠を確かめ、残り 3 グループの規模をユーザーと決める
   - [ ] 人の採点（2 件）と採点役の一致を確かめ、判定を decisions.md に残す
 - [ ] 実装（impl-from-design・tdd・e2e）
+  - [x] 課題と採点基準を固定する（20261027。eval-impl-group.md）
+  - [ ] ケースを `plugin eval` の形で書き、B の一式を準備スクリプトに足す
+  - [ ] C を書く
+  - [ ] 費用の承認を取り、B（＋A）・C を回して判定する
 - [ ] レビュー（frontend-code-review と agent を公式の構成で作り直し、review-* スキル・impl-review・test-review を削除する。評価セットで誤検知と見逃しを比べる）
 - [ ] 知識（knowledge-capture・compound・rule-audit・session-retrospective）
 - [ ] 評価しないスキル: pr-create を新しい型で書き直す。debug・pr-feedback・security-audit・impl-tournament を削除する（README の記述も同じコミットで消す）

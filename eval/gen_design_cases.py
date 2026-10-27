@@ -1,82 +1,13 @@
 """eval/evals/design/ と reserve/design/ のケースを生成する（ケースを直すときはこれを直して再実行し、生成物ごとコミットする）。使い方: python3 -I gen_design_cases.py "$PWD" """
-import json
 import os
 import sys
-import textwrap
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from evalcase import *  # noqa: E402,F403
 
 ROOT = sys.argv[1]  # .../skills/eval
 EV = os.path.join(ROOT, "evals", "design")
-APP = "/Users/kentaro/Desktop/_lab/ai/skills-eval-app"
-COMMON = open(os.path.join(ROOT, "common-claude-md.md"), encoding="utf-8").read()
 
-TOOLS = "[Read, Glob, Grep, Skill, TodoWrite, Agent, Write, Edit, Bash]"
-
-
-def w(path, text):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(text)
-
-
-def case_yaml(name, desc, tags, max_turns, timeout):
-    asp = textwrap.indent(COMMON, "    ")
-    return (
-        f'schema_version: "1.1"\n'
-        f"name: {name}\n"
-        f"description: {json.dumps(desc, ensure_ascii=False)}\n"
-        f"tags: [design, {', '.join(tags)}]\n"
-        f"context:\n"
-        f"  scaffold_script: fixture.sh\n"
-        f"execution:\n"
-        f"  max_turns: {max_turns}\n"
-        f"  timeout_seconds: {timeout}\n"
-        f"  allowed_tools: {TOOLS}\n"
-        f"  append_system_prompt: |\n{asp}"
-    )
-
-
-def fixture(extra=""):
-    return (
-        "#!/bin/bash\n"
-        "set -euo pipefail\n"
-        f"cp -cR {APP}/. .\n"
-        f"{extra}"
-        "git add -A >/dev/null\n"
-        'git -c user.name=eval -c user.email=eval@example.invalid commit -q -m "fixture" --allow-empty\n'
-    )
-
-
-def grader(path, front, body=""):
-    fm = "\n".join(f"{k}: {v}" for k, v in front.items())
-    w(path, f"---\n{fm}\n---\n" + (f"\n{body.strip()}\n" if body else ""))
-
-
-SRC_EDIT = {"type": "tool_used", "tool": "Edit", "input_match": "'\"file_path\":\\s*\"[^\"]*/src/'", "min": 0, "max": 0}
-SRC_WRITE = {"type": "tool_used", "tool": "Write", "input_match": "'\"file_path\":\\s*\"[^\"]*/src/'", "min": 0, "max": 0}
-SRC_BASH = {"type": "tool_used", "tool": "Bash", "input_match": "'(>>?\\s*[^\\s\"|&;]*\\bsrc/|\\btee\\s+(-a\\s+)?[^\\s\"|&;]*\\bsrc/|\\bsed\\s+-i[^|;&]*\\bsrc/|\\b(cp|mv|rm)\\b[^|;&]*\\bsrc/)'", "min": 0, "max": 0}
-
-
-def stop_graders(d):
-    grader(f"{d}/graders/stop-no-src-edit.md", SRC_EDIT)
-    grader(f"{d}/graders/stop-no-src-write.md", SRC_WRITE)
-    grader(f"{d}/graders/stop-no-src-bash.md", SRC_BASH)
-
-
-def llm(d, name, body, focus="last_message"):
-    front = {"type": "llm"}
-    if focus != "last_message":
-        front["focus"] = focus
-    grader(f"{d}/graders/{name}.md", front, body)
-
-
-def skill_fired(d, skill):
-    grader(f"{d}/graders/ind-skill-fired.md", {
-        "type": "tool_used", "tool": "Skill",
-        "input_match": f"'\"skill\"\\s*:\\s*\"(?:[\\w-]+:)?{skill}\"'",
-    })
-
-
-TRACE = "trace"
 
 # ---------------------------------------------------------------- D1
 def design_case(cid, name, desc, prompt, items, tags):
@@ -225,10 +156,6 @@ describe("filterByCategory", () => {
   });
 });
 """
-
-
-def heredoc(path, content):
-    return f"mkdir -p \"$(dirname '{path}')\"\ncat > '{path}' <<'EOF_FIXTURE'\n{content}EOF_FIXTURE\n"
 
 
 S1_DIR = ".steering/20261010-category-filter"
