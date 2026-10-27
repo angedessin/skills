@@ -370,6 +370,34 @@ for i, (slug, text) in enumerate(holes, 1):
 llm(d, "q6-no-false-claims", HOLE_PREFIX + "The design document states: options come from the current results plus 'すべて'; selecting a category re-queries the API with q and category; the MSW handler will be updated; state lives in useState. PASS if none of its findings claims that something stated here is missing from the design. FAIL if any finding claims one of these stated points is absent.", focus=TRACE)
 grader(f"{d}/graders/ind-skill-fired.md", {"type": "tool_used", "tool": "Skill", "input_match": "'\"skill\"\\s*:\\s*\"(?:[\\w-]+:)?design-premortem\"'"})
 
+# ---------------------------------------------------------------- P2（20261027 追加。自分が書いた設計を同じ会話で見直す場面。理由は decisions.md）
+# P1 は準備スクリプトが置いた他人の設計で、書いた本人の甘さが起きない。P2 は同じターンで設計を書かせてから穴を探させ、
+# 最終的な設計（本文と追記した所見）が既知の落とし穴をどれだけ押さえたかで比べる。A と C だけを回す
+d = f"{EV}/p2-self-review"
+w(f"{d}/case.yaml", case_yaml("p2-self-review", "自分の設計の見直し: 設計を書いた同じ会話で穴を探し、既知の落とし穴を押さえる", ["design-premortem", "design-doc", "stop"], 60, 1200))
+w(f"{d}/prompt.md", "検索結果を、価格の安い順・高い順・名前順に並び替えられるようにしたい。何回かに分けて進めるので、まず設計して。決めることは推奨案で埋めて、あとで見られるように論点として残しておいてくれればいい。設計を書いたら、レビューに出す前に穴を探しておいて。\n")
+w(f"{d}/fixture.sh", fixture())
+stop_graders(d)
+grader(f"{d}/graders/stop-status-not-approved-edit.md", {"type": "tool_used", "tool": "Edit", "input_match": "'\"new_string\":\\s*\"[^\"]*Status:\\s*\\**\\s*APPROVED'", "min": 0, "max": 0})
+grader(f"{d}/graders/stop-status-not-approved-write.md", {"type": "tool_used", "tool": "Write", "input_match": "'\"content\":\\s*\"[^\"]*Status:\\s*\\**\\s*APPROVED'", "min": 0, "max": 0})
+SELF_PREFIX = "Judge only what the assistant wrote: its replies, the design document, and any review findings it added. Count a point as covered if it appears anywhere in these, either in the design itself or as a finding or open question. "
+pitfalls = [
+    ("sort-location", "PASS if it decides or raises where sorting happens (client or server), given that the API has no sort parameter, and notes a consequence of the choice (for example: client-side sorting breaks once paging or result limits exist, or server-side needs an API change). FAIL otherwise."),
+    ("reset-on-search", "PASS if it decides or raises what happens to the chosen sort order when the user runs a new search (keep it or reset it). FAIL otherwise."),
+    ("tie-break", "PASS if it addresses the order of items with the same price (for example a secondary key such as name or id, or a stable sort). FAIL otherwise."),
+    ("japanese-name-order", "PASS if it addresses how names are ordered for Japanese text (for example localeCompare with the ja locale, or how kana, kanji and alphanumerics are ordered), rather than assuming a plain string comparison. FAIL otherwise."),
+    ("non-success-states", "PASS if it addresses how the sort control behaves when there are no results to sort (before the first search, while loading, on error, or with zero results). FAIL otherwise."),
+    ("verifiable-done", "PASS if it states completion criteria and a test plan that could check the order (for example MSW data with equal prices to test the tie-break). FAIL if criteria are missing or vague."),
+]
+for i, (slug, text) in enumerate(pitfalls, 1):
+    llm(d, f"q{i}-{slug}", SELF_PREFIX + text, focus=TRACE)
+llm(d, "q7-found-own-gap", "PASS if, after writing its design, the assistant reviewed it and named at least one concrete gap or risk in its own first draft (not merely restating what the draft already says), and either fixed the design or recorded it as a finding or open question. FAIL if there was no review, or the review found nothing concrete.", focus=TRACE)
+llm(d, "how-asks-review", """
+PASS if the final response ends by asking the user to review or approve the design, or to decide open questions.
+FAIL if the final response says the feature was implemented, or ends without asking the user for anything.
+""")
+grader(f"{d}/graders/ind-skill-fired.md", {"type": "tool_used", "tool": "Skill", "input_match": "'\"skill\"\\s*:\\s*\"(?:[\\w-]+:)?design-premortem\"'"})
+
 # ---------------------------------------------------------------- D4（再評価用。evals/ の外に置き、使うときだけ evals/design/ へ移す）
 EV = os.path.join(ROOT, "reserve", "design")
 design_case(
