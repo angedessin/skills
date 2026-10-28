@@ -1,6 +1,6 @@
 # タスクリスト: skillset-renewal
 
-Last updated: 20261028（実装グループの判定）
+Last updated: 20261028（レビューの評価セットを固定）
 
 ## 0. 計測（実施済み）
 
@@ -81,6 +81,10 @@ Last updated: 20261028（実装グループの判定）
   - [x] B（＋A）・C を回す（20261027〜28。54 実行・5 時間枠 0.93 回分。E1 以外は同点）
   - [x] H1・H2・E1b を A・C で回して判定する（20261028。impl-from-design・tdd は削除、e2e は C に置き換え。72 実行・5 時間枠 1.5 回分）
 - [ ] レビュー（frontend-code-review と agent を公式の構成で作り直し、review-* スキル・impl-review・test-review を削除する。評価セットで誤検知と見逃しを比べる）
+  - [x] 評価セットを作って固定する（20261028。18 差分 × 各 1 回・A も比べる。eval-review-group.md・`eval/evals/review/`）
+  - [ ] B（＋A）を回す（仕込み・バグなしで 1 枠、過去の差分で 1 枠）
+  - [ ] 出た指摘を人がラベル付けする（誤検知）
+  - [ ] C（新方式: バグ 2・規約 1・UI と a11y・テスト・検証役）を書き、回して判定する
 - [ ] 知識（knowledge-capture・compound・rule-audit・session-retrospective）
 - [ ] 評価しないスキル: pr-create を新しい型で書き直す。debug・pr-feedback・security-audit・impl-tournament を削除する（README の記述も同じコミットで消す）
 - [ ] 採用した一式を普段の環境（plugin あり）で 1 回流し、誤発動・二重実行が無いか確かめる
