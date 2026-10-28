@@ -218,7 +218,7 @@ test("入力したキーワードが残っている", async () => {
 });
 """
 d = impl_case(
-    "e2-review-e2e", "不安定な E2E をレビューする: 仕込んだ 5 つの問題を指摘し、直さない", ["e2e", "review"],
+    "e2-review-e2e", "不安定な E2E をレビューする: 仕込んだ 5 つの問題を指摘し、直さない", ["e2e", "e2e-review"],
     "この E2E テストをレビューして。",
     heredoc(SPEC, E2_SPEC), turns=30, timeout=600,
 )

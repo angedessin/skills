@@ -1,7 +1,7 @@
 schema_version: "1.1"
 name: e2-review-e2e
 description: "不安定な E2E をレビューする: 仕込んだ 5 つの問題を指摘し、直さない"
-tags: [impl, e2e, review]
+tags: [impl, e2e, e2e-review]
 context:
   scaffold_script: fixture.sh
 execution:
