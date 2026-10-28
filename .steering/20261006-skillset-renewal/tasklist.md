@@ -78,7 +78,8 @@ Last updated: 20261026（設計グループの B を実行・D1b を追加）
   - [x] 課題と採点基準を固定する（20261027。eval-impl-group.md）
   - [x] ケースを `plugin eval` の形で書き、B の一式を準備スクリプトに足す（20261027。`eval/evals/impl/`・`prepare.sh b|c impl`）
   - [x] C を書く（20261027。`eval/conditions/c/impl/`。ユーザーのレビュー待ち）
-  - [ ] 費用の承認を取り、B（＋A）・C を回して判定する
+  - [x] B（＋A）・C を回す（20261027〜28。54 実行・5 時間枠 0.93 回分。E1 以外は同点）
+  - [ ] H1・H2・E1b を A・C で回して判定する（20261028 追加）
 - [ ] レビュー（frontend-code-review と agent を公式の構成で作り直し、review-* スキル・impl-review・test-review を削除する。評価セットで誤検知と見逃しを比べる）
 - [ ] 知識（knowledge-capture・compound・rule-audit・session-retrospective）
 - [ ] 評価しないスキル: pr-create を新しい型で書き直す。debug・pr-feedback・security-audit・impl-tournament を削除する（README の記述も同じコミットで消す）
