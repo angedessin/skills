@@ -24,11 +24,16 @@ case "${group}" in
     # 判定済み（20261028）: e2e は C に置き換えてマスターが正本。impl-from-design・tdd は削除
     C_FROM_MASTER=(e2e)
     ;;
-  *) echo "usage: $0 b|c design|impl" >&2; exit 2 ;;
+  review)
+    SKILLS=(frontend-code-review review-a11y review-correctness review-performance review-security review-ui impl-review test-review)
+    AGENTS=(review-a11y review-correctness review-impl review-performance review-security review-test review-ui)
+    C_FROM_MASTER=()
+    ;;
+  *) echo "usage: $0 b|c design|impl|review" >&2; exit 2 ;;
 esac
 case "${cond}" in
   b|c) ;;
-  *) echo "usage: $0 b|c design|impl" >&2; exit 2 ;;
+  *) echo "usage: $0 b|c design|impl|review" >&2; exit 2 ;;
 esac
 
 rm -rf skills agents hooks/skill-claude-md.md .claude-plugin
