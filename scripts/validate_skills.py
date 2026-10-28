@@ -12,8 +12,8 @@
      （「ここで止ま」または見出しの STOP）を 1 つ以上持つ。否定形（承認不要 等）は
      トリガーから除外。逃し弁として本文に <!-- validator: no-stop-needed --> があればスキップ。
   （8. design-doc の付録境界は 20261027 に削除。design-doc を書き直し、付録境界をやめたため）
-  9. 既定走査時: design↔実装同期パスのキー共存（impl-from-design 乖離分類 /
-     impl-review・frontend-code-review の設計整合ゲート。design-doc 側は 20261027 に外した）。
+  9. 既定走査時: design↔実装同期パスのキー共存（impl-review・frontend-code-review の設計整合ゲート。
+     design-doc 側は 20261027、impl-from-design 側は 20261028 にスキルの書き直し・削除で外した）。
      キーワード並びのみ検査し、手順の実行正否は見ない（空文で通る限界あり）
   10. 既定走査時: tasklist 工程表同期（FCR 知見保存→デプロイ順 + 6 節キー）。
       キーワード並びと出現位置のみ。空文で通る限界あり
@@ -75,14 +75,6 @@ PORTABILITY_VOCAB = [
 # 限界: キーワードが並んでいれば通る。手順の意味・順序・勝手変更禁止の実行正否は見ない（空文で通る）。
 # 振る舞い契約が要る場合は passthrough（別 BACKLOG）を使う。
 DESIGN_IMPL_SYNC_CHECKS = (
-    (
-        "impl-from-design",
-        (
-            ("乖離が生じた場合", "乖離節"),
-            ("【乖離の分類提案】", "分類提案テンプレ"),
-            ("design-doc", "方針転換への案内"),
-        ),
-    ),
     (
         "impl-review",
         (

@@ -21,7 +21,8 @@ case "${group}" in
   impl)
     SKILLS=(impl-from-design tdd e2e)
     AGENTS=(codebase-explorer)
-    C_FROM_MASTER=()
+    # 判定済み（20261028）: e2e は C に置き換えてマスターが正本。impl-from-design・tdd は削除
+    C_FROM_MASTER=(e2e)
     ;;
   *) echo "usage: $0 b|c design|impl" >&2; exit 2 ;;
 esac

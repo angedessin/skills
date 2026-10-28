@@ -1,6 +1,6 @@
 # タスクリスト: skillset-renewal
 
-Last updated: 20261026（設計グループの B を実行・D1b を追加）
+Last updated: 20261028（実装グループの判定）
 
 ## 0. 計測（実施済み）
 
@@ -74,12 +74,12 @@ Last updated: 20261026（設計グループの B を実行・D1b を追加）
   - [x] 判定表を decisions.md に書き、マスターを入れ替える（20261027。design-doc・steering は C、design-premortem は削除）
   - [ ] 週間の利用枠を確かめ、残り 3 グループの規模をユーザーと決める
   - [ ] 人の採点（2 件）と採点役の一致を確かめ、判定を decisions.md に残す
-- [ ] 実装（impl-from-design・tdd・e2e）
+- [x] 実装（impl-from-design・tdd・e2e）（20261028 判定）
   - [x] 課題と採点基準を固定する（20261027。eval-impl-group.md）
   - [x] ケースを `plugin eval` の形で書き、B の一式を準備スクリプトに足す（20261027。`eval/evals/impl/`・`prepare.sh b|c impl`）
   - [x] C を書く（20261027。`eval/conditions/c/impl/`。ユーザーのレビュー待ち）
   - [x] B（＋A）・C を回す（20261027〜28。54 実行・5 時間枠 0.93 回分。E1 以外は同点）
-  - [ ] H1・H2・E1b を A・C で回して判定する（20261028 追加）
+  - [x] H1・H2・E1b を A・C で回して判定する（20261028。impl-from-design・tdd は削除、e2e は C に置き換え。72 実行・5 時間枠 1.5 回分）
 - [ ] レビュー（frontend-code-review と agent を公式の構成で作り直し、review-* スキル・impl-review・test-review を削除する。評価セットで誤検知と見逃しを比べる）
 - [ ] 知識（knowledge-capture・compound・rule-audit・session-retrospective）
 - [ ] 評価しないスキル: pr-create を新しい型で書き直す。debug・pr-feedback・security-audit・impl-tournament を削除する（README の記述も同じコミットで消す）
