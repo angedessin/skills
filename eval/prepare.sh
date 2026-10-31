@@ -37,11 +37,18 @@ case "${group}" in
     # 判定済み（20261031）: session-retrospective は C に置き換えてマスターが正本。knowledge-capture・compound・rule-audit は削除
     C_FROM_MASTER=(session-retrospective)
     ;;
-  *) echo "usage: $0 b|c design|impl|review|knowledge" >&2; exit 2 ;;
+  pr)
+    # 比較しない（design.md の「評価しないスキル」）。書き直した pr-create が止まるかだけを c で確かめる
+    [ "${cond}" = c ] || { echo "pr は c だけ（B と比べない）" >&2; exit 2; }
+    SKILLS=(pr-create)
+    AGENTS=()
+    C_FROM_MASTER=(pr-create)
+    ;;
+  *) echo "usage: $0 b|c design|impl|review|knowledge|pr" >&2; exit 2 ;;
 esac
 case "${cond}" in
   b|c) ;;
-  *) echo "usage: $0 b|c design|impl|review|knowledge" >&2; exit 2 ;;
+  *) echo "usage: $0 b|c design|impl|review|knowledge|pr" >&2; exit 2 ;;
 esac
 
 rm -rf skills agents hooks/skill-claude-md.md .claude-plugin

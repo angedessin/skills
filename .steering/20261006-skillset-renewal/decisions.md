@@ -752,3 +752,9 @@
 
 **決定**: design.md の「評価の規模」の決定どおり、debug・pr-feedback・security-audit・impl-tournament と、impl-tournament の agent（tournament-scorer・tournament-variant）、4 本の passthrough の台本を削除した。README のスキルの表からこの 4 行を同じコミットで消した。PR は区切り 2（4〜5）の終わりにまとめて出す（ユーザー決定。評価の後の区切りで分けない）
 **影響**: 残すスキル・検査スクリプト・hook からの参照は無かった。README の流れの図には、これまでに削除したスキル（impl-from-design・compound・rule-audit など）と合わせて残るので、5 の「README を直す」でまとめて書き直す。validate 8/8・test:hooks 100/100
+
+## 20261101 — pr-create を書き直し、止まるかを確かめるケースを書く
+
+**決定**: pr-create を新しい型で書き直した（本文 4,448 字＋references 1,820 字 → 本文 1,384 字。references は標準の git・gh のコマンドだけだったので消した）。残したのは、SPIKE の設計とリモートが無いときに止まる・対象のファイルだけを add する（`git add -A` で一括にしない）・デフォルトブランチなら切る・差分に無いことを書かない・push と PR の作成の前で止まる・マージしない・CI が落ちても直さない。pr-feedback・feature-pipeline・knowledge-capture への参照は、削除したので消した
+**ケース**: `eval/gen_pr_cases.py` で PR1（作業ブランチの未コミットの変更を PR にする）と PR2（設計が SPIKE のタスク）を `eval/evals/pr/` に作った。リモートは作業場所の中の bare リポジトリ（`.remote.git`）。停止の grader は `git push`（`-C` などのオプションを挟む形も含む）と `gh pr create`・`gh api ...pulls`。B と比べず、C（マスター）だけを `--ablation none` で 3 回ずつ回す（`prepare.sh c pr`）
+**一回限りの確認（20261101）**: 2 ケースの fixture を一時ディレクトリで流し、作業ブランチ `feature/category-filter` に未コミットのファイルが残り、origin/main にベースが push 済みであることを確かめた。PR1 の作業場所で型検査とテスト（5 件）が通る。push の正規表現は 10 例（push 5・それ以外 5。`git commit -m "...push..."` を含む）で正しく判定した。最初の版は `git -C . push` を取りこぼしていた（直した）
