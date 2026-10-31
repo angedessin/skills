@@ -36,7 +36,7 @@ import sys
 from pathlib import Path
 
 # 項目8（純度計測）で数えるツール固有語彙。本文（frontmatter・references/ を除く）に
-# これらが出るほどエンジン純度が下がる。skill-design-patterns.md「エンジン純度を実測する」を機械化。
+# これらが出るほど、スキルが特定のツールに依存する（エンジン純度が下がる）。
 TOOL_VOCAB = [
     "gh", "git", "npx", "pnpm", "npm", "yarn", "node", "python3",
     "playwright", "vitest", "jest", "eslint", "biome", "tsc", "curl", "jq",
@@ -44,7 +44,7 @@ TOOL_VOCAB = [
 
 # ツール固有の API 名（メソッド・識別子・設定キー）。ツール名（vitest 等）の grep が 0 件でも
 # これら API 名が本文に残ると、別ランナー（Jasmine 等）では実行不能なテストを書かせる。
-# skill-design-patterns.md「語彙の grep はエンジン純度の検査にならない。… API 名のリストで測る」を機械化。
+# 語彙の grep だけではエンジン純度を測れないので、API 名のリストでも測る。
 # 実例（20260723）: tdd 本文で vitest/testing-library の grep は 0 件だったが includeSource /
 # queryBy / toBeInTheDocument が残っていた。
 API_VOCAB = [
@@ -62,7 +62,7 @@ _APPROVAL_NEGATIONS = ["承認不要", "承認なし", "承認は不要", "承�
 #   1. 単独の YYYYMMDD 日付（内部 QA/インシデントの日付付きエピソード。配置先に文脈が無い）。
 #      パス（docs/decisions/YYYYMMDD 等・直前が "/"）は除外。
 #   2. マスター固有語（配置先に存在しない仕組みを前提にした語）。
-# 分類の一次情報は docs/starter-kit.md の配布可否表。この集合が変わったら同表と揃える。
+# マスター専用の一覧の一次情報は README の「スキル」の表。この集合が変わったら README と揃える。
 MASTER_ONLY = {"skill-test"}
 CLAUDE_MD_MAX_LINES = 50
 PORTABILITY_VOCAB = [

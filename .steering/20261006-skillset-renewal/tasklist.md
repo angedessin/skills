@@ -109,7 +109,7 @@ Last updated: 20261029（レビューの B（＋A）を途中まで回した）
 - [x] 残したスキルごとに回帰テスト用のテストケースを残す（評価の課題を転用する。形式は `claude plugin eval`）（20261101。`eval/README.md` の「回帰テスト」の表）
 - [ ] 書き直し後のスキルに prompt-audit をもう一度回す
 - [x] `CLAUDE.md` を 50 行以内の行動ルールに書き直す（小さな作業の決め方を含む）（20261101。46 行。validate の契約 11 で行数を検査）
-- [ ] `templates/`・`prompts/`・`docs/user-guide.md`・`docs/starter-kit.md`・`README.md` を直す
+- [x] `templates/`・`prompts/`・`docs/user-guide.md`・`docs/starter-kit.md`・`README.md` を直す（20261101。starter-kit は削除。README のコピー手順は 7 章で書く）
 
 ## 6. settings.json
 
@@ -128,13 +128,13 @@ Last updated: 20261029（レビューの B（＋A）を途中まで回した）
 - [ ] README にコピー手順と依存の一覧（一緒に持っていくもの・マスター専用の印）を書く
 - [ ] validate に、依存の一覧と実際のスキル・agent の参照の突き合わせを足す
 - [ ] `validate_skills.py` を新構成に合わせる（`check_asset_consistency.py`・`tests/assets/` は 3 で削除済み。新構成で本当に要る突き合わせだけを、必要になったら書く。残すスクリプトには、検査スクリプトの規律と hook の JSON を `printf` で確かめる件を docstring に移す）
-- [ ] CLAUDE.md の配布のルール（配置先で直接編集しない・マスターに還元して再コピー・配布分類の確認）を撤去する（CLAUDE.md の書き直しに含める）
+- [x] CLAUDE.md の配布のルール（配置先で直接編集しない・マスターに還元して再コピー・配布分類の確認）を撤去する（CLAUDE.md の書き直しに含める）（20261101）
 
 ## 8. 検証
 
 - [ ] 静的検査（`validate`・`test:hooks`・`lint`・`tests/sandbox`）が緑
 - [ ] 停止のケースを `plugin eval` で実走する（design-doc・pr-create・knowledge-capture。課金・承認制。通常のターミナルから実行する）
-- [ ] 自作の passthrough（`passthrough_check.py`・`tests/passthrough/`）を削除する
+- [x] 自作の passthrough（`passthrough_check.py`・`tests/passthrough/`）を削除する（20261101）
 - [ ] 検証用の使い捨て配置先に README の手順でコピーし、スキル・hook の発火・sandbox 下での lint と typecheck を確かめる
 
 ## レビュー

@@ -780,3 +780,14 @@
 **決定**: CLAUDE.md を 52 行 → 46 行に書き直した（ユーザー承認）。作業の進め方を design.md の「刷新後のワークフロー」の 3 段階（小さな作業は宣言して進める・中くらいは会話で設計して OK・大きな作業は `.steering/` の design.md で止まる）と、小さな作業にしない 4 条件にした。配置は「最初に 1 回コピーし、以後は配置先で育てる」に直した。「スキルを残す・変えるときは eval で確かめ、skill-test で回帰テスト」と「課金を伴う実行は見積もりと無料の代替を示して承認」を足した。削除した knowledge-capture の要点（次にも効くものだけ選ぶ・案を示して承認を待つ）を「知見の保存」の 1 行で受けた。存在しない `skill-design-patterns.md` と、templates の「契約準拠」の説明を消した。スキル名は skill-test だけを出す（発動は description に任せる）
 **検査**: validate に契約 11（リポジトリの CLAUDE.md が 50 行以内。既定の走査のときだけ）を足した。上限を 10 にして FAIL（8/9・exit 1）になることを一回限りで確かめた（20261101）
 **注意**: 「知見の保存」の 1 行は評価していない（評価の A に入っていなかった）
+
+## 20261101 — templates・prompts・docs・README を直す
+
+**決定**（ユーザー承認）:
+- `templates/SKILL.template.md`・`templates/README.md` を新しい型（description と when_to_use を分ける・止まる場所を「ここで止まる」で書く・スキルなしでできないかを先に考える）に直した。削除済みの `skill-design-patterns.md` への参照を消した
+- `prompts/adversarial-skill-review.md` の死んだ参照（passthrough・feature-pipeline・review-*・impl-review・test-review・starter-kit・ADR）を、今の構成（plugin eval の回帰ケース・review の agent 5 本・decisions.md）に直した
+- `docs/user-guide.md` を 3 段階の進め方と残った 8 本に合わせて書き直した（98 行 → 約 55 行）
+- `docs/starter-kit.md` を削除した。配り方が「最初に 1 回コピーし、以後は配置先で育てる」に変わり、配布セットの選び方と同期の手順は役目を終えた。コピー手順と依存の一覧は 7 章で README に書く
+- `README.md` を書き直した（208 行 → 約 90 行）。方針（スキルなしより良いものだけ残す）・作業の流れ・スキル 8 本と agent 6 本・検査・hook。コピー手順は 7 章で埋める
+- `.gitignore` の `.steering` のランタイムフラグ 5 行（capture・codify・rule-audit のもの）と、手元に残っていた `.steering/.last-rule-audit` を消した。validate のコメントの `skill-design-patterns.md` への参照を消した
+**残り**: `.claude/hooks/guard-gated-write.sh` の警告文の compound・adr は 6 章（警告文の adr を直す項目）で直す。validate 9/9・test:hooks 100/100・lint で緑

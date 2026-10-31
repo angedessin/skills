@@ -8,7 +8,7 @@ subagent に渡すのが望ましい。セッションの文脈は攻撃を甘�
 | 層 | 手段 | 見るもの |
 |---|---|---|
 | 静的・形式 | `scripts/validate_skills.py` | frontmatter・name 一致・When NOT to use の有無・停止契約の**構造**の有無・ツール語彙の出現数 |
-| 実地 | `scripts/passthrough_check.py`（課金） | ハードストップが実行時に**守られるか** |
+| 実地 | `claude plugin eval` の回帰ケース（課金。`eval/README.md`） | ハードストップが実行時に**守られるか** |
 | **本文の中身（このプロンプト）** | 人 or subagent の精読 | 境界の重複と空白・契約ズレ・片側修正・死んだ参照・迂回経路・配布分類違反 |
 
 ---
@@ -58,29 +58,29 @@ python3 scripts/validate_skills.py --purity
 
 ## Step 2A — 横断パス（全スキルの関係を攻撃する）
 
-`.claude/skills/*/SKILL.md` の frontmatter と本文、`README.md`、`docs/starter-kit.md`、
+`.claude/skills/*/SKILL.md` の frontmatter と本文、`.claude/agents/*.md`、`README.md`、
 `CLAUDE.md` を読み、次の 6 軸を**各軸ごとに独立して**当てる。軸を飛ばさない。
 
 1. **発動境界の重複と空白** — 2 つ以上のスキルが同じ依頼フレーズで発動しうる箇所（description
    の対象フレーズが衝突している）と、現実にありそうな依頼なのにどのスキルも拾わない空白。
    「When NOT to use で相手を名指ししているか」が非対称な組（A は B を除外しているが B は A に
    触れていない）も含める。
-2. **オーケストレーターとサブスキルの契約ズレ** — `feature-pipeline` / `frontend-code-review` が
-   期待する成果物・ファイル名・ステータス値（`design.md` の `DRAFT` / `APPROVED`、
-   `review-result.md` の `OPEN` / `RESOLVED` / `DEFERRED` など）と、呼ばれる側が実際に書く
-   ものが一致しているか。呼ばれる側が単独利用されたときに、その成果物が生成されない経路がないか。
+2. **スキル間の契約ズレ** — あるスキルが期待する成果物・ファイル名・ステータス値（`design.md` の
+   `DRAFT` / `APPROVED` / `SPIKE` など）と、それを書く側（design-doc・steering・CLAUDE.md の作業の
+   進め方）が実際に書くものが一致しているか。frontend-code-review が agent に渡すもの（patch の
+   パス・範囲）と、agent が前提にしているものが一致しているか。
 3. **片側修正** — 同じ語・契約・パス・コマンドが複数箇所にあり、片方だけ新しい箇所。
    語を決めたらリポジトリ全体を grep して同義箇所を機械的に洗い出す（記憶で判断しない）。
-   README のワークフロー図と `feature-pipeline` 本文のドリフトは特に見る。
+   README のワークフロー図と CLAUDE.md の「作業の進め方」のドリフトは特に見る。
 4. **死んだ参照** — 実在しないファイルパス・スキル名・`references/` のファイル・スクリプトの
    オプション・ディレクトリ。参照されている側を必ず開いて存在を確認する（名前の見た目で
    判断しない）。
-5. **配布分類違反** — `docs/starter-kit.md` の配布可 / master-only の表と照合し、**配布可**の
-   スキルが master-only のスキル名やリポジトリルート直下の資産（`scripts/`・`tests/`・
-   `deployments.md`・`templates/`）に依存している箇所。配置先にコピーした瞬間に死ぬ参照を探す。
-6. **並列サブスキルの責務境界** — 同一対象を並列に見るスキル群（`review-*`・`impl-review`・
-   `test-review`）で、責務境界が**双方の本文に**相互明記されているか。片側にしか書かれていない
-   組、および「相手がやると思って両方が見ない」観点を探す。
+5. **配布しないものへの依存** — 配置先にコピーする `.claude/` のスキル・agent が、マスター専用の
+   もの（skill-test・リポジトリ直下の `scripts/`・`tests/`・`eval/`・`templates/`）に依存している
+   箇所。配置先にコピーした瞬間に死ぬ参照を探す。
+6. **並列の agent の責務境界** — frontend-code-review が並列に起動する agent（review-bug・
+   review-rules・review-ui-a11y・review-test）で、見るものと見ないものが重なりすぎていないか、
+   「相手が見ると思って誰も見ない」観点が無いかを探す。
 
 ## Step 2B — 個別パス（指定されたスキル 1 本を攻撃する）
 
@@ -111,7 +111,7 @@ python3 scripts/validate_skills.py --purity
 
 各所見について、**「これは仕様どおりの意図的な設計では？」という反論を自分で 1 つ書き、
 それでも残る所見だけ**を本編に出す。反論に負けた所見は捨てる（または「未確認」枠へ）。
-反論の材料は `docs/knowledge/skill-design-patterns.md`・`docs/decisions/`（ADR）を読んで探す
+反論の材料は `.steering/` の decisions.md（評価の判定を含む）と `docs/knowledge/` を読んで探す
 —— 過去に検討して却下された案を「欠陥」として再提出しない。
 
 ## Step 4 — レポート提示（ここで止まる）
