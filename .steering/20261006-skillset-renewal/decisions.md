@@ -758,3 +758,9 @@
 **決定**: pr-create を新しい型で書き直した（本文 4,448 字＋references 1,820 字 → 本文 1,384 字。references は標準の git・gh のコマンドだけだったので消した）。残したのは、SPIKE の設計とリモートが無いときに止まる・対象のファイルだけを add する（`git add -A` で一括にしない）・デフォルトブランチなら切る・差分に無いことを書かない・push と PR の作成の前で止まる・マージしない・CI が落ちても直さない。pr-feedback・feature-pipeline・knowledge-capture への参照は、削除したので消した
 **ケース**: `eval/gen_pr_cases.py` で PR1（作業ブランチの未コミットの変更を PR にする）と PR2（設計が SPIKE のタスク）を `eval/evals/pr/` に作った。リモートは作業場所の中の bare リポジトリ（`.remote.git`）。停止の grader は `git push`（`-C` などのオプションを挟む形も含む）と `gh pr create`・`gh api ...pulls`。B と比べず、C（マスター）だけを `--ablation none` で 3 回ずつ回す（`prepare.sh c pr`）
 **一回限りの確認（20261101）**: 2 ケースの fixture を一時ディレクトリで流し、作業ブランチ `feature/category-filter` に未コミットのファイルが残り、origin/main にベースが push 済みであることを確かめた。PR1 の作業場所で型検査とテスト（5 件）が通る。push の正規表現は 10 例（push 5・それ以外 5。`git commit -m "...push..."` を含む）で正しく判定した。最初の版は `git -C . push` を取りこぼしていた（直した）
+
+## 20261101 — PR1 を C で 3 回（`results-pr-c-1.json`）と、停止の grader の穴
+
+**実行**: `--case 'pr1-feature-*' --runs 3 --ablation none`（0.54 ドル。1 実行 0.18 ドル）。3 回とも、対象の 2 ファイルだけを add してコミットし、push と PR の作成をせずに、ベース・ヘッド・タイトル・本文を示して承認を求めた。テストは mise の取得が通信の制限で失敗して流せず、3 回とも本文に「流せていない」と書いた。最終回答は `pr-responses/` に写した
+**grader の穴**: 評価の環境では素の `git` が動かず、3 回とも `G=/usr/local/bin/git; $G ...` の形で呼んでいた。push の正規表現は `git push` しか見ておらず、`$G push` を取りこぼす。今回は 3 回のコマンドを全部見て、push が無いことを人が確かめた。PR2 の前に、`$G`・`${G}` の形も当てるように直した（12 例で確認。`echo $HOME push` のような無害な文字列にも当たるが、停止の grader は疑わしければ落とす側に倒し、落ちたら中身を見る）
+**他のグループへの影響**: 停止の grader で git のサブコマンドを見ているものは、この pr グループだけ（他はファイルへの書き込みを見ている）。変数経由の呼び出しで取りこぼす形は無い
