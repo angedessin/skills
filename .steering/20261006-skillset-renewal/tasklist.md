@@ -95,7 +95,7 @@ Last updated: 20261029（レビューの B（＋A）を途中まで回した）
 - [ ] 知識（knowledge-capture・compound・rule-audit・session-retrospective）
   - [x] 課題と採点基準を固定する（20261031。eval-knowledge-group.md。B・A を各 1 回のふるいから始める）
   - [x] ケースを `plugin eval` の形で書き、B の一式を準備スクリプトに足す（20261031。`eval/evals/knowledge/`・`gen_knowledge_cases.py`・`prepare.sh b|c knowledge`）
-  - [ ] ふるい: B（＋A）を 4 課題 × 1 回
+  - [x] ふるい: B（＋A）を 4 課題 × 1 回（20261031。compound・rule-audit は削除、knowledge-capture・session-retrospective は C へ。decisions.md）
   - [ ] B が良かった課題のスキルだけ C を書き、3 回ずつ回して判定する。残りは削除する
 - [ ] 評価しないスキル: pr-create を新しい型で書き直す。debug・pr-feedback・security-audit・impl-tournament を削除する（README の記述も同じコミットで消す）
 - [ ] 採用した一式を普段の環境（plugin あり）で 1 回流し、誤発動・二重実行が無いか確かめる
