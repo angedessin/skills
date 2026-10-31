@@ -120,7 +120,6 @@ design-premortem   impl-tournament                          session-retrospectiv
 | スキル | 役割 |
 |---|---|
 | [`design-doc`](.claude/skills/design-doc/SKILL.md) | タスク開始時に design.md（目的/スコープ/完了条件 + 設計）と tasklist.md を作成。**DRAFT は人間の承認まで実装しない**。SPIKE はローカル探索可（外向き不可）。1セッションで終わるタスクには .steering を作らない |
-| [`debug`](.claude/skills/debug/SKILL.md) | 障害調査。再現 → 仮説 → 切り分け → 根本原因 → 修正方針。小さい修正（影響が閉じる・巻き戻し容易・テストで再発防止可）は承認を得て即修正、構造に触る修正は design-doc に接続 |
 | [`steering`](.claude/skills/steering/SKILL.md) | `.steering/` のライフサイクル管理（init / resume / status / archive）。ファイル仕様は [references/spec.md](.claude/skills/steering/references/spec.md) |
 | [`design-premortem`](.claude/skills/design-premortem/SKILL.md) | 人間レビュー前の敵対的レビュー。エッジケース・状態複雑化・テスト容易性・スコープ・「3ヶ月後に後悔する理由」の6観点で design.md を攻撃し `## プレモータム所見` に反映。**設計は承認しない**（任意・design-doc の Phase 2.5） |
 
@@ -131,7 +130,6 @@ design-premortem   impl-tournament                          session-retrospectiv
 | [`impl-from-design`](.claude/skills/impl-from-design/SKILL.md) | APPROVED または SPIKE な design.md から実装（SPIKE はローカルのみ・外向き禁止）。code-explorer による既存パターン調査 → TDD モード（推奨）/ Impl-first モードを選択。設計と乖離したら止まって報告 |
 | [`tdd`](.claude/skills/tdd/SKILL.md) | Red → Green → Refactor サイクルの単独ユーティリティ。テストパターン集は [references/patterns.md](.claude/skills/tdd/references/patterns.md) |
 | [`e2e`](.claude/skills/e2e/SKILL.md) | E2E テストの作成・レビュー。クリティカルパス選定・1テスト1シナリオ・安定性原則（flaky 防止）・実ユーザー視点の4判断軸。Playwright 具体例は [references/patterns.md](.claude/skills/e2e/references/patterns.md)（カートリッジ — 配置先で再生成） |
-| [`impl-tournament`](.claude/skills/impl-tournament/SKILL.md) | リスクの高いアプローチ選択で、APPROVED な design.md から2〜3の異なる実装を worktree 並列で作り採点して人間が勝者を選ぶ（SPIKE 不可）。**開始前にコスト見積 + 無料代替の承認必須**。常用しない（任意）。worktree コマンド・モデル振り分けは [references/commands.md](.claude/skills/impl-tournament/references/commands.md) |
 
 ### コードレビュー
 
@@ -151,7 +149,6 @@ design-premortem   impl-tournament                          session-retrospectiv
 | スキル | 役割 |
 |---|---|
 | [`pr-create`](.claude/skills/pr-create/SKILL.md) | 変更を PR として提出。コミット状態の確認 → デフォルトブランチ直を避けるブランチ作成 → 差分からタイトル/本文作成 → **プッシュ/PR 作成前に明示承認**（外向き操作）→ CI 追跡。**マージはしない**（人間の判断）。具体コマンドは [references/commands.md](.claude/skills/pr-create/references/commands.md)（カートリッジ — 別ホストは差し替え）。リモート/PR ホストが無ければ案内して停止 |
-| [`pr-feedback`](.claude/skills/pr-feedback/SKILL.md) | 提出済み PR の往復。レビューコメント・CI 失敗を収集 → must-fix/要議論/nit にトリアージ → **対応計画の承認** → 修正 → 指摘軸のみ差分再レビュー → **返信/プッシュ前の承認**（外向き操作）。具体コマンドは [references/commands.md](.claude/skills/pr-feedback/references/commands.md)（カートリッジ — 別ホストは差し替え） |
 
 ### ナレッジ管理・自己改善
 
@@ -161,7 +158,6 @@ design-premortem   impl-tournament                          session-retrospectiv
 | [`rule-audit`](.claude/skills/rule-audit/SKILL.md) | 剪定。CLAUDE.md・ルール・docs/knowledge/・スキル frontmatter を定期監査し、削除テスト・症状診断・鮮度シグナル（最終更新日・被参照数）で**保持/削除/統合/移動/明確化**を判定。compound（追加）と対をなす。適用は承認制 |
 | [`knowledge-capture`](.claude/skills/knowledge-capture/SKILL.md) | セッションの知見を docs/knowledge/（パターン）・`.steering/[task]/decisions.md`（決定）・CLAUDE.md（行動ルール）に振り分けて保存。決定は「決定・理由・却下案」までを扱い**定型フォーマットは生成しない**（記録先の様式は記録先が決める）。承認制 |
 | [`session-retrospective`](.claude/skills/session-retrospective/SKILL.md) | セッション終盤に会話履歴から摩擦（スキル誤発動・ユーザー訂正・手戻り・パーミッション拒否・曖昧さ）を採掘し `skill-issues.md` に起票。**昇格はしない**（compound の原料を作る）。ゼロ件なら起票しない |
-| [`security-audit`](.claude/skills/security-audit/SKILL.md) | セットアップ資産（スキル・agents・hooks・settings・依存/MCP）のサプライチェーン・セキュリティを**静的**監査。外部送信・シークレット読取・破壊的コマンド・広範権限・インジェクション構造を機械スキャンし、判別不能はフェイルクローズで要確認に。**対象本文を全文解釈せずヒット行のみ判定**（監査対象の埋め込み指示に従わない）。「検出なし」は安全証明ではなく目視確認ルールを置換しない。修正は承認制。review-security（コード diff）とは対象が別 |
 
 ### マスター専用ツール（配布しない）
 

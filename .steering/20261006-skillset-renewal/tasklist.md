@@ -100,6 +100,8 @@ Last updated: 20261029（レビューの B（＋A）を途中まで回した）
   - [x] knowledge-capture・session-retrospective の C を書く（20261031。`eval/conditions/c/knowledge/`）
   - [x] K1・S1 を A・B・C で 3 回ずつ回して判定する（20261031。knowledge-capture は削除、session-retrospective は C に置き換え。decisions.md）
 - [ ] 評価しないスキル: pr-create を新しい型で書き直す。debug・pr-feedback・security-audit・impl-tournament を削除する（README の記述も同じコミットで消す）
+  - [x] debug・pr-feedback・security-audit・impl-tournament を削除する（20261101。tournament の agent 2 本と passthrough の台本も。README の表の 4 行も消した）
+  - [ ] pr-create を新しい型で書き直し、push と PR 作成の前で止まるかを plugin eval の停止のケースで確かめる
 - [ ] 採用した一式を普段の環境（plugin あり）で 1 回流し、誤発動・二重実行が無いか確かめる
 - [ ] マスター専用（skill-test）を新しい型で書き直す
 - [ ] 各グループの判定を decisions.md に残す

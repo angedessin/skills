@@ -747,3 +747,8 @@
 - C は採点基準とふるいの回答を読んだ後に書いた（過学習の注意。前の節）
 - 採点役（haiku）の誤りが多い（このグループで 13 件。うち 11 件は厳しすぎる方向）。採点は人の確認を正とした
 **影響**: 静的検査は validate 12/12・test:hooks 100/100・lint で緑。pr-create・skill-test の references・`scripts/passthrough_check.py`・`.claude/hooks/guard-gated-write.sh` の警告文に、削除したスキル（knowledge-capture・compound）への参照が残る。どれも 5 の後の項目（pr-create・skill-test の書き直し、passthrough の削除、README・docs を直す）で消す
+
+## 20261101 — 評価しないスキル 4 本を削除する
+
+**決定**: design.md の「評価の規模」の決定どおり、debug・pr-feedback・security-audit・impl-tournament と、impl-tournament の agent（tournament-scorer・tournament-variant）、4 本の passthrough の台本を削除した。README のスキルの表からこの 4 行を同じコミットで消した。PR は区切り 2（4〜5）の終わりにまとめて出す（ユーザー決定。評価の後の区切りで分けない）
+**影響**: 残すスキル・検査スクリプト・hook からの参照は無かった。README の流れの図には、これまでに削除したスキル（impl-from-design・compound・rule-audit など）と合わせて残るので、5 の「README を直す」でまとめて書き直す。validate 8/8・test:hooks 100/100
