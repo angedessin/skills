@@ -14,6 +14,7 @@
   （8. design-doc の付録境界は 20261027 に削除。design-doc を書き直し、付録境界をやめたため）
   （9. design↔実装同期パスのキー共存と 10. tasklist 工程表同期は 20261031 に削除。
      検査対象の impl-review を削除し、frontend-code-review を書き直したため）
+  11. 既定走査時: リポジトリの CLAUDE.md が 50 行以内（行動ルールだけにする。独自の目標）
 
 純度計測・ポータビリティ（レポートのみ・FAIL にしない）:
   python3 scripts/validate_skills.py --purity        # 各スキル本文のツール固有 API 出現数
@@ -63,6 +64,7 @@ _APPROVAL_NEGATIONS = ["承認不要", "承認なし", "承認は不要", "承�
 #   2. マスター固有語（配置先に存在しない仕組みを前提にした語）。
 # 分類の一次情報は docs/starter-kit.md の配布可否表。この集合が変わったら同表と揃える。
 MASTER_ONLY = {"skill-test"}
+CLAUDE_MD_MAX_LINES = 50
 PORTABILITY_VOCAB = [
     "還流", "配布セット", "source-commit", "deployments.md",
     "このマスター", "マスターへ", "マスターの git", "（distributable）",
@@ -320,6 +322,17 @@ def main() -> None:
             print(f"PASS  {d.name}")
 
     total = len(dirs)
+    # リポジトリ既定の .claude/skills を走査するときだけ、CLAUDE.md の行数を検査する（行動ルールだけで 50 行以内）
+    default_skills = Path(__file__).resolve().parent.parent / ".claude" / "skills"
+    if root.resolve() == default_skills.resolve():
+        total += 1
+        claude_md = default_skills.parent.parent / "CLAUDE.md"
+        n = len(claude_md.read_text(encoding="utf-8").splitlines()) if claude_md.is_file() else 0
+        if n > CLAUDE_MD_MAX_LINES:
+            failed += 1
+            print(f"FAIL  CLAUDE.md — {n} 行（上限 {CLAUDE_MD_MAX_LINES} 行。知識は docs/knowledge/ へ移す）")
+        else:
+            print(f"PASS  CLAUDE.md（{n} 行）")
     print(f"\n{total - failed}/{total} PASS")
     sys.exit(1 if failed else 0)
 

@@ -108,7 +108,7 @@ Last updated: 20261029（レビューの B（＋A）を途中まで回した）
 - [x] 各グループの判定を decisions.md に残す（設計 20261027・実装 20261028・レビュー 20261031・知識 20261031）
 - [x] 残したスキルごとに回帰テスト用のテストケースを残す（評価の課題を転用する。形式は `claude plugin eval`）（20261101。`eval/README.md` の「回帰テスト」の表）
 - [ ] 書き直し後のスキルに prompt-audit をもう一度回す
-- [ ] `CLAUDE.md` を 50 行以内の行動ルールに書き直す（小さな作業の決め方を含む）
+- [x] `CLAUDE.md` を 50 行以内の行動ルールに書き直す（小さな作業の決め方を含む）（20261101。46 行。validate の契約 11 で行数を検査）
 - [ ] `templates/`・`prompts/`・`docs/user-guide.md`・`docs/starter-kit.md`・`README.md` を直す
 
 ## 6. settings.json

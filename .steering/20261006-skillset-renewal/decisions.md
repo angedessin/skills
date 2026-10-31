@@ -774,3 +774,9 @@
 
 **決定**: design.md の決定どおり、自作の素通り検査（`scripts/passthrough_check.py`・`tests/passthrough/`・skill-test の references）を削除した。skill-test は、静的検査（validate・test:hooks・lint）→ 回帰ケースを選んで費用と無料の代替を示して止まる → ユーザーが通常のターミナルで `claude plugin eval` を流す → grader ごとの合否と最終回答で確かめる、の薄い入口に書き直した（本文 2,651 字＋references 3,453 字 → 本文約 2,000 字）。評価で分かった運用の注意（`--case` は 1 つ・前方を長く・結果のファイル名を変える・最終回答を写す・採点役の誤り・停止の grader の誤判定）を手順に入れた。回帰テストのケースは評価の課題を転用し、`eval/README.md` の「回帰テスト」の表にスキルごとにまとめた（design-doc・steering・e2e・frontend-code-review・session-retrospective・pr-create。design-premortem は手動専用で、skill-test は保守用なので持たない）
 **影響**: `README.md` と `prompts/adversarial-skill-review.md` に passthrough への参照が残る（docs を直すときに消す）。validate 8/8・test:hooks 100/100・lint で緑
+
+## 20261101 — CLAUDE.md を書き直す
+
+**決定**: CLAUDE.md を 52 行 → 46 行に書き直した（ユーザー承認）。作業の進め方を design.md の「刷新後のワークフロー」の 3 段階（小さな作業は宣言して進める・中くらいは会話で設計して OK・大きな作業は `.steering/` の design.md で止まる）と、小さな作業にしない 4 条件にした。配置は「最初に 1 回コピーし、以後は配置先で育てる」に直した。「スキルを残す・変えるときは eval で確かめ、skill-test で回帰テスト」と「課金を伴う実行は見積もりと無料の代替を示して承認」を足した。削除した knowledge-capture の要点（次にも効くものだけ選ぶ・案を示して承認を待つ）を「知見の保存」の 1 行で受けた。存在しない `skill-design-patterns.md` と、templates の「契約準拠」の説明を消した。スキル名は skill-test だけを出す（発動は description に任せる）
+**検査**: validate に契約 11（リポジトリの CLAUDE.md が 50 行以内。既定の走査のときだけ）を足した。上限を 10 にして FAIL（8/9・exit 1）になることを一回限りで確かめた（20261101）
+**注意**: 「知見の保存」の 1 行は評価していない（評価の A に入っていなかった）
