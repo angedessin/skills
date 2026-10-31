@@ -89,8 +89,8 @@ Last updated: 20261029（レビューの B（＋A）を途中まで回した）
   - [ ] C（新方式: バグ 2・規約 1・UI と a11y・テスト・検証役）を書き、回して判定する（R-a・R-b・R-c・N1・N2 の 5 差分を各 1 回）
     - [x] C を書く（20261031。`eval/conditions/c/review/`）
     - [x] C の N1・N2（20261031。decisions.md）
-    - [ ] C の R-c・R-b・R-a（次の枠）
-    - [ ] B・A の N1・N2 を流し直す（その次の枠。最終回答が消えたため。decisions.md）
+    - [x] C の R-c・R-b・R-a（20261031。decisions.md）
+    - [ ] B・A の N1・N2 を流し直す（最終回答が消えたため。N1 は 20261031 に済み、N2 が残り。decisions.md）
 - [ ] 知識（knowledge-capture・compound・rule-audit・session-retrospective）
 - [ ] 評価しないスキル: pr-create を新しい型で書き直す。debug・pr-feedback・security-audit・impl-tournament を削除する（README の記述も同じコミットで消す）
 - [ ] 採用した一式を普段の環境（plugin あり）で 1 回流し、誤発動・二重実行が無いか確かめる
