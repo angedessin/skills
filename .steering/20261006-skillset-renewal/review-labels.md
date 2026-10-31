@@ -53,6 +53,16 @@ B・A の N1・N2・R-b は、最終回答を含む trace（`/private/tmp/e-*/`�
 | c8 | hook のヘッダーに「sh 組み込みと grep/sed だけ」とあるが、awk・head も使っている | A | 整合性 | | |
 | c9 | Bash 用の PreToolUse が 3 つに分かれていて、呼び出しごとにプロセスが 3 つ起動する | A | 保守性 | | 提案寄り |
 
+## R-b（C だけ。正解 T9〜T14 以外。B・A の最終回答は消えた）
+
+| # | 指摘 | 重要度 | ラベル | メモ |
+|---|---|---|---|---|
+| b1 | (f) が FAIL の間は、関係ない assets の編集もすべて差し戻され、design の「main で直す → export へ merge」の手順だと merge まで編集が止まる | Medium | | 再現済み |
+| b2 | `MASTER_ONLY_HOOKS` を消すと ImportError で exit 2 になり素通し。SyntaxError・JSON の破損では Traceback が「契約違反」の見出しで差し戻される | Low | | |
+| b3 | hook が PASS 行とサマリまで AI に返している（`docs/knowledge/claude-code-config.md:139` の「診断行だけを返す」に反する） | Low | | 規則を引用している |
+| b4 | README.md:219 の説明が古い（assets モードが書かれていない） | Low | | |
+| b5 | README などのパス判定が `$PROJECT_ROOT/...` との厳密一致で、`/tmp` と `/private/tmp` の違いや末尾の `/` で漏れる | Low | | T14 と同じ 4 件目の前半。T14 は後半 |
+
 ## N1（C だけ。バグなし）
 
 | # | 指摘 | 重要度 | ラベル | メモ |
