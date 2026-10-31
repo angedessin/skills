@@ -669,3 +669,10 @@
 - C の弱点: 時間（R-b で 20 分以上。検証役が Low まで再現する）と、好みの指摘（インデント）が検証を通ること。普段使いで困るかを見て直す候補
 - B の本文にあった「次のステップ」（knowledge-capture → PR → compound の工程表の案内）は C に無い。validate の契約 10 はこれを検査していたので、契約ごと外す
 **影響（入れ替え・20261031）**: マスターの frontend-code-review を C にし、agent に review-bug・review-rules・review-ui-a11y・review-test・review-verify を入れた（評価した版と同一であることを diff で確かめた）。スキル review-a11y・review-correctness・review-performance・review-security・review-ui・impl-review・test-review と agent の review-* 7 本を削除した。`scripts/validate_skills.py` の契約 9（design↔実装同期）・10（tasklist 工程表同期）を外した。合計の数え方が同期の検査 2 つを 4 と数えていた（以前の「26/26」は 22 スキル＋4）ので、スキルの数だけにした。`eval/conditions/c/review/` を消し、`prepare.sh c review` はマスターのスキルと agent を取る（評価した版は c87c672 の時点にある）。静的検査は validate 15/15・test:hooks 100/100・lint で緑。README・docs/starter-kit.md・docs/user-guide.md・prompts/adversarial-skill-review.md・security-audit・impl-tournament に削除したスキルへの死んだ参照が残るが、5 の「README・docs を直す」と各スキルの削除まで許容する（実装グループと同じ扱い）。評価のケース（`eval/evals/review/`）は回帰テストとして残す
+
+## 20261031 — 知識グループは B・A を各 1 回のふるいから始める
+
+**決定**: 知識グループの課題を K1（knowledge-capture）・C1（compound）・R1（rule-audit）・S1（session-retrospective。記録をプロンプトに貼る形）の 4 つで固定する（eval-knowledge-group.md）。まず B（＋A）を各 1 回（8 実行・3〜4 ドル）流し、A と B の差が閾値未満で A が止まった課題のスキルは C を書かずに削除する。B が良かった、または A が止まらなかった課題のスキルだけ C を書いて 3 回ずつ回す（ユーザー決定）
+**理由**: 設計・実装グループではスキルなしの A が同点で多くのスキルが削除になり、知識グループの本来の価値（溜まった知識が次に効く）は 1 ターンでは測れない。全部を 3 回ずつ回す計画（36 実行・11〜18 ドル）は、削除の見込みが高い割に重い
+**却下案**: 最初から 36 実行（費用）／評価せずに削除する（根拠なしの判断になる）
+**影響**: 1 回だけなので、A がたまに止まらない破れを見逃しうる。A の停止を 1 回で「守った」とする点は判定表に注記する
