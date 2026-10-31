@@ -1,7 +1,7 @@
 #!/bin/bash
 # 評価用 plugin の中身を、グループごとに条件 B か C に入れ替える。evals/ は両条件で共通（1 か所だけに置く）。
-#   ./prepare.sh b design|impl|review   タグ pre-renewal-20261006 の版（現行）
-#   ./prepare.sh c design|impl|review   書き直し版（採用済みのグループはマスター、評価中のグループは conditions/c/<group>/）
+#   ./prepare.sh b design|impl|review|knowledge   タグ pre-renewal-20261006 の版（現行）
+#   ./prepare.sh c design|impl|review|knowledge   書き直し版（採用済みのグループはマスター、評価中のグループは conditions/c/<group>/）
 # 条件 A は plugin なしの baseline arm（plugin eval が自動で回す）なので、ここでは作らない。
 # plugin にはそのグループのスキルだけを入れる。実行は `--tag <group>` でそのグループのケースだけに絞る。
 set -euo pipefail
@@ -31,11 +31,16 @@ case "${group}" in
     C_FROM_MASTER=(frontend-code-review)
     C_AGENTS_FROM_MASTER=(review-bug review-rules review-ui-a11y review-test review-verify)
     ;;
-  *) echo "usage: $0 b|c design|impl|review" >&2; exit 2 ;;
+  knowledge)
+    SKILLS=(knowledge-capture compound rule-audit session-retrospective)
+    AGENTS=(knowledge-scanner)
+    C_FROM_MASTER=()
+    ;;
+  *) echo "usage: $0 b|c design|impl|review|knowledge" >&2; exit 2 ;;
 esac
 case "${cond}" in
   b|c) ;;
-  *) echo "usage: $0 b|c design|impl|review" >&2; exit 2 ;;
+  *) echo "usage: $0 b|c design|impl|review|knowledge" >&2; exit 2 ;;
 esac
 
 rm -rf skills agents hooks/skill-claude-md.md .claude-plugin

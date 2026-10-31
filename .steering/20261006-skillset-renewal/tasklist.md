@@ -94,7 +94,7 @@ Last updated: 20261029（レビューの B（＋A）を途中まで回した）
     - [x] 判定を decisions.md に書き、マスターを入れ替える（20261031。review-* スキル 7 本・agent 7 本を削除、C の agent 5 本を入れた。validate の契約 9・10 を外した）
 - [ ] 知識（knowledge-capture・compound・rule-audit・session-retrospective）
   - [x] 課題と採点基準を固定する（20261031。eval-knowledge-group.md。B・A を各 1 回のふるいから始める）
-  - [ ] ケースを `plugin eval` の形で書き、B の一式を準備スクリプトに足す
+  - [x] ケースを `plugin eval` の形で書き、B の一式を準備スクリプトに足す（20261031。`eval/evals/knowledge/`・`gen_knowledge_cases.py`・`prepare.sh b|c knowledge`）
   - [ ] ふるい: B（＋A）を 4 課題 × 1 回
   - [ ] B が良かった課題のスキルだけ C を書き、3 回ずつ回して判定する。残りは削除する
 - [ ] 評価しないスキル: pr-create を新しい型で書き直す。debug・pr-feedback・security-audit・impl-tournament を削除する（README の記述も同じコミットで消す）
