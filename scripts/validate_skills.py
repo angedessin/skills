@@ -12,11 +12,8 @@
      （「ここで止ま」または見出しの STOP）を 1 つ以上持つ。否定形（承認不要 等）は
      トリガーから除外。逃し弁として本文に <!-- validator: no-stop-needed --> があればスキップ。
   （8. design-doc の付録境界は 20261027 に削除。design-doc を書き直し、付録境界をやめたため）
-  9. 既定走査時: design↔実装同期パスのキー共存（impl-review・frontend-code-review の設計整合ゲート。
-     design-doc 側は 20261027、impl-from-design 側は 20261028 にスキルの書き直し・削除で外した）。
-     キーワード並びのみ検査し、手順の実行正否は見ない（空文で通る限界あり）
-  10. 既定走査時: tasklist 工程表同期（FCR 知見保存→デプロイ順 + 6 節キー）。
-      キーワード並びと出現位置のみ。空文で通る限界あり
+  （9. design↔実装同期パスのキー共存と 10. tasklist 工程表同期は 20261031 に削除。
+     検査対象の impl-review を削除し、frontend-code-review を書き直したため）
 
 純度計測・ポータビリティ（レポートのみ・FAIL にしない）:
   python3 scripts/validate_skills.py --purity        # 各スキル本文のツール固有 API 出現数
@@ -70,101 +67,6 @@ PORTABILITY_VOCAB = [
     "還流", "配布セット", "source-commit", "deployments.md",
     "このマスター", "マスターへ", "マスターの git", "（distributable）",
 ]
-
-# design↔実装同期パス（20260802-design-impl-sync）のキー共存検査。
-# 限界: キーワードが並んでいれば通る。手順の意味・順序・勝手変更禁止の実行正否は見ない（空文で通る）。
-# 振る舞い契約が要る場合は passthrough（別 BACKLOG）を使う。
-DESIGN_IMPL_SYNC_CHECKS = (
-    (
-        "impl-review",
-        (
-            ("Axis 1", "設計整合 Axis 1"),
-            ("設計契約コア不一致", "High 尺度の設計例外"),
-            ("design 同期が先", "単独時の次ステップ"),
-            ("契約成果物の Axis 1 例外", "空 TS でも Axis 1"),
-        ),
-    ),
-    (
-        "frontend-code-review",
-        (
-            ("設計契約コア不一致", "High 尺度の設計例外"),
-            ("design 同期が先", "ゲート入力明示"),
-            ("必須警告", "DEFERRED 時警告"),
-            ("Axis 1 をスキップしない", "軽量でも Axis 1"),
-        ),
-    ),
-)
-
-# tasklist 工程表の同期（20260807-pr13-mustfix）。
-# FCR「次のステップ」と skill-design-patterns の節リストが templates.md の 6 節とズレないこと。
-# 限界: キーワード・出現位置のみ。空文で通る限界あり（他のキー共存と同型）。
-TASKLIST_FLOW_SECTION_KEYS = (
-    "実装",
-    "レビュー",
-    "知見保存",
-    "デプロイ",
-    "福利化",
-    "クローズ",
-)
-
-
-
-def check_design_impl_sync(repo_root: Path) -> list[str]:
-    """design↔実装同期パスのキーが各スキル本文に共存することを検査する。
-
-    キーワード共存のみ。空文で通る限界あり（モジュール先頭コメント参照）。
-    """
-    errors: list[str] = []
-    skills_root = repo_root / ".claude" / "skills"
-    for skill_name, keys in DESIGN_IMPL_SYNC_CHECKS:
-        p = skills_root / skill_name / "SKILL.md"
-        rel = p.relative_to(repo_root)
-        if not p.is_file():
-            errors.append(f"{rel} が存在しない（design-impl-sync）")
-            continue
-        text = p.read_text(encoding="utf-8")
-        for needle, label in keys:
-            if needle not in text:
-                errors.append(f"{rel}: design-impl-sync 欠落 — {label}（`{needle}`）")
-    return errors
-
-
-def check_tasklist_flow_sync(repo_root: Path) -> list[str]:
-    """FCR 次ステップの知見保存→デプロイ順と、工程 6 語のキー共存を検査する。"""
-    errors: list[str] = []
-    fcr = repo_root / ".claude" / "skills" / "frontend-code-review" / "SKILL.md"
-    for p, rel in (
-        (fcr, ".claude/skills/frontend-code-review/SKILL.md"),
-    ):
-        if not p.is_file():
-            errors.append(f"{rel} が存在しない（tasklist-flow-sync）")
-            continue
-        text = p.read_text(encoding="utf-8")
-        for needle in TASKLIST_FLOW_SECTION_KEYS:
-            if needle not in text:
-                errors.append(f"{rel}: tasklist-flow-sync 欠落 — `{needle}`")
-
-    if fcr.is_file():
-        text = fcr.read_text(encoding="utf-8")
-        # 知見保存側: 「知見保存」または knowledge-capture / デプロイ側: 「デプロイ」または pr-create
-        know_idxs = [i for i in (text.find("知見保存"), text.find("knowledge-capture")) if i >= 0]
-        deploy_idxs = [i for i in (text.find("デプロイ"), text.find("pr-create")) if i >= 0]
-        if not know_idxs:
-            errors.append(
-                ".claude/skills/frontend-code-review/SKILL.md: "
-                "tasklist-flow-sync 欠落 — 知見保存/knowledge-capture"
-            )
-        elif not deploy_idxs:
-            errors.append(
-                ".claude/skills/frontend-code-review/SKILL.md: "
-                "tasklist-flow-sync 欠落 — デプロイ/pr-create"
-            )
-        elif min(know_idxs) > min(deploy_idxs):
-            errors.append(
-                ".claude/skills/frontend-code-review/SKILL.md: "
-                "tasklist-flow-sync 順序逆転 — 知見保存系がデプロイ系より後"
-            )
-    return errors
 
 
 def validate(skill_dir: Path, template_mode: bool = False) -> list[str]:
@@ -417,31 +319,7 @@ def main() -> None:
         else:
             print(f"PASS  {d.name}")
 
-    # リポジトリ既定の .claude/skills を走査するときだけスキル間の同期を検査する
-    # （任意ルートへの走査や --skill 単体ではスキップ）
-    default_skills = Path(__file__).resolve().parent.parent / ".claude" / "skills"
-    if root.resolve() == default_skills.resolve():
-        sync_errs = check_design_impl_sync(default_skills.parent.parent)
-        if sync_errs:
-            failed += 1
-            print("FAIL  design-impl-sync (keyword coexistence)")
-            for e in sync_errs:
-                print(f"      - {e}")
-        else:
-            print("PASS  design-impl-sync (keyword coexistence)")
-
-        flow_errs = check_tasklist_flow_sync(default_skills.parent.parent)
-        if flow_errs:
-            failed += 1
-            print("FAIL  tasklist-flow-sync (keyword coexistence + order)")
-            for e in flow_errs:
-                print(f"      - {e}")
-        else:
-            print("PASS  tasklist-flow-sync (keyword coexistence + order)")
-
-    total = len(dirs) + (
-        4 if root.resolve() == default_skills.resolve() else 0
-    )
+    total = len(dirs)
     print(f"\n{total - failed}/{total} PASS")
     sys.exit(1 if failed else 0)
 

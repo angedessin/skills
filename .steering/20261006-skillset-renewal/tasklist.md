@@ -80,17 +80,18 @@ Last updated: 20261029（レビューの B（＋A）を途中まで回した）
   - [x] C を書く（20261027。`eval/conditions/c/impl/`。ユーザーのレビュー待ち）
   - [x] B（＋A）・C を回す（20261027〜28。54 実行・5 時間枠 0.93 回分。E1 以外は同点）
   - [x] H1・H2・E1b を A・C で回して判定する（20261028。impl-from-design・tdd は削除、e2e は C に置き換え。72 実行・5 時間枠 1.5 回分）
-- [ ] レビュー（frontend-code-review と agent を公式の構成で作り直し、review-* スキル・impl-review・test-review を削除する。評価セットで誤検知と見逃しを比べる）
+- [x] レビュー（frontend-code-review と agent を公式の構成で作り直し、review-* スキル・impl-review・test-review を削除する。評価セットで誤検知と見逃しを比べる）（20261031 判定。C に置き換え）
   - [x] 評価セットを作って固定する（20261028。18 差分 × 各 1 回・A も比べる。eval-review-group.md・`eval/evals/review/`）
   - [x] B（＋A）を回す（20261031 打ち切り。R-d・F1・F4 は流さない。decisions.md）
     - 20261029: 仕込み p1〜p10 は済み（A・B とも 10/10 検出。decisions.md）・バグなし N1・N2・過去の差分 R-b も済み。過去の差分 R-a・R-c・R-d・F1・F4 が残り
     - 20261031: R-a 済み（B 3/8・A 2/8）・R-c 済み（B 4/5・A 4/5）。decisions.md
-  - [ ] 出た指摘を人がラベル付けする（誤検知）
-  - [ ] C（新方式: バグ 2・規約 1・UI と a11y・テスト・検証役）を書き、回して判定する（R-a・R-b・R-c・N1・N2 の 5 差分を各 1 回）
+  - [x] 出た指摘をラベル付けする（20261031。Claude の案のまま。人は N1・N2 の全体比較で確認。review-labels.md）
+  - [x] C（新方式: バグ 2・規約 1・UI と a11y・テスト・検証役）を書き、回して判定する（R-a・R-b・R-c・N1・N2 の 5 差分を各 1 回）
     - [x] C を書く（20261031。`eval/conditions/c/review/`）
     - [x] C の N1・N2（20261031。decisions.md）
     - [x] C の R-c・R-b・R-a（20261031。decisions.md）
     - [x] B・A の N1・N2 を流し直す（20261031。最終回答が消えたため。decisions.md）
+    - [x] 判定を decisions.md に書き、マスターを入れ替える（20261031。review-* スキル 7 本・agent 7 本を削除、C の agent 5 本を入れた。validate の契約 9・10 を外した）
 - [ ] 知識（knowledge-capture・compound・rule-audit・session-retrospective）
 - [ ] 評価しないスキル: pr-create を新しい型で書き直す。debug・pr-feedback・security-audit・impl-tournament を削除する（README の記述も同じコミットで消す）
 - [ ] 採用した一式を普段の環境（plugin あり）で 1 回流し、誤発動・二重実行が無いか確かめる

@@ -1,7 +1,7 @@
 #!/bin/bash
 # 評価用 plugin の中身を、グループごとに条件 B か C に入れ替える。evals/ は両条件で共通（1 か所だけに置く）。
-#   ./prepare.sh b design|impl   タグ pre-renewal-20261006 の版（現行）
-#   ./prepare.sh c design|impl   書き直し版（採用済みのグループはマスター、評価中のグループは conditions/c/<group>/）
+#   ./prepare.sh b design|impl|review   タグ pre-renewal-20261006 の版（現行）
+#   ./prepare.sh c design|impl|review   書き直し版（採用済みのグループはマスター、評価中のグループは conditions/c/<group>/）
 # 条件 A は plugin なしの baseline arm（plugin eval が自動で回す）なので、ここでは作らない。
 # plugin にはそのグループのスキルだけを入れる。実行は `--tag <group>` でそのグループのケースだけに絞る。
 set -euo pipefail
@@ -27,7 +27,9 @@ case "${group}" in
   review)
     SKILLS=(frontend-code-review review-a11y review-correctness review-performance review-security review-ui impl-review test-review)
     AGENTS=(review-a11y review-correctness review-impl review-performance review-security review-test review-ui)
-    C_FROM_MASTER=()
+    # 判定済み（20261031）: frontend-code-review は C に置き換えてマスターが正本。agent も C の 5 本をマスターから取る
+    C_FROM_MASTER=(frontend-code-review)
+    C_AGENTS_FROM_MASTER=(review-bug review-rules review-ui-a11y review-test review-verify)
     ;;
   *) echo "usage: $0 b|c design|impl|review" >&2; exit 2 ;;
 esac
@@ -51,6 +53,7 @@ if [ "${cond}" = b ]; then
 else
   # 採用が決まったグループの C はマスターの .claude/skills/ が正本（評価した版は git の履歴にある）
   for s in ${C_FROM_MASTER[@]+"${C_FROM_MASTER[@]}"}; do cp -R "../.claude/skills/$s" skills/; done
+  for a in ${C_AGENTS_FROM_MASTER[@]+"${C_AGENTS_FROM_MASTER[@]}"}; do cp "../.claude/agents/$a.md" agents/; done
   [ -d "conditions/c/${group}/skills" ] && cp -R "conditions/c/${group}/skills/." skills/
   [ -d "conditions/c/${group}/agents" ] && cp -R "conditions/c/${group}/agents/." agents/
   [ -n "$(ls skills)" ] || { echo "条件 c の ${group} のスキルがまだ無い（conditions/c/${group}/skills/）" >&2; exit 1; }

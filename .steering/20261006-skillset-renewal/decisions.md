@@ -647,3 +647,25 @@
 **決定**: review-labels.md の 58 行に Claude がラベル案（`案: 本物 / 誤検知 / 保留`）と理由を入れ、人は変える行だけ `人:` で書き換える（ユーザー決定）。回答の中で「変更前から」と明示して分けたものは、その条件の誤検知に数えない
 **案のままの集計（R-b は B・A の回答が無いので除く。N1・N2・R-a・R-c）**: 誤検知 B 4・A 15・C 5／本物 B 10・A 10・C 11／保留 B 5・A 3・C 8。A の誤検知はバグなしの N1・N2 に偏る（10 件。変更前からある問題を差分の指摘として挙げたもの）
 **注意**: 案を書いた Claude は C の作者でもあり、C に甘く付けるおそれがある。人の確認で `人:` に変わった行の数と向き（C に有利・不利）を判定のときに書く
+
+## 20261031 — レビューグループの判定
+
+| 条件 | 過去の差分の検出（19 件。R-a・R-b・R-c） | 誤検知（ラベル案。R-b を除く） | 費用（過去の差分 3 件・ドル） | 時間（同） | 停止 |
+|---|---|---|---|---|---|
+| A（スキルなし） | 8 | 15（うち N1・N2 で 10） | 1.83 | 約 6 分 | 守る |
+| B（現行） | 10（9〜11） | 4 | 8.05 | 約 16 分 | 守る（grader の不合格は一時ファイル・コピーの中） |
+| C（新方式） | 10 | 5 | 10.03 | 約 40 分 | 守る（同上） |
+
+仕込み P1〜P10 は A・B とも 10/10（天井。C は回していない）
+
+**決定**: frontend-code-review は C に置き換える。review-a11y・review-correctness・review-performance・review-security・review-ui・impl-review・test-review のスキル 7 本と、agent の review-* 7 本を削除し、C の agent 5 本（review-bug・review-rules・review-ui-a11y・review-test・review-verify）を入れる。C は評価した版のまま入れ、改善は普段使いで出た問題（skill-issues.md → compound）から行う。評価セットに合わせた改善はしない（ユーザー決定）
+**理由**: A は検出が 2 件少なく、バグなしの差分で変更前からある問題を差分のバグとして上位に並べた（ユーザーの N1 の全体比較でも「A は嫌」）。B と C は検出・誤検知とも同等で差は閾値未満。design.md のルール（差が閾値未満ならトークン量の少ない方）で、本文が約 8 分の 1（約 49,000 字 → 約 6,400 字）・15 ファイル → 6 ファイルの C を採る。ユーザーは N2 で B と C の違いを見たうえで C を選んだ
+**却下案**: B を残す（同等の結果で保守の量が 8 倍）／A に寄せて削除する（誤検知が多い）／C を評価セットに合わせて直してから入れる（過学習・再評価に 5 時間枠 1 回分）
+**判定表の注記**:
+- 誤検知はラベル案（Claude が付け、人の確認は N1 の全体比較と N2 の B・C の比較だけ）。案を書いた Claude は C の作者で、C に甘いおそれがある
+- 各差分 1 回。B と C の差（検出 0〜1 件・誤検知 1 件）はばらつきの範囲
+- C は R-a・R-c の正解を読んだ後に書いた（過学習の注意）。仕込みバグ（フロントエンドの差分）は C で回していない
+- R-b の B・A の最終回答は消え、誤検知の比較から外した
+- C の弱点: 時間（R-b で 20 分以上。検証役が Low まで再現する）と、好みの指摘（インデント）が検証を通ること。普段使いで困るかを見て直す候補
+- B の本文にあった「次のステップ」（knowledge-capture → PR → compound の工程表の案内）は C に無い。validate の契約 10 はこれを検査していたので、契約ごと外す
+**影響（入れ替え・20261031）**: マスターの frontend-code-review を C にし、agent に review-bug・review-rules・review-ui-a11y・review-test・review-verify を入れた（評価した版と同一であることを diff で確かめた）。スキル review-a11y・review-correctness・review-performance・review-security・review-ui・impl-review・test-review と agent の review-* 7 本を削除した。`scripts/validate_skills.py` の契約 9（design↔実装同期）・10（tasklist 工程表同期）を外した。合計の数え方が同期の検査 2 つを 4 と数えていた（以前の「26/26」は 22 スキル＋4）ので、スキルの数だけにした。`eval/conditions/c/review/` を消し、`prepare.sh c review` はマスターのスキルと agent を取る（評価した版は c87c672 の時点にある）。静的検査は validate 15/15・test:hooks 100/100・lint で緑。README・docs/starter-kit.md・docs/user-guide.md・prompts/adversarial-skill-review.md・security-audit・impl-tournament に削除したスキルへの死んだ参照が残るが、5 の「README・docs を直す」と各スキルの削除まで許容する（実装グループと同じ扱い）。評価のケース（`eval/evals/review/`）は回帰テストとして残す
