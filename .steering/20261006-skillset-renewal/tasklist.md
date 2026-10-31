@@ -92,13 +92,13 @@ Last updated: 20261029（レビューの B（＋A）を途中まで回した）
     - [x] C の R-c・R-b・R-a（20261031。decisions.md）
     - [x] B・A の N1・N2 を流し直す（20261031。最終回答が消えたため。decisions.md）
     - [x] 判定を decisions.md に書き、マスターを入れ替える（20261031。review-* スキル 7 本・agent 7 本を削除、C の agent 5 本を入れた。validate の契約 9・10 を外した）
-- [ ] 知識（knowledge-capture・compound・rule-audit・session-retrospective）
+- [x] 知識（knowledge-capture・compound・rule-audit・session-retrospective）（20261031 判定。session-retrospective は C に置き換え、他の 3 本は削除）
   - [x] 課題と採点基準を固定する（20261031。eval-knowledge-group.md。B・A を各 1 回のふるいから始める）
   - [x] ケースを `plugin eval` の形で書き、B の一式を準備スクリプトに足す（20261031。`eval/evals/knowledge/`・`gen_knowledge_cases.py`・`prepare.sh b|c knowledge`）
   - [x] ふるい: B（＋A）を 4 課題 × 1 回（20261031。compound・rule-audit は削除、knowledge-capture・session-retrospective は C へ。decisions.md）
   - [x] compound・rule-audit・knowledge-scanner を削除する（20261031。CLAUDE.md の参照を 1 行の規則に置き換えた）
   - [x] knowledge-capture・session-retrospective の C を書く（20261031。`eval/conditions/c/knowledge/`）
-  - [ ] K1・S1 を A・B・C で 3 回ずつ回して判定する
+  - [x] K1・S1 を A・B・C で 3 回ずつ回して判定する（20261031。knowledge-capture は削除、session-retrospective は C に置き換え。decisions.md）
 - [ ] 評価しないスキル: pr-create を新しい型で書き直す。debug・pr-feedback・security-audit・impl-tournament を削除する（README の記述も同じコミットで消す）
 - [ ] 採用した一式を普段の環境（plugin あり）で 1 回流し、誤発動・二重実行が無いか確かめる
 - [ ] マスター専用（skill-test）を新しい型で書き直す

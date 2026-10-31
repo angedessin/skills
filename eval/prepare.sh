@@ -34,7 +34,8 @@ case "${group}" in
   knowledge)
     SKILLS=(knowledge-capture compound rule-audit session-retrospective)
     AGENTS=(knowledge-scanner)
-    C_FROM_MASTER=()
+    # 判定済み（20261031）: session-retrospective は C に置き換えてマスターが正本。knowledge-capture・compound・rule-audit は削除
+    C_FROM_MASTER=(session-retrospective)
     ;;
   *) echo "usage: $0 b|c design|impl|review|knowledge" >&2; exit 2 ;;
 esac

@@ -714,3 +714,36 @@
 **C の書き方**: B の決定木（再利用できる知見 → docs/knowledge・タスクの決定 → decisions.md・1 行の常時ルール → CLAUDE.md・一回限り → 残さない）と、提示して止まる契約だけを残した。フラグ（`.capture-needed`・`.codify-needed`）・compound との分担・書き込み後の手順は削った。session-retrospective は 5 分類と skill-issues.md の書式を残し、承認の判定の手順を削った（`.steering/` への記録は承認の要らない範囲）
 **過学習の注意**: C は K1・S1 の採点基準と、ふるいの 8 本の回答を読んだ後に書いた。knowledge-capture の「タスクの決定は一般の知識に書き換えない」は K1 の q3、session-retrospective の「既にある規則を守らなかったならその規則を挙げる」は S1 の q2 と重なる。どちらも B の本文にある考え（決定木の「現在タスク固有の決定 → decisions.md」・「該当」欄）を言い直したもので、B に無い観点は足していない。判定のときに注記する
 **影響**: 静的検査は validate 13/13・test:hooks 100/100。`.claude/hooks/guard-gated-write.sh` の警告文に compound と adr（削除済み）の名前が残るので、README・docs を直すときに合わせて直す。knowledge-capture（B のまま）の本文は compound を参照するが、判定まで許容する
+
+## 20261031 — 知識グループの K1・S1（A・B・C を 3 回ずつ）と判定
+
+**実行**: B（＋A）は `results-knowledge-b-k1.json`（1.35 ドル）・`results-knowledge-b-s1.json`（3.24 ドル）、C は `results-knowledge-c-k1.json`（0.58 ドル）・`results-knowledge-c-s1.json`（0.55 ドル）。5 時間枠は 36% → 48% の後、約 60% 前後（最後の 2 本の前後は未記録）。停止と止まり方の grader は全 18 実行で合格。最終回答は `knowledge-responses/<課題>-<条件>-<回>.md` に写した
+**失敗**: B の S1 を `--case 's1-*'` で流したため、設計グループの `s1-resume` にも当たり、B・A を 3 回ずつ余計に流した（約 2 ドル。結果は使わない）。`--case` は前方一致の短い glob だと別グループに当たる。C からは `'k1-price-*'`・`'s1-session-*'` のように長く書いた
+
+**質（人の確認後。3 回の平均。カッコ内は採点役）**
+
+| 課題 | A | B | C | 人が直した採点 |
+|---|---|---|---|---|
+| K1 knowledge-capture（6 点） | 6.0（5.7） | 6.0（5.7） | 6.0（5.0） | q6（保存先と既存の記述）の不合格 5 件をすべて合格に直した（どれもファイルと節を示し、MSW の件を既存の「モックの境界」節に足す案） |
+| S1 session-retrospective（6 点） | 5.0（4.7） | 6.0（5.7） | 6.0（5.7） | B 1 回目の q2（mise の手戻り）・A 3 回目の q1（訂正）・C 2 回目の q5（普通の作業を挙げない）を合格に直した。A の q6（記録先）の不合格 3 回は妥当（A は記録を書かず、memory・hook を提案した） |
+
+費用（1 実行・ドル）: K1 A 0.18・B 0.27・C 0.19、S1 A 0.15〜0.19・B 0.20〜0.24・C 0.17〜0.21
+
+**知識グループの判定**
+
+| スキル | 質 A / B / C | 停止 | 判定 |
+|---|---|---|---|
+| knowledge-capture | K1 6.0 / 6.0 / 6.0（ふるいの 1 回は 5 / 6 / —） | 全条件守る | **削除**（A が最良と同点） |
+| compound | C1 5 / 4 / —（1 回） | 全条件守る | **削除**（A が上） |
+| rule-audit | R1 6 / 6 / —（1 回） | 全条件守る | **削除**（同点） |
+| session-retrospective | S1 5.0 / 6.0 / 6.0 | 全条件守る | **C に置き換え**（A との差 1 点が 3 回とも同じ。C は B と同点で本文が短い） |
+
+**決定**: 上の判定で確定した（進め方はユーザーが Claude に任せた）。knowledge-capture と passthrough の台本を削除し、session-retrospective は C をマスターに入れた。C の本文にあった knowledge-capture への参照 2 か所（when_to_use と When NOT to use）は、削除で死んだ参照になるので言い回しだけ直した（評価した版との差はこの 2 か所）。`prepare.sh c knowledge` はマスターの session-retrospective を取り、`eval/conditions/c/knowledge/` は消した（評価した版は a4828bb の時点にある）
+**理由**: K1 は 3 条件とも満点で、ふるいの 1 点差はばらつきだった。S1 の差は「摩擦を `.steering/[task]/skill-issues.md` に書く」という記録先の決まりを知っているかだけで、A も摩擦は 4 件とも拾った。決まりはスキルに置く（CLAUDE.md の 1 行でも埋まるかもしれないが、比べていない）
+**判定表の注記**:
+- 1 ターンの評価で、知識が溜まって次の作業に効くか・名前で呼べる入口の価値・工程のつなぎは測っていない（ユーザーとの議論。20261031）
+- compound・rule-audit は各 1 回のふるいだけで判定した。rule-audit の `docs/knowledge/` の鮮度・参照の点検は課題に無い
+- S1 は会話の履歴の代わりに記録をプロンプトに貼った（実際の使い方と違う）
+- C は採点基準とふるいの回答を読んだ後に書いた（過学習の注意。前の節）
+- 採点役（haiku）の誤りが多い（このグループで 13 件。うち 11 件は厳しすぎる方向）。採点は人の確認を正とした
+**影響**: 静的検査は validate 12/12・test:hooks 100/100・lint で緑。pr-create・skill-test の references・`scripts/passthrough_check.py`・`.claude/hooks/guard-gated-write.sh` の警告文に、削除したスキル（knowledge-capture・compound）への参照が残る。どれも 5 の後の項目（pr-create・skill-test の書き直し、passthrough の削除、README・docs を直す）で消す
