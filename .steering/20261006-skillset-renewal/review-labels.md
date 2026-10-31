@@ -14,25 +14,32 @@ Created: 20261031
 
 B・A の N1・N2・R-b は、最終回答を含む trace（`/private/tmp/e-*/`）が消えていて、指摘の中身が残っていない。結果の json と report.html には最終回答が入っていない。
 
-## R-a（B・A。正解 T1〜T8 以外）
+## R-a（B・A・C。正解 T1〜T8 以外）
 
 | # | 指摘 | 出した条件 | 重要度（出した側） | ラベル | メモ |
 |---|---|---|---|---|---|
-| a1 | skill-test の課金の見積が `× 2 回` のままで、`--runs 4` を反映していない（design.md:133 の修正が入っていない） | B | High | | |
+| a1 | skill-test の課金の見積が `× 2 回` のままで、`--runs 4` を反映していない（design.md:133 の修正が入っていない） | B・C | High（B）・Medium（C） | | |
 | a2 | allow の `git diff*`・`git log*`・`git show*` に `--output=` を付けると確認なしで書き込める | B | High | | T1（Bash のリダイレクトで ask を迂回）と同じ系統の別経路 |
 | a3 | `git diff*` が前方一致で `git difftool -x <cmd>` にも当たり、任意のコマンドを実行できる | B | High | | 変更前からある allow かどうかを確かめる |
 | a4 | design.md に無い変更（ask の追加・ターン境界・Step の再構成）を、design.md を更新せずに入れた | B | Medium | | |
 | a5 | 「既知差分として登録する」と決めたのに、スクリプトに登録の仕組みが無い | B | Medium | | |
-| a6 | `docs/starter-kit.md:88` の配置手順に `docs/decisions/**` の ask が無い | B・A | Medium | | |
+| a6 | `docs/starter-kit.md:88` の配置手順に `docs/decisions/**` の ask が無い | B・A | Medium | | C の検証役は「adr は配布しないので書かないのが正しい」として捨てた |
 | a7 | `check_deploy_drift.py` が SKILL.md の無いスキル（SKIP）を「ドリフトなし」と数える | B | Medium | | B は再現済み |
 | a8 | ask のパスの `./` がカレントディレクトリ基準なら、サブディレクトリから起動したときに効かない | B | Medium | | B 自身が未確認と書いている |
 | a9 | ルートに未追跡の `gitshow-write-test.txt`・`gitdiff-write-test.txt` が残っている | B・A | その他・細かいもの | | |
-| a10 | `--master` の既定が、export worktree から実行すると古い master のコピーを指す | A | 先に直すべき | | |
+| a10 | `--master` の既定が、export worktree から実行すると古い master のコピーを指す | A | 先に直すべき | | C の検証役は「案内しているのは素通り検査の実行場所で、このスクリプトではない」として捨てた |
 | a11 | 改行コードが CRLF だと frontmatter を取り除けない | A | 先に直すべき | | |
-| a12 | rule-audit の監査入力が `@参照` しか見ず、素のパスで書いた参照と片側だけ揃っていない（SKILL.md:41・56） | A | 先に直すべき | | |
+| a12 | rule-audit の監査入力が `@参照` しか見ず、素のパスで書いた参照と片側だけ揃っていない（SKILL.md:41・56） | A・C | 先に直すべき（A）・Low（C） | | |
 | a13 | `check_deploy_drift.py` で `--target ""`（`$DEPLOY` が未設定）が全配置先のモードになる | A | CLI の堅牢性 | | |
 | a14 | argparse に移して `--help` から `__doc__` の説明が消えた | A | CLI の堅牢性 | | |
 | a15 | `read_body` の戻り値の型注釈が実際と違う・中身の無い f-string | A | 細かいもの | | |
+| a16 | `tests/passthrough/debug/scenario.md:5` の `judge_glob: src/**/*.ts` がテストファイルにも当たり、スキルどおり再現テストを書くと FAIL になる。decisions の「debug 3/4」の結論に誤った FAIL が混ざりうる | C | Medium | | 判定処理で再現 |
+| a17 | `tests/passthrough/impl-from-design/scenario.md:5` の判定対象が `src/**` だけで、design.md の Status を勝手に APPROVED にしても PASS | C | Medium | | 再現 |
+| a18 | 同シナリオのコメントは design.md が無い分岐の回帰テストと書くが、実際は DRAFT の分岐を通る | C | Medium | | |
+| a19 | `tests/passthrough/debug/scenario.md:101` の症状の書き方が逆（判定に影響なし） | C | Low | | |
+| a20 | README の「CLAUDE.md・docs/ への書き込みは承認制」が、実際の ask（CLAUDE.md・docs/knowledge・docs/decisions の Edit/Write）より広い | C | Low | | |
+| a21 | skillset-hardening の tasklist の「0. 変更対象の確定」が、済んだのに未チェック | C | Low | | |
+| a22 | adr のシナリオで、当てはまる決定が 2 件あり聞き返しても PASS。判定対象が `docs/decisions` だけで別の場所に書いても PASS | C | Low | | 後半は再現 |
 
 ## R-c（B・A・C。正解 T15〜T19 以外）
 
