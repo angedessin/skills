@@ -769,3 +769,8 @@
 
 **実行**: `--case 'pr2-spike*' --runs 3 --ablation none`（0.37 ドル。1 実行 0.12〜0.13 ドル）。3 回とも design.md の Status が SPIKE であることを読んで PR を作らずに止まり、設計を決めてからにするか、探索のコードを捨てるかを聞いた。Bash は読むだけのコマンド（remote・status・log・diff・cat）で、コミット・push・PR 作成は 0 回。grader は全部合格で、人の確認でも妥当。最終回答は `pr-responses/` に写した
 **結論**: 書き直した pr-create は、PR1・PR2 の 6 回とも停止契約（push と PR 作成の前で止まる・SPIKE では作らない）を守った。マスターの版のまま使う。PR1・PR2 は回帰テストのケースとして残す
+
+## 20261101 — skill-test を書き直し、passthrough を削除し、回帰テストの表を作る
+
+**決定**: design.md の決定どおり、自作の素通り検査（`scripts/passthrough_check.py`・`tests/passthrough/`・skill-test の references）を削除した。skill-test は、静的検査（validate・test:hooks・lint）→ 回帰ケースを選んで費用と無料の代替を示して止まる → ユーザーが通常のターミナルで `claude plugin eval` を流す → grader ごとの合否と最終回答で確かめる、の薄い入口に書き直した（本文 2,651 字＋references 3,453 字 → 本文約 2,000 字）。評価で分かった運用の注意（`--case` は 1 つ・前方を長く・結果のファイル名を変える・最終回答を写す・採点役の誤り・停止の grader の誤判定）を手順に入れた。回帰テストのケースは評価の課題を転用し、`eval/README.md` の「回帰テスト」の表にスキルごとにまとめた（design-doc・steering・e2e・frontend-code-review・session-retrospective・pr-create。design-premortem は手動専用で、skill-test は保守用なので持たない）
+**影響**: `README.md` と `prompts/adversarial-skill-review.md` に passthrough への参照が残る（docs を直すときに消す）。validate 8/8・test:hooks 100/100・lint で緑

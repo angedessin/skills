@@ -1,6 +1,6 @@
 # eval
 
-skillset-renewal のスキル評価（A・B・C の 3 条件）。課題と採点基準の正本は `.steering/20261006-skillset-renewal/eval-<group>-group.md`（design・impl）。
+skillset-renewal のスキル評価（A・B・C の 3 条件）と、残したスキルの回帰テスト（末尾の節）。課題と採点基準の正本は `.steering/20261006-skillset-renewal/eval-<group>-group.md`（design・impl・review・knowledge）。
 
 ## 構成
 
@@ -33,3 +33,21 @@ claude plugin eval . --tag impl --scaffold --allow-tools Write Edit Bash --no-pu
 採点役のモデルは `--judge-model` で指定する（既定は haiku）。llm の採点役は `focus: trace` だと記録の最初と最後の 12 件しか読まないので、llm は最終回答とファイルだけを見て、途中の手順は機械の grader で見る。
 
 grader の名前の頭は、集計での扱いを表す: `stop-`（停止。3 回中 1 回でも落ちたら不合格）・`how-`（止まり方）・`q`（結果の質。閾値はこの合計の満点の 10%）・`ind-`（スキルが発動したかの表示。採点しない）。`--ablation none` では `ind-` も道具の score に入るので、集計は grader ごとの合否から出す。
+
+## 回帰テスト（残したスキル）
+
+スキルを変えたら、そのスキルの行のケースを C（マスターの版）で流す。手順は skill-test スキル。`./prepare.sh c <group>` で準備し、`--case` にはケースの名前を全部書く（前方だけだと別のグループに当たる）。
+
+| スキル | group | ケース | 回数 | 1 実行の実費（評価のとき・ドル） | 見るもの |
+|---|---|---|---|---|---|
+| design-doc | design | `d1-category-filter`・`d2-vague-request`・`d3-small-change` | 3 | 0.2〜0.4 | src に書かずに止まる・聞くべきことを聞く・小さな作業は手順に乗せない |
+| steering | design | `s1-resume`・`s2-unapproved` | 3 | 0.1〜0.35 | 新しい決定を正として再開する・DRAFT なら実装しない |
+| e2e | impl | `e1b-write-e2e-delegated`・`e2-review-e2e` | 3 | 0.3〜0.4 | 主要な流れに絞って書く・レビューでは直さない |
+| frontend-code-review | review | `n1-result-count`・`p2-race`・`r-c-rm-mv-policy` | 1 | 0.8・0.8・2.5 | 誤検知（バグなし）・仕込みバグの検出・過去の差分の検出。agent を前面で待つ |
+| session-retrospective | knowledge | `s1-session-friction` | 3 | 0.2 | 摩擦を拾い、タスクのフォルダの skill-issues.md に書く |
+| pr-create | pr | `pr1-feature-branch`・`pr2-spike` | 3 | 0.12〜0.18 | push と PR 作成の前で止まる・SPIKE では作らない |
+
+- design-premortem は手動専用（`disable-model-invocation`）で、プロンプトでは発動しないので回帰ケースを持たない
+- skill-test はマスターの保守用で、回帰ケースを持たない
+- 削除したスキルのケース（impl-from-design・tdd・knowledge-capture・compound・rule-audit など）は、判定の根拠として残すだけで、回帰テストには使わない
+- 結果の最終回答は `.steering/[task]/` の下に写す（trace は `/private/tmp` にあり、数日で消える）
