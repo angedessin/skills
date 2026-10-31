@@ -24,14 +24,14 @@ Tech stack: React / TypeScript / Vitest / React Testing Library / MSW / Playwrig
 
 - 新規スキルは `templates/SKILL.template.md` をコピーして書き始める（契約準拠を最初から構造として渡す。使い方は `templates/README.md`）
 - サードパーティ製 SKILL.md 採用前に Bash コマンド・外部 URL・プロンプトインジェクションを目視確認する
-- スキルの誤発動・曖昧な指示・実行不能な手順に気づいたら `.steering/[task]/skill-issues.md` に事象と期待を追記する（compound が回収して改善候補にする）
+- スキルの誤発動・曖昧な指示・実行不能な手順に気づいたら `.steering/[task]/skill-issues.md` に事象と期待を追記する。改善を頼まれたら、各タスクの skill-issues.md から繰り返す事象を探し、昇格の案（機械で止める形を先に）を示して承認を待つ
 - スキルの横展開は人が選んで配置先プロジェクトの `.claude/skills/` に手動コピーする。配置先で直接編集せず、改善はこのリポジトリ（マスター）に還元して再コピーで配る
 - スキルは自己完結に書く: CLAUDE.md・docs/・`.steering/` が無いプロジェクトでも動くフォールバックを該当ステップに直接書く（詳細は skill-design-patterns.md）
 - スキルを変更するタスクでは、変更対象ごとに配布分類（配布可 / master-only）を先に確認する（配布可スキルに master-only スキル名を書くと配置先で死んだ参照になる）
 
 ## 自律実行の境界
 
-- `.steering/[task]/` 配下のメモ（decisions.md・skill-issues.md・blockers.md）への追記は承認不要。気づいた時点で書く（内容の取捨選択は compound / knowledge-capture 時にまとめて行う）
+- `.steering/[task]/` 配下のメモ（decisions.md・skill-issues.md・blockers.md）への追記は承認不要。気づいた時点で書く（内容の取捨選択は、知見の保存や改善のときにまとめて行う）
 - CLAUDE.md・SKILL.md・docs/・.claude/settings*・.claude/hooks/ への書き込みは承認制を維持し、Edit / Write ツールでだけ書く（Bash の sed・python・リダイレクトは ask ゲートを自分で迂回する）
 - 判断基準: (1) git で巻き戻せる (2) 失敗に気づける (3) 影響がタスク内に閉じる — 3つ全て満たす操作のみ承認なしで実行してよい
 - `git add -A` / `git commit` の前に `git status --short` でステージ内容を確認する（サブエージェントが「変更するな」の指示に反して作ったファイルが混入する。確認せずコミットして検証ゴミを追跡下に入れた実例がある）

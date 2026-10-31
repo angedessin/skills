@@ -706,3 +706,11 @@
 - S1 の差は「記録先（skill-issues.md というタスクのフォルダの決まり）を知っているか」だけで、摩擦の拾い方は A も 4 件とも拾った。決まりを知らない A が書き先を選べないのは当然で、CLAUDE.md の 1 行で埋まる差かもしれない。C を短く書き、その 1 行と比べられるかを C を書くときに検討する
 - R1 の仕込み (g2)（design.md が APPROVED になるまで実装しない）は、共通の CLAUDE.md の「作業の進め方」と同じ内容で、A・B とも重複として統合を提案した（課題の作りの誤り）。q6 は「規則そのものを消さない」として A・B とも合格にした
 - 採点役（haiku）は R1 の A で 4 項目を誤って落とした。整った表の B は全部合格にしており、書式に引きずられた疑いがある
+
+## 20261031 — compound・rule-audit を削除し、knowledge-capture・session-retrospective の C を書く
+
+**決定**: ふるいの判定どおり compound・rule-audit・agent の knowledge-scanner と、その passthrough の台本（`tests/passthrough/compound`・`rule-audit`）を削除した。CLAUDE.md の compound への参照 2 か所は、「改善を頼まれたら、各タスクの skill-issues.md から繰り返す事象を探し、昇格の案（機械で止める形を先に）を示して承認を待つ」と「取捨選択は知見の保存や改善のときにまとめて行う」に置き換えた。knowledge-capture・session-retrospective の C を `eval/conditions/c/knowledge/skills/` に書いた（本文は B の 9,931 字・3,095 字に対して 1,438 字・1,308 字）（ユーザー決定。進め方は Claude に任せる）
+**理由（削除の弊害の検討）**: compound が無いと skill-issues.md を回収する出口がなくなるが、C1 では A の方が良い案（リンタを本命・一度きりを外す・今の違反を見つける）を出しており、質の面の弊害は見つからなかった。出口は CLAUDE.md の 1 行で受ける（スキルも手で呼ぶ前提で、きっかけが無いのは削除の前後で同じ）。rule-audit は R1 で A も 6 つの問題をすべて見つけた。`docs/knowledge/` の鮮度や参照の点検は R1 に無く、比べていない
+**C の書き方**: B の決定木（再利用できる知見 → docs/knowledge・タスクの決定 → decisions.md・1 行の常時ルール → CLAUDE.md・一回限り → 残さない）と、提示して止まる契約だけを残した。フラグ（`.capture-needed`・`.codify-needed`）・compound との分担・書き込み後の手順は削った。session-retrospective は 5 分類と skill-issues.md の書式を残し、承認の判定の手順を削った（`.steering/` への記録は承認の要らない範囲）
+**過学習の注意**: C は K1・S1 の採点基準と、ふるいの 8 本の回答を読んだ後に書いた。knowledge-capture の「タスクの決定は一般の知識に書き換えない」は K1 の q3、session-retrospective の「既にある規則を守らなかったならその規則を挙げる」は S1 の q2 と重なる。どちらも B の本文にある考え（決定木の「現在タスク固有の決定 → decisions.md」・「該当」欄）を言い直したもので、B に無い観点は足していない。判定のときに注記する
+**影響**: 静的検査は validate 13/13・test:hooks 100/100。`.claude/hooks/guard-gated-write.sh` の警告文に compound と adr（削除済み）の名前が残るので、README・docs を直すときに合わせて直す。knowledge-capture（B のまま）の本文は compound を参照するが、判定まで許容する
