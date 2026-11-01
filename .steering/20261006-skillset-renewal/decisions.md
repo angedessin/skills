@@ -809,3 +809,13 @@
 - README・user-guide・templates・CLAUDE.md・eval/README・prompts のリンクとパスはすべて実在
 - 残っているもの: settings.json の ask と guard hook の `docs/decisions/`、guard-gated-write の警告文の compound・adr（どちらも 6 章の項目）
 - tasklist の 4 章の済んでいた 4 項目に印を付け、削除したスキル（knowledge-capture・compound）を前提にした 8 章・福利化の項目を今の構成に書き換えた
+
+## 20261101 — 普段の環境での確認（1・2 件目。`trial-normal-env-20261101.md`）
+
+**実行**: `skills-try`（サンプルアプリの複製にマスターの `.claude/` と CLAUDE.md を入れた使い捨ての配置先）で、ユーザーが普段のセッションから各 1 回
+**結果**:
+- 「まず設計して」: design-doc だけが発動し、feature-dev は動かなかった。決めることを 1 問ずつ 2 問聞き、設計を示して止まり、OK の後に実装した（`.steering/` は作らず、決めたことを 5 行に要約した。CLAUDE.md の中くらいの作業のとおり）
+- 「コードをレビューして」: frontend-code-review だけが発動し、組み込みの code-review・security-review・feature-dev の code-reviewer は動かなかった。一次の指摘 3 件のうち、検証役が 1 件を確かめ、2 件を捨てた。残った 1 件（同額のテストが誤った並べ方を見逃す）は、誤実装で再現した本物の指摘
+**見立ての訂正**: 説明文の突き合わせでレビューの重なりを「危うさが高い」としたが、この 1 回では起きなかった。各 1 回なので起きないとまでは言えない
+**分かった問題**: skill-issues.md の 3 件（バックグラウンドでの起動・検証の重さ・node_modules への書き込み）
+**注意**: `develop` が無いと言ってローカルに作ったのは、配置先に合わないマスターの CLAUDE.md を入れたため（仮の配置の影響で、スキルの問題ではない）
