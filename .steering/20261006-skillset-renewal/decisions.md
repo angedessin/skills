@@ -839,3 +839,11 @@
 - P2（仕込みのレース）: 1.00 ドル・232 秒。レースを High で指摘し、作業ツリーを `cp -cR` で複製したコピーの中で MSW の遅延を使って 3 パターン再現した。指摘は計 9 件（High 1・Medium 2・Low 6）で捨てた指摘 2 件。C を仕込みバグで回したのはこれが初めて（1 件だけ）
 - どちらも agent 6 本の結果がそろってから報告し、「前面」の指定をやめても待たずに終わることはなかった（各 1 回）。検証役は `node_modules` をリンクで共有せず、実行も 1 件あたり少数で済んだ。停止の grader は全部合格
 **判定**: 修正はこのまま残す。skill-issues.md の 3 件は解決済み。最終回答は `review-responses/n1-C-fix.md`・`p2-C-fix.md`
+
+## 20261101 — prompt-audit（横断。修正は承認待ち）
+
+**実行**: `prompts/adversarial-skill-review.md` の横断パスを、文脈を持たない subagent 1 体で回した（138,820 トークン・約 6 分。スキルの実走はしていない）。Critical 1・Major 11・Minor 12・未確認 3。主な指摘は Claude がファイルと照らして確かめた（一回限り・20261101）
+**指摘（案の扱い）**:
+- 今直す案: C1 README の順序（アーカイブ → PR）で pr-create の SPIKE の確認と本文の材料が外れる／M1 frontend-code-review がブランチの差分を謳うのに `git diff HEAD` 固定で、検証役に範囲が渡らない／M3 review-rules の片側修正の観点が、引用の条件で出せない／M4 原因調査の扱いが CLAUDE.md・design-doc・user-guide で食い違う／M5 e2e の「E2E が不安定」に手順が無い／M6 e2e と frontend-code-review の境界が未定義／M8 pr-create が DRAFT を示さない／M9 pr-create にベースブランチの決め方が無い／M10 review-result.md の上書きか追記かが無い／Minor のうち scss・`git mv` の親ディレクトリ・patch のファイル名・skill-test の回数とケース名の表記
+- 工程に回す案: M7 CLAUDE.md の承認制の範囲と ask のずれ（6 章）／M11 配置先の CLAUDE.md の中身（7 章）／Minor の配布の記述（7 章）
+- 普段使いを見て決める案: M2 実装だけの差分でテストの抜けを誰も見ない（N1・N2 ではテストの抜けが指摘の大半で、広げると増える）／残りの Minor
