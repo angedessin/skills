@@ -791,3 +791,21 @@
 - `README.md` を書き直した（208 行 → 約 90 行）。方針（スキルなしより良いものだけ残す）・作業の流れ・スキル 8 本と agent 6 本・検査・hook。コピー手順は 7 章で埋める
 - `.gitignore` の `.steering` のランタイムフラグ 5 行（capture・codify・rule-audit のもの）と、手元に残っていた `.steering/.last-rule-audit` を消した。validate のコメントの `skill-design-patterns.md` への参照を消した
 **残り**: `.claude/hooks/guard-gated-write.sh` の警告文の compound・adr は 6 章（警告文の adr を直す項目）で直す。validate 9/9・test:hooks 100/100・lint で緑
+
+## 20261101 — 設計グループの宿題 2 件を閉じる
+
+**決定**: 次の 2 件を、追加の作業なしで閉じる（ユーザー承認）
+- 週間の利用枠と残り 3 グループの規模: 実装（54＋72 実行）・レビュー（18 差分を各 1 回・C は 5 差分）・知識（ふるい 8 実行＋K1・S1 を 3 回ずつ）と、グループごとにユーザーと規模を決めて回し終えた。これ以上の大きな評価は残っていない
+- 人の採点と採点役の一致: 設計グループは 20261027 に 1 件で確かめ済み（上の節）。レビュー・知識グループでは採点役（haiku）の誤りが多く（知識グループで 13 件、うち 11 件は厳しすぎる方向）、判定はすべて人が最終回答を読んで確かめた採点を正とした。採点役の誤りが判定を変えた例は無い
+**影響**: 回帰テストでも採点役の判定をうのみにせず、落ちた項目と怪しい合格は最終回答で確かめる（skill-test の Step 4 に書いた）
+
+## 20261101 — 一通りの確認（一回限り）
+
+ユーザーの依頼で、5 の区切りの前に全体を確かめた（一回限り・20261101）。
+- 静的検査: validate 9/9（スキル 8 本＋CLAUDE.md 46 行）・テンプレート・test:hooks 100/100・lint が緑
+- README のスキル表と agent の一覧が `.claude/skills/`・`.claude/agents/` と一致。スキルが名前で呼ぶ agent（frontend-code-review の 5 本・design-premortem の premortem-attacker）はすべて実在
+- `eval/README.md` の回帰テストの表のケースはすべて実在し、ケース名に重なりが無い。`prepare.sh` は b・c の全グループと c pr で通る
+- settings.json が登録する hook 7 本はすべて実在し、登録されていない hook は無い。hook が呼ぶスクリプト（validate_skills.py）は実在
+- README・user-guide・templates・CLAUDE.md・eval/README・prompts のリンクとパスはすべて実在
+- 残っているもの: settings.json の ask と guard hook の `docs/decisions/`、guard-gated-write の警告文の compound・adr（どちらも 6 章の項目）
+- tasklist の 4 章の済んでいた 4 項目に印を付け、削除したスキル（knowledge-capture・compound）を前提にした 8 章・福利化の項目を今の構成に書き換えた

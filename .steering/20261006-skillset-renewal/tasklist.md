@@ -54,15 +54,15 @@ Last updated: 20261029（レビューの B（＋A）を途中まで回した）
 - [x] サンプルアプリを作る（置き場所と中身は論点のとおり）。1 回ごとに別のパスへ新しく複製する手順を用意する（20261016。設計グループは今の 1 画面で足りるため追加なし。複製は準備スクリプトの `cp -cR`。eval-design-group.md の 3）
 - [x] タグから「B の一式」（`.claude/` 全体・CLAUDE.md・必要な scripts）を作り、条件ごとに入れるものの表を書く（20261016 設計グループの分。B は 3 スキル＋premortem-attacker＋hook 1 本で、scripts は不要。`eval/prepare.sh b` がタグから組む。他グループは順番が来たら `prepare.sh` に足す）
 - [x] 設計グループの課題（D1 絞り込みの設計・D2 曖昧な依頼・D3 小さな依頼・S1 再開・S2 未承認での実装依頼・P1 穴を仕込んだ設計・再評価用 D4）の採点基準を書き、全条件共通の CLAUDE.md（`.steering` の行動ルール 5 行を含む）を固定する（20261015 決定）（20261016 固定。eval-design-group.md）
-- [ ] グループごとに作業課題（スキル 1 本あたり 2〜3 件）・再評価用の課題 1 件・採点基準を書き、ユーザーに確認してコミットで固定する（C を書き始める前）
+- [x] グループごとに作業課題（スキル 1 本あたり 2〜3 件）・再評価用の課題 1 件・採点基準を書き、ユーザーに確認してコミットで固定する（C を書き始める前）（eval-impl-group.md 20261027・eval-review-group.md 20261028・eval-knowledge-group.md 20261031）
 - [x] 評価のケースを `claude plugin eval` の形式で書く（20261016 設計グループの 6 件＋再評価用 D4。`eval/`。B と C は 1 つの plugin ディレクトリの中身を入れ替え、ケースは 1 か所。`history_file` は使わず、再開は準備スクリプトで `.steering/` を置く形にした。B・C 用の評価用 `plugin.json`、サンプルアプリを複製する準備スクリプト、停止の判定は `tool_used`、続きからの再開は `history_file`、採点は最終回答と生成ファイル中心で `--judge-model` を実行と別のモデルに。CLAUDE.md はスキルに触れない部分を `append_system_prompt`、触れる部分を B・C の plugin の SessionStart hook で入れる）
-- [ ] `tests/review-eval/` を作る（過去の誤検知・真の指摘＋仕込みバグ＋公開事例）。仕込みバグは新しい agent の観点を書く前に固定する
-- [ ] 現行レビュー（タグの一式）の基準値を取り、人がラベル付けする
-- [ ] 評価は、sandbox を有効にした Claude Code の中ではなく通常のターミナルから実行する
+- [x] `tests/review-eval/` を作る（過去の誤検知・真の指摘＋仕込みバグ＋公開事例）。仕込みバグは新しい agent の観点を書く前に固定する（20261028。置き場所は `eval/evals/review/` に変えた。公開事例は入れていない）
+- [x] 現行レビュー（タグの一式）の基準値を取り、人がラベル付けする（20261029〜31。ラベルは Claude の案を人が N1・N2 の全体比較で確かめた。review-labels.md）
+- [x] 評価は、sandbox を有効にした Claude Code の中ではなく通常のターミナルから実行する（全グループでそうした）
 
 ## 5. グループごとの書き直しと評価（設計 → 実装 → レビュー → 知識の順）
 
-- [ ] 設計（design-doc・steering・design-premortem）: 書き直し → A・B・C を回す → 判定。ここで実費を測り、残りの規模をユーザーと決める
+- [x] 設計（design-doc・steering・design-premortem）: 書き直し → A・B・C を回す → 判定。ここで実費を測り、残りの規模をユーザーと決める（20261027 判定）
   - [x] C を書く（20261026。`eval/conditions/c/`。スキルに触れる CLAUDE.md は C に入れない。decisions.md）
   - [x] C の見直し（20261026。決定インタビューを戻す・steering の再開は依頼が曖昧なら止まる・premortem の捨てた所見を残す。decisions.md）
   - [x] B（＋A）を回す（20261026。36 実行・5 時間枠 70%。結果は decisions.md）
@@ -72,8 +72,8 @@ Last updated: 20261029（レビューの B（＋A）を途中まで回した）
   - [x] design-doc は例外として C を残し、先に聞く条件を絞る（20261027）
   - [x] P2（自分の設計の見直し）を A・C で回し、design-premortem を判定する（20261027。削除）
   - [x] 判定表を decisions.md に書き、マスターを入れ替える（20261027。design-doc・steering は C、design-premortem は削除）
-  - [ ] 週間の利用枠を確かめ、残り 3 グループの規模をユーザーと決める
-  - [ ] 人の採点（2 件）と採点役の一致を確かめ、判定を decisions.md に残す
+  - [x] 週間の利用枠を確かめ、残り 3 グループの規模をユーザーと決める（20261101 閉じた。グループごとに決めて回し終えた）
+  - [x] 人の採点（2 件）と採点役の一致を確かめ、判定を decisions.md に残す（20261027 に 1 件で確認。20261101 閉じた。以後は人の確認を正とした）
 - [x] 実装（impl-from-design・tdd・e2e）（20261028 判定）
   - [x] 課題と採点基準を固定する（20261027。eval-impl-group.md）
   - [x] ケースを `plugin eval` の形で書き、B の一式を準備スクリプトに足す（20261027。`eval/evals/impl/`・`prepare.sh b|c impl`）
@@ -133,7 +133,7 @@ Last updated: 20261029（レビューの B（＋A）を途中まで回した）
 ## 8. 検証
 
 - [ ] 静的検査（`validate`・`test:hooks`・`lint`・`tests/sandbox`）が緑
-- [ ] 停止のケースを `plugin eval` で実走する（design-doc・pr-create・knowledge-capture。課金・承認制。通常のターミナルから実行する）
+- [ ] 停止のケースを `plugin eval` で実走する（design-doc・pr-create。knowledge-capture は削除。課金・承認制。通常のターミナルから実行する）（pr-create は 20261101 に PR1・PR2 で確認済み。design-doc は評価の D1・D2 で確認済み。最後に `eval/README.md` の回帰テストで一式を流すかを決める）
 - [x] 自作の passthrough（`passthrough_check.py`・`tests/passthrough/`）を削除する（20261101）
 - [ ] 検証用の使い捨て配置先に README の手順でコピーし、スキル・hook の発火・sandbox 下での lint と typecheck を確かめる
 
@@ -161,7 +161,7 @@ Last updated: 20261029（レビューの B（＋A）を途中まで回した）
 
 ## 福利化
 
-- [ ] compound スキルの実行（パターンをルール・知識に昇格）
+- [ ] 改善の案を出す（compound は削除。CLAUDE.md の規則どおり、skill-issues.md と decisions.md から繰り返す事象を探して昇格の案を示す）
 
 ## クローズ
 
