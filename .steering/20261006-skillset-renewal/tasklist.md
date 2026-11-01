@@ -112,6 +112,15 @@ Last updated: 20261029（レビューの B（＋A）を途中まで回した）
 - [x] `CLAUDE.md` を 50 行以内の行動ルールに書き直す（小さな作業の決め方を含む）（20261101。46 行。validate の契約 11 で行数を検査）
 - [x] `templates/`・`prompts/`・`docs/user-guide.md`・`docs/starter-kit.md`・`README.md` を直す（20261101。starter-kit は削除。README のコピー手順は 7 章で書く）
 
+## 区切り 2 の PR（5 の後・6 の前）
+
+`feature/renewal-02-eval` → `feature/skillset-renewal`（20261101 ユーザー決定: PR は 5 の終わりにまとめて出す）
+
+- [ ] frontend-code-review（新方式）で、ブランチの差分をレビューする。対象は `.claude/`・`scripts/`・`CLAUDE.md` などに絞る案（評価の生成物は除く）。課金。見込みは 4 ドル以上・5 時間枠の 30% 以上で、見積もりを示して承認を取る。ブランチの差分の経路を動かすのはこれが初めて（20261101 に足した手順）
+- [ ] 回帰 `n1-result-count` を 1 回（約 0.8 ドル。20261101 の prompt-audit の修正の後は未実行）
+- [ ] 指摘を直す
+- [ ] pr-create で PR を作る（本文を示して承認をもらう。README・settings に残る既知の未完了を本文に書く）。マージは人
+
 ## 6. settings.json
 
 - [ ] スキルの削除（3・5）が済んでいることを確かめる（sandbox 下では `.claude/` への書き込みが標準で禁止される）
