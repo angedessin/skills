@@ -847,3 +847,9 @@
 - 今直す案: C1 README の順序（アーカイブ → PR）で pr-create の SPIKE の確認と本文の材料が外れる／M1 frontend-code-review がブランチの差分を謳うのに `git diff HEAD` 固定で、検証役に範囲が渡らない／M3 review-rules の片側修正の観点が、引用の条件で出せない／M4 原因調査の扱いが CLAUDE.md・design-doc・user-guide で食い違う／M5 e2e の「E2E が不安定」に手順が無い／M6 e2e と frontend-code-review の境界が未定義／M8 pr-create が DRAFT を示さない／M9 pr-create にベースブランチの決め方が無い／M10 review-result.md の上書きか追記かが無い／Minor のうち scss・`git mv` の親ディレクトリ・patch のファイル名・skill-test の回数とケース名の表記
 - 工程に回す案: M7 CLAUDE.md の承認制の範囲と ask のずれ（6 章）／M11 配置先の CLAUDE.md の中身（7 章）／Minor の配布の記述（7 章）
 - 普段使いを見て決める案: M2 実装だけの差分でテストの抜けを誰も見ない（N1・N2 ではテストの抜けが指摘の大半で、広げると増える）／残りの Minor
+
+## 20261101 — prompt-audit の指摘を直す
+
+**決定**（ユーザー承認）: 上の節の「今直す案」を入れた。README の順序を pr-create → アーカイブ → マージに直した／frontend-code-review にベースブランチの差分の手順と一意な patch を足し、検証役へ patch を渡す／review-rules は片側修正を変わっていない側の引用で出せる／原因の分からない不具合は「調べるのは進めてよい・修正の前に原因と方針を示して止まる」に CLAUDE.md・design-doc を揃えた（design.md の「小さな作業にしない条件」から外す）／e2e の発動から「不安定」を外し、frontend-code-review との境界を両方に書いた。review-test に E2E の spec の観点を 1 行足した／pr-create にベースの決め方と DRAFT の表示を足した／review-result.md は末尾に節を足す／scss・`.steering/archived/` の作成・skill-test の表記を直した。M2（実装だけの差分のテストの抜け）は README に限界として書いた
+**一回限りの確認（20261101）**: validate・test:hooks・lint が緑。`mktemp` のコマンドが macOS で動く
+**未確認**: frontend-code-review のブランチの差分の経路は回帰ケースに無い。区切り 2 の PR の前の本番のレビューで確かめる。`n1-result-count` の回帰は未実行

@@ -73,4 +73,4 @@ design.md の Status 行を読む。
 
 1. tasklist.md の未チェックの項目を示す。残っているなら、それでもアーカイブするか聞く
 2. 移す内容（`.steering/[task]/` → `.steering/archived/[task]/`）を示し、確認を求めて**ここで止まる**
-3. 確認をもらったら、git 管理下なら `git mv`、そうでなければ通常の移動で移す
+3. 確認をもらったら、`.steering/archived/` が無ければ作り、git 管理下なら `git mv`、そうでなければ通常の移動で移す

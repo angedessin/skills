@@ -108,7 +108,7 @@ Last updated: 20261029（レビューの B（＋A）を途中まで回した）
 - [x] マスター専用（skill-test）を新しい型で書き直す（20261101。passthrough を削除。decisions.md）
 - [x] 各グループの判定を decisions.md に残す（設計 20261027・実装 20261028・レビュー 20261031・知識 20261031）
 - [x] 残したスキルごとに回帰テスト用のテストケースを残す（評価の課題を転用する。形式は `claude plugin eval`）（20261101。`eval/README.md` の「回帰テスト」の表）
-- [ ] 書き直し後のスキルに prompt-audit をもう一度回す
+- [x] 書き直し後のスキルに prompt-audit をもう一度回す（20261101。横断。指摘は decisions.md のとおり直した。M7・M11 は 6・7 章、M2 は README に限界として記載）
 - [x] `CLAUDE.md` を 50 行以内の行動ルールに書き直す（小さな作業の決め方を含む）（20261101。46 行。validate の契約 11 で行数を検査）
 - [x] `templates/`・`prompts/`・`docs/user-guide.md`・`docs/starter-kit.md`・`README.md` を直す（20261101。starter-kit は削除。README のコピー手順は 7 章で書く）
 

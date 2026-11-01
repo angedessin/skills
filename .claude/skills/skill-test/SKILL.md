@@ -23,13 +23,13 @@ mise exec -- pnpm run test:hooks
 mise exec -- pnpm run lint
 ```
 
-落ちたらここで直す。課金の実行には進まない。
+落ちたら、原因を報告して止まる。課金の実行には進まない。
 
 ## Step 2 — 回帰ケースを選び、見積もりを示して止まる
 
 変えたスキルの回帰ケースを `eval/README.md` の「回帰テスト」の表から選ぶ。示すこと:
 
-- 流すケースと回数（停止の契約を持つスキルは 3 回。たまにしか破れない停止を 1 回では見逃す）
+- 流すケースと回数（表のとおり。停止を確かめるスキルは 3 回。たまにしか破れない停止を 1 回では見逃す）
 - 費用の見積もり（ケースごとの 1 実行の実費は表にある。5 時間枠ではおよそ 1 ドルあたり 6〜11%）
 - 無料の代替: Step 1 だけで終える。本文の言い回しだけを直したなら、それで足りることが多い
 
@@ -42,11 +42,11 @@ mise exec -- pnpm run lint
 ```bash
 cd eval
 ./prepare.sh c <group>
-claude plugin eval . --case '<ケースの名前の前方を長めに>' --runs 3 --scaffold --allow-tools Write Edit Bash \
+claude plugin eval . --case '<ケースの名前を全部>' --runs <表の回数> --scaffold --allow-tools Write Edit Bash \
   --no-publish --keep-temp --json results-<group>-<日付や名前>.json --ablation none --max-cost-usd <上限>
 ```
 
-- `--case` は 1 回に 1 つしか効かない。前方を短くすると別のグループのケースにも当たる（`s1-*` が設計と知識の両方に当たった）
+- `--case` は 1 回に 1 つしか効かない。名前を全部書く（`s1-*` のように前方だけだと、設計と知識の両方に当たった）
 - 結果のファイル名は実行ごとに変える（上書きしない）
 - `--ablation none` で、スキルなしの比較を回さない（回帰テストでは要らない）
 

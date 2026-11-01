@@ -19,7 +19,7 @@
 中くらい     design-doc（会話で設計を示して止まる）→ OK → 実装 → frontend-code-review
 大きな作業   design-doc（.steering/ に design.md を作って止まる）→ /design-premortem（任意）
              → APPROVED → 実装（e2e は主要な流れだけ）→ frontend-code-review
-             → steering でアーカイブ → pr-create（push の前で止まる）→ マージ（人）
+             → pr-create（push の前で止まる）→ steering でアーカイブ → マージ（人）
 再開         steering（design.md・tasklist.md・decisions.md を読み合わせて次の項目を示す）
 振り返り     session-retrospective → .steering/[task]/skill-issues.md → 頼まれたら改善の案
 ```
@@ -38,6 +38,8 @@
 | [`skill-test`](.claude/skills/skill-test/SKILL.md) | **マスター専用**。静的検査と、`claude plugin eval` の回帰ケースの実行（課金の前に承認） | 課金の実行の前 |
 
 agent（`.claude/agents/`）: `review-bug`・`review-rules`・`review-ui-a11y`・`review-test`・`review-verify`（frontend-code-review が使う）、`premortem-attacker`（design-premortem が使う）。モデル・エフォート・使える道具は定義の側に書く。読み取り専用の agent は Bash を持たない（`git diff --output=` などで書けてしまうため）。
+
+frontend-code-review の限界: テスト担当はテストファイルが変わったときだけ動くので、実装だけを変えた差分のテストの抜けは見ない。
 
 ## ディレクトリ構成
 
