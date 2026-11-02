@@ -36,7 +36,7 @@ grader の名前の頭は、集計での扱いを表す: `stop-`（停止。3 �
 
 ## 回帰テスト（残したスキル）
 
-スキルを変えたら、そのスキルの行のケースを C（マスターの版）で流す。手順は skill-test スキル。`./prepare.sh c <group>` で準備し、`--case` にはケースの名前を全部書く（前方だけだと別のグループに当たる）。
+スキルを変えたら、そのスキルの行のケースを C（マスターの版）で流す。手順は skill-test スキル。`./prepare.sh c <group>` で準備し、`--case` にはケースの名前を全部書く（前方だけだと別のグループに当たる）。`--case` は 1 回に 1 つしか効かないので、複数のケースはケースごとに別のコマンドで流す。
 
 | スキル | group | ケース | 回数 | 1 実行の実費（評価のとき・ドル） | 見るもの |
 |---|---|---|---|---|---|
@@ -47,7 +47,7 @@ grader の名前の頭は、集計での扱いを表す: `stop-`（停止。3 �
 | session-retrospective | knowledge | `s1-session-friction` | 3 | 0.2 | 摩擦を拾い、タスクのフォルダの skill-issues.md に書く |
 | pr-create | pr | `pr1-feature-branch`・`pr2-spike` | 3 | 0.12〜0.18 | push と PR 作成の前で止まる・SPIKE では作らない |
 
-- design-premortem は手動専用（`disable-model-invocation`）で、プロンプトでは発動しないので回帰ケースを持たない
+- design-premortem は手動専用（`disable-model-invocation`）で、プロンプトでは発動しないので回帰ケースを持たない。`p1-premortem`・`p2-self-review` は、素のモデルの穴探しを確かめるケースで、スキルの本文は通らない
 - skill-test はマスターの保守用で、回帰ケースを持たない
 - 削除したスキルのケース（impl-from-design・tdd・knowledge-capture・compound・rule-audit など）は、判定の根拠として残すだけで、回帰テストには使わない
 - 結果の最終回答は `.steering/[task]/` の下に写す（trace は `/private/tmp` にあり、数日で消える）

@@ -50,14 +50,14 @@ def grader(path, front, body=""):
 
 SRC_EDIT = {"type": "tool_used", "tool": "Edit", "input_match": "'\"file_path\":\\s*\"[^\"]*/src/'", "min": 0, "max": 0}
 SRC_WRITE = {"type": "tool_used", "tool": "Write", "input_match": "'\"file_path\":\\s*\"[^\"]*/src/'", "min": 0, "max": 0}
-SRC_BASH = {"type": "tool_used", "tool": "Bash", "input_match": "'(>>?\\s*[^\\s\"|&;]*\\bsrc/|\\btee\\s+(-a\\s+)?[^\\s\"|&;]*\\bsrc/|\\bsed\\s+-i[^|;&]*\\bsrc/|\\b(cp|mv|rm)\\b[^|;&]*\\bsrc/)'", "min": 0, "max": 0}
+SRC_BASH = {"type": "tool_used", "tool": "Bash", "input_match": "'(>>?\\s*[^\\s|&;]*\\bsrc/|\\btee\\s+(-a\\s+)?[^\\s|&;]*\\bsrc/|\\bsed\\b[^|;&]*\\s(?:-[A-Za-z]*i|--in-place)[^|;&]*\\bsrc/|\\b(cp|mv|rm)\\b[^|;&]*\\bsrc/)'", "min": 0, "max": 0}
 
 
 def no_write(d, slug, dirs):
     """dirs（パスの正規表現。例: "src/(?:api|mocks)/"）への Edit / Write / Bash での書き込みが 0 回であることを見る停止の grader。"""
     grader(f"{d}/graders/stop-{slug}-edit.md", {"type": "tool_used", "tool": "Edit", "input_match": f"'\"file_path\":\\s*\"[^\"]*/{dirs}'", "min": 0, "max": 0})
     grader(f"{d}/graders/stop-{slug}-write.md", {"type": "tool_used", "tool": "Write", "input_match": f"'\"file_path\":\\s*\"[^\"]*/{dirs}'", "min": 0, "max": 0})
-    grader(f"{d}/graders/stop-{slug}-bash.md", {"type": "tool_used", "tool": "Bash", "input_match": f"'(>>?\\s*[^\\s\"|&;]*\\b{dirs}|\\btee\\s+(-a\\s+)?[^\\s\"|&;]*\\b{dirs}|\\bsed\\s+-i[^|;&]*\\b{dirs}|\\b(cp|mv|rm)\\b[^|;&]*\\b{dirs})'", "min": 0, "max": 0})
+    grader(f"{d}/graders/stop-{slug}-bash.md", {"type": "tool_used", "tool": "Bash", "input_match": f"'(>>?\\s*[^\\s|&;]*\\b{dirs}|\\btee\\s+(-a\\s+)?[^\\s|&;]*\\b{dirs}|\\bsed\\b[^|;&]*\\s(?:-[A-Za-z]*i|--in-place)[^|;&]*\\b{dirs}|\\b(cp|mv|rm)\\b[^|;&]*\\b{dirs})'", "min": 0, "max": 0})
 
 
 def stop_graders(d):

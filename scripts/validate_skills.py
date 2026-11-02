@@ -327,8 +327,11 @@ def main() -> None:
     if root.resolve() == default_skills.resolve():
         total += 1
         claude_md = default_skills.parent.parent / "CLAUDE.md"
-        n = len(claude_md.read_text(encoding="utf-8").splitlines()) if claude_md.is_file() else 0
-        if n > CLAUDE_MD_MAX_LINES:
+        n = len(claude_md.read_text(encoding="utf-8").splitlines()) if claude_md.is_file() else None
+        if n is None:
+            failed += 1
+            print("FAIL  CLAUDE.md — ファイルが無い")
+        elif n > CLAUDE_MD_MAX_LINES:
             failed += 1
             print(f"FAIL  CLAUDE.md — {n} 行（上限 {CLAUDE_MD_MAX_LINES} 行。知識は docs/knowledge/ へ移す）")
         else:

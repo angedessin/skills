@@ -42,11 +42,11 @@ mise exec -- pnpm run lint
 ```bash
 cd eval
 ./prepare.sh c <group>
-claude plugin eval . --case '<ケースの名前を全部>' --runs <表の回数> --scaffold --allow-tools Write Edit Bash \
+claude plugin eval . --case '<ケースの名前 1 つ。省略せずに書く>' --runs <表の回数> --scaffold --allow-tools Write Edit Bash \
   --no-publish --keep-temp --json results-<group>-<日付や名前>.json --ablation none --max-cost-usd <上限>
 ```
 
-- `--case` は 1 回に 1 つしか効かない。名前を全部書く（`s1-*` のように前方だけだと、設計と知識の両方に当たった）
+- `--case` は 1 回に 1 つしか効かない。複数のケースは、ケースごとに別のコマンドで流す。名前を全部書く（`s1-*` のように前方だけだと、設計と知識の両方に当たった）
 - 結果のファイル名は実行ごとに変える（上書きしない）
 - `--ablation none` で、スキルなしの比較を回さない（回帰テストでは要らない）
 
