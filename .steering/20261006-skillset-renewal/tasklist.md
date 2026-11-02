@@ -116,9 +116,9 @@ Last updated: 20261029（レビューの B（＋A）を途中まで回した）
 
 `feature/renewal-02-eval` → `feature/skillset-renewal`（20261101 ユーザー決定: PR は 5 の終わりにまとめて出す）
 
-- [ ] frontend-code-review（新方式）で、ブランチの差分をレビューする。対象は `.claude/`・`scripts/`・`CLAUDE.md` などに絞る案（評価の生成物は除く）。課金。見込みは 4 ドル以上・5 時間枠の 30% 以上で、見積もりを示して承認を取る。ブランチの差分の経路を動かすのはこれが初めて（20261101 に足した手順）
-- [ ] 回帰 `n1-result-count` を 1 回（約 0.8 ドル。20261101 の prompt-audit の修正の後は未実行）
-- [ ] 指摘を直す
+- [x] （20261102。確かめられた 13 件。`review-result.md`）frontend-code-review（新方式）で、ブランチの差分をレビューする。対象は `.claude/`・`scripts/`・`CLAUDE.md` などに絞る案（評価の生成物は除く）。課金。見込みは 4 ドル以上・5 時間枠の 30% 以上で、見積もりを示して承認を取る。ブランチの差分の経路を動かすのはこれが初めて（20261101 に足した手順）
+- [x] 指摘を直す（20261102。13 件すべて）
+- [x] 回帰 `n1-result-count`・`p10-mock-echo`・`pr2-spike` を各 1 回（20261103。無効の 1 本を含めて計 1.95 ドル。結果は decisions.md）
 - [ ] pr-create で PR を作る（本文を示して承認をもらう。README・settings に残る既知の未完了を本文に書く）。マージは人
 
 ## 6. settings.json
@@ -176,3 +176,4 @@ Last updated: 20261029（レビューの B（＋A）を途中まで回した）
 ## クローズ
 
 - [ ] steering archive モードでアーカイブ（マージ前）
+- [ ] アーカイブのとき、記録へのパスを `.steering/archived/` に直す（`README.md`・`eval/README.md`・`eval-pilot/README.md`・`eval/gen_impl_cases.py`・`eval/gen_review_cases.py`）
