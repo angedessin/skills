@@ -11,13 +11,10 @@
   7. 承認語彙（承認 / APPROVED）が出現するスキルは、本文にハードストップ表現
      （「ここで止ま」または見出しの STOP）を 1 つ以上持つ。否定形（承認不要 等）は
      トリガーから除外。逃し弁として本文に <!-- validator: no-stop-needed --> があればスキップ。
-  8. 既定の .claude/skills 走査時: design-doc/references/templates.md に
-     design-doc-boundary: appendix がある（契約コア/付録境界）
-  9. 既定走査時: design↔実装同期パスのキー共存（design-doc 方針転換 / impl-from-design
-     乖離分類 / impl-review・frontend-code-review の設計整合ゲート）。
-     キーワード並びのみ検査し、手順の実行正否は見ない（空文で通る限界あり）
-  10. 既定走査時: tasklist 工程表同期（FCR 知見保存→デプロイ順 + 6 節キー）。
-      キーワード並びと出現位置のみ。空文で通る限界あり
+  （8. design-doc の付録境界は 20261027 に削除。design-doc を書き直し、付録境界をやめたため）
+  （9. design↔実装同期パスのキー共存と 10. tasklist 工程表同期は 20261031 に削除。
+     検査対象の impl-review を削除し、frontend-code-review を書き直したため）
+  11. 既定走査時: リポジトリの CLAUDE.md が 50 行以内（行動ルールだけにする。独自の目標）
 
 純度計測・ポータビリティ（レポートのみ・FAIL にしない）:
   python3 scripts/validate_skills.py --purity        # 各スキル本文のツール固有 API 出現数
@@ -39,7 +36,7 @@ import sys
 from pathlib import Path
 
 # 項目8（純度計測）で数えるツール固有語彙。本文（frontmatter・references/ を除く）に
-# これらが出るほどエンジン純度が下がる。skill-design-patterns.md「エンジン純度を実測する」を機械化。
+# これらが出るほど、スキルが特定のツールに依存する（エンジン純度が下がる）。
 TOOL_VOCAB = [
     "gh", "git", "npx", "pnpm", "npm", "yarn", "node", "python3",
     "playwright", "vitest", "jest", "eslint", "biome", "tsc", "curl", "jq",
@@ -47,7 +44,7 @@ TOOL_VOCAB = [
 
 # ツール固有の API 名（メソッド・識別子・設定キー）。ツール名（vitest 等）の grep が 0 件でも
 # これら API 名が本文に残ると、別ランナー（Jasmine 等）では実行不能なテストを書かせる。
-# skill-design-patterns.md「語彙の grep はエンジン純度の検査にならない。… API 名のリストで測る」を機械化。
+# 語彙の grep だけではエンジン純度を測れないので、API 名のリストでも測る。
 # 実例（20260723）: tdd 本文で vitest/testing-library の grep は 0 件だったが includeSource /
 # queryBy / toBeInTheDocument が残っていた。
 API_VOCAB = [
@@ -65,147 +62,13 @@ _APPROVAL_NEGATIONS = ["承認不要", "承認なし", "承認は不要", "承�
 #   1. 単独の YYYYMMDD 日付（内部 QA/インシデントの日付付きエピソード。配置先に文脈が無い）。
 #      パス（docs/decisions/YYYYMMDD 等・直前が "/"）は除外。
 #   2. マスター固有語（配置先に存在しない仕組みを前提にした語）。
-# 分類の一次情報は docs/starter-kit.md の配布可否表。この集合が変わったら同表と揃える。
+# マスター専用の一覧の一次情報は README の「スキル」の表。この集合が変わったら README と揃える。
 MASTER_ONLY = {"skill-test"}
+CLAUDE_MD_MAX_LINES = 50
 PORTABILITY_VOCAB = [
     "還流", "配布セット", "source-commit", "deployments.md",
     "このマスター", "マスターへ", "マスターの git", "（distributable）",
 ]
-
-# design-doc テンプレの契約コア/付録境界（live design.md は対象外・フォールバック全文）
-DESIGN_DOC_BOUNDARY_MARKER = "design-doc-boundary: appendix"
-
-# design↔実装同期パス（20260802-design-impl-sync）のキー共存検査。
-# 限界: キーワードが並んでいれば通る。手順の意味・順序・勝手変更禁止の実行正否は見ない（空文で通る）。
-# 振る舞い契約が要る場合は passthrough（別 BACKLOG）を使う。
-DESIGN_IMPL_SYNC_CHECKS = (
-    (
-        "design-doc",
-        (
-            ("方針転換が起きた場合", "方針転換節"),
-            ("Status: **DRAFT**", "コア変更時の DRAFT 戻し"),
-            ("APPROVED 追認", "APPROVED 追認パス"),
-            ("review-result.md", "review-result 破棄"),
-        ),
-    ),
-    (
-        "impl-from-design",
-        (
-            ("乖離が生じた場合", "乖離節"),
-            ("【乖離の分類提案】", "分類提案テンプレ"),
-            ("design-doc", "方針転換への案内"),
-        ),
-    ),
-    (
-        "impl-review",
-        (
-            ("Axis 1", "設計整合 Axis 1"),
-            ("設計契約コア不一致", "High 尺度の設計例外"),
-            ("design 同期が先", "単独時の次ステップ"),
-            ("契約成果物の Axis 1 例外", "空 TS でも Axis 1"),
-        ),
-    ),
-    (
-        "frontend-code-review",
-        (
-            ("設計契約コア不一致", "High 尺度の設計例外"),
-            ("design 同期が先", "ゲート入力明示"),
-            ("必須警告", "DEFERRED 時警告"),
-            ("Axis 1 をスキップしない", "軽量でも Axis 1"),
-        ),
-    ),
-)
-
-# tasklist 工程表の同期（20260807-pr13-mustfix）。
-# FCR「次のステップ」と skill-design-patterns の節リストが templates.md の 6 節とズレないこと。
-# 限界: キーワード・出現位置のみ。空文で通る限界あり（他のキー共存と同型）。
-TASKLIST_FLOW_SECTION_KEYS = (
-    "実装",
-    "レビュー",
-    "知見保存",
-    "デプロイ",
-    "福利化",
-    "クローズ",
-)
-
-
-def check_design_doc_template(repo_root: Path) -> list[str]:
-    """design-doc/references/templates.md に付録境界マーカーがあることを検査する。"""
-    p = (
-        repo_root
-        / ".claude"
-        / "skills"
-        / "design-doc"
-        / "references"
-        / "templates.md"
-    )
-    if not p.is_file():
-        return [f"{p.relative_to(repo_root)} が存在しない"]
-    text = p.read_text(encoding="utf-8")
-    if DESIGN_DOC_BOUNDARY_MARKER not in text:
-        return [
-            f"design-doc/references/templates.md に "
-            f"`{DESIGN_DOC_BOUNDARY_MARKER}` 境界マーカーが無い"
-        ]
-    return []
-
-
-def check_design_impl_sync(repo_root: Path) -> list[str]:
-    """design↔実装同期パスのキーが各スキル本文に共存することを検査する。
-
-    キーワード共存のみ。空文で通る限界あり（モジュール先頭コメント参照）。
-    """
-    errors: list[str] = []
-    skills_root = repo_root / ".claude" / "skills"
-    for skill_name, keys in DESIGN_IMPL_SYNC_CHECKS:
-        p = skills_root / skill_name / "SKILL.md"
-        rel = p.relative_to(repo_root)
-        if not p.is_file():
-            errors.append(f"{rel} が存在しない（design-impl-sync）")
-            continue
-        text = p.read_text(encoding="utf-8")
-        for needle, label in keys:
-            if needle not in text:
-                errors.append(f"{rel}: design-impl-sync 欠落 — {label}（`{needle}`）")
-    return errors
-
-
-def check_tasklist_flow_sync(repo_root: Path) -> list[str]:
-    """FCR 次ステップの知見保存→デプロイ順と、工程 6 語のキー共存を検査する。"""
-    errors: list[str] = []
-    fcr = repo_root / ".claude" / "skills" / "frontend-code-review" / "SKILL.md"
-    for p, rel in (
-        (fcr, ".claude/skills/frontend-code-review/SKILL.md"),
-    ):
-        if not p.is_file():
-            errors.append(f"{rel} が存在しない（tasklist-flow-sync）")
-            continue
-        text = p.read_text(encoding="utf-8")
-        for needle in TASKLIST_FLOW_SECTION_KEYS:
-            if needle not in text:
-                errors.append(f"{rel}: tasklist-flow-sync 欠落 — `{needle}`")
-
-    if fcr.is_file():
-        text = fcr.read_text(encoding="utf-8")
-        # 知見保存側: 「知見保存」または knowledge-capture / デプロイ側: 「デプロイ」または pr-create
-        know_idxs = [i for i in (text.find("知見保存"), text.find("knowledge-capture")) if i >= 0]
-        deploy_idxs = [i for i in (text.find("デプロイ"), text.find("pr-create")) if i >= 0]
-        if not know_idxs:
-            errors.append(
-                ".claude/skills/frontend-code-review/SKILL.md: "
-                "tasklist-flow-sync 欠落 — 知見保存/knowledge-capture"
-            )
-        elif not deploy_idxs:
-            errors.append(
-                ".claude/skills/frontend-code-review/SKILL.md: "
-                "tasklist-flow-sync 欠落 — デプロイ/pr-create"
-            )
-        elif min(know_idxs) > min(deploy_idxs):
-            errors.append(
-                ".claude/skills/frontend-code-review/SKILL.md: "
-                "tasklist-flow-sync 順序逆転 — 知見保存系がデプロイ系より後"
-            )
-    return errors
 
 
 def validate(skill_dir: Path, template_mode: bool = False) -> list[str]:
@@ -458,40 +321,21 @@ def main() -> None:
         else:
             print(f"PASS  {d.name}")
 
-    # リポジトリ既定の .claude/skills を走査するときだけテンプレ境界を検査する
-    # （任意ルートへの走査や --skill 単体ではスキップ）
+    total = len(dirs)
+    # リポジトリ既定の .claude/skills を走査するときだけ、CLAUDE.md の行数を検査する（行動ルールだけで 50 行以内）
     default_skills = Path(__file__).resolve().parent.parent / ".claude" / "skills"
     if root.resolve() == default_skills.resolve():
-        tpl_errs = check_design_doc_template(default_skills.parent.parent)
-        if tpl_errs:
+        total += 1
+        claude_md = default_skills.parent.parent / "CLAUDE.md"
+        n = len(claude_md.read_text(encoding="utf-8").splitlines()) if claude_md.is_file() else None
+        if n is None:
             failed += 1
-            print("FAIL  design-doc/references/templates.md (boundary)")
-            for e in tpl_errs:
-                print(f"      - {e}")
-        else:
-            print("PASS  design-doc/references/templates.md (boundary)")
-
-        sync_errs = check_design_impl_sync(default_skills.parent.parent)
-        if sync_errs:
+            print("FAIL  CLAUDE.md — ファイルが無い")
+        elif n > CLAUDE_MD_MAX_LINES:
             failed += 1
-            print("FAIL  design-impl-sync (keyword coexistence)")
-            for e in sync_errs:
-                print(f"      - {e}")
+            print(f"FAIL  CLAUDE.md — {n} 行（上限 {CLAUDE_MD_MAX_LINES} 行。知識は docs/knowledge/ へ移す）")
         else:
-            print("PASS  design-impl-sync (keyword coexistence)")
-
-        flow_errs = check_tasklist_flow_sync(default_skills.parent.parent)
-        if flow_errs:
-            failed += 1
-            print("FAIL  tasklist-flow-sync (keyword coexistence + order)")
-            for e in flow_errs:
-                print(f"      - {e}")
-        else:
-            print("PASS  tasklist-flow-sync (keyword coexistence + order)")
-
-    total = len(dirs) + (
-        5 if root.resolve() == default_skills.resolve() else 0
-    )
+            print(f"PASS  CLAUDE.md（{n} 行）")
     print(f"\n{total - failed}/{total} PASS")
     sys.exit(1 if failed else 0)
 

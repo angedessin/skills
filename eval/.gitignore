@@ -1,0 +1,8 @@
+# prepare.sh が条件ごとに作る（正本はタグと conditions/）
+/skills/
+/agents/
+/.claude-plugin/
+/hooks/skill-claude-md.md
+evals/**/results/
+evals/results/
+/results-*.json

@@ -1,0 +1,35 @@
+#!/bin/bash
+set -euo pipefail
+cp -cR /Users/kentaro/Desktop/_lab/ai/skills-eval-app/. .
+mkdir -p "$(dirname 'CLAUDE.md')"
+cat > 'CLAUDE.md' <<'EOF_FIXTURE'
+# skills-eval-app
+
+Tech stack: React / TypeScript / Vitest / React Testing Library / MSW
+
+## 作業の進め方
+
+- 複数セッションにまたがる作業は、実装の前に `.steering/[YYYYMMDD]-[task]/` に design.md（冒頭に `Status: DRAFT`）と tasklist.md を作り、人間のレビューを求めて止まる。Status が APPROVED になるまで実装しない
+- 1 セッションで終わるが決めることがある作業は、会話の中で設計を示し、OK をもらってから実装する
+- 小さな作業（typo・数行の修正・調査だけ）は、この手順に乗せずにそのまま進める。どれに当たるか迷うときだけ聞く
+- 作業を再開するときは、`.steering/` の tasklist.md を読んでから始める。作業を終えたら tasklist.md を更新する
+
+## 自律実行の境界
+
+- CLAUDE.md・docs/・.claude/ への書き込みは、承認を得てから Edit / Write ツールで行う
+- 判断基準: (1) git で巻き戻せる (2) 失敗に気づける (3) 影響がタスク内に閉じる — 3 つ全て満たす操作のみ承認なしで実行してよい
+
+## 環境
+
+- mise 管理下では Bash から素の pnpm / node を呼ばず、`mise exec --` を使う
+EOF_FIXTURE
+mkdir -p "$(dirname '.steering/20261028-sort-order/tasklist.md')"
+cat > '.steering/20261028-sort-order/tasklist.md' <<'EOF_FIXTURE'
+# tasklist: sort-order
+
+- [x] 並び替えの関数を足す
+- [x] 選択欄を足す
+- [ ] 並び順を URL に持つ
+EOF_FIXTURE
+git add -A >/dev/null
+git -c user.name=eval -c user.email=eval@example.invalid commit -q -m "fixture" --allow-empty
