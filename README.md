@@ -107,8 +107,9 @@ cp -n templates/settings.template.json "$DEST/.claude/settings.json"
 
 コピーした後に配置先で確かめる:
 
-- Claude Code を再起動する。sandbox の設定は、途中で変えたセッションでは通信先の制限を確かめられなかった
-- 雛形の `allowedDomains` は GitHub と npm だけ。案件で要る通信先を足す
+- `mise.toml` のあるプロジェクトは、Claude Code を起動する前に通常のターミナルで `mise trust` を流す。sandbox の中では信頼の記録を書けず、`mise exec` が失敗する
+- Claude Code を再起動する。sandbox を有効にする前から動いていたプロセスでは、通信先の制限が効かなかった（`/clear` では直らない）
+- 雛形の `allowedDomains` は GitHub と npm だけ。案件で要る通信先を足す。これは絶対の上限ではない。auto モードでは、Claude がコマンドごとに通信先を足し、自動の判定が認めれば確認なしで届く（公式の per-command allowed domains）。manual と acceptEdits では確認が出て、許可すれば届く。必ず止めたいなら、ユーザー設定か `--settings` で `network.strictAllowlist` を入れる（リポジトリの settings では効かない）
 - hook を減らしたら、settings の登録も消す
 
 ### 依存の一覧

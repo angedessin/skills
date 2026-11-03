@@ -1,6 +1,6 @@
 # タスクリスト: skillset-renewal
 
-Last updated: 20261103（7 章を `feature/renewal-03-settings` で終えた）
+Last updated: 20261103（8 章の配置先の確認を終えた。未コミット）
 
 ## 0. 計測（実施済み）
 
@@ -142,11 +142,14 @@ Last updated: 20261103（7 章を `feature/renewal-03-settings` で終えた）
 
 ## 8. 検証
 
-- [ ] 静的検査（`validate`・`test:hooks`・`lint`・`tests/sandbox`）が緑
-- [ ] decisions.md の判定表とスキルの集合が一致することを、一度だけ手で確かめる（20261103 に validate での検査をやめた）
+- [x] 静的検査（`validate`・`test:hooks`・`lint`・`tests/sandbox`）が緑（20261103。10/10・96/96・lint・test:sandbox）
+- [x] decisions.md の判定表とスキルの集合が一致することを、一度だけ手で確かめる（20261103 に validate での検査をやめた）（20261103。8 本で一致）
 - [ ] 停止のケースを `plugin eval` で実走する（design-doc・pr-create。knowledge-capture は削除。課金・承認制。通常のターミナルから実行する）（pr-create は 20261101 に PR1・PR2 で確認済み。design-doc は評価の D1・D2 で確認済み。最後に `eval/README.md` の回帰テストで一式を流すかを決める）
 - [x] 自作の passthrough（`passthrough_check.py`・`tests/passthrough/`）を削除する（20261101）
-- [ ] 検証用の使い捨て配置先に README の手順でコピーし、スキル・hook の発火・sandbox 下での lint と typecheck を確かめる。guard-gated-write の `ask` で実際に確認が出ることと、hook なしの acceptEdits で `git show X > CLAUDE.md` が通るか（6 から持ち越し。旧 C3。課金が要るなら見積もりを示す）も確かめ、hook の冒頭コメントを直す
+- [x] （20261103。C3 は実測せず公式の確認に留めた。ユーザーの「結果によらず hook を残す」の決定どおり、結果が判断を変えないため。post-edit-lint は実セッションでの発火を見ていない。単体で確認済み）検証用の使い捨て配置先に README の手順でコピーし、スキル・hook の発火・sandbox 下での lint と typecheck を確かめる。guard-gated-write の `ask` で実際に確認が出ることと、hook なしの acceptEdits で `git show X > CLAUDE.md` が通るか（6 から持ち越し。旧 C3。課金が要るなら見積もりを示す）も確かめ、hook の冒頭コメントを直す
+  - 20261103: コピーと hook の単体の動きは `$TMPDIR` で確認済み（decisions.md）。実セッションでの発動・ask の表示・C3 が残り。ユーザーの通常のターミナルが要る
+  - 20261103: 通信先の制限は、別の新しいセッションの probe で 21/21 に戻った（20/21 の原因は未特定。decisions.md）
+  - 20261103: 実セッションで確認済み: テストと型チェック・design-doc の発動と停止・`echo x >> CLAUDE.md` が実行されない・sandbox の通信と書き込みの制限。curl が一度 200 を返したのは、Claude が呼び出しに `allowed_domains` を付けたため（decisions.md）
 
 ## レビュー
 

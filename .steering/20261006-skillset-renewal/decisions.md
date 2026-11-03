@@ -948,3 +948,60 @@
 **分からないこと**: コピーした先で Claude Code を起動した動作（スキル・hook の発火・sandbox 下での lint と typecheck）は確かめていない。8 章の使い捨ての配置先で確かめる
 
 **決定**（ユーザー承認）: design.md の完了条件「decisions.md の判定表とスキルの集合が一致する」から validate での検査を外し、8 章で一度だけ手で確かめる。判定表は複数に分かれて書式も揃っておらず、アーカイブでパスも変わるので、検査として長持ちしない
+
+## 20261103 — 8 章: 無料の確認
+
+**一回限りの確認**:
+- 判定表とスキルの集合: 一致。design-doc・steering・e2e・frontend-code-review・session-retrospective は C に置き換え、design-premortem は 20261027 の決定で手動専用に戻した。pr-create・skill-test は評価せず書き直した。残りの候補は削除済み
+- サンプルアプリの複製に README の手順でコピーし、hook を sandbox の中で直接実行: session-start-check はタスクを注入、guard-gated-write は `git show HEAD:a > CLAUDE.md` で ask、guard-gated-delete は `rm -f CLAUDE.md` で deny、stop-typecheck は緑で rc=0・型エラーで rc=2、post-edit-lint は設定なしで素通し・Biome の違反で rc=2、vitest 3 件・tsc が通る。Biome はサンプルアプリに無いので、マスターの実行ファイルを呼ぶラッパーを複製に置いた
+- 本物の hook は sandbox の外で動くので、これは hook の中身の確認で、Claude Code からの発火の確認ではない
+
+**分かったこと**:
+- 信頼していない `mise.toml` のあるディレクトリで `mise exec` を流すと、sandbox の中で失敗する（`~/.local/state/mise/trusted-configs/` に書けない）。配置先で先に `mise trust` すれば通る見込みだが未確認。実セッションの確認で確かめてから README に書く
+- `rm -rf` は deny で止まるので、`$TMPDIR` の一時ディレクトリは消していない
+
+**6 章の結論に戻る問題**: このセッションで `test:sandbox:probe` が 20/21。`www.iana.org` に届いた。6 章は「新しいセッションで制限が効いた」として閉じたが、このセッションがいつ起動したかは確かめていない（/clear では再起動しない）。切り分けのための curl と `~/.claude/settings.json` の確認はこのセッションで拒否されたので、試していない。`.claude/settings.local.json` に WebFetch・sandbox・domain の設定は無い
+
+**上の問題の続き（別の新しいセッション）**: `test:sandbox:probe` は Bash ツールから 21/21。`www.iana.org` は sandbox に拒否された（`deny network-outbound`）。20/21 だったセッションの原因は特定していない（起動時点の設定が古かった可能性はあるが未確認）。再発したら、そのセッションの起動時刻と設定の変更時刻を比べる
+
+## 20261103 — 8 章: 使い捨ての配置先（`skills-deploy-check`）での確認
+
+**結果**（ユーザーが実セッションで実行し、出力を貼った。一回限り）:
+- `mise trust` の後、`mise exec -- pnpm test`（3 件）と `mise exec -- pnpm run typecheck` が通った。README に `mise trust` を足した
+- 「一覧画面に並び替えを足したい、まず設計して」で design-doc が発動し、実装せずに設計で止まった
+- `echo x >> CLAUDE.md` は実行されず、CLAUDE.md はできていない（貼られた出力が途中で切れていて、確認の表示そのものは一部しか見ていない）
+- `/sandbox` は auto-allow、`/status` の Setting sources は User と Shared project。`settings.json` は雛形と完全に一致
+- `curl https://www.iana.org/` は 1 回目が 200、2 回目はプロキシの 403 で失敗（`deny network-outbound www.iana.org:443`）。`touch ~/sandbox-write-check` は `Operation not permitted`
+
+**分かったこと**: 配置先でも sandbox の通信と書き込みの制限は効く
+**分からないこと**: 1 回目の curl が 200 を返した理由。確認への許可か、そのコマンドだけ通信先を足して再実行したかを確かめていない
+
+## 20261103 — 1 回目の curl が 200 を返した理由（ユーザーの依頼で配置先のセッションの記録を読んだ）
+
+**事実**（`~/.claude/projects/` の配置先の jsonl から。プロキシの認証情報は読み出しで伏せた）:
+- 200 の呼び出し（セッション 6121faf3）: `{"command": "curl ... https://www.iana.org/", "allowed_domains": ["www.iana.org"]}`。呼び出しから結果まで約 1 秒で、人の確認を挟んだ間ではない
+- 403 の呼び出し（セッション dfd8f490・/clear の後）: `command` だけ。`deny network-outbound www.iana.org:443`
+- 同じ URL を拒否した呼び出し（セッション 3811dd21）は、ユーザーが拒否したもの
+
+**分かったこと**: 雛形の不具合ではない。指定なしの通信は止まる。ただし `allowedDomains` は絶対の上限ではなく、Claude が呼び出しごとに通信先を足せて、auto モードでは確認なしで通ることがある。今回はユーザーが URL を名指しで頼んだ場面
+**分からないこと**: 名指しでない場面でも通るか。`network.strictAllowlist` でこの足し方が止まるか。マスターで probe が 20/21 だったセッションの原因（`allowed_domains` は付けていないので、この説明では片付かない）
+
+## 20261103 — 通信先の件を閉じ、8 章の配置先の確認を終える（記録と公式で確かめた）
+
+**20/21 の原因（観測からの判断）**: Claude Code のプロセスの起動時刻と結果が揃う。sandbox を settings に入れたのは 09:14。
+
+| プロセス | 起動 | probe |
+|---|---|---|
+| 6178（このセッション。/clear を挟む） | 前日 22:08 | 20/21（10:30 にも再現） |
+| 29688 | 09:51 | 21/21 |
+| 49401（配置先） | 10:23 | 指定なしの curl は拒否 |
+
+有効にする前から動いているプロセスでは通信先の制限が効かず、`/clear` では直らない。書き込みと読み取りの制限は同じプロセスで効いている。仕組みは公式に記載が無く、2 本の比較なので断定はしない。README と tests/sandbox/README に再起動のことを書いた
+
+**allowed_domains（公式の sandboxing で確認）**: auto モードの per-command allowed domains（v2.1.271 以降）。上の「分からないこと」のうち、`strictAllowlist` は「per-command lists を拒否する」と公式にある。設定できるのは user・managed・CLI の `--settings` で、リポジトリの settings では効かない。manual・acceptEdits は確認が出る。名指しでない場面も、通るかは自動の判定次第
+
+**配置先の記録（6121faf3・dfd8f490）で確かめたこと**: design-doc の Skill の呼び出しがある。`echo x >> CLAUDE.md` は呼び出しから約 5 秒後にユーザーの拒否で終わった。Stop hook の記録がある（stop_hook_summary）。Edit・Write は 1 度も無いので post-edit-lint の発火は見ていない。SessionStart は `.steering/` が無いので注入なしが正しく、発火は記録から確かめていない
+
+**C3 は実測しない**: 公式の検査の対象は「Edit の allow と deny・保護パス・作業ディレクトリ」で ask は無く、ルートの CLAUDE.md は保護パスでない。一方、acceptEdits でリダイレクトが確認なしで通るかは公式に書かれていない。結果によらず hook を残すので判断が変わらず、課金とユーザーの手間をかけない。hook の冒頭コメントをそう直した
+
+**決定**（ユーザー承認）: `network.strictAllowlist` は入れない。ユーザー設定で全プロジェクトに効き、案件ごとに通信先を足す運用と衝突する。必要な案件で入れる

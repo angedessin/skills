@@ -8,7 +8,7 @@
 | sandbox の中で読めないもの・書けないもの・動くもの | `mise exec -- pnpm run test:sandbox:probe` | sandbox を有効にした Claude Code の Bash ツール |
 | sandbox の外に出すコマンド | 下の手順 | 同上 |
 
-sandbox の設定を変えたら、セッションを再起動してから probe を流す。途中で有効にしたセッションでは、許可していない通信先に届いたことがある。
+sandbox の設定を変えたら、Claude Code を再起動してから probe を流す。有効にする前から動いていたプロセスでは、`/clear` の後でも許可していない通信先に届き、probe が 20/21 になった。
 
 probe は `.env.sandbox-probe` と `.tmp/sandbox-probe/` にダミーの仮ファイルを置いて使い回す。denyRead のファイルは sandbox の中で消せないので、消すなら通常のターミナルで消す。
 
