@@ -883,3 +883,31 @@
 **結果**: `pr2-spike`: 0.15 ドル・21 秒。pr-create が発動し、grader は全部合格で、最終回答を読んでも妥当。SPIKE を読んで、コミット・push・PR 作成をせずに止まった。最終回答は `pr-responses/pr2-C-fix.md`
 **分かること**: 足した行で SPIKE の停止は壊れていない（1 回）。**分からないこと**: このケースはタスクを特定できるので、足した「特定できない・Status が無いか不正なら止まる」の行は通っていない
 **回帰の費用**: 無効の 1 本を含めて計 1.95 ドル（見積もり 約 1.7 ドル）
+
+## 20261103 — 進め方の注意（引き継ぎの文を消すときに移した）
+
+- `plugin eval` のコマンドを渡す前に、`./prepare.sh c <group>` をこちらで流して `eval/skills/` の中身を確かめる。課金がなく、準備が効かないまま流れる失敗を防げる
+- push はユーザーが行う。頼まれたときだけ自分で行う
+- 判定に人の入力が要るときは、分類表より、結果をまるごと並べて「どれを受け取りたいか」と聞く方が答えやすい
+
+## 20261103 — 6 章: settings.json を sandbox に乗せ直す（2.1.316）
+
+**決定（design.md の変更案との差。公式の sandboxing・settings-reference を 20261103 に確認）**:
+- `excludedCommands` に `git fetch *`・`gh *` を足した。公式に、macOS では SSH の fetch も sandbox の中で失敗し、`gh` は Seatbelt で TLS の検証に失敗しうるとある。同じ理由（作業ツリーを書き換える）で `git cherry-pick *`・`git revert *` も足した
+- GATED_PATHS を `CLAUDE.md docs/ .claude/` に広げ、ask（`Edit(./docs/**)`・`Edit(./.claude/**)`）と揃えた（prompt-audit の M7）
+- guard-gated-delete は CLAUDE.md・docs/knowledge だけのまま広げない。deny は誤検知の代償が大きく、`docs/` まで広げると `rm /tmp/x/docs/y` も止まる。`docs/` の他のファイルの `rm` は通るが、git で戻せる
+- 旧 BACKLOG 0.6（大文字小文字・代入前置）は直さず「守らない形」として hook の冒頭コメントに移し、フィクスチャ B30〜B34 で沈黙を固定した
+- 動的な検査はスクリプト（`test:sandbox:probe`）と手順（`tests/sandbox/README.md`）に分けた。`excludedCommands` は呼び出しの文字列で判定されるので、スクリプトの子プロセスでは確かめられない。`@anthropic-ai/sandbox-runtime` で包む案は、依存が増え、本物の Claude Code の設定と別物になるので採らない
+
+**分かったこと**:
+- `sandbox.enabled` はセッションの途中の編集でも効いた（公式に記載は無い。今回の観測）
+- hook は公式の記載のとおり sandbox の外で動くので、「hook が動くか」は probe の項目にしなかった
+- denyRead のファイルは sandbox の中で作れるが消せない（`Operation not permitted`）。probe の仮ファイルは消さずに使い回す（`.env.sandbox-probe` は .gitignore・他は `.tmp/sandbox-probe/`）
+- `env | grep …` を連結の中に書くと、呼び出し全体が `Bash(env)` の deny で止まる（意図どおり）
+
+**一回限りの確認（20261103）**:
+- `test:sandbox:probe` 20/21。`.env`（cat・grep -r・python）・`~/.ssh`・`~/.aws` は読めない、`.claude/` と作業ディレクトリの外には書けない、mise 経由の pnpm・validate・test:hooks・lint・git は動く
+- Bash ツールで直接: `git fetch origin`・`git push --dry-run origin HEAD`・`gh pr list`・`git rm`（`.claude/hooks/` のファイル）が通った
+- 未確認: `git switch`・`git merge`（作業ツリーがきれいな状態が要る。コミットの後で流す）
+
+**未解決（ユーザーの判断待ち）**: 許可していない通信先に届く。probe の子プロセスの curl で `https://www.iana.org/`、Bash の直接の curl で `https://example.com/` が HTTP 200。通信はプロキシを通っている（remote=127.0.0.1）。公式では manual・acceptEdits は確認が出て、auto は拒否とあり、観測と合わない。途中の有効化で network の設定が読み直されていない可能性と、確認に許可が出た可能性を切り分けていない。`network.strictAllowlist` は User か managed でしか設定できず、このリポジトリの settings.json には書けない

@@ -1,6 +1,6 @@
 # タスクリスト: skillset-renewal
 
-Last updated: 20261029（レビューの B（＋A）を途中まで回した）
+Last updated: 20261103（6 章を `feature/renewal-03-settings` で進めた。未コミット）
 
 ## 0. 計測（実施済み）
 
@@ -123,14 +123,14 @@ Last updated: 20261029（レビューの B（＋A）を途中まで回した）
 
 ## 6. settings.json
 
-- [ ] スキルの削除（3・5）が済んでいることを確かめる（sandbox 下では `.claude/` への書き込みが標準で禁止される）
-- [ ] `tests/sandbox/` を作る（hook・lint・pnpm・検査スクリプトが動く、`.env` を `cat`・`grep -r`・`python` で読めない、SSH の push・`gh pr create`・ブランチ切り替え・マージが通る）
-- [ ] `.claude/settings.json` を変更案（design.md）どおりに直し、`tests/sandbox/` を流す
-- [ ] guard-env-read を削除する（guard-gated-write・guard-gated-delete は残す）
-- [ ] 承認ゲートの対象から `docs/decisions/` を外す（guard hook 2 本・permissions.ask・フィクスチャ）。`docs/decisions/.gitkeep` も消す。guard-gated-write の警告文の adr と、コメントの `check_asset_consistency.py` 契約 (s) への参照も直す
-- [ ] 旧 `check_asset_consistency.py` の契約 (s)(t)(j) を `tests/sandbox/` に移す: guard-gated-write の `# GATED_PATHS:` 行 ≡ permissions.ask の `Edit(./...)`・allow に `Bash(git ...)` が無い・死んだ `Write|NotebookEdit|MultiEdit(path)` が無い
-- [ ] guard-gated-delete の取りこぼし（大文字小文字・`FOO=1 rm` の代入前置）を、hook の冒頭コメントに「守らない形」として移すか捨てる（旧 BACKLOG 0.6）
-- [ ] 残す guard hook 2 本の冒頭コメントに、旧 knowledge の落とし穴を移す（パス判定は command を取り出してから・Bash 経由の承認迂回・`git -C`／前置ラッパー／大文字小文字の取りこぼし。knowledge-candidates.md）。移す前に今のバージョンで成り立つかを `tests/sandbox/` で確かめる
+- [x] スキルの削除（3・5）が済んでいることを確かめる（sandbox 下では `.claude/` への書き込みが標準で禁止される）（20261103。残りは 8 本）
+- [x] `tests/sandbox/` を作る（20261103。`check_settings.py`・`probe.py`・手順の README。hook は公式どおり sandbox の外で動くので項目にしない。`gh pr create` は PR を作るので `gh pr list` で代える）
+- [ ] `.claude/settings.json` を変更案（design.md）どおりに直し、`tests/sandbox/` を流す（20261103。直した。差分は decisions.md。probe 20/21。残り 2 つ: 許可していない通信先に届く件の切り分け・`git switch`／`git merge` の確認（コミットの後））
+- [x] guard-env-read を削除する（guard-gated-write・guard-gated-delete は残す）（20261103）
+- [x] 承認ゲートの対象から `docs/decisions/` を外す（guard hook 2 本・permissions.ask・フィクスチャ）。`docs/decisions/.gitkeep` も消す。guard-gated-write の警告文の adr と、コメントの `check_asset_consistency.py` 契約 (s) への参照も直す（20261103）
+- [x] 旧 `check_asset_consistency.py` の契約 (s)(t)(j) を `tests/sandbox/` に移す: guard-gated-write の `# GATED_PATHS:` 行 ≡ permissions.ask の `Edit(./...)`・allow に `Bash(git ...)` が無い・死んだ `Write|NotebookEdit|MultiEdit(path)` が無い（20261103。壊した設定で落ちる self-test つき）
+- [x] guard-gated-delete の取りこぼし（大文字小文字・`FOO=1 rm` の代入前置）を、hook の冒頭コメントに「守らない形」として移すか捨てる（旧 BACKLOG 0.6）（20261103。移した。フィクスチャで沈黙を固定）
+- [ ] 残す guard hook 2 本の冒頭コメントに、旧 knowledge の落とし穴を移す（パス判定は command を取り出してから・Bash 経由の承認迂回・`git -C`／前置ラッパー／大文字小文字の取りこぼし。knowledge-candidates.md）。移す前に今のバージョンで成り立つかを `tests/sandbox/` で確かめる（20261103。コメントは移した。command の取り出しと取りこぼしはフィクスチャで確認。Bash 経由の承認迂回（C3）は acceptEdits の実走が要り、未確認と書いた）
 
 ## 7. 配る準備
 

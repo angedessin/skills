@@ -14,3 +14,6 @@ _test/
 .tmp/
 .vscode/
 .claude/settings.local.json
+
+# tests/sandbox/probe.py の仮ファイル（sandbox の中では消せないので使い回す）
+.env.sandbox-probe

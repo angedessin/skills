@@ -55,6 +55,7 @@ frontend-code-review の限界: テスト担当はテストファイルが変わ
 ├── eval/                     # スキルの評価（A・B・C の比較）と回帰テスト（マスター専用）
 ├── scripts/validate_skills.py # スキルの frontmatter・構造・CLAUDE.md の行数の検査（マスター専用）
 ├── tests/hooks/              # PreToolUse hook のフィクスチャ（test:hooks）
+├── tests/sandbox/            # settings.json と sandbox の検査（test:sandbox・test:sandbox:probe）
 ├── templates/                # 新しいスキルの雛形（マスター専用）
 ├── prompts/                  # 人が貼って使う、スキルの敵対的レビューのプロンプト（マスター専用）
 ├── mise.toml                 # ツールチェーン（node / pnpm）。検証は mise exec -- pnpm run …
@@ -68,6 +69,7 @@ frontend-code-review の限界: テスト担当はテストファイルが変わ
 ```bash
 mise exec -- pnpm run validate     # スキルの frontmatter・構造、CLAUDE.md の行数
 mise exec -- pnpm run test:hooks   # PreToolUse hook のフィクスチャ
+mise exec -- pnpm run test:sandbox # settings.json の形（sandbox の中での確認は tests/sandbox/README.md）
 mise exec -- pnpm run lint         # Biome
 ```
 
@@ -76,9 +78,9 @@ mise exec -- pnpm run lint         # Biome
 ## hook と設定
 
 - **SessionStart**（`session-start-check.sh`）: `.steering/` のアクティブなタスクの一覧を context に注入する
-- **承認制パスのガード**（`guard-gated-write.sh`・`guard-gated-delete.sh`）: permissions の ask と同じパス（CLAUDE.md・docs/knowledge/ など。正本は hook 冒頭の `# GATED_PATHS:` 行）への、Bash 経由の書き込みを ask に、素の `rm`・`mv` を deny にする。Claude Code はリダイレクト先を Edit の allow・deny だけで判定し、ask を見ないため
-- **`.env` の読み取りのガード**（`guard-env-read.sh`）・**品質ゲート**（`post-edit-lint.sh`・`stop-typecheck.sh`・`validate-skill-edit.sh`）
-- settings.json と hook の構成は、sandbox に乗せ直す作業（刷新の 6 章）で変わる予定
+- **承認制パスのガード**（`guard-gated-write.sh`・`guard-gated-delete.sh`）: permissions の ask と同じパス（CLAUDE.md・docs/・.claude/。正本は hook 冒頭の `# GATED_PATHS:` 行）への、Bash 経由の書き込みを ask にする。素の `rm`・`mv` は CLAUDE.md・docs/knowledge/ に限って deny にする。sandbox には「承認すれば進む」が無く、作業ディレクトリの CLAUDE.md・docs/ も守らないため
+- **品質ゲート**（`post-edit-lint.sh`・`stop-typecheck.sh`・`validate-skill-edit.sh`）
+- **sandbox**（`.claude/settings.json`）: Bash の秘密の読み取り・通信先・書き込み範囲を OS のレベルで制限する。`.env` の読み取りも止める。hook は sandbox の外で動く
 
 ## 他のプロジェクトで使う
 

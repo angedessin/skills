@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[2]
 HOOKS = ROOT / ".claude" / "hooks"
 
 # guard-gated-write.sh のヘッダにある対象パスの正本（1 行）。runner はここからケースを自動生成し、
-# permissions.ask との一致は 6 の tests/sandbox で検査する（旧 check_asset_consistency.py の契約 (s)）。
+# permissions.ask との一致は tests/sandbox/check_settings.py で検査する。
 GATED_MARKER_RE = re.compile(r"^# GATED_PATHS:[ \t]*(.+)$", re.MULTILINE)
 
 # expect: "deny" | "ask" | "silence"
@@ -29,7 +29,7 @@ CASES: list[dict] = [
     # A — delete hook deny
     {"id": "A1", "hook": "guard-gated-delete.sh", "command": "rm -f docs/knowledge/x.md", "expect": "deny"},
     {"id": "A2", "hook": "guard-gated-delete.sh", "command": "rm ./CLAUDE.md", "expect": "deny"},
-    {"id": "A3", "hook": "guard-gated-delete.sh", "command": "rm docs/decisions/y.md", "expect": "deny"},
+    {"id": "A3", "hook": "guard-gated-delete.sh", "command": "rm docs/knowledge/y.md", "expect": "deny"},
     {"id": "A4", "hook": "guard-gated-delete.sh", "command": "rm -R docs/knowledge/x", "expect": "deny"},
     {"id": "A5", "hook": "guard-gated-delete.sh", "command": "rm --recursive docs/knowledge/x", "expect": "deny"},
     {"id": "A6", "hook": "guard-gated-delete.sh", "command": "rm -f -r docs/knowledge/x", "expect": "deny"},
@@ -42,6 +42,12 @@ CASES: list[dict] = [
     {"id": "B12", "hook": "guard-gated-delete.sh", "command": "bash -c 'rm docs/knowledge/x.md'", "expect": "silence"},
     {"id": "B13", "hook": "guard-gated-delete.sh", "command": "git rm docs/knowledge/x.md", "expect": "silence"},
     {"id": "B14", "hook": "guard-gated-delete.sh", "command": "/bin/rm docs/knowledge/x.md", "expect": "silence"},
+    # 守らない形（hook の冒頭コメントと対）: 代入前置・ラッパー・大文字小文字・docs/ の他の場所
+    {"id": "B30", "hook": "guard-gated-delete.sh", "command": "FOO=1 rm docs/knowledge/x.md", "expect": "silence"},
+    {"id": "B31", "hook": "guard-gated-delete.sh", "command": "env rm docs/knowledge/x.md", "expect": "silence"},
+    {"id": "B32", "hook": "guard-gated-delete.sh", "command": "rm CLAUDE.MD", "expect": "silence"},
+    {"id": "B33", "hook": "guard-gated-delete.sh", "command": "rm docs/decisions/y.md", "expect": "silence"},
+    {"id": "B34", "hook": "guard-gated-delete.sh", "command": "rm /tmp/x/docs/y.md", "expect": "silence"},
     {
         "id": "B15",
         "hook": "guard-gated-delete.sh",
