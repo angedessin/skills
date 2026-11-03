@@ -125,12 +125,12 @@ Last updated: 20261103（6 章を `feature/renewal-03-settings` で進めた。�
 
 - [x] スキルの削除（3・5）が済んでいることを確かめる（sandbox 下では `.claude/` への書き込みが標準で禁止される）（20261103。残りは 8 本）
 - [x] `tests/sandbox/` を作る（20261103。`check_settings.py`・`probe.py`・手順の README。hook は公式どおり sandbox の外で動くので項目にしない。`gh pr create` は PR を作るので `gh pr list` で代える）
-- [ ] `.claude/settings.json` を変更案（design.md）どおりに直し、`tests/sandbox/` を流す（20261103。直した。差分は decisions.md。probe 20/21。残り 2 つ: 許可していない通信先に届く件の切り分け・`git switch`／`git merge` の確認（コミットの後））
+- [x] `.claude/settings.json` を変更案（design.md）どおりに直し、`tests/sandbox/` を流す（20261103。差分は decisions.md。再起動後の auto モードで probe 21/21。`git switch`・`git merge` も確認済み）
 - [x] guard-env-read を削除する（guard-gated-write・guard-gated-delete は残す）（20261103）
 - [x] 承認ゲートの対象から `docs/decisions/` を外す（guard hook 2 本・permissions.ask・フィクスチャ）。`docs/decisions/.gitkeep` も消す。guard-gated-write の警告文の adr と、コメントの `check_asset_consistency.py` 契約 (s) への参照も直す（20261103）
 - [x] 旧 `check_asset_consistency.py` の契約 (s)(t)(j) を `tests/sandbox/` に移す: guard-gated-write の `# GATED_PATHS:` 行 ≡ permissions.ask の `Edit(./...)`・allow に `Bash(git ...)` が無い・死んだ `Write|NotebookEdit|MultiEdit(path)` が無い（20261103。壊した設定で落ちる self-test つき）
 - [x] guard-gated-delete の取りこぼし（大文字小文字・`FOO=1 rm` の代入前置）を、hook の冒頭コメントに「守らない形」として移すか捨てる（旧 BACKLOG 0.6）（20261103。移した。フィクスチャで沈黙を固定）
-- [ ] 残す guard hook 2 本の冒頭コメントに、旧 knowledge の落とし穴を移す（パス判定は command を取り出してから・Bash 経由の承認迂回・`git -C`／前置ラッパー／大文字小文字の取りこぼし。knowledge-candidates.md）。移す前に今のバージョンで成り立つかを `tests/sandbox/` で確かめる（20261103。コメントは移した。command の取り出しと取りこぼしはフィクスチャで確認。Bash 経由の承認迂回（C3）は acceptEdits の実走が要り、未確認と書いた）
+- [x] 残す guard hook 2 本の冒頭コメントに、旧 knowledge の落とし穴を移す（パス判定は command を取り出してから・Bash 経由の承認迂回・`git -C`／前置ラッパー／大文字小文字の取りこぼし。knowledge-candidates.md）（20261103。command の取り出しと取りこぼしはフィクスチャで確認。Bash 経由の承認迂回（C3）は未確認のまま移し、コメントにそう書いた。結果によらず hook を残すので課金せず、8 で確かめる。ユーザー決定）
 
 ## 7. 配る準備
 
@@ -145,7 +145,7 @@ Last updated: 20261103（6 章を `feature/renewal-03-settings` で進めた。�
 - [ ] 静的検査（`validate`・`test:hooks`・`lint`・`tests/sandbox`）が緑
 - [ ] 停止のケースを `plugin eval` で実走する（design-doc・pr-create。knowledge-capture は削除。課金・承認制。通常のターミナルから実行する）（pr-create は 20261101 に PR1・PR2 で確認済み。design-doc は評価の D1・D2 で確認済み。最後に `eval/README.md` の回帰テストで一式を流すかを決める）
 - [x] 自作の passthrough（`passthrough_check.py`・`tests/passthrough/`）を削除する（20261101）
-- [ ] 検証用の使い捨て配置先に README の手順でコピーし、スキル・hook の発火・sandbox 下での lint と typecheck を確かめる
+- [ ] 検証用の使い捨て配置先に README の手順でコピーし、スキル・hook の発火・sandbox 下での lint と typecheck を確かめる。guard-gated-write の `ask` で実際に確認が出ることと、hook なしの acceptEdits で `git show X > CLAUDE.md` が通るか（6 から持ち越し。旧 C3。課金が要るなら見積もりを示す）も確かめ、hook の冒頭コメントを直す
 
 ## レビュー
 

@@ -908,6 +908,22 @@
 **一回限りの確認（20261103）**:
 - `test:sandbox:probe` 20/21。`.env`（cat・grep -r・python）・`~/.ssh`・`~/.aws` は読めない、`.claude/` と作業ディレクトリの外には書けない、mise 経由の pnpm・validate・test:hooks・lint・git は動く
 - Bash ツールで直接: `git fetch origin`・`git push --dry-run origin HEAD`・`gh pr list`・`git rm`（`.claude/hooks/` のファイル）が通った
-- 未確認: `git switch`・`git merge`（作業ツリーがきれいな状態が要る。コミットの後で流す）
+- `b3f32f2` の上で、Bash ツールで直接: `git switch`（`.claude/` の中身が変わるもの）・`git merge --no-ff`（`.claude/agents/` のファイルを消すもの）が通った。マージの前に sandbox が効いていることを確かめた。`git commit` は sandbox の中で通った。一時ブランチは消した
 
-**未解決（ユーザーの判断待ち）**: 許可していない通信先に届く。probe の子プロセスの curl で `https://www.iana.org/`、Bash の直接の curl で `https://example.com/` が HTTP 200。通信はプロキシを通っている（remote=127.0.0.1）。公式では manual・acceptEdits は確認が出て、auto は拒否とあり、観測と合わない。途中の有効化で network の設定が読み直されていない可能性と、確認に許可が出た可能性を切り分けていない。`network.strictAllowlist` は User か managed でしか設定できず、このリポジトリの settings.json には書けない
+**20261103 の確認で分かったこと**:
+- sandbox の設定が無いブランチ（ローカルの古い `feature/skillset-renewal`）へ切り替えると、settings.json が読み直されて、そのセッションの sandbox が無効になった。設定のあるブランチへ戻ると再び有効になった。sandbox の設定はチェックアウト中のブランチに従う。`develop`・`main` へマージするまでは、それらのブランチでは sandbox が効かない
+- `git branch -D` はブランチを消せるが、sandbox の中では `.git/config` を書けず、`branch.sandbox-probe-{a,b}.vscode-merge-base` が `.git/config` に残った（実害なし。通常のターミナルで消す）。`git config` と、`.git/config` を書く操作は sandbox の中で失敗する見込み
+
+**当初の問題（下の節で閉じた）**: 許可していない通信先に届く。probe の子プロセスの curl で `https://www.iana.org/`、Bash の直接の curl で `https://example.com/` が HTTP 200。通信はプロキシを通っている（remote=127.0.0.1）。公式では manual・acceptEdits は確認が出て、auto は拒否とあり、観測と合わない。途中の有効化で network の設定が読み直されていない可能性と、確認に許可が出た可能性を切り分けていない。`network.strictAllowlist` は User か managed でしか設定できず、このリポジトリの settings.json には書けない
+
+## 20261103 — 通信先の件の切り分け（6 章を閉じる）
+
+**結果**:
+- sandbox を有効にした状態で起動した新しいセッション（`claude --continue`・auto モード）: 許可していない通信先は拒否され、probe は 21/21（そのセッションの報告。ユーザーが貼った出力で確認。終了コードは取れていない）
+- 途中で sandbox を有効にしたセッション: 同じ時点でも `www.iana.org` に届き、probe は 20/21
+
+**決定**: 新しいセッションで制限が効いたので、`network.strictAllowlist` は入れず、6 章を閉じる。sandbox の設定を変えたら、セッションを再起動してから確かめる
+
+**分からないこと**:
+- 途中のセッションで届く原因。途中の有効化か、ユーザーが覚えていない確認への許可かは絞れていない
+- manual・acceptEdits の動き。公式では確認が出て、許可すれば届く。allowedDomains は、これらのモードでは承認なしに届かないことを保証するだけで、届かないことは保証しない
