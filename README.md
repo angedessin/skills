@@ -56,7 +56,7 @@ frontend-code-review の限界: テスト担当はテストファイルが変わ
 ├── scripts/validate_skills.py # スキルの frontmatter・構造・CLAUDE.md の行数の検査（マスター専用）
 ├── tests/hooks/              # PreToolUse hook のフィクスチャ（test:hooks）
 ├── tests/sandbox/            # settings.json と sandbox の検査（test:sandbox・test:sandbox:probe）
-├── templates/                # 新しいスキルの雛形（マスター専用）
+├── templates/                # 新しいスキルの雛形（マスター専用）と、配置先の settings の雛形
 ├── prompts/                  # 人が貼って使う、スキルの敵対的レビューのプロンプト（マスター専用）
 ├── mise.toml                 # ツールチェーン（node / pnpm）。検証は mise exec -- pnpm run …
 └── docs/
@@ -84,6 +84,73 @@ mise exec -- pnpm run lint         # Biome
 
 ## 他のプロジェクトで使う
 
-最初に 1 回、`.claude/`（skills・agents・hooks）と settings をコピーし、以後は配置先で案件に合わせて育てる。マスターとは同期しない。マスター専用のもの（skill-test・eval・scripts・templates・prompts）は持っていかない。
+最初に 1 回コピーし、以後は配置先で案件に合わせて育てる。マスターとは同期しない。plugin にしないのは、配置先でスキルを書き換えたいため（plugin のスキルは更新で上書きされ、1 本だけオフにもできない）。
 
-コピーの手順と、一緒に持っていくものの一覧（例: frontend-code-review には review-* の agent 5 本、design-premortem には premortem-attacker）は、刷新の 7 章で書く。
+### コピーの手順
+
+通常のターミナルで、マスターのルートから流す（sandbox を有効にした Claude Code の中からは、作業ディレクトリの外に書けない）。
+
+```bash
+DEST=/path/to/project
+mkdir -p "$DEST/.claude/skills" "$DEST/.claude/agents" "$DEST/.claude/hooks"
+
+# スキルと agent: 下の依存の一覧から選ぶ（例は設計・再開・レビュー・PR）
+cp -R .claude/skills/{design-doc,steering,frontend-code-review,pr-create} "$DEST/.claude/skills/"
+cp .claude/agents/review-*.md "$DEST/.claude/agents/"
+
+# hook: 配る 5 本
+cp .claude/hooks/{guard-gated-delete,guard-gated-write,post-edit-lint,session-start-check,stop-typecheck}.sh "$DEST/.claude/hooks/"
+
+# settings: 既にあれば上書きしない。そのときは手で合わせる
+cp -n templates/settings.template.json "$DEST/.claude/settings.json"
+```
+
+コピーした後に配置先で確かめる:
+
+- Claude Code を再起動する。sandbox の設定は、途中で変えたセッションでは通信先の制限を確かめられなかった
+- 雛形の `allowedDomains` は GitHub と npm だけ。案件で要る通信先を足す
+- hook を減らしたら、settings の登録も消す
+
+### 依存の一覧
+
+`mise exec -- pnpm run validate` が、この 2 つの表と実際のスキル・agent・hook・雛形を突き合わせる。
+
+- **agent:** 無いと、スキルは汎用の subagent に指示を渡す代替に落ちる。一緒に持っていく
+- **案内先のスキル:** 本文で名前を出すだけで、無くても動く
+
+<!-- deps:skills -->
+| スキル | agent | 案内先のスキル | 配るか |
+|---|---|---|---|
+| `design-doc` | - | `design-premortem`・`steering` | 配る |
+| `design-premortem` | `premortem-attacker` | `design-doc` | 配る |
+| `steering` | - | `design-doc` | 配る |
+| `e2e` | - | `frontend-code-review` | 配る |
+| `frontend-code-review` | `review-bug`・`review-rules`・`review-ui-a11y`・`review-test`・`review-verify` | `e2e` | 配る |
+| `pr-create` | - | - | 配る |
+| `session-retrospective` | - | - | 配る |
+| `skill-test` | - | - | マスター専用 |
+
+<!-- deps:hooks -->
+| hook | 要るもの（無ければ素通し） | 配るか |
+|---|---|---|
+| `session-start-check.sh` | - | 配る |
+| `guard-gated-write.sh` | python3（無ければ全文 grep に縮退） | 配る |
+| `guard-gated-delete.sh` | python3 | 配る |
+| `post-edit-lint.sh` | Biome か ESLint か Stylelint の設定 | 配る |
+| `stop-typecheck.sh` | jq・tsconfig.json・tsc | 配る |
+| `validate-skill-edit.sh` | `scripts/validate_skills.py` | マスター専用 |
+
+持っていかないもの: `eval/`・`eval-pilot/`・`scripts/`・`tests/`・`prompts/`・`templates/`（雛形のコピーを除く）。`docs/user-guide.md` は持っていってもよい。
+
+### 配置先の CLAUDE.md
+
+スキルは CLAUDE.md が無くても動くが、評価は `.steering/` の行動ルールを含む CLAUDE.md（`eval/common-claude-md.md`）がある状態で比べた。同じ結果を期待するなら、マスターの CLAUDE.md の「作業の進め方」と「自律実行の境界」を配置先の CLAUDE.md に写し、案件に合わせて直す。「スキル管理」「環境」はマスターの事情なので写さない。
+
+### settings の雛形
+
+`templates/settings.template.json` は、マスターの `.claude/settings.json` と次の 2 点だけが違う（`test:sandbox` が検査する）。
+
+- `sandbox.failIfUnavailable` が `false`。sandbox の使えない環境でも起動できるようにする。その環境では sandbox が効かない
+- マスター専用の `validate-skill-edit.sh` を登録しない
+
+**`permissions.allow` に git の読み取り系（`Bash(git diff*)` など）を書かない。** 読み取りの形は書かなくても確認なしで動く。allow のパターンは書き込みの形にも一致する（公式の例: `Bash(git log * main)` は `git log --output=<file> main` に一致する）。20261103 に公式の permissions で確認した。

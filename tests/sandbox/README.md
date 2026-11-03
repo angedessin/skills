@@ -4,7 +4,7 @@
 
 | 何を | どう流す | どこで |
 |---|---|---|
-| 設定の形（GATED_PATHS と ask の一致・allow に git が無い・sandbox の値など） | `mise exec -- pnpm run test:sandbox` | どこでも |
+| 設定の形（GATED_PATHS と ask の一致・allow に git が無い・sandbox の値・雛形との差など） | `mise exec -- pnpm run test:sandbox` | どこでも |
 | sandbox の中で読めないもの・書けないもの・動くもの | `mise exec -- pnpm run test:sandbox:probe` | sandbox を有効にした Claude Code の Bash ツール |
 | sandbox の外に出すコマンド | 下の手順 | 同上 |
 

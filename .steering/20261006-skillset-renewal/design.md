@@ -94,7 +94,7 @@ Status: **APPROVED**（20261013・ユーザー承認）
 - [ ] 検証用の使い捨て配置先に README の手順でコピーし、スキル・hook・sandbox 下での lint と typecheck が動くことを確認した（ログを decisions.md に残す）
 - [ ] 静的検査（`validate`・`test:hooks`・`lint`・`tests/sandbox`）が新構成で緑
 - [ ] `CLAUDE.md` が行動ルールだけで 50 行以内（独自目標。validate で行数を検査する）
-- [ ] decisions.md の判定表とスキルの集合が一致する（validate で突き合わせる）
+- [ ] decisions.md の判定表とスキルの集合が一致する（8 で一度だけ手で確かめる。20261103 に validate での検査をやめた）
 
 ## アプローチ
 

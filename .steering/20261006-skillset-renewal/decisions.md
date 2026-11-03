@@ -927,3 +927,24 @@
 **分からないこと**:
 - 途中のセッションで届く原因。途中の有効化か、ユーザーが覚えていない確認への許可かは絞れていない
 - manual・acceptEdits の動き。公式では確認が出て、許可すれば届く。allowedDomains は、これらのモードでは承認なしに届かないことを保証するだけで、届かないことは保証しない
+
+## 20261103 — 7 章: 配る準備
+
+**決定**:
+- 雛形はマスターの settings と 2 点だけ違う（`failIfUnavailable: false`・`validate-skill-edit.sh` を登録しない）。`test:sandbox` が完全一致で検査する。配置先では育ててよいが、マスターの雛形はマスターからずらさない
+- 依存の一覧は README の 2 つの表（スキル・hook）にし、validate が 2 方向で突き合わせる。tasklist の範囲（スキル・agent）に、hook と雛形の登録を足した。手でコピーすると hook でも同じ事故が起きるため。agent（無いと代替に落ちる）と案内先のスキル（無くても動く）は列を分けた
+- 配置先の CLAUDE.md（prompt-audit の M11）は雛形を作らない。評価が共通の CLAUDE.md のある状態で比べたことを README に書き、「作業の進め方」「自律実行の境界」を写す手順にした。雛形を増やすと正本が 2 つになる
+- C4 は「allow がこの判定より先に当たる」という旧 knowledge の説明を移さなかった。公式に無いため。公式で言える「読み取りの形は書かなくても動く」「allow のパターンは `--output=` にも一致する」だけを書いた
+- `--purity`・`--strict` を削除した。purity は別のテストランナーへの可搬性を測るもので、Claude Code 専用・tdd の削除で役目を終えた。strict は CI 用で、CI は削除済み。`prompts/adversarial-skill-review.md` が `--purity` を呼んでいたので `--portability` に直した
+- `--portability` が報告する steering の `20261026` は、tasklist の書き方の例で内部の経緯ではないので直さない（report-only のまま）
+
+**一回限りの確認（20261103）**:
+- README のコピー手順を `$TMPDIR` で実行: 15 ファイルが置かれ、雛形が登録する hook 5 本がすべて存在した。その hook に `run_fixtures.py --hooks-dir` で 96/96。`check_settings.py --settings <コピー>` は `failIfUnavailable` の 1 件だけ FAIL（マスター用の値を検査するので期待どおり）
+- README の `e2e` の行を実際に消すと validate が FAIL（9/10）し、戻すと 10/10
+- `echo` の件: `\n` を含む JSON が、sh と zsh の echo で壊れ、bash の echo と zsh の printf では壊れない（macOS）
+
+**静的検査**: validate 10/10・test:sandbox 全部合格・test:hooks 96/96・lint
+
+**分からないこと**: コピーした先で Claude Code を起動した動作（スキル・hook の発火・sandbox 下での lint と typecheck）は確かめていない。8 章の使い捨ての配置先で確かめる
+
+**決定**（ユーザー承認）: design.md の完了条件「decisions.md の判定表とスキルの集合が一致する」から validate での検査を外し、8 章で一度だけ手で確かめる。判定表は複数に分かれて書式も揃っておらず、アーカイブでパスも変わるので、検査として長持ちしない

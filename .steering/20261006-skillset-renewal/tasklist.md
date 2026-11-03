@@ -1,6 +1,6 @@
 # タスクリスト: skillset-renewal
 
-Last updated: 20261103（6 章を `feature/renewal-03-settings` で進めた。未コミット）
+Last updated: 20261103（7 章を `feature/renewal-03-settings` で終えた）
 
 ## 0. 計測（実施済み）
 
@@ -134,15 +134,16 @@ Last updated: 20261103（6 章を `feature/renewal-03-settings` で進めた。�
 
 ## 7. 配る準備
 
-- [ ] `templates/settings.template.json` を作る（permissions・sandbox・配る hook の登録）。README の手順に「allow に git の読み取り系を書かない」を添える（今のバージョンで確かめてから）
-- [ ] README にコピー手順と依存の一覧（一緒に持っていくもの・マスター専用の印）を書く
-- [ ] validate に、依存の一覧と実際のスキル・agent の参照の突き合わせを足す
-- [ ] `validate_skills.py` を新構成に合わせる（`check_asset_consistency.py`・`tests/assets/` は 3 で削除済み。新構成で本当に要る突き合わせだけを、必要になったら書く。残すスクリプトには、検査スクリプトの規律と hook の JSON を `printf` で確かめる件を docstring に移す）
+- [x] `templates/settings.template.json` を作る（permissions・sandbox・配る hook の登録）。README の手順に「allow に git の読み取り系を書かない」を添える（今のバージョンで確かめてから）（20261103。マスターとの差は 2 点だけで、`test:sandbox` が検査する。allow の件は公式の permissions で確認）
+- [x] README にコピー手順と依存の一覧（一緒に持っていくもの・マスター専用の印）を書く（20261103。配置先の CLAUDE.md の扱い（prompt-audit の M11）も書いた）
+- [x] validate に、依存の一覧と実際のスキル・agent の参照の突き合わせを足す（20261103。hook と雛形も突き合わせる。壊した一覧で落ちる self-test つき）
+- [x] （20261103。`--purity`・`--strict` を削除し、規律を docstring に移した。`echo` の件は `tests/hooks/run_fixtures.py` の docstring へ）`validate_skills.py` を新構成に合わせる（`check_asset_consistency.py`・`tests/assets/` は 3 で削除済み。新構成で本当に要る突き合わせだけを、必要になったら書く。残すスクリプトには、検査スクリプトの規律と hook の JSON を `printf` で確かめる件を docstring に移す）
 - [x] CLAUDE.md の配布のルール（配置先で直接編集しない・マスターに還元して再コピー・配布分類の確認）を撤去する（CLAUDE.md の書き直しに含める）（20261101）
 
 ## 8. 検証
 
 - [ ] 静的検査（`validate`・`test:hooks`・`lint`・`tests/sandbox`）が緑
+- [ ] decisions.md の判定表とスキルの集合が一致することを、一度だけ手で確かめる（20261103 に validate での検査をやめた）
 - [ ] 停止のケースを `plugin eval` で実走する（design-doc・pr-create。knowledge-capture は削除。課金・承認制。通常のターミナルから実行する）（pr-create は 20261101 に PR1・PR2 で確認済み。design-doc は評価の D1・D2 で確認済み。最後に `eval/README.md` の回帰テストで一式を流すかを決める）
 - [x] 自作の passthrough（`passthrough_check.py`・`tests/passthrough/`）を削除する（20261101）
 - [ ] 検証用の使い捨て配置先に README の手順でコピーし、スキル・hook の発火・sandbox 下での lint と typecheck を確かめる。guard-gated-write の `ask` で実際に確認が出ることと、hook なしの acceptEdits で `git show X > CLAUDE.md` が通るか（6 から持ち越し。旧 C3。課金が要るなら見積もりを示す）も確かめ、hook の冒頭コメントを直す

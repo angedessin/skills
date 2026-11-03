@@ -4,6 +4,10 @@
 Usage: mise exec -- pnpm run test:hooks
        python3 tests/hooks/run_fixtures.py --hooks-dir <dir>   # 持ち出し先の hook 実体に同じケースを流す
 Exit 0 = all pass. Exit 1 = failure (prints details).
+
+hook の JSON 出力を手で確かめるときは `echo "$out"` を使わず `printf '%s' "$out"` を使う。
+sh と zsh の echo は `\n` を展開するので、正しい JSON が壊れて見える（20261103 に macOS の sh・zsh で確認。bash は展開しない）。
+検証が失敗したら、まず検証側を疑う。
 """
 from __future__ import annotations
 

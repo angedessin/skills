@@ -2,7 +2,7 @@
 """settings.json の静的検査（課金なし・sandbox の外でも動く）。
 
 Usage: mise exec -- pnpm run test:sandbox
-       python3 tests/sandbox/check_settings.py --settings <file> --hook <guard-gated-write.sh>
+       python3 tests/sandbox/check_settings.py --settings <file> --hook <guard-gated-write.sh> --template <file>
 
 旧 check_asset_consistency.py の契約 (s)(t)(j) と、sandbox の設定の形を確かめる。
 実際に sandbox の中で動くかは probe.py が確かめる。
@@ -33,6 +33,7 @@ REQUIRED_EXCLUDED = {
 REQUIRED_DENY_READ = {"./**/.env*", "./**/*.env", "~/.ssh", "~/.aws"}
 REQUIRED_DOMAINS = {"github.com", "*.github.com", "registry.npmjs.org"}
 REMOVED_HOOKS = {"guard-env-read.sh"}
+MASTER_ONLY_HOOKS = {"validate-skill-edit.sh"}
 HOOK_PATH_RE = re.compile(r"\.claude/hooks/([\w.-]+)")
 
 
@@ -53,6 +54,27 @@ def rules(settings: dict) -> list[str]:
 
 def hook_files(settings: dict) -> set[str]:
     return set(HOOK_PATH_RE.findall(json.dumps(settings.get("hooks", {}))))
+
+
+def expected_template(settings: dict) -> dict:
+    """マスターの settings から、配置先の雛形にあるべき形を作る（違いは決めた 2 点だけ）。"""
+    want = copy.deepcopy(settings)
+    want["sandbox"]["failIfUnavailable"] = False
+    for groups in want.get("hooks", {}).values():
+        for group in groups:
+            group["hooks"] = [
+                h for h in group["hooks"]
+                if not set(HOOK_PATH_RE.findall(h.get("command", ""))) & MASTER_ONLY_HOOKS
+            ]
+    return want
+
+
+def check_template(settings: dict, template: dict) -> str | None:
+    if template == expected_template(settings):
+        return None
+    want = expected_template(settings)
+    keys = sorted(k for k in want.keys() | template.keys() if want.get(k) != template.get(k))
+    return f"雛形がマスターと決めた 2 点以外でも違う（failIfUnavailable: false と {sorted(MASTER_ONLY_HOOKS)} の除外だけのはず）: {keys}"
 
 
 def check_s(settings: dict, gated: set[str]) -> str | None:
@@ -144,13 +166,27 @@ def self_test(settings: dict, gated: set[str]) -> list[str]:
         ("meta", check_meta, lambda s: s.pop("$schema")),
         ("hooks", check_hooks, lambda s: s.update(hooks={})),
     ]
-    return [name for name, fn, broken in cases if fn(mutate(broken), gated) is None]
+    silent = [name for name, fn, broken in cases if fn(mutate(broken), gated) is None]
+
+    good = expected_template(settings)
+    template_cases: list[tuple[str, Callable[[dict], None]]] = [
+        ("template-flag", lambda t: t["sandbox"].update(failIfUnavailable=True)),
+        ("template-deny", lambda t: t["permissions"]["deny"].pop()),
+        ("template-hook", lambda t: t["hooks"].pop("Stop")),
+    ]
+    for name, breaker in template_cases:
+        broken = copy.deepcopy(good)
+        breaker(broken)
+        if check_template(settings, broken) is None:
+            silent.append(name)
+    return silent
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--settings", type=Path, default=ROOT / ".claude" / "settings.json")
     parser.add_argument("--hook", type=Path, default=ROOT / ".claude" / "hooks" / "guard-gated-write.sh")
+    parser.add_argument("--template", type=Path, default=ROOT / "templates" / "settings.template.json")
     args = parser.parse_args()
 
     settings = json.loads(args.settings.read_text(encoding="utf-8"))
@@ -167,6 +203,13 @@ def main() -> int:
         if problem:
             print(f"  {problem}")
             failed += 1
+
+    template = json.loads(args.template.read_text(encoding="utf-8"))
+    problem = check_template(settings, template)
+    print(f"{'FAIL' if problem else 'PASS'} 雛形とマスターの差が決めた 2 点だけ")
+    if problem:
+        print(f"  {problem}")
+        failed += 1
 
     if failed:
         print("SKIP self-test（上の失敗を先に直す）")
