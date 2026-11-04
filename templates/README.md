@@ -1,6 +1,7 @@
-# templates — 新規スキルの雛形（マスター専用）
+# templates — 雛形
 
-`SKILL.template.md` は新しいスキルを書き始めるための骨格。このディレクトリは配布しない（`scripts/validate_skills.py` と同じマスター専用ツール）。
+- `SKILL.template.md`: 新しいスキルを書き始めるための骨格（マスター専用。配らない）
+- `settings.template.json`: 配置先の `.claude/settings.json` の雛形。使い方は [README](../README.md) の「他のプロジェクトで使う」
 
 ## 使い方
 

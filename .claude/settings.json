@@ -1,21 +1,14 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
-    "allow": ["Bash(ls)", "Bash(ls *)"],
     "ask": [
       "Bash(git push*)",
       "Bash(npx *)",
       "Bash(rm -r*)",
-      "Edit(./.claude/settings.json)",
-      "Edit(./.claude/settings.local.json)",
-      "Edit(./.claude/hooks/**)",
       "Edit(./CLAUDE.md)",
       "Edit(~/.claude/CLAUDE.md)",
-      "Edit(./docs/knowledge/*)",
-      "Edit(./docs/knowledge/**)",
-      "Edit(./docs/knowledge/**/*)",
-      "Edit(./docs/decisions/*)",
-      "Edit(./docs/decisions/**)",
-      "Edit(./docs/decisions/**/*)"
+      "Edit(./docs/**)",
+      "Edit(./.claude/**)"
     ],
     "deny": [
       "Bash(pnpm add *)",
@@ -44,10 +37,6 @@
       "Bash(pip install *)",
       "Bash(pip3 install *)",
       "Bash(brew install *)",
-      "Bash(cat .env*)",
-      "Bash(cat *.env)",
-      "Bash(grep * .env*)",
-      "Bash(grep * *.env)",
       "Bash(printenv)",
       "Bash(printenv *)",
       "Bash(env)",
@@ -67,7 +56,39 @@
       "Bash(git push * +*)",
       "Bash(git reset --hard*)",
       "Bash(git clean -f*)"
-    ]
+    ],
+    "disableBypassPermissionsMode": "disable"
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": false,
+    "failIfUnavailable": true,
+    "allowUnsandboxedCommands": false,
+    "excludedCommands": [
+      "git checkout *",
+      "git switch *",
+      "git merge *",
+      "git rebase *",
+      "git stash *",
+      "git restore *",
+      "git rm *",
+      "git mv *",
+      "git cherry-pick *",
+      "git revert *",
+      "git fetch *",
+      "git pull *",
+      "git push *",
+      "gh pr *",
+      "gh api *",
+      "gh repo view *"
+    ],
+    "filesystem": {
+      "denyRead": ["./**/.env*", "./**/*.env", "~/.ssh", "~/.aws"]
+    },
+    "network": {
+      "allowLocalBinding": true,
+      "allowedDomains": ["github.com", "*.github.com", "registry.npmjs.org"]
+    }
   },
   "hooks": {
     "SessionStart": [
@@ -88,11 +109,6 @@
           {
             "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-gated-delete.sh",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-env-read.sh",
             "timeout": 10
           },
           {

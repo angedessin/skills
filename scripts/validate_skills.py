@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""スキル frontmatter・構造の機械検証（マスター専用ツール・依存ゼロ）。
+"""スキル frontmatter・構造と、配るものの一覧の機械検証（マスター専用ツール・依存ゼロ）。
 
-検証項目:
+検証項目（スキルごと）:
   1. name がディレクトリ名と一致する
   2. description が引用符付き 1 行で 1024 文字以内
   3. ファイル全体が 500 行以内
@@ -11,64 +11,60 @@
   7. 承認語彙（承認 / APPROVED）が出現するスキルは、本文にハードストップ表現
      （「ここで止ま」または見出しの STOP）を 1 つ以上持つ。否定形（承認不要 等）は
      トリガーから除外。逃し弁として本文に <!-- validator: no-stop-needed --> があればスキップ。
-  （8. design-doc の付録境界は 20261027 に削除。design-doc を書き直し、付録境界をやめたため）
-  （9. design↔実装同期パスのキー共存と 10. tasklist 工程表同期は 20261031 に削除。
-     検査対象の impl-review を削除し、frontend-code-review を書き直したため）
-  11. 既定走査時: リポジトリの CLAUDE.md が 50 行以内（行動ルールだけにする。独自の目標）
 
-純度計測・ポータビリティ（レポートのみ・FAIL にしない）:
-  python3 scripts/validate_skills.py --purity        # 各スキル本文のツール固有 API 出現数
-  python3 scripts/validate_skills.py --portability   # 配布可スキルのマスター内部前提（日付・固有語）
-  python3 scripts/validate_skills.py --portability --strict  # 同上。1 件でもあれば exit 1（CI 用）
+検証項目（既定の走査のときだけ）:
+  8. リポジトリの CLAUDE.md が 50 行以内（行動ルールだけにする。独自の目標）
+  9. README の依存の一覧が、実際のスキル・agent・hook・settings の雛形と一致する。
+     壊した一覧で検査が落ちることも毎回確かめる（self-test）
+
+ポータビリティ（レポートのみ・FAIL にしない）:
+  python3 scripts/validate_skills.py --portability   # 配るスキルのマスター内部前提（日付・固有語）
 
 使い方:
   python3 scripts/validate_skills.py                 # .claude/skills/ 全体
   python3 scripts/validate_skills.py <dir>           # 指定ディレクトリ配下の各スキル
   python3 scripts/validate_skills.py --skill <dir>   # 単一スキル（そのディレクトリ自体）のみ
   python3 scripts/validate_skills.py --template      # templates/SKILL.template.md（プレースホルダ許容）
-  python3 scripts/validate_skills.py --purity        # ツール純度レポート（FAIL にしない）
-  python3 scripts/validate_skills.py --portability   # ポータビリティレポート（FAIL にしない）
-  python3 scripts/validate_skills.py --portability --strict  # 混入 1 件以上で exit 1
-終了コード: 0 = 全 PASS / 1 = FAIL あり（--portability --strict は混入あり） / 2 = 使い方の誤り（不明なオプション等）
+  python3 scripts/validate_skills.py --portability   # ポータビリティレポート
+終了コード: 0 = 全 PASS / 1 = FAIL あり / 2 = 使い方の誤り（不明なオプション等）
+
+検査スクリプトの規律（検査を足すときに守る）:
+  - フェイルクローズは比較の両側に要る。0 件どうしの比較で緑を出さない
+  - 対象が無いときは SKIP にして、FAIL があれば FAIL を優先する
+  - 警告は verbose の外に出す
+  - 語彙の抽出は語幹で持つ（活用や強調で取りこぼさない）
+  - 文書と実体の突き合わせは「記載漏れ」と「死んだ参照」の 2 方向に分ける
 """
 import re
 import sys
 from pathlib import Path
 
-# 項目8（純度計測）で数えるツール固有語彙。本文（frontmatter・references/ を除く）に
-# これらが出るほど、スキルが特定のツールに依存する（エンジン純度が下がる）。
-TOOL_VOCAB = [
-    "gh", "git", "npx", "pnpm", "npm", "yarn", "node", "python3",
-    "playwright", "vitest", "jest", "eslint", "biome", "tsc", "curl", "jq",
-]
-
-# ツール固有の API 名（メソッド・識別子・設定キー）。ツール名（vitest 等）の grep が 0 件でも
-# これら API 名が本文に残ると、別ランナー（Jasmine 等）では実行不能なテストを書かせる。
-# 語彙の grep だけではエンジン純度を測れないので、API 名のリストでも測る。
-# 実例（20260723）: tdd 本文で vitest/testing-library の grep は 0 件だったが includeSource /
-# queryBy / toBeInTheDocument が残っていた。
-API_VOCAB = [
-    "queryBy", "getBy", "findBy", "queryAllBy", "getAllBy", "findAllBy",
-    "toBeInTheDocument", "toHaveTextContent", "toBeVisible", "toBeDisabled",
-    "toHaveBeenCalled", "includeSource", "renderHook", "fireEvent", "userEvent",
-]
+ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_SKILLS = ROOT / ".claude" / "skills"
 
 # 項目7で承認語彙のトリガーから除外する否定形（自律実行境界の引用による誤 FAIL を防ぐ）。
 _APPROVAL_NEGATIONS = ["承認不要", "承認なし", "承認は不要", "承認を要さない"]
 
-# --portability レポート用。配布可スキルの本文・references に「配置先の読み手が解読できない
+# マスター専用のスキルの一次情報は README の依存の一覧。項目9 がこの集合との一致を検査する。
+MASTER_ONLY = {"skill-test"}
+CLAUDE_MD_MAX_LINES = 50
+
+# --portability レポート用。配るスキルの本文・references に「配置先の読み手が解読できない
 # マスター内部前提」が混入していないかを検出する（report-only）。
 # 検出対象:
 #   1. 単独の YYYYMMDD 日付（内部 QA/インシデントの日付付きエピソード。配置先に文脈が無い）。
-#      パス（docs/decisions/YYYYMMDD 等・直前が "/"）は除外。
+#      パス（直前が "/"）は除外。
 #   2. マスター固有語（配置先に存在しない仕組みを前提にした語）。
-# マスター専用の一覧の一次情報は README の「スキル」の表。この集合が変わったら README と揃える。
-MASTER_ONLY = {"skill-test"}
-CLAUDE_MD_MAX_LINES = 50
 PORTABILITY_VOCAB = [
     "還流", "配布セット", "source-commit", "deployments.md",
     "このマスター", "マスターへ", "マスターの git", "（distributable）",
 ]
+
+DISTRIBUTED = "配る"
+MASTER_ONLY_MARK = "マスター専用"
+SKILLS_MARKER = "<!-- deps:skills -->"
+HOOKS_MARKER = "<!-- deps:hooks -->"
+HOOK_PATH_RE = re.compile(r"\.claude/hooks/([\w.-]+)")
 
 
 def validate(skill_dir: Path, template_mode: bool = False) -> list[str]:
@@ -144,25 +140,8 @@ def validate(skill_dir: Path, template_mode: bool = False) -> list[str]:
     return errors
 
 
-def purity_counts(skill_md: Path, vocab: list[str] = TOOL_VOCAB) -> dict[str, int]:
-    """SKILL.md 本文（frontmatter 除く）の指定語彙の出現数を返す。
-
-    references/ は別ファイルのため自然に除外される（この関数は SKILL.md しか読まない）。
-    語境界つきで数える（gh が「英語」の一部に一致しない等）。
-    """
-    t = skill_md.read_text(encoding="utf-8")
-    m = re.match(r"^---\n.*?\n---\n", t, re.S)
-    body = t[m.end():] if m else t
-    counts: dict[str, int] = {}
-    for tok in vocab:
-        hits = re.findall(r"(?<![\w-])" + re.escape(tok) + r"(?![\w-])", body)
-        if hits:
-            counts[tok] = len(hits)
-    return counts
-
-
 def portability_hits(skill_dir: Path) -> list[tuple[str, int, str]]:
-    """配布可スキルの SKILL.md + references/*.md から、配置先で解読できない
+    """配るスキルの SKILL.md + references/*.md から、配置先で解読できない
     マスター内部前提（日付付きエピソード・マスター固有語）を行単位で拾う。
 
     戻り値: (相対パス, 行番号, 何を検出したか) のリスト。
@@ -194,10 +173,145 @@ def portability_hits(skill_dir: Path) -> list[tuple[str, int, str]]:
     return hits
 
 
+def table_rows(readme: str, marker: str) -> list[list[str]]:
+    """marker の直後の表の本体を、セルのリストで返す（見出しと区切りの行を除く）。"""
+    if marker not in readme:
+        return []
+    rows: list[list[str]] = []
+    started = False
+    for line in readme.split(marker, 1)[1].splitlines():
+        if not line.startswith("|"):
+            if started:
+                break
+            continue
+        started = True
+        rows.append([c.strip() for c in line.strip().strip("|").split("|")])
+    return rows[2:]
+
+
+def code_names(cell: str) -> set[str]:
+    """セルの中のバッククォートの名前を返す。"""
+    return set(re.findall(r"`([^`]+)`", cell))
+
+
+def mentions(text: str, name: str) -> bool:
+    """text が name に言及するか。`.steering/` や `review-bug-x` のような別の語には当たらない。"""
+    return re.search(r"(?<![\w.-])" + re.escape(name) + r"(?![\w-])", text) is not None
+
+
+def two_way(label: str, listed: set[str], actual: set[str]) -> list[str]:
+    """一覧と実体を「記載漏れ」と「死んだ参照」の 2 方向で比べる。"""
+    out = []
+    if actual - listed:
+        out.append(f"{label}: 一覧に書かれていない {sorted(actual - listed)}")
+    if listed - actual:
+        out.append(f"{label}: 一覧にあるが実体が無い {sorted(listed - actual)}")
+    return out
+
+
+def dependency_problems(
+    readme: str,
+    skills: dict[str, str],
+    agents: set[str],
+    hooks: set[str],
+    template_hooks: set[str],
+) -> list[str]:
+    """README の依存の一覧を実体と突き合わせる。skills は スキル名 -> SKILL.md の本文。"""
+    skill_rows = table_rows(readme, SKILLS_MARKER)
+    hook_rows = table_rows(readme, HOOKS_MARKER)
+    # 0 件どうしの比較で緑を出さない
+    if not skill_rows or not skills:
+        return ["スキルの依存の一覧または実体のスキルが 0 件"]
+    if not hook_rows or not hooks or not template_hooks:
+        return ["hook の一覧・実体の hook・雛形の hook 登録のどれかが 0 件"]
+
+    listed_skills = {name for r in skill_rows for name in code_names(r[0])}
+    problems = two_way("スキル", listed_skills, set(skills))
+
+    listed_agents: set[str] = set()
+    marked_master: set[str] = set()
+    for row in skill_rows:
+        if len(row) != 4:
+            problems.append(f"スキルの一覧の列数が 4 でない: {row}")
+            continue
+        names = code_names(row[0])
+        name = next(iter(names), "")
+        need_agents, see_skills = code_names(row[1]), code_names(row[2])
+        listed_agents |= need_agents
+        if row[3] == MASTER_ONLY_MARK:
+            marked_master.add(name)
+        elif row[3] != DISTRIBUTED:
+            problems.append(f"{name}: 配るかの欄が「{DISTRIBUTED}」「{MASTER_ONLY_MARK}」のどちらでもない")
+        if name not in skills:
+            continue
+        text = skills[name]
+        used_agents = {a for a in agents if mentions(text, a)}
+        problems += two_way(f"{name} の agent", need_agents, used_agents)
+        used_skills = {s for s in skills if s != name and mentions(text, s)}
+        problems += two_way(f"{name} の案内先のスキル", see_skills, used_skills)
+        if row[3] == DISTRIBUTED and used_skills & MASTER_ONLY:
+            problems.append(f"{name}: 配るのにマスター専用のスキルを参照する {sorted(used_skills & MASTER_ONLY)}")
+    problems += two_way("agent", listed_agents, agents)
+    if marked_master != MASTER_ONLY:
+        problems.append(f"マスター専用の印 {sorted(marked_master)} が MASTER_ONLY {sorted(MASTER_ONLY)} と違う")
+
+    listed_hooks = {name for r in hook_rows for name in code_names(r[0])}
+    problems += two_way("hook", listed_hooks, hooks)
+    distributed = {name for r in hook_rows if r[-1] == DISTRIBUTED for name in code_names(r[0])}
+    problems += two_way("雛形に登録する hook", distributed, template_hooks)
+    return problems
+
+
+def dependency_self_test(
+    readme: str,
+    skills: dict[str, str],
+    agents: set[str],
+    hooks: set[str],
+    template_hooks: set[str],
+) -> list[str]:
+    """壊した入力で dependency_problems が落ちることを確かめる。落ちなかった壊し方を返す。"""
+    first_agent = sorted(agents)[0]
+    first_skill = sorted(skills)[0]
+    row_of = next(line for line in readme.splitlines() if line.startswith(f"| `{first_skill}`"))
+    cases = {
+        "スキルの行を消す": (readme.replace(row_of + "\n", ""), skills, agents, hooks, template_hooks),
+        "死んだ行を足す": (readme.replace(row_of, row_of + "\n| `ghost` | - | - | 配る |"), skills, agents, hooks, template_hooks),
+        "一覧を丸ごと消す": (readme.replace(SKILLS_MARKER, ""), skills, agents, hooks, template_hooks),
+        "hook の一覧を丸ごと消す": (readme.replace(HOOKS_MARKER, ""), skills, agents, hooks, template_hooks),
+        "agent を使うのに書かない": (readme, {**skills, first_skill: skills[first_skill] + f"\n`{first_agent}`\n"}, agents, hooks, template_hooks),
+        "実体のない agent": (readme, skills, agents - {first_agent}, hooks, template_hooks),
+        "実体の hook を足す": (readme, skills, agents, hooks | {"ghost.sh"}, template_hooks),
+        "雛形の hook を足す": (readme, skills, agents, hooks, template_hooks | {"ghost.sh"}),
+        "配るのにマスター専用を参照": (readme, {**skills, first_skill: skills[first_skill] + "\n" + next(iter(MASTER_ONLY)) + "\n"}, agents, hooks, template_hooks),
+    }
+    return [label for label, args in cases.items() if not dependency_problems(*args)]
+
+
+def check_dependencies() -> tuple[list[str], list[str]]:
+    """リポジトリの実体を読んで項目9を流す。戻り値は (問題, 落ちなかった self-test)。"""
+    readme_path = ROOT / "README.md"
+    template_path = ROOT / "templates" / "settings.template.json"
+    missing = [str(p.relative_to(ROOT)) for p in (readme_path, template_path) if not p.is_file()]
+    if missing:
+        return [f"ファイルが無い: {missing}"], []
+    readme = readme_path.read_text(encoding="utf-8")
+    skills = {
+        d.name: (d / "SKILL.md").read_text(encoding="utf-8")
+        for d in sorted(DEFAULT_SKILLS.iterdir())
+        if (d / "SKILL.md").is_file()
+    }
+    agents = {p.stem for p in (ROOT / ".claude" / "agents").glob("*.md")}
+    hooks_dir = ROOT / ".claude" / "hooks"
+    hooks = {p.name for pattern in ("*.sh", "*.py") for p in hooks_dir.glob(pattern)}
+    template_hooks = set(HOOK_PATH_RE.findall(template_path.read_text(encoding="utf-8")))
+    args = (readme, skills, agents, hooks, template_hooks)
+    problems = dependency_problems(*args)
+    return problems, ([] if problems else dependency_self_test(*args))
+
+
 # main() が分岐として受け付けるフラグの全集合。**分岐を足したらここにも足す**
 # （片側修正だと、実在するフラグが「不明なオプション」で弾かれる）。
-# `--strict` は `--portability` の修飾子（先頭引数にならない）ので含めない。
-KNOWN_FLAGS = ("--help", "-h", "--skill", "--template", "--purity", "--portability")
+KNOWN_FLAGS = ("--help", "-h", "--skill", "--template", "--portability")
 
 
 def main() -> None:
@@ -205,35 +319,28 @@ def main() -> None:
     # --help / -h は使い方を出して正常終了する。これが無いと未知のフラグが
     # 走査ルートとして解釈され、Path("--help").iterdir() が未捕捉例外で落ちる。
     # 全面 argparse 化はしない — PostToolUse hook が --skill で呼んでおり、
-    # 引数処理の書き換えは既存 5 経路すべての回帰リスクになる。
+    # 引数処理の書き換えは既存の経路すべての回帰リスクになる。
     if args and args[0] in ("--help", "-h"):
         print(__doc__)
         sys.exit(0)
     # 未知のフラグを走査ルートとして解釈しない。`--protability` のような打ち間違いが
     # Path("--protability").iterdir() の生 Traceback になり、原因が読み取れなかった。
-    # 既知フラグの集合だけを見る一般ガードなので、以降 6 経路の分岐には触れない。
     if args and args[0].startswith("-") and args[0] not in KNOWN_FLAGS:
         print(f"エラー: 不明なオプション: {args[0]}", file=sys.stderr)
         print(f"  使えるオプション: {', '.join(KNOWN_FLAGS)}", file=sys.stderr)
         print("  使い方は --help を参照してください。", file=sys.stderr)
         sys.exit(2)
-    # ポータビリティレポート（配布可スキルにマスター内部前提が無いか・report-only）
+    # ポータビリティレポート（配るスキルにマスター内部前提が無いか・report-only）
     if args and args[0] == "--portability":
-        # `--strict` は `--portability` の後ろのどこに置いてもよい。走査ルートは strict 以外の最初の引数。
-        # ハイフン始まりの引数は走査ルートにせず使い方の誤りとして弾く（`--stric` の打ち間違いが
-        # 走査ルートとして解釈され Traceback になるのを防ぐ）。
-        strict = "--strict" in args[1:]
-        rest = [a for a in args[1:] if a != "--strict"]
+        rest = args[1:]
         if rest and rest[0].startswith("-"):
-            print(f"エラー: 不明なオプション: {rest[0]}（`--portability` の修飾子は --strict のみ）", file=sys.stderr)
+            print(f"エラー: 不明なオプション: {rest[0]}（`--portability` に修飾子は無い）", file=sys.stderr)
             sys.exit(2)
-        root = Path(rest[0]) if rest else (
-            Path(__file__).resolve().parent.parent / ".claude" / "skills"
-        )
+        root = Path(rest[0]) if rest else DEFAULT_SKILLS
         dirs = sorted(
             d for d in root.iterdir() if d.is_dir() and d.name not in MASTER_ONLY
         )
-        print("ポータビリティレポート（配布可スキルのマスター内部前提・0 件が目標）")
+        print("ポータビリティレポート（配るスキルのマスター内部前提・0 件が目標）")
         print("  配置先の読み手が解読できない日付付きエピソード・マスター固有語を検出")
         print(f"  master-only（走査対象外）: {', '.join(sorted(MASTER_ONLY))}\n")
         any_hit = False
@@ -245,39 +352,12 @@ def main() -> None:
                 for rel, i, what in hits:
                     print(f"      {rel}:{i}  {what}")
         if not any_hit:
-            print("混入なし（配布可スキルはクリーン）")
-        # 既定は report-only（exit 0）。--strict のときだけ混入を失敗として返す。
-        sys.exit(1 if strict and any_hit else 0)
-    # 純度レポートモード（項目8・FAIL にしない・レポートのみ）
-    if args and args[0] == "--purity":
-        if len(args) > 1 and args[1].startswith("-"):
-            print(f"エラー: 不明なオプション: {args[1]}（--purity に修飾子は無い）", file=sys.stderr)
-            sys.exit(2)
-        root = Path(args[1]) if len(args) > 1 else (
-            Path(__file__).resolve().parent.parent / ".claude" / "skills"
-        )
-        dirs = sorted(d for d in root.iterdir() if d.is_dir())
-        print("ツール純度レポート（本文のツール固有語彙・API 名の出現数・少ないほど良い）")
-        print("  tok: ツール名（vitest 等） / api: ツール固有 API 名（queryBy 等）\n")
-        for d in dirs:
-            skill_md = d / "SKILL.md"
-            if not skill_md.exists():
-                continue
-            tool_counts = purity_counts(skill_md, TOOL_VOCAB)
-            api_counts = purity_counts(skill_md, API_VOCAB)
-            total = sum(tool_counts.values()) + sum(api_counts.values())
-            parts = [f"tok {k}:{v}" for k, v in sorted(tool_counts.items())]
-            parts += [f"api {k}:{v}" for k, v in sorted(api_counts.items())]
-            detail = "  ".join(parts)
-            print(f"{total:>4}  {d.name}" + (f"    ({detail})" if detail else ""))
+            print("混入なし（配るスキルはクリーン）")
         sys.exit(0)
 
     # テンプレートモード（templates/SKILL.template.md をプレースホルダ許容で検証）
     if args and args[0] == "--template":
-        tpl = (
-            Path(args[1]) if len(args) > 1
-            else Path(__file__).resolve().parent.parent / "templates" / "SKILL.template.md"
-        )
+        tpl = Path(args[1]) if len(args) > 1 else ROOT / "templates" / "SKILL.template.md"
         errs = validate(tpl, template_mode=True)
         if errs:
             print(f"FAIL  {tpl.name} (template)")
@@ -302,9 +382,7 @@ def main() -> None:
         print(f"PASS  {d.name}")
         sys.exit(0)
 
-    root = Path(args[0]) if args else (
-        Path(__file__).resolve().parent.parent / ".claude" / "skills"
-    )
+    root = Path(args[0]) if args else DEFAULT_SKILLS
     dirs = sorted(d for d in root.iterdir() if d.is_dir())
     if not dirs:
         print(f"スキルディレクトリが見つかりません: {root}")
@@ -322,11 +400,10 @@ def main() -> None:
             print(f"PASS  {d.name}")
 
     total = len(dirs)
-    # リポジトリ既定の .claude/skills を走査するときだけ、CLAUDE.md の行数を検査する（行動ルールだけで 50 行以内）
-    default_skills = Path(__file__).resolve().parent.parent / ".claude" / "skills"
-    if root.resolve() == default_skills.resolve():
+    # リポジトリ既定の .claude/skills を走査するときだけ、リポジトリ全体の検査を足す
+    if root.resolve() == DEFAULT_SKILLS.resolve():
         total += 1
-        claude_md = default_skills.parent.parent / "CLAUDE.md"
+        claude_md = ROOT / "CLAUDE.md"
         n = len(claude_md.read_text(encoding="utf-8").splitlines()) if claude_md.is_file() else None
         if n is None:
             failed += 1
@@ -336,6 +413,19 @@ def main() -> None:
             print(f"FAIL  CLAUDE.md — {n} 行（上限 {CLAUDE_MD_MAX_LINES} 行。知識は docs/knowledge/ へ移す）")
         else:
             print(f"PASS  CLAUDE.md（{n} 行）")
+
+        total += 1
+        problems, silent = check_dependencies()
+        if problems:
+            failed += 1
+            print("FAIL  README の依存の一覧")
+            for e in problems:
+                print(f"      - {e}")
+        elif silent:
+            failed += 1
+            print(f"FAIL  依存の一覧の self-test — 落ちなかった壊し方: {silent}")
+        else:
+            print("PASS  README の依存の一覧（self-test 込み）")
     print(f"\n{total - failed}/{total} PASS")
     sys.exit(1 if failed else 0)
 

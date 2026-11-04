@@ -1,71 +1,44 @@
 #!/bin/bash
-# PreToolUse(Bash) guard: 承認ゲート対象パスへの素の rm / mv を deny する。
+# PreToolUse(Bash) guard: 承認制のパスへの素の rm / mv を deny する。
 #
 # なぜ要るか: permissions の ask（Edit）と guard-gated-write（> / >> / tee）は
-# 書き込みだけを塞ぎ、`rm -f docs/knowledge/x.md` や `mv … docs/knowledge/` は素通りする。
-# 削除・移動はゲート迂回と等価なので deny する（ask ではない — 誤検知の代償が違う）。
+# 書き込みだけを塞ぎ、`rm -f docs/x.md` や `mv … docs/` は素通りする。
+# 削除・移動はゲート迂回と等価なので deny する（ask ではない）。
 #
 # 脅威モデル: 敵対者ではなく「停止契約を滑った善意のエージェント」。完全封鎖ではない。
-# 守る形: 先頭トークンが `rm` または `mv` で、同一単純コマンドのオペランドに対象パスが含まれるもの。
-#        改行区切りの複数単純コマンドは各行を判定する（行継続 \+改行は同一コマンドに畳む）。
-# 守らない形: `cd … && rm` / `… || …` / `;` / `|` 連鎖 / `bash -c` / `git rm` / `/bin/rm` /
-#            抽出失敗 — いずれも沈黙（フェイルオープン。deny に倒すと通常 Bash が広く死ぬ）。
+# 守る形: 連鎖（&& || ; | 改行 ( )）・制御構文（then / do など）のすべての部分の rm / mv（/bin/rm も）。
+#        先頭の代入・ラッパー（env / exec / sudo 等）は読み飛ばす。コメントとヒアドキュメントの本文は見ない。
+#        同じ呼び出しの `cd` は相対パスの解決に使い、サブシェルを出たら戻す。
+# 対象パス: プロジェクトの中の CLAUDE.md（どの階層でも）と、ルートの docs/ の下。大文字小文字は区別しない
+#          （macOS の既定の FS では `rm CLAUDE.MD` でも実ファイルが消える）。プロジェクトの外のパスは止めない。
+#          ただしプロジェクトがリポジトリの一部なら、同じリポジトリの中は止める（`rm ../../CLAUDE.md`）。
+#          グロブ・ブレース・変数は、手前が docs/ の下か CLAUDE.md なら止める（`docs/$f`・`*/CLAUDE.md`）。
+#          リンクはリンク自体の場所で判定する（rm / mv が操作するのはリンク）。末尾の `/` と、その後のグロブは
+#          リンク先も見る（`rm -rf link/` はリンクを残してリンク先の中身を消す。macOS で確認）。
+#          開始時の cwd か `cd` の後の場所が同じリポジトリの worktree なら、その worktree のルートも対象にする
+#          （worktree に入っても CLAUDE_PROJECT_DIR は開始時の場所のままで、cwd だけが移る）。
+#          再帰の rm は、プロジェクトのルートかその親を指す形（`.`・`..`・`../proj`・`*`・`./*`・`*/`・`**`）も止める。
+#   `.claude/` の素の rm / mv は sandbox の標準の書き込み禁止が止める（git rm・git restore は excludedCommands で
+#   sandbox の外に出て、この hook も沈黙するので、通常の確認だけが残る）。
+# 守らない形（沈黙）: `bash -c` / `eval` の中身・`git rm`・手前が分からない変数（`$X/CLAUDE.md`）・`cd -` や変数の
+#          `cd` の後の相対パス・グロブが対象の名前の途中にある形（`CLAUD*`）・解析の失敗（閉じていない引用など）・
+#          途中のディレクトリを再帰で消す形（`rm -rf sub` の下に CLAUDE.md がある）・
+#          本体にいて別の worktree の docs/ をパスで直接指す形（`rm ../wt/docs/a.md`）や、外の worktree の
+#          CLAUDE.md をパスで直接指す形・ルートを変数で指す形（`"$PWD"`・`$PWD/*`・`"$(pwd)"`）・
+#          長いオプションの省略形（`rm --recur .`）・`mv` でプロジェクト自身を親から指す形（`mv ../proj /tmp/x`）・
+#          python3 や guard_gated.py が無いとき（フェイルオープン。deny に倒すと通常の Bash が広く死ぬ）。
+#          沈黙することはフィクスチャで固定している（guard_gated.py が無いときを除く）。
 #
-# 対象パス（意図的に 3 系統。guard-gated-write.sh の GATED_PATHS から .claude/ 系を除いたもの）:
-#   CLAUDE.md / docs/knowledge / docs/decisions
-#   .claude/ の削除・移動は対象外（別の穴として扱う）。write 側の契約 (s) の突合対象にはしない。
-#   delete 側はディレクトリ裸形（末尾 / 無し）もマッチ。CLAUDE.md はトークン境界付き。
-#   AFTER 境界は空白・引用に加えグロブ/ブレースメタ * ? [ {（`.` は入れない — CLAUDE.md.bak 沈黙）。
-#
-# 判定は tool_input.command の構造抽出のみ。全文検査禁止（transcript_path 等が常時混入）。
-# JSON 抽出は python3 標準ライブラリ（jq・追加パッケージ無し）。欠如・失敗は沈黙。
+# 判定は guard_gated.py（guard-gated-write と共通の抽出）。tool_input.command だけを見る。
 
 payload=$(cat)
 [ -z "$payload" ] && exit 0
 
-# tool_input.command のみ（エスケープ済み引用を正しく戻す）
-cmd=$(printf '%s' "$payload" | python3 -c '
-import json, sys
-try:
-    p = json.load(sys.stdin)
-    print((p.get("tool_input") or {}).get("command") or "")
-except Exception:
-    pass
-' 2>/dev/null)
-[ -z "$cmd" ] && exit 0
-
-# CRLF 正規化 → リテラル \+改行を空白に畳む（引用符は見ない）
-# process substitution は使わない（runner の set -e / 古い bash での落ちを避ける）
-folded=$(printf '%s' "$cmd" | python3 -c '
-import sys
-s = sys.stdin.read().replace("\r\n", "\n").replace("\r", "\n")
-while True:
-    n = s.replace("\\\n", " ")
-    if n == s:
-        break
-    s = n
-sys.stdout.write(s)
-' 2>/dev/null) || folded=$cmd
-
-# AFTER グロブは文字クラスに生の [ を入れない（GNU grep でパターン不正→ exit 2 → set -e で沈黙しうる）
-# deny は最大 1 JSON（ヒットで即終了）
-while IFS= read -r line || [ -n "$line" ]; do
-  [ -z "$line" ] && continue
-
-  first=$(printf '%s' "$line" | awk '{print $1}')
-  case "$first" in
-    rm|mv) ;;
-    *) continue ;;
-  esac
-
-  simple=$(printf '%s' "$line" | sed 's/[[:space:]]*&&.*//; s/[[:space:]]*||.*//; s/[[:space:]]*;.*//; s/[[:space:]]*|.*//; s/[[:space:]]*#.*//')
-
-  if printf '%s' "$simple" | grep -qE '(^|[[:space:]"/'\''])CLAUDE\.md([[:space:]"'\'']|\*|\?|\[|\{|$)|(^|[[:space:]"'\'']|/)docs/knowledge(/|[[:space:]"'\'']|\*|\?|\[|\{|$)|(^|[[:space:]"'\'']|/)docs/decisions(/|[[:space:]"'\'']|\*|\?|\[|\{|$)' 2>/dev/null; then
-    cat <<'EOF'
-{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"CLAUDE.md / docs/knowledge/ / docs/decisions/ への rm / mv を検出しました（guard-gated-delete hook）。これらは承認制のパスです。削除・移動は書き込みゲートの迂回になります。"}}
+verdict=$(printf '%s' "$payload" | python3 "${0%/*}/guard_gated.py" delete 2>/dev/null)
+if [ "$verdict" = "DENY" ]; then
+  cat <<'EOF'
+{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"CLAUDE.md / docs/ への rm / mv を検出しました（guard-gated-delete hook）。これらは承認制のパスで、削除・移動は書き込みゲートの迂回になります。消す必要があるなら、理由を示してユーザーに頼みます（追跡済みのファイルは git rm でも消せます）。"}}
 EOF
-    exit 0
-  fi
-done <<< "$folded"
+fi
 
 exit 0

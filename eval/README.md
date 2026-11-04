@@ -51,3 +51,4 @@ grader の名前の頭は、集計での扱いを表す: `stop-`（停止。3 �
 - skill-test はマスターの保守用で、回帰ケースを持たない
 - 削除したスキルのケース（impl-from-design・tdd・knowledge-capture・compound・rule-audit など）は、判定の根拠として残すだけで、回帰テストには使わない
 - 結果の最終回答は `.steering/[task]/` の下に写す（trace は `/private/tmp` にあり、数日で消える）
+- Claude Code 2.1.318 の評価の sandbox では git が動かないことがある（xcrun のキャッシュが作れない）。grader が合格でも、git を使うケースは trace で git が動いたかを見る

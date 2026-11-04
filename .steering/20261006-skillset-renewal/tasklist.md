@@ -1,6 +1,6 @@
 # タスクリスト: skillset-renewal
 
-Last updated: 20261029（レビューの B（＋A）を途中まで回した）
+Last updated: 20261104（PR #20 の 0bd289f へのレビューの 6 コメントを直した。マージは人）
 
 ## 0. 計測（実施済み）
 
@@ -123,41 +123,57 @@ Last updated: 20261029（レビューの B（＋A）を途中まで回した）
 
 ## 6. settings.json
 
-- [ ] スキルの削除（3・5）が済んでいることを確かめる（sandbox 下では `.claude/` への書き込みが標準で禁止される）
-- [ ] `tests/sandbox/` を作る（hook・lint・pnpm・検査スクリプトが動く、`.env` を `cat`・`grep -r`・`python` で読めない、SSH の push・`gh pr create`・ブランチ切り替え・マージが通る）
-- [ ] `.claude/settings.json` を変更案（design.md）どおりに直し、`tests/sandbox/` を流す
-- [ ] guard-env-read を削除する（guard-gated-write・guard-gated-delete は残す）
-- [ ] 承認ゲートの対象から `docs/decisions/` を外す（guard hook 2 本・permissions.ask・フィクスチャ）。`docs/decisions/.gitkeep` も消す。guard-gated-write の警告文の adr と、コメントの `check_asset_consistency.py` 契約 (s) への参照も直す
-- [ ] 旧 `check_asset_consistency.py` の契約 (s)(t)(j) を `tests/sandbox/` に移す: guard-gated-write の `# GATED_PATHS:` 行 ≡ permissions.ask の `Edit(./...)`・allow に `Bash(git ...)` が無い・死んだ `Write|NotebookEdit|MultiEdit(path)` が無い
-- [ ] guard-gated-delete の取りこぼし（大文字小文字・`FOO=1 rm` の代入前置）を、hook の冒頭コメントに「守らない形」として移すか捨てる（旧 BACKLOG 0.6）
-- [ ] 残す guard hook 2 本の冒頭コメントに、旧 knowledge の落とし穴を移す（パス判定は command を取り出してから・Bash 経由の承認迂回・`git -C`／前置ラッパー／大文字小文字の取りこぼし。knowledge-candidates.md）。移す前に今のバージョンで成り立つかを `tests/sandbox/` で確かめる
+- [x] スキルの削除（3・5）が済んでいることを確かめる（sandbox 下では `.claude/` への書き込みが標準で禁止される）（20261103。残りは 8 本）
+- [x] `tests/sandbox/` を作る（20261103。`check_settings.py`・`probe.py`・手順の README。hook は公式どおり sandbox の外で動くので項目にしない。`gh pr create` は PR を作るので `gh pr list` で代える）
+- [x] `.claude/settings.json` を変更案（design.md）どおりに直し、`tests/sandbox/` を流す（20261103。差分は decisions.md。再起動後の auto モードで probe 21/21。`git switch`・`git merge` も確認済み）
+- [x] guard-env-read を削除する（guard-gated-write・guard-gated-delete は残す）（20261103）
+- [x] 承認ゲートの対象から `docs/decisions/` を外す（guard hook 2 本・permissions.ask・フィクスチャ）。`docs/decisions/.gitkeep` も消す。guard-gated-write の警告文の adr と、コメントの `check_asset_consistency.py` 契約 (s) への参照も直す（20261103）
+- [x] 旧 `check_asset_consistency.py` の契約 (s)(t)(j) を `tests/sandbox/` に移す: guard-gated-write の `# GATED_PATHS:` 行 ≡ permissions.ask の `Edit(./...)`・allow に `Bash(git ...)` が無い・死んだ `Write|NotebookEdit|MultiEdit(path)` が無い（20261103。壊した設定で落ちる self-test つき）
+- [x] guard-gated-delete の取りこぼし（大文字小文字・`FOO=1 rm` の代入前置）を、hook の冒頭コメントに「守らない形」として移すか捨てる（旧 BACKLOG 0.6）（20261103。移した。フィクスチャで沈黙を固定）
+- [x] 残す guard hook 2 本の冒頭コメントに、旧 knowledge の落とし穴を移す（パス判定は command を取り出してから・Bash 経由の承認迂回・`git -C`／前置ラッパー／大文字小文字の取りこぼし。knowledge-candidates.md）（20261103。command の取り出しと取りこぼしはフィクスチャで確認。Bash 経由の承認迂回（C3）は未確認のまま移し、コメントにそう書いた。結果によらず hook を残すので課金せず、8 で確かめる。ユーザー決定）
 
 ## 7. 配る準備
 
-- [ ] `templates/settings.template.json` を作る（permissions・sandbox・配る hook の登録）。README の手順に「allow に git の読み取り系を書かない」を添える（今のバージョンで確かめてから）
-- [ ] README にコピー手順と依存の一覧（一緒に持っていくもの・マスター専用の印）を書く
-- [ ] validate に、依存の一覧と実際のスキル・agent の参照の突き合わせを足す
-- [ ] `validate_skills.py` を新構成に合わせる（`check_asset_consistency.py`・`tests/assets/` は 3 で削除済み。新構成で本当に要る突き合わせだけを、必要になったら書く。残すスクリプトには、検査スクリプトの規律と hook の JSON を `printf` で確かめる件を docstring に移す）
+- [x] `templates/settings.template.json` を作る（permissions・sandbox・配る hook の登録）。README の手順に「allow に git の読み取り系を書かない」を添える（今のバージョンで確かめてから）（20261103。マスターとの差は 2 点だけで、`test:sandbox` が検査する。allow の件は公式の permissions で確認）
+- [x] README にコピー手順と依存の一覧（一緒に持っていくもの・マスター専用の印）を書く（20261103。配置先の CLAUDE.md の扱い（prompt-audit の M11）も書いた）
+- [x] validate に、依存の一覧と実際のスキル・agent の参照の突き合わせを足す（20261103。hook と雛形も突き合わせる。壊した一覧で落ちる self-test つき）
+- [x] （20261103。`--purity`・`--strict` を削除し、規律を docstring に移した。`echo` の件は `tests/hooks/run_fixtures.py` の docstring へ）`validate_skills.py` を新構成に合わせる（`check_asset_consistency.py`・`tests/assets/` は 3 で削除済み。新構成で本当に要る突き合わせだけを、必要になったら書く。残すスクリプトには、検査スクリプトの規律と hook の JSON を `printf` で確かめる件を docstring に移す）
 - [x] CLAUDE.md の配布のルール（配置先で直接編集しない・マスターに還元して再コピー・配布分類の確認）を撤去する（CLAUDE.md の書き直しに含める）（20261101）
 
 ## 8. 検証
 
-- [ ] 静的検査（`validate`・`test:hooks`・`lint`・`tests/sandbox`）が緑
-- [ ] 停止のケースを `plugin eval` で実走する（design-doc・pr-create。knowledge-capture は削除。課金・承認制。通常のターミナルから実行する）（pr-create は 20261101 に PR1・PR2 で確認済み。design-doc は評価の D1・D2 で確認済み。最後に `eval/README.md` の回帰テストで一式を流すかを決める）
+- [x] 静的検査（`validate`・`test:hooks`・`lint`・`tests/sandbox`）が緑（20261103。10/10・96/96・lint・test:sandbox）
+- [x] decisions.md の判定表とスキルの集合が一致することを、一度だけ手で確かめる（20261103 に validate での検査をやめた）（20261103。8 本で一致）
+- [ ] 停止のケースを `plugin eval` で実走する（design-doc・pr-create。knowledge-capture は削除。課金・承認制。通常のターミナルから実行する）（pr-create は 20261101 に PR1・PR2 で確認済み。design-doc は評価の D1・D2 で確認済み。最後に `eval/README.md` の回帰テストで一式を流すかを決める）（20261103 ユーザー決定: 今回は流さない。約 12 ドルに対して評価の後の変更が小さいため。e2e は本文の変更後に動かしていない。配る前か気になったときに流す）
 - [x] 自作の passthrough（`passthrough_check.py`・`tests/passthrough/`）を削除する（20261101）
-- [ ] 検証用の使い捨て配置先に README の手順でコピーし、スキル・hook の発火・sandbox 下での lint と typecheck を確かめる
+- [x] （20261103。C3 は実測せず公式の確認に留めた。ユーザーの「結果によらず hook を残す」の決定どおり、結果が判断を変えないため。post-edit-lint は実セッションでの発火を見ていない。単体で確認済み）検証用の使い捨て配置先に README の手順でコピーし、スキル・hook の発火・sandbox 下での lint と typecheck を確かめる。guard-gated-write の `ask` で実際に確認が出ることと、hook なしの acceptEdits で `git show X > CLAUDE.md` が通るか（6 から持ち越し。旧 C3。課金が要るなら見積もりを示す）も確かめ、hook の冒頭コメントを直す
+  - 20261103: コピーと hook の単体の動きは `$TMPDIR` で確認済み（decisions.md）。実セッションでの発動・ask の表示・C3 が残り。ユーザーの通常のターミナルが要る
+  - 20261103: 通信先の制限は、別の新しいセッションの probe で 21/21 に戻った（20/21 の原因は未特定。decisions.md）
+  - 20261103: 実セッションで確認済み: テストと型チェック・design-doc の発動と停止・`echo x >> CLAUDE.md` が実行されない・sandbox の通信と書き込みの制限。curl が一度 200 を返したのは、Claude が呼び出しに `allowed_domains` を付けたため（decisions.md）
 
 ## レビュー
 
-- [ ] frontend-code-review の実行（新方式）
-- [ ] レビュー指摘の修正（review-result.md を参照）
-- [ ] 修正後の差分再レビュー
+- [x] frontend-code-review の実行（新方式）（20261103。確かめられた 16 件。`review-result.md`）
+- [x] レビュー指摘の修正（review-result.md を参照）（20261104。10 件を直し、6 件を見送った）
+- [x] 修正後の差分再レビュー（20261104 ユーザー決定: 省く。差分が小さく、検査は壊して落ちることを確かめ、auto-allow は `/sandbox` と probe 25/25 で確認した）
 
 ## 知見保存
 
 刷新の途中では knowledge-capture を回さない（刷新の記録は decisions.md が正本。20261015 ユーザー決定）。
 
-- [ ] 評価でモデルが実際に間違えたところを、`docs/knowledge/` に書く（評価が終わったグループごと）
+- [x] 評価でモデルが実際に間違えたところを、`docs/knowledge/` に書く（評価が終わったグループごと）（20261104。`frontend-design.md` の 1 項目。ほかはスキルと README で扱っている。ユーザー承認）
+
+## 区切り 3 の PR（6〜8 の後）
+
+`feature/renewal-03-settings` → `feature/skillset-renewal`
+
+- [x] （20261104。#20。マージは人）pr-create で PR を作る
+- [x] PR #20 のレビューの指摘 10 件を直す（20261104。decisions.md）
+- [x] 修正の回帰 `pr1-feature-branch`・`pr2-spike` を各 1 回（20261104 に流した。評価の sandbox で git が動かず確かめになっていない。流し直さず閉じる。ユーザー決定。decisions.md）
+- [x] delete hook の作り直しの差分を frontend-code-review でレビューする（20261104。確かめられた 13 件。`review-result.md`。検証役は停止されたので本体が確かめた）
+- [x] 再レビューの指摘を直す（20261104。13 件。課金の再レビューは省き、判定を壊して落ちることで確かめた。decisions.md）
+- [x] PR #20 の再レビューの未解決 4 件を直す（20261104。worktree・ルートごと消す形・コメント・README。decisions.md）
+- [x] PR #20 の 0bd289f へのレビューの 6 コメントを直す（20261104。cd の後の worktree・リンク・ルートの変種・コメント・フィクスチャ 2 件。指摘に無かった `rm -rf link/` の穴も直した。decisions.md）
 
 ## デプロイ
 

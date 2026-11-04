@@ -46,7 +46,7 @@ subagent に渡すのが望ましい。セッションの文脈は攻撃を甘�
 
 ```
 python3 scripts/validate_skills.py
-python3 scripts/validate_skills.py --purity
+python3 scripts/validate_skills.py --portability
 ```
 
 （スクリプトが存在しない配置で実行している場合はこの Step を飛ばし、その旨をレポート冒頭に
@@ -103,8 +103,7 @@ python3 scripts/validate_skills.py --purity
    飛ばせる Step を具体的に挙げる。「この文言なら Step N を実行せずに次へ進める」という
    読み方が成立するなら、それが穴。
 6. **語彙とスコープの混入** — 特定ツール・特定スタックに依存した記述が本文に混入していないか
-   （`--purity` のカウントではなく、混入の**質**を見る。カウント 0 でも「特定 UI の操作を
-   前提にした手順」等は混入）。あわせて、そのスキルが本来の責務を超えて他スキルの領域に
+   （語の数ではなく、混入の**質**を見る。「特定 UI の操作を前提にした手順」等も混入）。あわせて、そのスキルが本来の責務を超えて他スキルの領域に
    踏み込んでいる Step がないか。
 
 ## Step 3 — 自己反証してから残す

@@ -883,3 +883,216 @@
 **結果**: `pr2-spike`: 0.15 ドル・21 秒。pr-create が発動し、grader は全部合格で、最終回答を読んでも妥当。SPIKE を読んで、コミット・push・PR 作成をせずに止まった。最終回答は `pr-responses/pr2-C-fix.md`
 **分かること**: 足した行で SPIKE の停止は壊れていない（1 回）。**分からないこと**: このケースはタスクを特定できるので、足した「特定できない・Status が無いか不正なら止まる」の行は通っていない
 **回帰の費用**: 無効の 1 本を含めて計 1.95 ドル（見積もり 約 1.7 ドル）
+
+## 20261103 — 進め方の注意（引き継ぎの文を消すときに移した）
+
+- `plugin eval` のコマンドを渡す前に、`./prepare.sh c <group>` をこちらで流して `eval/skills/` の中身を確かめる。課金がなく、準備が効かないまま流れる失敗を防げる
+- push はユーザーが行う。頼まれたときだけ自分で行う
+- 判定に人の入力が要るときは、分類表より、結果をまるごと並べて「どれを受け取りたいか」と聞く方が答えやすい
+
+## 20261103 — 6 章: settings.json を sandbox に乗せ直す（2.1.316）
+
+**決定（design.md の変更案との差。公式の sandboxing・settings-reference を 20261103 に確認）**:
+- `excludedCommands` に `git fetch *`・`gh *` を足した。公式に、macOS では SSH の fetch も sandbox の中で失敗し、`gh` は Seatbelt で TLS の検証に失敗しうるとある。同じ理由（作業ツリーを書き換える）で `git cherry-pick *`・`git revert *` も足した
+- GATED_PATHS を `CLAUDE.md docs/ .claude/` に広げ、ask（`Edit(./docs/**)`・`Edit(./.claude/**)`）と揃えた（prompt-audit の M7）
+- guard-gated-delete は CLAUDE.md・docs/knowledge だけのまま広げない。deny は誤検知の代償が大きく、`docs/` まで広げると `rm /tmp/x/docs/y` も止まる。`docs/` の他のファイルの `rm` は通るが、git で戻せる
+- 旧 BACKLOG 0.6（大文字小文字・代入前置）は直さず「守らない形」として hook の冒頭コメントに移し、フィクスチャ B30〜B34 で沈黙を固定した
+- 動的な検査はスクリプト（`test:sandbox:probe`）と手順（`tests/sandbox/README.md`）に分けた。`excludedCommands` は呼び出しの文字列で判定されるので、スクリプトの子プロセスでは確かめられない。`@anthropic-ai/sandbox-runtime` で包む案は、依存が増え、本物の Claude Code の設定と別物になるので採らない
+
+**分かったこと**:
+- `sandbox.enabled` はセッションの途中の編集でも効いた（公式に記載は無い。今回の観測）
+- hook は公式の記載のとおり sandbox の外で動くので、「hook が動くか」は probe の項目にしなかった
+- denyRead のファイルは sandbox の中で作れるが消せない（`Operation not permitted`）。probe の仮ファイルは消さずに使い回す（`.env.sandbox-probe` は .gitignore・他は `.tmp/sandbox-probe/`）
+- `env | grep …` を連結の中に書くと、呼び出し全体が `Bash(env)` の deny で止まる（意図どおり）
+
+**一回限りの確認（20261103）**:
+- `test:sandbox:probe` 20/21。`.env`（cat・grep -r・python）・`~/.ssh`・`~/.aws` は読めない、`.claude/` と作業ディレクトリの外には書けない、mise 経由の pnpm・validate・test:hooks・lint・git は動く
+- Bash ツールで直接: `git fetch origin`・`git push --dry-run origin HEAD`・`gh pr list`・`git rm`（`.claude/hooks/` のファイル）が通った
+- `b3f32f2` の上で、Bash ツールで直接: `git switch`（`.claude/` の中身が変わるもの）・`git merge --no-ff`（`.claude/agents/` のファイルを消すもの）が通った。マージの前に sandbox が効いていることを確かめた。`git commit` は sandbox の中で通った。一時ブランチは消した
+
+**20261103 の確認で分かったこと**:
+- sandbox の設定が無いブランチ（ローカルの古い `feature/skillset-renewal`）へ切り替えると、settings.json が読み直されて、そのセッションの sandbox が無効になった。設定のあるブランチへ戻ると再び有効になった。sandbox の設定はチェックアウト中のブランチに従う。`develop`・`main` へマージするまでは、それらのブランチでは sandbox が効かない
+- `git branch -D` はブランチを消せるが、sandbox の中では `.git/config` を書けず、`branch.sandbox-probe-{a,b}.vscode-merge-base` が `.git/config` に残った（実害なし。通常のターミナルで消す）。`git config` と、`.git/config` を書く操作は sandbox の中で失敗する見込み
+
+**当初の問題（下の節で閉じた）**: 許可していない通信先に届く。probe の子プロセスの curl で `https://www.iana.org/`、Bash の直接の curl で `https://example.com/` が HTTP 200。通信はプロキシを通っている（remote=127.0.0.1）。公式では manual・acceptEdits は確認が出て、auto は拒否とあり、観測と合わない。途中の有効化で network の設定が読み直されていない可能性と、確認に許可が出た可能性を切り分けていない。`network.strictAllowlist` は User か managed でしか設定できず、このリポジトリの settings.json には書けない
+
+## 20261103 — 通信先の件の切り分け（6 章を閉じる）
+
+**結果**:
+- sandbox を有効にした状態で起動した新しいセッション（`claude --continue`・auto モード）: 許可していない通信先は拒否され、probe は 21/21（そのセッションの報告。ユーザーが貼った出力で確認。終了コードは取れていない）
+- 途中で sandbox を有効にしたセッション: 同じ時点でも `www.iana.org` に届き、probe は 20/21
+
+**決定**: 新しいセッションで制限が効いたので、`network.strictAllowlist` は入れず、6 章を閉じる。sandbox の設定を変えたら、セッションを再起動してから確かめる
+
+**分からないこと**:
+- 途中のセッションで届く原因。途中の有効化か、ユーザーが覚えていない確認への許可かは絞れていない
+- manual・acceptEdits の動き。公式では確認が出て、許可すれば届く。allowedDomains は、これらのモードでは承認なしに届かないことを保証するだけで、届かないことは保証しない
+
+## 20261103 — 7 章: 配る準備
+
+**決定**:
+- 雛形はマスターの settings と 2 点だけ違う（`failIfUnavailable: false`・`validate-skill-edit.sh` を登録しない）。`test:sandbox` が完全一致で検査する。配置先では育ててよいが、マスターの雛形はマスターからずらさない
+- 依存の一覧は README の 2 つの表（スキル・hook）にし、validate が 2 方向で突き合わせる。tasklist の範囲（スキル・agent）に、hook と雛形の登録を足した。手でコピーすると hook でも同じ事故が起きるため。agent（無いと代替に落ちる）と案内先のスキル（無くても動く）は列を分けた
+- 配置先の CLAUDE.md（prompt-audit の M11）は雛形を作らない。評価が共通の CLAUDE.md のある状態で比べたことを README に書き、「作業の進め方」「自律実行の境界」を写す手順にした。雛形を増やすと正本が 2 つになる
+- C4 は「allow がこの判定より先に当たる」という旧 knowledge の説明を移さなかった。公式に無いため。公式で言える「読み取りの形は書かなくても動く」「allow のパターンは `--output=` にも一致する」だけを書いた
+- `--purity`・`--strict` を削除した。purity は別のテストランナーへの可搬性を測るもので、Claude Code 専用・tdd の削除で役目を終えた。strict は CI 用で、CI は削除済み。`prompts/adversarial-skill-review.md` が `--purity` を呼んでいたので `--portability` に直した
+- `--portability` が報告する steering の `20261026` は、tasklist の書き方の例で内部の経緯ではないので直さない（report-only のまま）
+
+**一回限りの確認（20261103）**:
+- README のコピー手順を `$TMPDIR` で実行: 15 ファイルが置かれ、雛形が登録する hook 5 本がすべて存在した。その hook に `run_fixtures.py --hooks-dir` で 96/96。`check_settings.py --settings <コピー>` は `failIfUnavailable` の 1 件だけ FAIL（マスター用の値を検査するので期待どおり）
+- README の `e2e` の行を実際に消すと validate が FAIL（9/10）し、戻すと 10/10
+- `echo` の件: `\n` を含む JSON が、sh と zsh の echo で壊れ、bash の echo と zsh の printf では壊れない（macOS）
+
+**静的検査**: validate 10/10・test:sandbox 全部合格・test:hooks 96/96・lint
+
+**分からないこと**: コピーした先で Claude Code を起動した動作（スキル・hook の発火・sandbox 下での lint と typecheck）は確かめていない。8 章の使い捨ての配置先で確かめる
+
+**決定**（ユーザー承認）: design.md の完了条件「decisions.md の判定表とスキルの集合が一致する」から validate での検査を外し、8 章で一度だけ手で確かめる。判定表は複数に分かれて書式も揃っておらず、アーカイブでパスも変わるので、検査として長持ちしない
+
+## 20261103 — 8 章: 無料の確認
+
+**一回限りの確認**:
+- 判定表とスキルの集合: 一致。design-doc・steering・e2e・frontend-code-review・session-retrospective は C に置き換え、design-premortem は 20261027 の決定で手動専用に戻した。pr-create・skill-test は評価せず書き直した。残りの候補は削除済み
+- サンプルアプリの複製に README の手順でコピーし、hook を sandbox の中で直接実行: session-start-check はタスクを注入、guard-gated-write は `git show HEAD:a > CLAUDE.md` で ask、guard-gated-delete は `rm -f CLAUDE.md` で deny、stop-typecheck は緑で rc=0・型エラーで rc=2、post-edit-lint は設定なしで素通し・Biome の違反で rc=2、vitest 3 件・tsc が通る。Biome はサンプルアプリに無いので、マスターの実行ファイルを呼ぶラッパーを複製に置いた
+- 本物の hook は sandbox の外で動くので、これは hook の中身の確認で、Claude Code からの発火の確認ではない
+
+**分かったこと**:
+- 信頼していない `mise.toml` のあるディレクトリで `mise exec` を流すと、sandbox の中で失敗する（`~/.local/state/mise/trusted-configs/` に書けない）。配置先で先に `mise trust` すれば通る見込みだが未確認。実セッションの確認で確かめてから README に書く
+- `rm -rf` は deny で止まるので、`$TMPDIR` の一時ディレクトリは消していない
+
+**6 章の結論に戻る問題**: このセッションで `test:sandbox:probe` が 20/21。`www.iana.org` に届いた。6 章は「新しいセッションで制限が効いた」として閉じたが、このセッションがいつ起動したかは確かめていない（/clear では再起動しない）。切り分けのための curl と `~/.claude/settings.json` の確認はこのセッションで拒否されたので、試していない。`.claude/settings.local.json` に WebFetch・sandbox・domain の設定は無い
+
+**上の問題の続き（別の新しいセッション）**: `test:sandbox:probe` は Bash ツールから 21/21。`www.iana.org` は sandbox に拒否された（`deny network-outbound`）。20/21 だったセッションの原因は特定していない（起動時点の設定が古かった可能性はあるが未確認）。再発したら、そのセッションの起動時刻と設定の変更時刻を比べる
+
+## 20261103 — 8 章: 使い捨ての配置先（`skills-deploy-check`）での確認
+
+**結果**（ユーザーが実セッションで実行し、出力を貼った。一回限り）:
+- `mise trust` の後、`mise exec -- pnpm test`（3 件）と `mise exec -- pnpm run typecheck` が通った。README に `mise trust` を足した
+- 「一覧画面に並び替えを足したい、まず設計して」で design-doc が発動し、実装せずに設計で止まった
+- `echo x >> CLAUDE.md` は実行されず、CLAUDE.md はできていない（貼られた出力が途中で切れていて、確認の表示そのものは一部しか見ていない）
+- `/sandbox` は auto-allow、`/status` の Setting sources は User と Shared project。`settings.json` は雛形と完全に一致
+- `curl https://www.iana.org/` は 1 回目が 200、2 回目はプロキシの 403 で失敗（`deny network-outbound www.iana.org:443`）。`touch ~/sandbox-write-check` は `Operation not permitted`
+
+**分かったこと**: 配置先でも sandbox の通信と書き込みの制限は効く
+**分からないこと**: 1 回目の curl が 200 を返した理由。確認への許可か、そのコマンドだけ通信先を足して再実行したかを確かめていない
+
+## 20261103 — 1 回目の curl が 200 を返した理由（ユーザーの依頼で配置先のセッションの記録を読んだ）
+
+**事実**（`~/.claude/projects/` の配置先の jsonl から。プロキシの認証情報は読み出しで伏せた）:
+- 200 の呼び出し（セッション 6121faf3）: `{"command": "curl ... https://www.iana.org/", "allowed_domains": ["www.iana.org"]}`。呼び出しから結果まで約 1 秒で、人の確認を挟んだ間ではない
+- 403 の呼び出し（セッション dfd8f490・/clear の後）: `command` だけ。`deny network-outbound www.iana.org:443`
+- 同じ URL を拒否した呼び出し（セッション 3811dd21）は、ユーザーが拒否したもの
+
+**分かったこと**: 雛形の不具合ではない。指定なしの通信は止まる。ただし `allowedDomains` は絶対の上限ではなく、Claude が呼び出しごとに通信先を足せて、auto モードでは確認なしで通ることがある。今回はユーザーが URL を名指しで頼んだ場面
+**分からないこと**: 名指しでない場面でも通るか。`network.strictAllowlist` でこの足し方が止まるか。マスターで probe が 20/21 だったセッションの原因（`allowed_domains` は付けていないので、この説明では片付かない）
+
+## 20261103 — 通信先の件を閉じ、8 章の配置先の確認を終える（記録と公式で確かめた）
+
+**20/21 の原因（観測からの判断）**: Claude Code のプロセスの起動時刻と結果が揃う。sandbox を settings に入れたのは 09:14。
+
+| プロセス | 起動 | probe |
+|---|---|---|
+| 6178（このセッション。/clear を挟む） | 前日 22:08 | 20/21（10:30 にも再現） |
+| 29688 | 09:51 | 21/21 |
+| 49401（配置先） | 10:23 | 指定なしの curl は拒否 |
+
+有効にする前から動いているプロセスでは通信先の制限が効かず、`/clear` では直らない。書き込みと読み取りの制限は同じプロセスで効いている。仕組みは公式に記載が無く、2 本の比較なので断定はしない。README と tests/sandbox/README に再起動のことを書いた
+
+**allowed_domains（公式の sandboxing で確認）**: auto モードの per-command allowed domains（v2.1.271 以降）。上の「分からないこと」のうち、`strictAllowlist` は「per-command lists を拒否する」と公式にある。設定できるのは user・managed・CLI の `--settings` で、リポジトリの settings では効かない。manual・acceptEdits は確認が出る。名指しでない場面も、通るかは自動の判定次第
+
+**配置先の記録（6121faf3・dfd8f490）で確かめたこと**: design-doc の Skill の呼び出しがある。`echo x >> CLAUDE.md` は呼び出しから約 5 秒後にユーザーの拒否で終わった。Stop hook の記録がある（stop_hook_summary）。Edit・Write は 1 度も無いので post-edit-lint の発火は見ていない。SessionStart は `.steering/` が無いので注入なしが正しく、発火は記録から確かめていない
+
+**C3 は実測しない**: 公式の検査の対象は「Edit の allow と deny・保護パス・作業ディレクトリ」で ask は無く、ルートの CLAUDE.md は保護パスでない。一方、acceptEdits でリダイレクトが確認なしで通るかは公式に書かれていない。結果によらず hook を残すので判断が変わらず、課金とユーザーの手間をかけない。hook の冒頭コメントをそう直した
+
+**決定**（ユーザー承認）: `network.strictAllowlist` は入れない。ユーザー設定で全プロジェクトに効き、案件ごとに通信先を足す運用と衝突する。必要な案件で入れる
+
+## 20261104 — 6〜8 章のレビューの指摘を直す（ユーザーが推奨を承認）
+
+**決定**:
+- `sandbox.autoAllowBashIfSandboxed: false` をマスターと雛形に入れ、`test:sandbox` で固定する。auto-allow は決めて入れたものではなく、hook が見ない Bash の書き込みの後ろにあった確認を消していた。公式では既定が true で、内容を指定した ask は残るが、`Edit(...)` の ask は Bash に効かない
+- `excludedCommands` は完全一致で検査する
+- probe の「読めない」は、出力の中身ではなく、終了コード・権限のエラーで見る。denyRead の対象外のファイルで対照を取る。`.claude/` の hooks・skills・agents に新しいファイルを作れないことを足す。object の書き込みは毎回違う中身の `git hash-object -w` で見る
+- 見送り: 7・11・12・13・14・17
+
+**一回限りの確認**:
+- Vite 8.3.4 の `loadEnv` を、denyRead の `.env.sandbox-probe` に mode を合わせて呼ぶと例外を出さない。対照の `$TMPDIR` のファイルは値が入る。README の「黙って入らない」はこの確認による。Vite の dev・build の全体は流していない
+- probe 24/25。落ちたのは `www.iana.org` だけで、sandbox を入れる前に起動したこのプロセスの既知の件
+- probe の新しい判定を関数で直接呼ぶと、空のファイル・無いファイル・対照の読めないファイル・拒否されないファイルでどれも落ちる。`check_settings.py` の self-test に `autoAllowBashIfSandboxed: true`・余分な `excludedCommands` を足した
+
+**分からないこと**: 新しいプロセスで auto-allow が切れて通常の確認に乗ること（`/sandbox` の表示と `sed -i` の確認）。`.claude/` の `rm`・`mv` は実行していない（新しいファイルを作れないことから止まると見ている）
+
+**上の「分からないこと」の続き（20261104。修正後に起動したマスターのセッションで、ユーザーが確認）**: `/sandbox` は「Sandbox commands, with regular permissions」。`test:sandbox:probe` は Bash ツールから 25/25 で、起動の遅いプロセスで通信先の制限が効く判断とも合う。`sed -i` などで実際に確認が出るところは見ていない
+
+## 20261104 — PR #20 のレビューの指摘 10 件を直す（ユーザーが推奨を承認）
+
+**決定**（前の決定を変えるものを含む）:
+- `network.allowLocalBinding: true` をマスターと雛形に入れる。配る e2e スキルの開発サーバーが listen できないため。macOS では sandbox の中から localhost の他のサービスにも届く（公式）。README に書いた
+- `excludedCommands` の `gh *` を `gh pr *`・`gh api *`・`gh repo view *` に絞る。`git rebase --exec` などの deny は足さない（公式が Bash の引数のパターンは脆いとする）。allow を足すと守りが薄くなることを README に書いた
+- 雛形の `failIfUnavailable` を `true` に変える（20261006 の「雛形は false」を取り消す）。黙って守りが消えるより起動時に止まる方を採る。雛形とマスターの差は `validate-skill-edit.sh` の登録だけになった
+- delete hook を作り直す（20261103 の「docs/ まで広げない」「大文字小文字・代入前置は守らない形」を取り消す）。`guard_gated.py` に write hook の抽出を移して共通にし、連鎖・ラッパー・大文字小文字・`/bin/rm` を見る。対象はプロジェクトの中の CLAUDE.md と docs/ の全体で、外のパスは止めない。同じ呼び出しの `cd` は解決する
+- ヒアドキュメントの本文は判定の前に落とす（本文の語で ask にならず、アポストロフィで縮退しない）
+- pr-create に「`git push`・`gh pr create` は単独で呼び、本文は `--body-file`」を足す
+- README に、sandbox の設定はブランチに従うことを足す
+
+**分かったこと（公式の sandboxing）**: excludedCommands は呼び出しの全コマンドが一致するときだけ効く。`cd`・リダイレクト・`$(...)` があると sandbox に残る。`git stash *` は引数なしにも一致する（前回のレビューの指摘 20 は解決）
+
+**一回限りの確認（20261104）**:
+- フィクスチャ 116/116（指摘の入力を守る形に足し、外のパスの沈黙も固定した）。README の手順でコピーした先の hook にも 116/116
+- `allowLocalBinding` を入れた後、このセッションで Vite 8.3.4 が 127.0.0.1 で起動した。probe の listen の項目も PASS
+- probe 25/26。落ちたのは `www.iana.org` だけで、sandbox を入れる前に起動したこのプロセスの既知の件
+
+**分からないこと**: Playwright のブラウザの起動。sandbox の中のコマンドとして `gh` の他のサブコマンドが要る場面
+
+## 20261104 — pr-create の回帰（`results-pr-c-1-pr20.json`・`results-pr-c-2-pr20.json`）
+
+**結果**: 2.1.318。`pr1-feature-branch` 0.22 ドル・`pr2-spike` 0.13 ドル。grader は全部合格で、push と `gh` の呼び出しは無かった
+**ただし確かめになっていない部分**: 2 本とも、評価の sandbox の中で git が動かなかった（`pr2` の回答: xcrun が一時ディレクトリにキャッシュを作れない）。pr1 はコミットもリモートの確認もできず、下書きだけを示した。止まったのは git が使えなかったためでもあるので、足した行の効果と「コミットして push の前で止まる」流れは確かめられていない。20261101 の pr1 は add とコミットまで進んでいた。原因が 2.1.318 への更新か環境かは絞っていない
+
+**回帰で git が動かなかった原因（trace と report で確認）**: スキルの変更ではなく評価の環境。2 本とも、最初の git で `git: error: couldn't create cache file '/var/folders/.../xcrun_db-...' (errno=Operation not permitted)`。`/usr/bin/git` は xcrun の入口で、キャッシュを `$TMPDIR` でなく `/var/folders` に作ろうとして止まる。実体の `/Library/Developer/CommandLineTools/usr/bin/git` も `ls` が Operation not permitted。2.1.318 への更新との関係は、前の版で流し直していないので断定しない
+**影響**: git を使うケース（pr1・pr2 の git の部分、レビューの差分の収集など）は、この環境では確かめにならない。grader の合格だけでは見分けられないので、最終回答か trace で git が動いたかを見る
+
+## 20261104 — delete hook の再レビューの指摘を直す（ユーザーが推奨を承認）
+
+**決定**:
+- `shlex` のコメント処理をやめ、引用を見る `strip_comments` で先に落とす。記号の連なりは演算子に分ける。制御語を読み飛ばす。サブシェルを出たら `cd` を戻す
+- リンクはリンク自体の場所で判定する（親だけ実パスに解決する）
+- グロブ・ブレース・変数は、手前が docs/ の下か CLAUDE.md なら止める。名前が書かれていて手前がグロブだけの形（`*/CLAUDE.md`）も止める
+- `$X/CLAUDE.md` は行き先が分からないので通す（旧は deny）。閉じていない引用はシェルでも構文エラーになるので通す。どちらも冒頭コメントとフィクスチャに書いた
+- deny の文言を「ユーザーに頼む（追跡済みは git rm でも消せる）」に直した
+- `run_fixtures.py` は実行環境の `CLAUDE_PROJECT_DIR` を継承しない。`--` の分岐は要らないので消した
+- 課金の再レビューは省く。pr-create の回帰は流し直さず閉じる（評価の sandbox で git が動かず、同じ結果になる。足した行は呼び出し方の指示で、停止の手順は変えていない。根拠は 20261101・20261103 の実行と、PR #20 の作成の 1 回）
+
+**一回限りの確認（20261104）**:
+- フィクスチャ 163/163。`CLAUDE_PROJECT_DIR` が未設定・別のプロジェクト・親のどれでも同じ結果
+- `guard_gated.py` の判定を 24 通りに壊して流し、すべて落ちた。最初は「引用の中の #」だけ緑のままだったので A59・W49 を足した。壊し方の一覧は scratchpad の mutate.py で、リポジトリには残していない
+
+**分からないこと**: worktree のセッションで `CLAUDE_PROJECT_DIR` がどこを指すか。第三者のレビューは 13ee467 までで、この修正は通っていない
+
+## 20261104 — PR #20 の再レビューの未解決 4 件を直す（ユーザーが案を承認）
+
+**決定**:
+- worktree: 公式の hooks に「worktree に入っても `CLAUDE_PROJECT_DIR` は開始時の場所のままで、`cwd` が移る」とある。`cwd` と本体の `git rev-parse --git-common-dir` が一致したら、その worktree のルートも判定の対象にする。本体のルートも残す。別のリポジトリでは足さない。git を呼ぶのは rm / mv があったときだけで、失敗したら今の判定に戻す
+- ルートごと消す形: 再帰の rm で、対象がプロジェクトのルートかその親（`.`・`..`・`../proj`）か、直下をまるごと指す形（`*`・`./*`）なら deny にする。`rm -rf *.log` は止めない。`rm -rf sub` の下の CLAUDE.md は守らない形に残す
+- `guard_gated.py` が無いときの沈黙を冒頭コメントに足した（フィクスチャには無い）
+- `gh api --input` で `denyRead` のファイルも送れることを README に足した。確認に任せる判断は変えない
+
+**確認**: 修正の前に、本物の worktree で再現した（中の worktree の `rm docs/a.md`、外の worktree の `rm docs/a.md`・`rm CLAUDE.md` が silence）。`--worktree` のセッションそのものでは流していない
+**修正後の確認（一回限り）**: フィクスチャ 191/191（本物の worktree を一時ディレクトリに作る）。`CLAUDE_PROJECT_DIR` が未設定・別のプロジェクト・親のどれでも同じ。`guard_gated.py` を 34 通りに壊し、33 通りは落ちた。緑の 1 通りは `rm` の条件を外すもので、`mv` に再帰のオプションが無いので動きが変わらない。フィクスチャの実行は 23 秒ほどに延びた
+**CLAUDE_PROJECT_DIR が無いとき**: cwd が git の中なら、そのルートも判定する（B51 の期待を変えて A69 にした）
+
+## 20261104 — PR #20 の 0bd289f へのレビューの 6 コメントを直す（ユーザーが案を承認）
+
+**決定**:
+- worktree: `cd` の後の場所でもルートを求める（`project_roots(start, cwd)`。`git_location` はキャッシュする）。開始時の場所のルートも残す。本体にいて別の worktree をパスで直接指す形は、守らない形に書く
+- リンク: 末尾が名前なら親だけを解決する（`rm -rf node_modules/@acme/self`・`rm -r current` は止めない）。`.`・`..`・末尾の `/`・その後のグロブはリンクをたどる
+- 指摘に無かった穴も直した: `docs/` を指すリンクへの `rm -rf link/` が沈黙し、実際に `docs/` の中身が消えた。末尾の `/` はリンク自体とリンク先の両方で判定する（`docs` 自体がリンクのときの `rm -rf docs/` を止め続けるため）
+- ルートの変種: `*/`・`./*/`・`**`・`./**` は正規表現を 1 か所変えて止める。`"$PWD"`・`$PWD/*`・`"$(pwd)"`・`rm --recur .`・`mv ../proj /tmp/x` は守らない形に書く
+- モノレポの子プロジェクトからリポジトリの中を止める動きは変えず、コメントを直す（安全側の誤検知で、代償は deny の 1 回）
+- フィクスチャ: パスを `shlex.quote` で囲む。git に `commit.gpgsign=false` を足す。ケースの生成を `try` の中に入れる
+- 以後、同じ種類の変種が指摘されたら、コードは直さず守らない形の一覧に足す（シェルの解析で全部は防げない。沈黙しても通常の確認は残る）
+
+**分かったこと（macOS で実行）**: `rm -rf link/` はリンクを残してリンク先の中身を消す。`rm -rf link` はリンクだけを消す
+
+**一回限りの確認（20261104）**: フィクスチャ 226/226。`my proj` という場所のクローンでも 226/226、署名を必須にした git の設定でも 226/226。`guard_gated.py` の今回の判定を 13 通りに壊し、すべて落ちた（壊し方の一覧は scratchpad の verify.py で、リポジトリには残していない）。課金の再レビューは省いた
+
+**分からないこと**: Linux の `rm -rf link/` の動き。`--worktree` のセッションそのものでは流していない
