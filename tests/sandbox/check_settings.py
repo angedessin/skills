@@ -94,14 +94,21 @@ def check_j(settings: dict, gated: set[str]) -> str | None:
 
 def check_sandbox_flags(settings: dict, gated: set[str]) -> str | None:
     sb = settings.get("sandbox", {})
-    want = {"enabled": True, "allowUnsandboxedCommands": False, "failIfUnavailable": True}
+    want = {
+        "enabled": True,
+        "autoAllowBashIfSandboxed": False,
+        "allowUnsandboxedCommands": False,
+        "failIfUnavailable": True,
+    }
     bad = {k: sb.get(k) for k, v in want.items() if sb.get(k) is not v}
     return f"sandbox の値が違う: {bad}" if bad else None
 
 
 def check_excluded(settings: dict, gated: set[str]) -> str | None:
-    missing = REQUIRED_EXCLUDED - set(settings.get("sandbox", {}).get("excludedCommands", []))
-    return f"excludedCommands に無い: {sorted(missing)}" if missing else None
+    got = set(settings.get("sandbox", {}).get("excludedCommands", []))
+    if got == REQUIRED_EXCLUDED:
+        return None
+    return f"excludedCommands が違う（無い: {sorted(REQUIRED_EXCLUDED - got)}・余分: {sorted(got - REQUIRED_EXCLUDED)}）"
 
 
 def check_deny_read(settings: dict, gated: set[str]) -> str | None:
@@ -138,8 +145,8 @@ CHECKS: list[tuple[str, Callable[[dict, set[str]], str | None]]] = [
     ("(s) GATED_PATHS と permissions.ask の Edit(./...) が一致", check_s),
     ("(t) allow に Bash(git ...) が無い", check_t),
     ("(j) 効かない Write|NotebookEdit|MultiEdit(path) が無い", check_j),
-    ("sandbox の enabled・allowUnsandboxedCommands・failIfUnavailable", check_sandbox_flags),
-    ("excludedCommands が揃っている", check_excluded),
+    ("sandbox の enabled・autoAllowBashIfSandboxed・allowUnsandboxedCommands・failIfUnavailable", check_sandbox_flags),
+    ("excludedCommands が決めたとおり", check_excluded),
     ("denyRead が揃っている", check_deny_read),
     ("allowedDomains が決めたとおり", check_domains),
     ("$schema と disableBypassPermissionsMode", check_meta),
@@ -160,7 +167,9 @@ def self_test(settings: dict, gated: set[str]) -> list[str]:
         ("t", check_t, lambda s: s["permissions"].setdefault("allow", []).append("Bash(git status)")),
         ("j", check_j, lambda s: s["permissions"]["ask"].append("Write(./x)")),
         ("flags", check_sandbox_flags, lambda s: s["sandbox"].update(allowUnsandboxedCommands=True)),
+        ("flags-auto-allow", check_sandbox_flags, lambda s: s["sandbox"].update(autoAllowBashIfSandboxed=True)),
         ("excluded", check_excluded, lambda s: s["sandbox"]["excludedCommands"].remove("gh *")),
+        ("excluded-extra", check_excluded, lambda s: s["sandbox"]["excludedCommands"].append("python3 *")),
         ("denyRead", check_deny_read, lambda s: s["sandbox"]["filesystem"]["denyRead"].remove("~/.ssh")),
         ("domains", check_domains, lambda s: s["sandbox"]["network"]["allowedDomains"].append("example.com")),
         ("meta", check_meta, lambda s: s.pop("$schema")),

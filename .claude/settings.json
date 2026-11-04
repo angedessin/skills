@@ -61,6 +61,7 @@
   },
   "sandbox": {
     "enabled": true,
+    "autoAllowBashIfSandboxed": false,
     "failIfUnavailable": true,
     "allowUnsandboxedCommands": false,
     "excludedCommands": [

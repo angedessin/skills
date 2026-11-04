@@ -1005,3 +1005,20 @@
 **C3 は実測しない**: 公式の検査の対象は「Edit の allow と deny・保護パス・作業ディレクトリ」で ask は無く、ルートの CLAUDE.md は保護パスでない。一方、acceptEdits でリダイレクトが確認なしで通るかは公式に書かれていない。結果によらず hook を残すので判断が変わらず、課金とユーザーの手間をかけない。hook の冒頭コメントをそう直した
 
 **決定**（ユーザー承認）: `network.strictAllowlist` は入れない。ユーザー設定で全プロジェクトに効き、案件ごとに通信先を足す運用と衝突する。必要な案件で入れる
+
+## 20261104 — 6〜8 章のレビューの指摘を直す（ユーザーが推奨を承認）
+
+**決定**:
+- `sandbox.autoAllowBashIfSandboxed: false` をマスターと雛形に入れ、`test:sandbox` で固定する。auto-allow は決めて入れたものではなく、hook が見ない Bash の書き込みの後ろにあった確認を消していた。公式では既定が true で、内容を指定した ask は残るが、`Edit(...)` の ask は Bash に効かない
+- `excludedCommands` は完全一致で検査する
+- probe の「読めない」は、出力の中身ではなく、終了コード・権限のエラーで見る。denyRead の対象外のファイルで対照を取る。`.claude/` の hooks・skills・agents に新しいファイルを作れないことを足す。object の書き込みは毎回違う中身の `git hash-object -w` で見る
+- 見送り: 7・11・12・13・14・17
+
+**一回限りの確認**:
+- Vite 8.3.4 の `loadEnv` を、denyRead の `.env.sandbox-probe` に mode を合わせて呼ぶと例外を出さない。対照の `$TMPDIR` のファイルは値が入る。README の「黙って入らない」はこの確認による。Vite の dev・build の全体は流していない
+- probe 24/25。落ちたのは `www.iana.org` だけで、sandbox を入れる前に起動したこのプロセスの既知の件
+- probe の新しい判定を関数で直接呼ぶと、空のファイル・無いファイル・対照の読めないファイル・拒否されないファイルでどれも落ちる。`check_settings.py` の self-test に `autoAllowBashIfSandboxed: true`・余分な `excludedCommands` を足した
+
+**分からないこと**: 新しいプロセスで auto-allow が切れて通常の確認に乗ること（`/sandbox` の表示と `sed -i` の確認）。`.claude/` の `rm`・`mv` は実行していない（新しいファイルを作れないことから止まると見ている）
+
+**上の「分からないこと」の続き（20261104。修正後に起動したマスターのセッションで、ユーザーが確認）**: `/sandbox` は「Sandbox commands, with regular permissions」。`test:sandbox:probe` は Bash ツールから 25/25 で、起動の遅いプロセスで通信先の制限が効く判断とも合う。`sed -i` などで実際に確認が出るところは見ていない

@@ -47,13 +47,13 @@ frontend-code-review の限界: テスト担当はテストファイルが変わ
 .
 ├── CLAUDE.md                 # 行動ルール（50 行以内。validate が検査）
 ├── .claude/
-│   ├── settings.json         # パーミッション・hook の登録
+│   ├── settings.json         # パーミッション・sandbox・hook の登録
 │   ├── hooks/                # SessionStart のタスク一覧・承認制パスのガード・lint と typecheck の差し戻し・SKILL.md 編集時の検査
 │   ├── skills/               # 上の 8 本
 │   └── agents/               # 上の 6 本
 ├── .steering/                # 複数セッションのタスク（design.md・tasklist.md・decisions.md など）
 ├── eval/                     # スキルの評価（A・B・C の比較）と回帰テスト（マスター専用）
-├── scripts/validate_skills.py # スキルの frontmatter・構造・CLAUDE.md の行数の検査（マスター専用）
+├── scripts/validate_skills.py # スキルの frontmatter・構造・CLAUDE.md の行数・依存の一覧の検査（マスター専用）
 ├── tests/hooks/              # PreToolUse hook のフィクスチャ（test:hooks）
 ├── tests/sandbox/            # settings.json と sandbox の検査（test:sandbox・test:sandbox:probe）
 ├── templates/                # 新しいスキルの雛形（マスター専用）と、配置先の settings の雛形
@@ -67,7 +67,7 @@ frontend-code-review の限界: テスト担当はテストファイルが変わ
 ## 検査（ローカルで回す。課金なし）
 
 ```bash
-mise exec -- pnpm run validate     # スキルの frontmatter・構造、CLAUDE.md の行数
+mise exec -- pnpm run validate     # スキルの frontmatter・構造、CLAUDE.md の行数、依存の一覧
 mise exec -- pnpm run test:hooks   # PreToolUse hook のフィクスチャ
 mise exec -- pnpm run test:sandbox # settings.json の形（sandbox の中での確認は tests/sandbox/README.md）
 mise exec -- pnpm run lint         # Biome
@@ -80,7 +80,7 @@ mise exec -- pnpm run lint         # Biome
 - **SessionStart**（`session-start-check.sh`）: `.steering/` のアクティブなタスクの一覧を context に注入する
 - **承認制パスのガード**（`guard-gated-write.sh`・`guard-gated-delete.sh`）: permissions の ask と同じパス（CLAUDE.md・docs/・.claude/。正本は hook 冒頭の `# GATED_PATHS:` 行）への、Bash 経由の書き込みを ask にする。素の `rm`・`mv` は CLAUDE.md・docs/knowledge/ に限って deny にする。sandbox には「承認すれば進む」が無く、作業ディレクトリの CLAUDE.md・docs/ も守らないため
 - **品質ゲート**（`post-edit-lint.sh`・`stop-typecheck.sh`・`validate-skill-edit.sh`）
-- **sandbox**（`.claude/settings.json`）: Bash の秘密の読み取り・通信先・書き込み範囲を OS のレベルで制限する。`.env` の読み取りも止める。hook は sandbox の外で動く
+- **sandbox**（`.claude/settings.json`）: Bash の秘密の読み取り・通信先・書き込み範囲を OS のレベルで制限する。`.env` の読み取りも止める。`autoAllowBashIfSandboxed: false` で、sandbox の中の Bash も通常の確認に乗せる（hook が見ない `sed -i` などの書き込みを確認なしで通さないため）。hook は sandbox の外で動く
 
 ## 他のプロジェクトで使う
 
@@ -111,6 +111,7 @@ cp -n templates/settings.template.json "$DEST/.claude/settings.json"
 - Claude Code を再起動する。sandbox を有効にする前から動いていたプロセスでは、通信先の制限が効かなかった（`/clear` では直らない）
 - 雛形の `allowedDomains` は GitHub と npm だけ。案件で要る通信先を足す。これは絶対の上限ではない。auto モードでは、Claude がコマンドごとに通信先を足し、自動の判定が認めれば確認なしで届く（公式の per-command allowed domains）。manual と acceptEdits では確認が出て、許可すれば届く。必ず止めたいなら、ユーザー設定か `--settings` で `network.strictAllowlist` を入れる（リポジトリの settings では効かない）
 - hook を減らしたら、settings の登録も消す
+- `.env` の読み取り禁止は Bash から動かす開発ツールにも効く。Vite の `loadEnv` はエラーを出さずにそのファイルを飛ばすので、値が黙って入らない。追跡している `.env.example` などでは、`git status`・`git add` がエラーを表示したまま rc=0 で終わる。`.env` を使う案件では `sandbox.filesystem.denyRead` を案件に合わせて絞るか、その開発ツールを通常のターミナルで動かす
 
 ### 依存の一覧
 
@@ -151,7 +152,7 @@ cp -n templates/settings.template.json "$DEST/.claude/settings.json"
 
 `templates/settings.template.json` は、マスターの `.claude/settings.json` と次の 2 点だけが違う（`test:sandbox` が検査する）。
 
-- `sandbox.failIfUnavailable` が `false`。sandbox の使えない環境でも起動できるようにする。その環境では sandbox が効かない
+- `sandbox.failIfUnavailable` が `false`。sandbox の使えない環境でも起動できるようにする。その環境では sandbox が効かないので、`.env` の Bash からの読み取りを OS のレベルでは止められない（`Read` の deny と通常の確認だけが残る）
 - マスター専用の `validate-skill-edit.sh` を登録しない
 
 **`permissions.allow` に git の読み取り系（`Bash(git diff*)` など）を書かない。** 読み取りの形は書かなくても確認なしで動く。allow のパターンは書き込みの形にも一致する（公式の例: `Bash(git log * main)` は `git log --output=<file> main` に一致する）。20261103 に公式の permissions で確認した。

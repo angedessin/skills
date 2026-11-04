@@ -175,7 +175,7 @@ CASES: list[dict] = [
         "expect": "silence",
     },
     {"id": "W25", "hook": "guard-gated-write.sh", "note": "empty payload", "payload": "", "expect": "silence"},
-    # WP — python3 が無い環境では全文 grep（元の 3 系統）に縮退する。完全な沈黙にはしない
+    # WP — python3 が無い環境では全文 grep（CLAUDE.md と docs/）に縮退する。完全な沈黙にはしない
     {"id": "WP1", "hook": "guard-gated-write.sh", "command": "echo x > CLAUDE.md", "expect": "ask", "no_python": True},
     {"id": "WP2", "hook": "guard-gated-write.sh", "command": "git log", "expect": "silence", "no_python": True},
     {"id": "WP3", "hook": "guard-gated-write.sh", "command": "ls | tee docs/knowledge/x.md", "expect": "ask", "no_python": True},

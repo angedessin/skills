@@ -41,3 +41,45 @@
 
 - 読めなかった範囲は無い（一次の 3 体とも patch を全部読んだと報告）。依頼文で分割読みと範囲の報告を手で補った
 - 未確認: `claude plugin eval` の実際の動き（指摘 4）。実際の grader の正規表現エンジン（指摘 6）
+
+## 20261103 — 6〜8 章のレビュー（ブランチの差分）
+
+**対象**: `origin/feature/skillset-renewal...HEAD`。`.steering/`・`templates/settings.template.json` を除く 15 ファイル（+779・-179）。未コミットの `tasklist.md` は対象外
+**結果**: 一次の指摘を重複をまとめて 20 件。確かめられた 16 件（Medium 2・Low 14）、捨てた 3 件、確かめられない 1 件。修正は未着手
+
+### Medium
+
+1. sandbox の auto-allow で、hook が沈黙する Bash の書き込みが確認なしで通る。`.claude/settings.json:62-88`・雛形。`cp /tmp/x CLAUDE.md`・`sed -i '' ... CLAUDE.md`・`python3 -c "open('docs/x.md','w')"`。変更前は通常の確認に落ちていた。design.md にも decisions.md にも決定が無く、CLAUDE.md の承認制と食い違う。`rm docs/...` だけは decisions.md の決定どおり。方向: `sandbox.autoAllowBashIfSandboxed: false` か、受け入れて決定に残すか。確かめ方: hook を直接実行して沈黙を確認（cp・sed・python）。確認が出ないことは実セッションで見ていない
+6. `./**/.env*` の denyRead が Bash から動かす開発ツールにも効く。Node の `statSync`・`readFileSync` は EPERM。追跡済みの `.env.example` などで `git status`・`git add` は stderr にエラーを出して rc=0、未追跡の `git add -f` は rc=128。Vite の値が黙って undefined になる点は記憶からの推論で未実行。方向: README のコピー後の確認に注意を足し、`.env` のあるアプリで確かめる。確かめ方: 一部再現
+
+### Low
+
+4. `guard-gated-delete.sh:19` の「.claude/ の削除・移動は sandbox が止める」が言い過ぎ。`git rm`・`git restore` は sandbox の外に出て hook も沈黙する。方向: 「素の rm / mv は」と書く。再現（git restore の hook 実行）と読み
+5. 雛形の `failIfUnavailable: false` で sandbox が使えない環境では OS の層と旧 hook の ask が無くなる。README:83 と README:154 が結び付いていない。方向: README に一言。読み
+7. `check_settings.py:55-56,127-134` の `check_hooks` が名前の有無だけを見る。matcher を変えても緑。self-test は `hooks={}` だけで REMOVED_HOOKS の分岐を通らない。読み
+8. `check_settings.py:103` の `check_excluded` が片方向で、`"python3 *"` を足しても緑。方向: 完全一致。読み
+9. `probe.py:60,65,70,121` の「読めない」検査に対照が無く、空の仮ファイルが残っていると denyRead を外しても緑。読み
+10. `probe.py:40-43,133-136` は `.claude/` の既存ファイルの append だけで、新規作成・rm・mv を見ない。読み
+11. `validate_skills.py` の self-test が枝を確かめていない。:254・:252-253・:255・:243-244・:234-236 を消しても緑。:251 と :252 は互いを覆う。`sorted(...)[0]` の決め打ちで、先頭のスキルが先頭の agent を使うと誤って落ちる。コピーで再現
+12. `guard-gated-write.sh:144` の縮退の `docs/` がフィクスチャで固定されていない（`run_fixtures.py:179-198`）。読み
+13. README:102 の `cp` の hook の一覧が表と突き合わされない。今は 5 本で一致。読み
+14. `validate_skills.py` の `mentions` は `review-bugに渡す` を言及と数えず、`references/` も読まない。今は該当 0 件。再現
+15. `probe.py:146` の `git write-tree` は object の書き込みを確かめられない。一時リポジトリで再現
+17. `probe.py:76-78,155` は `~/.ssh`・`~/.aws` が無いと検証せず PASS と出る。読み
+18. `run_fixtures.py:178` のコメント「元の 3 系統」が古い。読み
+19. README:50・56・70 の説明が古い（sandbox・依存の一覧が無い）。読み
+
+### 捨てた指摘（3 件）と確かめられない指摘（1 件）
+
+- 2（denyRead に `*.pem` などが無い）: 公式で permission rules のパスは sandbox の設定に統合される。このセッションの実効の設定にも入っている。実行では試していない
+- 3（excludedCommands の広い一致）: 事実だが、design.md・decisions.md の決定どおりで、通常の確認に乗る。脅威モデルの外
+- 16（届く側が npm だけ）: 設計の確認項目に要求が無く、一覧は検査で固定している
+- 20（引数なしの `git stash`・`git pull` が excludedCommands に一致するか）: 文法が手元の docs に無く、試すと作業ツリーを変えるか通信する。確かめられない
+
+**規約が無い**: 検査スクリプトの docstring やコメントに日付付きの事実を書くときの置き場所と書式
+**レビューできなかったもの**: `.env` のあるアプリでの実行、sandbox の使えない環境での実行、`rm` を含む hook の直接実行（安全確認で拒否。フィクスチャと読みで判定）。検証役の一時ディレクトリ `/tmp/claude-501/verify-*` は `rm -rf` の deny で残っている
+
+### 修正（20261104。ユーザーが推奨を承認）
+
+- 直した: 1・4・5・6・8・9・10・15・18・19
+- 見送った: 7・11・12・13・14・17（今の実害が無く、検査の検査が中心）

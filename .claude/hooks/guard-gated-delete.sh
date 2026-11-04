@@ -16,7 +16,8 @@
 # 対象パス（意図的に 2 系統。guard-gated-write.sh の GATED_PATHS より狭い。deny は誤検知の代償が大きく、
 # `docs/` まで広げると無関係な `rm /tmp/x/docs/y` も止まるため）:
 #   CLAUDE.md / docs/knowledge
-#   .claude/ の削除・移動は sandbox の標準の書き込み禁止が止める。write 側との突合の対象にはしない。
+#   .claude/ の素の rm / mv は sandbox の標準の書き込み禁止が止める（git rm・git restore は excludedCommands で
+#   sandbox の外に出て、この hook も沈黙するので、通常の確認だけが残る）。write 側との突合の対象にはしない。
 #   delete 側はディレクトリ裸形（末尾 / 無し）もマッチ。CLAUDE.md はトークン境界付き。
 #   AFTER 境界は空白・引用に加えグロブ/ブレースメタ * ? [ {（`.` は入れない — CLAUDE.md.bak 沈黙）。
 #

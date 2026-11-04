@@ -16,6 +16,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -56,20 +57,44 @@ def blocked_new_file(path: Path) -> str | None:
 
 
 def unreadable_by_cat(path: Path) -> str | None:
+    """出力の中身ではなく終了コードで見る。空のファイルが残っていても、読めれば落ちる。"""
     p = run(["cat", str(path)])
-    return f"cat で読めてしまう: {path.name}" if SENTINEL in p.stdout else None
+    return f"cat で読めてしまう: {path.name}" if p.returncode == 0 else None
 
 
-def unreadable_by_grep(directory: Path) -> str | None:
+def unreadable_by_grep(directory: Path, denied: list[Path], plain: Path) -> str | None:
+    """対照の plain だけが当たり、denied は全部エラーになること。"""
     p = run(["grep", "-rl", SENTINEL, str(directory)])
-    return f"grep -r で読めてしまう: {p.stdout.strip()}" if p.stdout.strip() else None
+    found = p.stdout.split()
+    if found != [str(plain)]:
+        return f"grep -r の結果が対照だけでない: {found}"
+    silent = [f.name for f in denied if f.name not in p.stderr]
+    return f"grep -r で読めてしまう（エラーにならない）: {silent}" if silent else None
 
 
 def unreadable_by_python(path: Path) -> str | None:
     try:
-        return f"python で読めてしまう: {path.name}" if SENTINEL in path.read_text() else None
-    except OSError:
+        path.read_text()
+    except PermissionError:
         return None
+    except OSError as e:
+        return f"読めない理由が権限でない: {path.name}（{type(e).__name__}）"
+    return f"python で読めてしまう: {path.name}"
+
+
+def readable_control(path: Path) -> str | None:
+    """同じ方法で、denyRead の対象外のファイルは読める（読めない検査が別の理由で通らないための対照）。"""
+    p = run(["cat", str(path)])
+    if p.returncode != 0 or SENTINEL not in p.stdout:
+        return f"cat で対照が読めない: {path.name}"
+    return None if SENTINEL in path.read_text() else f"python で対照が読めない: {path.name}"
+
+
+def git_writes_object(work: Path) -> str | None:
+    """毎回違う中身にする（git write-tree は cache-tree が有効だと何も書かない）。"""
+    source = work / "object-probe.txt"
+    source.write_text(f"{time.time_ns()}\n")
+    return succeeds(["git", "hash-object", "-w", str(source)])
 
 
 def unreadable_secret_dir(path: Path) -> str | None:
@@ -121,12 +146,16 @@ def main() -> int:
         if not os.path.lexists(f):
             f.write_text(f"{SENTINEL}=dummy\n")
 
+    plain = work / "plain.txt"
+    plain.write_text(f"{SENTINEL}=dummy\n")
+
     home = Path.home()
     checks = [
+        ("読める（対照）: denyRead の対象外", lambda: readable_control(plain)),
         ("読めない: ルートの .env* を cat", lambda: unreadable_by_cat(root_env)),
         ("読めない: 深い階層の .env* を cat", lambda: unreadable_by_cat(nested_env)),
         ("読めない: *.env を cat", lambda: unreadable_by_cat(nested_named)),
-        ("読めない: grep -r", lambda: unreadable_by_grep(work)),
+        ("読めない: grep -r", lambda: unreadable_by_grep(work, [nested_env, nested_named], plain)),
         ("読めない: python", lambda: unreadable_by_python(nested_env)),
         ("読めない: ~/.ssh", lambda: unreadable_secret_dir(home / ".ssh")),
         ("読めない: ~/.aws", lambda: unreadable_secret_dir(home / ".aws")),
@@ -134,6 +163,9 @@ def main() -> int:
         ("書けない: .claude/hooks", lambda: blocked_write(ROOT / ".claude/hooks/guard-gated-write.sh")),
         ("書けない: .claude/skills", lambda: blocked_write(ROOT / ".claude/skills/steering/SKILL.md")),
         ("書けない: .claude/agents", lambda: blocked_write(ROOT / ".claude/agents/review-bug.md")),
+        ("作れない: .claude/hooks の新しいファイル", lambda: blocked_new_file(ROOT / ".claude/hooks/.sandbox-probe-new")),
+        ("作れない: .claude/skills の新しいファイル", lambda: blocked_new_file(ROOT / ".claude/skills/.sandbox-probe-new")),
+        ("作れない: .claude/agents の新しいファイル", lambda: blocked_new_file(ROOT / ".claude/agents/.sandbox-probe-new")),
         ("書けない: 作業ディレクトリの外", lambda: blocked_new_file(home / ".sandbox-probe-write")),
         ("通信: 許可した registry.npmjs.org", lambda: network("https://registry.npmjs.org/", True)),
         ("通信: 許可していない www.iana.org", lambda: network("https://www.iana.org/", False)),
@@ -143,7 +175,7 @@ def main() -> int:
         ("動く: lint", lambda: succeeds([*MISE, "pnpm", "run", "-s", "lint"])),
         ("動く: test:sandbox", lambda: succeeds([*MISE, "pnpm", "run", "-s", "test:sandbox"])),
         ("動く: git status", lambda: succeeds(["git", "status", "--short"])),
-        ("動く: git の object の書き込み", lambda: succeeds(["git", "write-tree"])),
+        ("動く: git の object の書き込み", lambda: git_writes_object(work)),
     ]
 
     failed = 0
