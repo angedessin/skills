@@ -102,10 +102,29 @@ CASES: list[dict] = [
     {"id": "A55", "hook": "guard-gated-delete.sh", "command": "(cd /tmp/x && ls); rm CLAUDE.md", "expect": "deny"},
     {"id": "A56", "hook": "guard-gated-delete.sh", "command": "cd docs && cd knowledge && rm x.md", "expect": "deny"},
     {"id": "B50", "hook": "guard-gated-delete.sh", "command": "rm x < CLAUDE.md", "expect": "silence"},
+    # ルートごと消す形（再帰のときだけ）
+    {"id": "A60", "hook": "guard-gated-delete.sh", "command": "rm -rf .", "expect": "deny"},
+    {"id": "A61", "hook": "guard-gated-delete.sh", "command": "rm -rf ./", "expect": "deny"},
+    {"id": "A62", "hook": "guard-gated-delete.sh", "command": "rm -rf *", "expect": "deny"},
+    {"id": "A63", "hook": "guard-gated-delete.sh", "command": "rm -rf ./*", "expect": "deny"},
+    {"id": "A64", "hook": "guard-gated-delete.sh", "command": f"rm -r ../{ROOT.name}", "expect": "deny"},
+    {"id": "A65", "hook": "guard-gated-delete.sh", "command": "rm -rf ..", "expect": "deny"},
+    {"id": "A66", "hook": "guard-gated-delete.sh", "command": "rm -R .", "expect": "deny"},
+    {"id": "A67", "hook": "guard-gated-delete.sh", "command": "rm --recursive .", "expect": "deny"},
+    {"id": "A68", "hook": "guard-gated-delete.sh", "command": "rm -rf ../*", "cwd": "tests", "expect": "deny"},
+    {"id": "B54", "hook": "guard-gated-delete.sh", "command": "rm -f *.log", "expect": "silence"},
+    {"id": "B55", "hook": "guard-gated-delete.sh", "command": "rm -rf *.log", "expect": "silence"},
+    {"id": "B56", "hook": "guard-gated-delete.sh", "command": "rm -f *", "expect": "silence"},
+    {"id": "B57", "hook": "guard-gated-delete.sh", "command": "rm -rf *", "cwd": "tests", "expect": "silence"},
+    {"id": "B58", "hook": "guard-gated-delete.sh", "command": "cd /tmp/x && rm -rf .", "expect": "silence"},
+    {"id": "B59", "hook": "guard-gated-delete.sh", "command": "mv . /tmp/x", "expect": "silence"},
+    {"id": "B60", "hook": "guard-gated-delete.sh", "command": "rm -rf sub", "expect": "silence", "note": "途中のディレクトリの下の CLAUDE.md は見ない（守らない形）"},
+    {"id": "B61", "hook": "guard-gated-delete.sh", "command": "rm -rf $X", "expect": "silence"},
     # root と cwd（Claude Code の Bash は cwd が呼び出しをまたいで残る）
     {"id": "A57", "hook": "guard-gated-delete.sh", "command": "rm x.md", "cwd": "docs", "expect": "deny"},
     {"id": "A58", "hook": "guard-gated-delete.sh", "command": "rm ../CLAUDE.md", "cwd": "docs", "expect": "deny"},
-    {"id": "B51", "hook": "guard-gated-delete.sh", "command": "rm x.md", "cwd": "docs", "project": None, "expect": "silence", "note": "CLAUDE_PROJECT_DIR が無ければ cwd をルートと見る"},
+    {"id": "A69", "hook": "guard-gated-delete.sh", "command": "rm x.md", "cwd": "docs", "project": None, "expect": "deny", "note": "CLAUDE_PROJECT_DIR が無ければ cwd の git のルートも見る"},
+    {"id": "B51", "hook": "guard-gated-delete.sh", "command": "rm CLAUDE.md", "cwd": "/tmp", "project": None, "expect": "deny", "note": "git の外で CLAUDE_PROJECT_DIR も無ければ cwd をルートと見る"},
     # 守らない形（hook の冒頭コメントと対）
     {"id": "B40", "hook": "guard-gated-delete.sh", "command": "rm $X/CLAUDE.md", "expect": "silence"},
     {"id": "B41", "hook": "guard-gated-delete.sh", "command": "rm CLAUD*", "expect": "silence"},
@@ -356,6 +375,45 @@ def link_cases(tmp: Path) -> list[dict]:
     ]
 
 
+def worktree_cases(tmp: Path) -> list[dict]:
+    """worktree に入っても CLAUDE_PROJECT_DIR は開始時の場所のまま。本物の worktree を作って確かめる。"""
+
+    def git(*args: str, cwd: Path) -> None:
+        subprocess.run(
+            ["git", "-c", "user.name=fixture", "-c", "user.email=fixture@example.com", *args],
+            cwd=cwd,
+            check=True,
+            capture_output=True,
+        )
+
+    main = tmp / "wt-main"
+    other = tmp / "wt-other"
+    for repo in (main, other):
+        (repo / "docs").mkdir(parents=True)
+        (repo / "docs" / "a.md").write_text("x")
+        git("init", "-q", cwd=repo)
+        git("add", ".", cwd=repo)
+        git("commit", "-qm", "x", cwd=repo)
+    inner = main / ".claude" / "worktrees" / "x"
+    outer = tmp / "wt-outer"
+    git("worktree", "add", "-q", str(inner), "-b", "inner", cwd=main)
+    git("worktree", "add", "-q", str(outer), "-b", "outer", cwd=main)
+    base = {"hook": "guard-gated-delete.sh", "project": str(main)}
+    return [
+        {**base, "id": "T1", "cwd": str(inner), "command": "rm docs/a.md", "expect": "deny"},
+        {**base, "id": "T2", "cwd": str(inner), "command": "rm CLAUDE.md", "expect": "deny"},
+        {**base, "id": "T3", "cwd": str(outer), "command": "rm docs/a.md", "expect": "deny"},
+        {**base, "id": "T4", "cwd": str(outer), "command": "rm CLAUDE.md", "expect": "deny"},
+        {**base, "id": "T5", "cwd": str(inner / "docs"), "command": "rm a.md", "expect": "deny"},
+        {**base, "id": "T6", "cwd": str(outer), "command": f"rm {main}/docs/a.md", "expect": "deny"},
+        {**base, "id": "T7", "cwd": str(outer), "command": "rm -rf .", "expect": "deny"},
+        {**base, "id": "T8", "cwd": str(outer), "command": "rm src/a.md", "expect": "silence"},
+        # 別のリポジトリにいるときは止めない
+        {**base, "id": "T9", "cwd": str(other), "command": "rm docs/a.md", "expect": "silence"},
+        {**base, "id": "T10", "cwd": str(tmp), "command": "rm docs/a.md", "expect": "silence"},
+    ]
+
+
 def path_without_python(tmp: Path) -> str:
     """python3 を含まない PATH を作る（hook が使う外部コマンドだけを置く）。"""
     bindir = tmp / "bin"
@@ -431,7 +489,7 @@ def main() -> int:
         failed += 1
         paths = []
     tmp = Path(tempfile.mkdtemp(prefix="hook-fixtures-")).resolve()
-    cases = CASES + gated_cases(paths) + link_cases(tmp)
+    cases = CASES + gated_cases(paths) + link_cases(tmp) + worktree_cases(tmp)
     try:
         for case in cases:
             ok, detail = run_case(case, hooks_dir, tmp)

@@ -172,6 +172,7 @@ Last updated: 20261104（PR #20 の指摘と再レビューの指摘を直した
 - [x] 修正の回帰 `pr1-feature-branch`・`pr2-spike` を各 1 回（20261104 に流した。評価の sandbox で git が動かず確かめになっていない。流し直さず閉じる。ユーザー決定。decisions.md）
 - [x] delete hook の作り直しの差分を frontend-code-review でレビューする（20261104。確かめられた 13 件。`review-result.md`。検証役は停止されたので本体が確かめた）
 - [x] 再レビューの指摘を直す（20261104。13 件。課金の再レビューは省き、判定を壊して落ちることで確かめた。decisions.md）
+- [x] PR #20 の再レビューの未解決 4 件を直す（20261104。worktree・ルートごと消す形・コメント・README。decisions.md）
 
 ## デプロイ
 

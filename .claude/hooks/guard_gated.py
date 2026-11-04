@@ -10,6 +10,7 @@ import json
 import os
 import re
 import shlex
+import subprocess
 import sys
 
 REDIRS = {">", ">>", "&>", "&>>", ">|", ">&"}
@@ -220,7 +221,58 @@ def is_claude_md(rel):
     return os.path.basename(rel) == "claude.md"
 
 
-def delete_target_is_gated(tok, cwd, root):
+def git_location(directory):
+    """(worktree のルート, 共通の .git) を返す。git の外や失敗のときは None。"""
+    try:
+        p = subprocess.run(
+            ["git", "-C", directory, "rev-parse", "--path-format=absolute", "--show-toplevel", "--git-common-dir"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    lines = p.stdout.splitlines()
+    if p.returncode != 0 or len(lines) != 2:
+        return None
+    return os.path.realpath(lines[0]), os.path.realpath(lines[1])
+
+
+def project_roots(start):
+    """判定するルートの一覧。worktree に入ると CLAUDE_PROJECT_DIR は開始時の場所のままで、cwd だけが移る（公式）。
+
+    cwd が同じリポジトリの worktree なら、そのルートも足す。別のリポジトリなら足さない。
+    """
+    root = os.path.realpath(os.environ.get("CLAUDE_PROJECT_DIR") or start)
+    here, there = git_location(start), git_location(root)
+    if here and there and here[1] == there[1] and here[0] != root:
+        return [root, here[0]]
+    return [root]
+
+
+def is_recursive(words):
+    return any(w == "--recursive" or re.match(r"^-[A-Za-z]*[rR]", w) for w in words)
+
+
+def removes_project_root(tok, cwd, roots):
+    """対象がプロジェクトのルートかその親か（`.`・`..`・`../proj`）、ルートの直下をまるごと指す形（`*`・`./*`）か。"""
+    base = re.sub(r"(^|/)\*$", r"\1", tok)
+    if PATH_META_RE.search(base):
+        return False
+    path = os.path.expanduser(base or ".")
+    if not os.path.isabs(path):
+        if cwd is None:
+            return False
+        path = os.path.join(cwd, path)
+    real = os.path.realpath(path)
+    return any(r == real or r.startswith(real.rstrip(os.sep) + os.sep) for r in roots)
+
+
+def delete_target_is_gated(tok, cwd, roots):
+    return any(target_is_gated_in(tok, cwd, root) for root in roots)
+
+
+def target_is_gated_in(tok, cwd, root):
     """プロジェクトの中の CLAUDE.md（どの階層でも）か、ルートの docs/ の下か。外のパスは当たらない。"""
     meta = PATH_META_RE.search(tok)
     if not meta:
@@ -245,7 +297,7 @@ def delete_decision(data):
     if not cmd:
         return "SILENT"
     start = data.get("cwd") or os.getcwd()
-    root = os.path.realpath(os.environ.get("CLAUDE_PROJECT_DIR") or start)
+    roots = None  # git を呼ぶので、rm / mv があったときだけ求める
     cwd = start
     subshells = []
     segs, _ = parse(cmd)
@@ -269,8 +321,13 @@ def delete_decision(data):
                 cwd = None
             else:
                 cwd = os.path.normpath(os.path.join(cwd or "", target))
-        elif head in ("rm", "mv") and any(delete_target_is_gated(w, cwd, root) for w in operands(words[1:])):
-            return "DENY"
+        elif head in ("rm", "mv"):
+            roots = roots or project_roots(start)
+            ops = operands(words[1:])
+            if any(delete_target_is_gated(w, cwd, roots) for w in ops):
+                return "DENY"
+            if head == "rm" and is_recursive(words[1:]) and any(removes_project_root(w, cwd, roots) for w in ops):
+                return "DENY"
     return "SILENT"
 
 

@@ -13,12 +13,16 @@
 #          （macOS の既定の FS では `rm CLAUDE.MD` でも実ファイルが消える）。プロジェクトの外のパスは止めない。
 #          グロブ・ブレース・変数は、手前が docs/ の下か CLAUDE.md なら止める（`docs/$f`・`*/CLAUDE.md`）。
 #          リンクはリンク自体の場所で判定する（rm / mv が操作するのはリンク）。
+#          cwd が同じリポジトリの worktree なら、その worktree のルートも対象にする
+#          （worktree に入っても CLAUDE_PROJECT_DIR は開始時の場所のままで、cwd だけが移る）。
+#          再帰の rm は、プロジェクトのルートかその親を指す形（`.`・`..`・`../proj`・`*`・`./*`）も止める。
 #   `.claude/` の素の rm / mv は sandbox の標準の書き込み禁止が止める（git rm・git restore は excludedCommands で
 #   sandbox の外に出て、この hook も沈黙するので、通常の確認だけが残る）。
 # 守らない形（沈黙）: `bash -c` / `eval` の中身・`git rm`・手前が分からない変数（`$X/CLAUDE.md`）・`cd -` や変数の
 #          `cd` の後の相対パス・グロブが対象の名前の途中にある形（`CLAUD*`）・解析の失敗（閉じていない引用など）・
-#          python3 が無いとき（フェイルオープン。deny に倒すと通常の Bash が広く死ぬ）。
-#          沈黙することはフィクスチャで固定している。
+#          途中のディレクトリを再帰で消す形（`rm -rf sub` の下に CLAUDE.md がある）・
+#          python3 や guard_gated.py が無いとき（フェイルオープン。deny に倒すと通常の Bash が広く死ぬ）。
+#          沈黙することはフィクスチャで固定している（guard_gated.py が無いときを除く）。
 #
 # 判定は guard_gated.py（guard-gated-write と共通の抽出）。tool_input.command だけを見る。
 

@@ -117,7 +117,7 @@ cp -n templates/settings.template.json "$DEST/.claude/settings.json"
 - hook を減らしたら、settings の登録も消す
 - **sandbox の設定はチェックアウト中のブランチに従う。** 設定の無いブランチへ切り替えると、sandbox も guard hook も何の表示もなく外れる。設定を入れたコミットを統合ブランチに入れてからブランチを切り直し、古いブランチへ切り替えたら `/sandbox` で確かめる
 - `allowLocalBinding: true` で、E2E の開発サーバーがローカルのポートを listen できる。macOS では、sandbox の中のコマンドが localhost の他のサービスにも届くので、認証の無いサービスを動かしている案件では外すか、E2E を通常のターミナルで動かす。Vite の起動までは確かめた。Playwright のブラウザの起動は確かめていない
-- `permissions.allow` を足すと守りが薄くなる。`excludedCommands` のコマンドは sandbox の外で動き、`git rebase --exec` のように任意の処理も動かせる。今は通常の確認（auto モードでは自動の判定）だけが守っている
+- `permissions.allow` を足すと守りが薄くなる。`excludedCommands` のコマンドは sandbox の外で動き、`git rebase --exec` のように任意の処理も動かせる。`gh api --input` などで `denyRead` のファイルも外へ送れる。今は通常の確認（auto モードでは自動の判定）だけが守っている
 - `gh` は `gh pr`・`gh api`・`gh repo view` だけを sandbox の外に出す。ほかのサブコマンドが要るなら `excludedCommands` に足す。除外が効くのは呼び出し全体が一致するときだけで、パイプ・`cd`・リダイレクトを付けると sandbox の中に残り、TLS や SSH の検証で失敗する。単独で呼び、本文は `--body-file` で渡す
 - `.env` の読み取り禁止は Bash から動かす開発ツールにも効く。Vite の `loadEnv` はエラーを出さずにそのファイルを飛ばすので、値が黙って入らない。追跡している `.env.example` などでは、`git status`・`git add` がエラーを表示したまま rc=0 で終わる。`.env` を使う案件では `sandbox.filesystem.denyRead` を案件に合わせて絞るか、その開発ツールを通常のターミナルで動かす
 
