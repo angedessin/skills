@@ -13,10 +13,16 @@ import shlex
 import sys
 
 REDIRS = {">", ">>", "&>", "&>>", ">|", ">&"}
-SEPS = {";", "&&", "||", "|", "|&", "&", "(", ")", ";;"}
+INPUT_REDIRS = {"<", "<<", "<<-", "<<<", "<&"}
+SEPS = {";", "&&", "||", "|", "|&", "&", ";;"}
+# shlex は連続する記号を 1 語にまとめる（`);`・`)&&`）ので、長いものから順に分ける
+OPERATORS = ["&>>", "<<<", "<<-", ">>", "&>", ">|", ">&", "<<", "<&", "&&", "||", "|&", ";;", ";", "(", ")", "&", "|", ">", "<"]
+PUNCTUATION = set("();<>|&")
 WRAPPERS = {"timeout", "time", "nice", "nohup", "stdbuf", "command", "builtin", "noglob", "xargs", "env", "exec", "sudo", "{", "!"}
+CONTROL_WORDS = {"if", "then", "elif", "else", "while", "until", "do"}
 WRAPPER_VALUED = {"-u", "-g"}  # env -u NAME / sudo -u USER -g GROUP: 次の語は値
 HEREDOC_RE = re.compile(r"""(?<!<)<<-?(?!<)\s*(?:'([^']+)'|"([^"]+)"|\\?([A-Za-z_]\w*))""")
+PATH_META_RE = re.compile(r"[*?\[{$`]")
 
 
 def strip_heredocs(cmd):
@@ -42,13 +48,62 @@ def strip_heredocs(cmd):
     return "\n".join(out)
 
 
+def strip_comments(cmd):
+    """行末までのコメントを落とす。引用の中の `#` と語の途中の `#`（`$#`・`x/#a`）はコメントではない。
+
+    shlex に任せると、改行を畳んだ後なので後ろの行まで全部消える。
+    """
+    out = []
+    quote = None
+    i = 0
+    while i < len(cmd):
+        c = cmd[i]
+        if quote:
+            out.append(c)
+            if c == "\\" and quote == '"' and i + 1 < len(cmd):
+                out.append(cmd[i + 1])
+                i += 1
+            elif c == quote:
+                quote = None
+        elif c == "\\" and i + 1 < len(cmd):
+            out.append(c + cmd[i + 1])
+            i += 1
+        elif c in "\"'":
+            quote = c
+            out.append(c)
+        elif c == "#" and (i == 0 or cmd[i - 1] in " \t\n;&|()"):
+            while i < len(cmd) and cmd[i] != "\n":
+                i += 1
+            continue
+        else:
+            out.append(c)
+        i += 1
+    return "".join(out)
+
+
+def split_operators(tok):
+    """`);` のような記号の連なりを演算子に分ける。記号以外を含む語はそのまま返す。"""
+    if not tok or not set(tok) <= PUNCTUATION:
+        return [tok]
+    out = []
+    while tok:
+        op = next((o for o in OPERATORS if tok.startswith(o)), tok[0])
+        out.append(op)
+        tok = tok[len(op):]
+    return out
+
+
 def parse(cmd):
-    """連鎖を分けて、(単純コマンドの語のリストのリスト, リダイレクトの書き込み先のリスト) を返す。"""
+    """連鎖を分けて、(単純コマンドの語のリストのリスト, リダイレクトの書き込み先のリスト) を返す。
+
+    サブシェルの境界は ["("]・[")"] の要素として返す。`$(...)` も同じ形になる。
+    """
     cmd = cmd.replace("\r\n", "\n").replace("\r", "\n").replace("\\\n", " ")
-    cmd = strip_heredocs(cmd)
+    cmd = strip_comments(strip_heredocs(cmd))
     lex = shlex.shlex(cmd.replace("\n", " ; "), posix=True, punctuation_chars=True)
     lex.whitespace_split = True
-    toks = list(lex)
+    lex.commenters = ""
+    toks = [t for raw in lex for t in split_operators(raw)]
 
     segs, cur, targets = [], [], []
     i = 0
@@ -60,9 +115,14 @@ def parse(cmd):
                 targets.append(nxt)
             i += 2
             continue
-        if t in SEPS:
+        if t in INPUT_REDIRS:
+            i += 2
+            continue
+        if t in SEPS or t in ("(", ")"):
             segs.append(cur)
             cur = []
+            if t in ("(", ")"):
+                segs.append([t])
         else:
             cur.append(t)
         i += 1
@@ -71,14 +131,14 @@ def parse(cmd):
 
 
 def command_words(seg):
-    """先頭の代入・ラッパー（とその数値やオプションの引数）を読み飛ばした語のリストを返す。"""
+    """先頭の代入・ラッパー・制御語（とその数値やオプションの引数）を読み飛ばした語のリストを返す。"""
     words = [w for w in seg if w != "}"]
     j = 0
     while j < len(words):
         w = words[j]
-        if re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", w) or w in WRAPPERS:
+        if re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", w) or w in WRAPPERS or w in CONTROL_WORDS:
             j += 1
-            while j < len(words) and (words[j].startswith("-") or re.match(r"^[0-9.]+[smhd]?$", words[j])):
+            while w in WRAPPERS and j < len(words) and (words[j].startswith("-") or re.match(r"^[0-9.]+[smhd]?$", words[j])):
                 j += 2 if words[j] in WRAPPER_VALUED else 1
             continue
         break
@@ -90,14 +150,8 @@ def command_name(words):
 
 
 def operands(words):
-    """オプションを除いた引数（`--` の後ろは全部引数）。"""
-    out, only_operands = [], False
-    for w in words:
-        if only_operands or not w.startswith("-"):
-            out.append(w)
-        elif w == "--":
-            only_operands = True
-    return out
+    """オプションを除いた引数。単独の `-`（`cd -`）は引数として残す。"""
+    return [w for w in words if not w.startswith("-") or w == "-"]
 
 
 def write_decision(data, hook_path):
@@ -142,25 +196,48 @@ def write_decision(data, hook_path):
     return "SILENT"
 
 
-def delete_target_is_gated(tok, cwd, root):
-    """プロジェクトの中の CLAUDE.md（どの階層でも）か、ルートの docs/ の下か。
+def project_relative(path, cwd, root):
+    """プロジェクトのルートからの小文字の相対パスを返す。外か、解決できなければ None。
 
-    外のパス（`/tmp/x/docs/y`）は当たらない。大文字小文字は区別しない（macOS の既定の FS は区別しない）。
+    親だけを実パスに解決する。rm / mv が操作するのはリンクそのもので、リンク先ではない。
+    大文字小文字は区別しない（macOS の既定の FS は区別しない）。
     """
+    path = os.path.expanduser(path)
+    if not os.path.isabs(path):
+        if cwd is None:
+            return None
+        path = os.path.join(cwd, path)
+    parent, name = os.path.split(os.path.normpath(path))
+    rel = os.path.relpath(os.path.join(os.path.realpath(parent), name), root).lower()
+    return None if rel == ".." or rel.startswith("../") else rel
+
+
+def under_docs(rel):
+    return rel == "docs" or rel.startswith("docs/")
+
+
+def is_claude_md(rel):
+    return os.path.basename(rel) == "claude.md"
+
+
+def delete_target_is_gated(tok, cwd, root):
+    """プロジェクトの中の CLAUDE.md（どの階層でも）か、ルートの docs/ の下か。外のパスは当たらない。"""
+    meta = PATH_META_RE.search(tok)
+    if not meta:
+        rel = project_relative(tok, cwd, root)
+        return rel is not None and (is_claude_md(rel) or under_docs(rel))
+
+    # グロブ・ブレース・変数の手前までは確定している（`docs/$f`・`docs*`・`CLAUDE.md*`）
+    prefix = tok[: meta.start()]
+    rel = project_relative(prefix or ".", cwd, root)
+    if rel is None:
+        return False
+    if under_docs(rel) or (prefix and is_claude_md(rel)):
+        return True
+    # 名前が書かれていて、手前にグロブがあるだけの形（`*/CLAUDE.md`）。変数は行き先が分からないので見ない
     if "$" in tok or "`" in tok:
         return False
-    tok = re.split(r"[*?\[{]", tok, maxsplit=1)[0]  # グロブとブレースの手前まで（`CLAUDE.md*`・`docs/x{,.bak}`）
-    if not tok:
-        return False
-    tok = os.path.expanduser(tok)
-    if not os.path.isabs(tok):
-        if cwd is None:
-            return False
-        tok = os.path.join(cwd, tok)
-    rel = os.path.relpath(os.path.realpath(tok), root).lower()
-    if rel == ".." or rel.startswith("../"):
-        return False
-    return os.path.basename(rel) == "claude.md" or rel == "docs" or rel.startswith("docs/")
+    return tok.rsplit("/", 1)[-1].lower() == "claude.md"
 
 
 def delete_decision(data):
@@ -170,8 +247,16 @@ def delete_decision(data):
     start = data.get("cwd") or os.getcwd()
     root = os.path.realpath(os.environ.get("CLAUDE_PROJECT_DIR") or start)
     cwd = start
+    subshells = []
     segs, _ = parse(cmd)
     for seg in segs:
+        if seg == ["("]:
+            subshells.append(cwd)
+            continue
+        if seg == [")"]:
+            if subshells:
+                cwd = subshells.pop()
+            continue
         words = command_words(seg)
         if not words:
             continue
@@ -180,7 +265,7 @@ def delete_decision(data):
             # `cd` の後の相対パスを正しく解決する。解決できない形（`cd -`・変数）の後の相対パスは見ない
             ops = operands(words[1:])
             target = os.path.expanduser(ops[0] if ops else "~")
-            if target == "-" or "$" in target or "`" in target or cwd is None and not os.path.isabs(target):
+            if target == "-" or "$" in target or "`" in target or (cwd is None and not os.path.isabs(target)):
                 cwd = None
             else:
                 cwd = os.path.normpath(os.path.join(cwd or "", target))

@@ -83,3 +83,42 @@
 
 - 直した: 1・4・5・6・8・9・10・15・18・19
 - 見送った: 7・11・12・13・14・17（今の実害が無く、検査の検査が中心）
+
+## 20261104 — delete hook の作り直しの再レビュー（`c24ea67..13ee467`）
+
+**対象**: `.claude/hooks`・`tests/hooks` の 4 ファイル
+**結果**: 一次の指摘を重複をまとめて 14 件。確かめられた 13 件（High 1・Medium 6・Low 6）、確かめられない 1 件。修正は未着手
+**検証の方法**: 検証役はユーザーが停止したので、本体がスクリプトで確かめた（payload を hook に渡す・壊したコピーでフィクスチャを流す）。第三者の検証ではない。「後退」は c24ea67 の hook と比べた結果
+
+### High
+
+1. 後退。`guard_gated.py:49` 改行を ` ; ` にしてから shlex に渡すので、コメントより後ろが消える。`# 古いファイルを消す\nrm CLAUDE.md`・`ls # 確認\nrm -f docs/knowledge/x.md` が silence（旧は deny）。`$#`・`#a` の形と write 側は旧から silence。再現
+
+### Medium
+
+4. 後退。グロブより後ろを捨てるので `rm -f */CLAUDE.md`・`rm -f packages/*/CLAUDE.md`・`rm {a,b}/CLAUDE.md` が silence（旧は deny）。再現
+5. 後退。`$` を含む語を通すので `rm docs/knowledge/$name.md` が silence（旧は deny）。`rm $X/CLAUDE.md` も旧は deny。再現
+6. 後退。`realpath` が最後の要素のリンクを解決する。`CLAUDE.md -> AGENTS.md` の `rm CLAUDE.md` が silence（旧は deny）。`node_modules/@acme/docs -> ../../docs`・`AGENTS.md -> CLAUDE.md` のリンクを消す `rm` が誤って deny。再現
+8. 後退。サブシェルの `cd` が外まで残り、`(cd docs && pnpm build) && rm -f out.txt`・`X=$(cd docs && pwd)\nrm out.txt` が誤って deny。再現
+9. deny の文言「git rm か人の操作」が未追跡のファイルに当てはまらない（`git rm` が rc=128）。再現
+10. `run_fixtures.py` が `CLAUDE_PROJECT_DIR` を継承する。別のプロジェクトを指すと 84/116、親を指すと 91/116。root を start にする・start を getcwd にする変更でも 116/116 のまま。再現
+
+### Low
+
+2. `);`・`)&&`・`&&(` が区切りにならず silence。旧も silence で後退ではないが、冒頭コメントの「連鎖のすべての部分」とずれる。再現
+3. `then`・`do` の直後の rm が silence。`if cd /tmp/x; then\n  rm CLAUDE.md\nfi` は誤って deny。旧も同じ。再現
+7. `cd -` の分岐は `operands` が `-` を落とすので届かない。読みで確認。root がホームのときの deny は再現しなかった（理由は未確認）
+11. `rm -rf docs` などは deny で動いているが、`rel == "docs"` を消しても 116/116。再現
+12. `--` の分岐を消しても 116/116。`cd` の変数の判定を消しても 116/116。`rm CLAUDE.md "`（解析の失敗）は silence で旧は deny、ケースが無い。B22・B41 は判定を固定していない。再現と読み
+13. `run_fixtures.py:68` の B42・B43 が delete hook の冒頭コメントの一覧に無い。確認
+
+### 確かめられない（1 件）
+
+- 14: worktree のセッションで `CLAUDE_PROJECT_DIR` がどこを指すか
+
+**規約が無い**: `cd` の解決をどこまで見るかの基準。フィクスチャの ID の付け方
+
+### 修正（20261104。ユーザーが推奨を承認）
+
+- 直した: 1〜13。12 の解析の失敗（`rm CLAUDE.md "`）はシェルでも構文エラーになる形なので、守らない形としてフィクスチャで固定した。`$X/CLAUDE.md` も行き先が分からないので守らない形に残した（旧は deny）
+- 課金の再レビューは省いた
