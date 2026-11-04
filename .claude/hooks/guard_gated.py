@@ -6,6 +6,7 @@ Usage: python3 guard_gated.py write <guard-gated-write.sh のパス>   # 標準�
        入力は hook の stdin の JSON。tool_input.command だけを見る（transcript_path などが常に混ざるので全文は見ない）。
        解析に失敗したら exit 3。何を守らないかは各 hook の冒頭コメントに書く。
 """
+import functools
 import json
 import os
 import re
@@ -213,6 +214,17 @@ def project_relative(path, cwd, root):
     return None if rel == ".." or rel.startswith("../") else rel
 
 
+def relative_locations(path, cwd, root):
+    """判定するプロジェクトからの相対パスの一覧。外か、解決できなければ空。
+
+    末尾の `/` はリンクをたどる（`rm -rf link/` はリンクを残してリンク先の中身を消す。macOS で確認）ので、リンク先も見る。
+    """
+    rels = [project_relative(path, cwd, root)]
+    if path.endswith("/") and (cwd is not None or os.path.isabs(os.path.expanduser(path))):
+        rels.append(project_relative(os.path.realpath(os.path.join(cwd or "", os.path.expanduser(path))), cwd, root))
+    return [r for r in rels if r is not None]
+
+
 def under_docs(rel):
     return rel == "docs" or rel.startswith("docs/")
 
@@ -221,6 +233,7 @@ def is_claude_md(rel):
     return os.path.basename(rel) == "claude.md"
 
 
+@functools.lru_cache(maxsize=None)
 def git_location(directory):
     """(worktree のルート, 共通の .git) を返す。git の外や失敗のときは None。"""
     try:
@@ -238,16 +251,21 @@ def git_location(directory):
     return os.path.realpath(lines[0]), os.path.realpath(lines[1])
 
 
-def project_roots(start):
+def project_roots(start, cwd):
     """判定するルートの一覧。worktree に入ると CLAUDE_PROJECT_DIR は開始時の場所のままで、cwd だけが移る（公式）。
 
-    cwd が同じリポジトリの worktree なら、そのルートも足す。別のリポジトリなら足さない。
+    開始時の場所か今の場所（同じ呼び出しの `cd` の後）が同じリポジトリの中なら、その worktree のルートも足す。
+    別のリポジトリなら足さない。プロジェクトがリポジトリの一部なら、リポジトリのルートも足される。
     """
     root = os.path.realpath(os.environ.get("CLAUDE_PROJECT_DIR") or start)
-    here, there = git_location(start), git_location(root)
-    if here and there and here[1] == there[1] and here[0] != root:
-        return [root, here[0]]
-    return [root]
+    roots = [root]
+    there = git_location(root)
+    if there:
+        for directory in (start, cwd):
+            here = git_location(directory) if directory else None
+            if here and here[1] == there[1] and here[0] not in roots:
+                roots.append(here[0])
+    return roots
 
 
 def is_recursive(words):
@@ -255,8 +273,11 @@ def is_recursive(words):
 
 
 def removes_project_root(tok, cwd, roots):
-    """対象がプロジェクトのルートかその親か（`.`・`..`・`../proj`）、ルートの直下をまるごと指す形（`*`・`./*`）か。"""
-    base = re.sub(r"(^|/)\*$", r"\1", tok)
+    """対象がプロジェクトのルートかその親か（`.`・`..`・`../proj`）、ルートの直下をまるごと指す形（`*`・`./*`・`*/`・`**`）か。
+
+    末尾が名前ならリンク自体を消すだけなので親だけを解決する。`.`・`..`・末尾の `/`・グロブはリンクをたどる。
+    """
+    base = re.sub(r"(^|/)\*+/?$", r"\1", tok)
     if PATH_META_RE.search(base):
         return False
     path = os.path.expanduser(base or ".")
@@ -264,7 +285,8 @@ def removes_project_root(tok, cwd, roots):
         if cwd is None:
             return False
         path = os.path.join(cwd, path)
-    real = os.path.realpath(path)
+    parent, name = os.path.split(path)
+    real = os.path.realpath(path) if name in ("", ".", "..") else os.path.join(os.path.realpath(parent), name)
     return any(r == real or r.startswith(real.rstrip(os.sep) + os.sep) for r in roots)
 
 
@@ -276,15 +298,14 @@ def target_is_gated_in(tok, cwd, root):
     """プロジェクトの中の CLAUDE.md（どの階層でも）か、ルートの docs/ の下か。外のパスは当たらない。"""
     meta = PATH_META_RE.search(tok)
     if not meta:
-        rel = project_relative(tok, cwd, root)
-        return rel is not None and (is_claude_md(rel) or under_docs(rel))
+        return any(is_claude_md(rel) or under_docs(rel) for rel in relative_locations(tok, cwd, root))
 
     # グロブ・ブレース・変数の手前までは確定している（`docs/$f`・`docs*`・`CLAUDE.md*`）
     prefix = tok[: meta.start()]
-    rel = project_relative(prefix or ".", cwd, root)
-    if rel is None:
+    rels = relative_locations(prefix or ".", cwd, root)
+    if not rels:
         return False
-    if under_docs(rel) or (prefix and is_claude_md(rel)):
+    if any(under_docs(rel) or (prefix and is_claude_md(rel)) for rel in rels):
         return True
     # 名前が書かれていて、手前にグロブがあるだけの形（`*/CLAUDE.md`）。変数は行き先が分からないので見ない
     if "$" in tok or "`" in tok:
@@ -297,7 +318,6 @@ def delete_decision(data):
     if not cmd:
         return "SILENT"
     start = data.get("cwd") or os.getcwd()
-    roots = None  # git を呼ぶので、rm / mv があったときだけ求める
     cwd = start
     subshells = []
     segs, _ = parse(cmd)
@@ -322,7 +342,7 @@ def delete_decision(data):
             else:
                 cwd = os.path.normpath(os.path.join(cwd or "", target))
         elif head in ("rm", "mv"):
-            roots = roots or project_roots(start)
+            roots = project_roots(start, cwd)  # git を呼ぶので、rm / mv があったときだけ求める
             ops = operands(words[1:])
             if any(delete_target_is_gated(w, cwd, roots) for w in ops):
                 return "DENY"

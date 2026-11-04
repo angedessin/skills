@@ -15,6 +15,7 @@ import argparse
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -54,7 +55,7 @@ CASES: list[dict] = [
     {"id": "A26", "hook": "guard-gated-delete.sh", "command": "true && rm CLAUDE.md", "expect": "deny"},
     {"id": "A27", "hook": "guard-gated-delete.sh", "command": "rm x; rm CLAUDE.md", "expect": "deny"},
     {"id": "A28", "hook": "guard-gated-delete.sh", "command": "mv docs/user-guide.md /tmp/x", "expect": "deny"},
-    {"id": "A29", "hook": "guard-gated-delete.sh", "command": f"rm {ROOT}/docs/x.md", "expect": "deny"},
+    {"id": "A29", "hook": "guard-gated-delete.sh", "command": f"rm {shlex.quote(f'{ROOT}/docs/x.md')}", "expect": "deny"},
     {"id": "A30", "hook": "guard-gated-delete.sh", "command": "rm sub/CLAUDE.md", "expect": "deny"},
     {"id": "A31", "hook": "guard-gated-delete.sh", "command": "rm -- docs/x.md", "expect": "deny"},
     {"id": "A32", "hook": "guard-gated-delete.sh", "command": "cat <<'EOF' > /tmp/a\nit's\nEOF\nrm CLAUDE.md", "expect": "deny"},
@@ -107,11 +108,17 @@ CASES: list[dict] = [
     {"id": "A61", "hook": "guard-gated-delete.sh", "command": "rm -rf ./", "expect": "deny"},
     {"id": "A62", "hook": "guard-gated-delete.sh", "command": "rm -rf *", "expect": "deny"},
     {"id": "A63", "hook": "guard-gated-delete.sh", "command": "rm -rf ./*", "expect": "deny"},
-    {"id": "A64", "hook": "guard-gated-delete.sh", "command": f"rm -r ../{ROOT.name}", "expect": "deny"},
+    {"id": "A64", "hook": "guard-gated-delete.sh", "command": f"rm -r {shlex.quote(f'../{ROOT.name}')}", "expect": "deny"},
     {"id": "A65", "hook": "guard-gated-delete.sh", "command": "rm -rf ..", "expect": "deny"},
     {"id": "A66", "hook": "guard-gated-delete.sh", "command": "rm -R .", "expect": "deny"},
     {"id": "A67", "hook": "guard-gated-delete.sh", "command": "rm --recursive .", "expect": "deny"},
     {"id": "A68", "hook": "guard-gated-delete.sh", "command": "rm -rf ../*", "cwd": "tests", "expect": "deny"},
+    {"id": "A70", "hook": "guard-gated-delete.sh", "command": "rm -rf */", "expect": "deny"},
+    {"id": "A71", "hook": "guard-gated-delete.sh", "command": "rm -rf ./*/", "expect": "deny"},
+    {"id": "A72", "hook": "guard-gated-delete.sh", "command": "rm -rf **", "expect": "deny"},
+    {"id": "A73", "hook": "guard-gated-delete.sh", "command": "rm -rf ./**", "expect": "deny"},
+    {"id": "B67", "hook": "guard-gated-delete.sh", "command": "rm -rf */", "cwd": "tests", "expect": "silence"},
+    {"id": "B68", "hook": "guard-gated-delete.sh", "command": "rm -f */", "expect": "silence"},
     {"id": "B54", "hook": "guard-gated-delete.sh", "command": "rm -f *.log", "expect": "silence"},
     {"id": "B55", "hook": "guard-gated-delete.sh", "command": "rm -rf *.log", "expect": "silence"},
     {"id": "B56", "hook": "guard-gated-delete.sh", "command": "rm -f *", "expect": "silence"},
@@ -132,6 +139,11 @@ CASES: list[dict] = [
     {"id": "B43", "hook": "guard-gated-delete.sh", "command": "cat <<'EOF'\nrm CLAUDE.md\nEOF", "expect": "silence"},
     {"id": "B52", "hook": "guard-gated-delete.sh", "command": "cd $X && rm CLAUDE.md", "expect": "silence"},
     {"id": "B53", "hook": "guard-gated-delete.sh", "command": 'rm CLAUDE.md "', "expect": "silence", "note": "解析の失敗（シェルでも構文エラーになる形）"},
+    {"id": "B62", "hook": "guard-gated-delete.sh", "command": 'rm -rf "$PWD"', "expect": "silence"},
+    {"id": "B63", "hook": "guard-gated-delete.sh", "command": "rm -rf $PWD/*", "expect": "silence"},
+    {"id": "B64", "hook": "guard-gated-delete.sh", "command": 'rm -rf "$(pwd)"', "expect": "silence"},
+    {"id": "B65", "hook": "guard-gated-delete.sh", "command": "rm --recur .", "expect": "silence"},
+    {"id": "B66", "hook": "guard-gated-delete.sh", "command": f"mv {shlex.quote(f'../{ROOT.name}')} /tmp/x", "expect": "silence"},
     {
         "id": "B15",
         "hook": "guard-gated-delete.sh",
@@ -364,14 +376,35 @@ def link_cases(tmp: Path) -> list[dict]:
     (project / "docs" / "link.md").symlink_to("/tmp/foo")
     (project / "node_modules" / "@acme" / "docs").symlink_to("../../docs")
     (project / "guide.md").symlink_to("CLAUDE.md")
+    (project / "node_modules" / "@acme" / "self").symlink_to("../..")
+    (project / "current").symlink_to(".")
     outside.symlink_to(project / "docs" / "x.md")
+    outside_root = tmp / "outside-root"
+    outside_root.symlink_to(project)
+    # docs/ そのものがリンクのプロジェクト（リンク自体も、たどった先の中身も docs/ として止める）
+    linked = tmp / "linked-docs"
+    linked.mkdir()
+    (tmp / "docs-real").mkdir()
+    (linked / "docs").symlink_to(tmp / "docs-real")
     base = {"hook": "guard-gated-delete.sh", "cwd": str(project), "project": str(project)}
+    linked_base = {"hook": "guard-gated-delete.sh", "cwd": str(linked), "project": str(linked)}
     return [
         {**base, "id": "L1", "command": "rm CLAUDE.md", "expect": "deny"},
         {**base, "id": "L2", "command": "rm docs/link.md", "expect": "deny"},
         {**base, "id": "L3", "command": "rm node_modules/@acme/docs", "expect": "silence"},
         {**base, "id": "L4", "command": "rm guide.md", "expect": "silence"},
-        {**base, "id": "L5", "command": f"rm {outside}", "expect": "silence"},
+        {**base, "id": "L5", "command": f"rm {shlex.quote(str(outside))}", "expect": "silence"},
+        # ルートを指すリンクは、リンク自体を消すだけなら止めない
+        {**base, "id": "L6", "command": "rm -rf node_modules/@acme/self", "expect": "silence"},
+        {**base, "id": "L7", "command": "rm -r current", "expect": "silence"},
+        {**base, "id": "L8", "command": f"rm -r {shlex.quote(str(outside_root))}", "expect": "silence"},
+        # 末尾の / はリンクをたどる（リンクを残してリンク先の中身を消す）
+        {**base, "id": "L9", "command": "rm -rf current/", "expect": "deny"},
+        {**base, "id": "L10", "command": "rm -rf current/*", "expect": "deny"},
+        {**base, "id": "L11", "command": "rm -rf node_modules/@acme/docs/", "expect": "deny"},
+        {**base, "id": "L12", "command": "rm -rf node_modules/@acme/docs/*", "expect": "deny"},
+        {**linked_base, "id": "L13", "command": "rm docs", "expect": "deny"},
+        {**linked_base, "id": "L14", "command": "rm -rf docs/", "expect": "deny"},
     ]
 
 
@@ -380,7 +413,7 @@ def worktree_cases(tmp: Path) -> list[dict]:
 
     def git(*args: str, cwd: Path) -> None:
         subprocess.run(
-            ["git", "-c", "user.name=fixture", "-c", "user.email=fixture@example.com", *args],
+            ["git", "-c", "user.name=fixture", "-c", "user.email=fixture@example.com", "-c", "commit.gpgsign=false", *args],
             cwd=cwd,
             check=True,
             capture_output=True,
@@ -398,14 +431,36 @@ def worktree_cases(tmp: Path) -> list[dict]:
     outer = tmp / "wt-outer"
     git("worktree", "add", "-q", str(inner), "-b", "inner", cwd=main)
     git("worktree", "add", "-q", str(outer), "-b", "outer", cwd=main)
+    app = main / "packages" / "app"
+    app.mkdir(parents=True)
+    quoted_main, quoted_outer, quoted_other, quoted_tmp = (shlex.quote(str(p)) for p in (main, outer, other, tmp))
     base = {"hook": "guard-gated-delete.sh", "project": str(main)}
+    app_base = {"hook": "guard-gated-delete.sh", "project": str(app), "cwd": str(app)}
     return [
+        # 同じ呼び出しの cd で worktree に移る
+        {**base, "id": "T11", "cwd": str(main), "command": "cd .claude/worktrees/x && rm docs/a.md", "expect": "deny"},
+        {**base, "id": "T12", "cwd": str(main), "command": f"cd {quoted_outer} && rm docs/a.md", "expect": "deny"},
+        {**base, "id": "T13", "cwd": str(main), "command": f"cd {quoted_outer} && rm CLAUDE.md", "expect": "deny"},
+        {**base, "id": "T14", "cwd": str(main), "command": f"cd {quoted_outer} && rm -rf .", "expect": "deny"},
+        {**base, "id": "T15", "cwd": str(main), "command": f"cd {quoted_other} && rm docs/a.md", "expect": "silence"},
+        {**base, "id": "T16", "cwd": str(outer), "command": f"cd {quoted_tmp} && rm {quoted_outer}/docs/a.md", "expect": "deny"},
+        # 守らない形: 本体にいて、別の worktree をパスで直接指す
+        {**base, "id": "T17", "cwd": str(main), "command": f"rm {quoted_outer}/docs/a.md", "expect": "silence"},
+        {**base, "id": "T18", "cwd": str(main), "command": f"rm {quoted_outer}/CLAUDE.md", "expect": "silence"},
+        {**base, "id": "T19", "cwd": str(main), "command": "rm .claude/worktrees/x/docs/a.md", "expect": "silence"},
+        # プロジェクトがリポジトリの一部なら、同じリポジトリの中は止める
+        {**app_base, "id": "M1", "command": "rm ../../docs/a.md", "expect": "deny"},
+        {**app_base, "id": "M2", "command": "rm ../../CLAUDE.md", "expect": "deny"},
+        {**app_base, "id": "M3", "command": "rm ../other/CLAUDE.md", "expect": "deny"},
+        {**app_base, "id": "M4", "command": "rm -rf ../..", "expect": "deny"},
+        {**app_base, "id": "M5", "command": "rm ../other/x.md", "expect": "silence"},
+        {**app_base, "id": "M6", "command": "rm /tmp/x/CLAUDE.md", "expect": "silence"},
         {**base, "id": "T1", "cwd": str(inner), "command": "rm docs/a.md", "expect": "deny"},
         {**base, "id": "T2", "cwd": str(inner), "command": "rm CLAUDE.md", "expect": "deny"},
         {**base, "id": "T3", "cwd": str(outer), "command": "rm docs/a.md", "expect": "deny"},
         {**base, "id": "T4", "cwd": str(outer), "command": "rm CLAUDE.md", "expect": "deny"},
         {**base, "id": "T5", "cwd": str(inner / "docs"), "command": "rm a.md", "expect": "deny"},
-        {**base, "id": "T6", "cwd": str(outer), "command": f"rm {main}/docs/a.md", "expect": "deny"},
+        {**base, "id": "T6", "cwd": str(outer), "command": f"rm {quoted_main}/docs/a.md", "expect": "deny"},
         {**base, "id": "T7", "cwd": str(outer), "command": "rm -rf .", "expect": "deny"},
         {**base, "id": "T8", "cwd": str(outer), "command": "rm src/a.md", "expect": "silence"},
         # 別のリポジトリにいるときは止めない
@@ -489,8 +544,8 @@ def main() -> int:
         failed += 1
         paths = []
     tmp = Path(tempfile.mkdtemp(prefix="hook-fixtures-")).resolve()
-    cases = CASES + gated_cases(paths) + link_cases(tmp) + worktree_cases(tmp)
     try:
+        cases = CASES + gated_cases(paths) + link_cases(tmp) + worktree_cases(tmp)
         for case in cases:
             ok, detail = run_case(case, hooks_dir, tmp)
             status = "PASS" if ok else "FAIL"
