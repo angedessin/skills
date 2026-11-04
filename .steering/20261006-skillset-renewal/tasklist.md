@@ -1,6 +1,6 @@
 # タスクリスト: skillset-renewal
 
-Last updated: 20261104（レビューの指摘を直した）
+Last updated: 20261104（区切り 3 の PR #20 を作った。マージは人）
 
 ## 0. 計測（実施済み）
 
@@ -162,6 +162,12 @@ Last updated: 20261104（レビューの指摘を直した）
 刷新の途中では knowledge-capture を回さない（刷新の記録は decisions.md が正本。20261015 ユーザー決定）。
 
 - [x] 評価でモデルが実際に間違えたところを、`docs/knowledge/` に書く（評価が終わったグループごと）（20261104。`frontend-design.md` の 1 項目。ほかはスキルと README で扱っている。ユーザー承認）
+
+## 区切り 3 の PR（6〜8 の後）
+
+`feature/renewal-03-settings` → `feature/skillset-renewal`
+
+- [x] （20261104。#20。マージは人）pr-create で PR を作る
 
 ## デプロイ
 
