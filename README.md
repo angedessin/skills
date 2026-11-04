@@ -101,6 +101,10 @@ cp .claude/agents/review-*.md "$DEST/.claude/agents/"
 # hook: 配る 5 本
 cp .claude/hooks/{guard-gated-delete,guard-gated-write,post-edit-lint,session-start-check,stop-typecheck}.sh "$DEST/.claude/hooks/"
 
+# 知識: frontend-code-review の規約担当が読む
+mkdir -p "$DEST/docs"
+cp -R docs/knowledge "$DEST/docs/"
+
 # settings: 既にあれば上書きしない。そのときは手で合わせる
 cp -n templates/settings.template.json "$DEST/.claude/settings.json"
 ```
