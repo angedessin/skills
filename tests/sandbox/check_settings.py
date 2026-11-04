@@ -24,11 +24,11 @@ GATED_MARKER_RE = re.compile(r"^# GATED_PATHS:[ \t]*(.+)$", re.MULTILINE)
 # sandbox の外に出す git の操作と gh。公式の記載と design.md の理由:
 #   作業ツリーを書き換える操作: .claude/ の標準の書き込み禁止に当たる
 #   fetch / pull / push: macOS では SSH のリモートが sandbox の中で失敗する
-#   gh: Seatbelt の下で TLS の検証に失敗しうる
+#   gh: Seatbelt の下で TLS の検証に失敗しうる。使う形だけに絞る（gh gist などで秘密を外へ送らないため）
 REQUIRED_EXCLUDED = {
     "git checkout *", "git switch *", "git merge *", "git rebase *", "git stash *",
     "git restore *", "git rm *", "git mv *", "git cherry-pick *", "git revert *",
-    "git fetch *", "git pull *", "git push *", "gh *",
+    "git fetch *", "git pull *", "git push *", "gh pr *", "gh api *", "gh repo view *",
 }
 REQUIRED_DENY_READ = {"./**/.env*", "./**/*.env", "~/.ssh", "~/.aws"}
 REQUIRED_DOMAINS = {"github.com", "*.github.com", "registry.npmjs.org"}
@@ -57,9 +57,8 @@ def hook_files(settings: dict) -> set[str]:
 
 
 def expected_template(settings: dict) -> dict:
-    """マスターの settings から、配置先の雛形にあるべき形を作る（違いは決めた 2 点だけ）。"""
+    """マスターの settings から、配置先の雛形にあるべき形を作る（違いはマスター専用の hook の登録だけ）。"""
     want = copy.deepcopy(settings)
-    want["sandbox"]["failIfUnavailable"] = False
     for groups in want.get("hooks", {}).values():
         for group in groups:
             group["hooks"] = [
@@ -74,7 +73,7 @@ def check_template(settings: dict, template: dict) -> str | None:
         return None
     want = expected_template(settings)
     keys = sorted(k for k in want.keys() | template.keys() if want.get(k) != template.get(k))
-    return f"雛形がマスターと決めた 2 点以外でも違う（failIfUnavailable: false と {sorted(MASTER_ONLY_HOOKS)} の除外だけのはず）: {keys}"
+    return f"雛形がマスターと {sorted(MASTER_ONLY_HOOKS)} の除外以外でも違う: {keys}"
 
 
 def check_s(settings: dict, gated: set[str]) -> str | None:
@@ -120,7 +119,9 @@ def check_deny_read(settings: dict, gated: set[str]) -> str | None:
 def check_domains(settings: dict, gated: set[str]) -> str | None:
     net = settings.get("sandbox", {}).get("network", {})
     got = set(net.get("allowedDomains", []))
-    return None if got == REQUIRED_DOMAINS else f"allowedDomains が違う: {sorted(got)}"
+    if got != REQUIRED_DOMAINS:
+        return f"allowedDomains が違う: {sorted(got)}"
+    return None if net.get("allowLocalBinding") is True else "allowLocalBinding が true でない（E2E の開発サーバーが動かない）"
 
 
 def check_meta(settings: dict, gated: set[str]) -> str | None:
@@ -148,7 +149,7 @@ CHECKS: list[tuple[str, Callable[[dict, set[str]], str | None]]] = [
     ("sandbox の enabled・autoAllowBashIfSandboxed・allowUnsandboxedCommands・failIfUnavailable", check_sandbox_flags),
     ("excludedCommands が決めたとおり", check_excluded),
     ("denyRead が揃っている", check_deny_read),
-    ("allowedDomains が決めたとおり", check_domains),
+    ("allowedDomains と allowLocalBinding が決めたとおり", check_domains),
     ("$schema と disableBypassPermissionsMode", check_meta),
     ("guard hook の登録", check_hooks),
 ]
@@ -168,10 +169,11 @@ def self_test(settings: dict, gated: set[str]) -> list[str]:
         ("j", check_j, lambda s: s["permissions"]["ask"].append("Write(./x)")),
         ("flags", check_sandbox_flags, lambda s: s["sandbox"].update(allowUnsandboxedCommands=True)),
         ("flags-auto-allow", check_sandbox_flags, lambda s: s["sandbox"].update(autoAllowBashIfSandboxed=True)),
-        ("excluded", check_excluded, lambda s: s["sandbox"]["excludedCommands"].remove("gh *")),
+        ("excluded", check_excluded, lambda s: s["sandbox"]["excludedCommands"].remove("gh pr *")),
         ("excluded-extra", check_excluded, lambda s: s["sandbox"]["excludedCommands"].append("python3 *")),
         ("denyRead", check_deny_read, lambda s: s["sandbox"]["filesystem"]["denyRead"].remove("~/.ssh")),
         ("domains", check_domains, lambda s: s["sandbox"]["network"]["allowedDomains"].append("example.com")),
+        ("local-binding", check_domains, lambda s: s["sandbox"]["network"].pop("allowLocalBinding")),
         ("meta", check_meta, lambda s: s.pop("$schema")),
         ("hooks", check_hooks, lambda s: s.update(hooks={})),
     ]
@@ -179,7 +181,7 @@ def self_test(settings: dict, gated: set[str]) -> list[str]:
 
     good = expected_template(settings)
     template_cases: list[tuple[str, Callable[[dict], None]]] = [
-        ("template-flag", lambda t: t["sandbox"].update(failIfUnavailable=True)),
+        ("template-flag", lambda t: t["sandbox"].update(failIfUnavailable=False)),
         ("template-deny", lambda t: t["permissions"]["deny"].pop()),
         ("template-hook", lambda t: t["hooks"].pop("Stop")),
     ]
@@ -215,7 +217,7 @@ def main() -> int:
 
     template = json.loads(args.template.read_text(encoding="utf-8"))
     problem = check_template(settings, template)
-    print(f"{'FAIL' if problem else 'PASS'} 雛形とマスターの差が決めた 2 点だけ")
+    print(f"{'FAIL' if problem else 'PASS'} 雛形とマスターの差がマスター専用の hook だけ")
     if problem:
         print(f"  {problem}")
         failed += 1

@@ -301,7 +301,8 @@ def check_dependencies() -> tuple[list[str], list[str]]:
         if (d / "SKILL.md").is_file()
     }
     agents = {p.stem for p in (ROOT / ".claude" / "agents").glob("*.md")}
-    hooks = {p.name for p in (ROOT / ".claude" / "hooks").glob("*.sh")}
+    hooks_dir = ROOT / ".claude" / "hooks"
+    hooks = {p.name for pattern in ("*.sh", "*.py") for p in hooks_dir.glob(pattern)}
     template_hooks = set(HOOK_PATH_RE.findall(template_path.read_text(encoding="utf-8")))
     args = (readme, skills, agents, hooks, template_hooks)
     problems = dependency_problems(*args)

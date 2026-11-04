@@ -78,12 +78,15 @@
       "git fetch *",
       "git pull *",
       "git push *",
-      "gh *"
+      "gh pr *",
+      "gh api *",
+      "gh repo view *"
     ],
     "filesystem": {
       "denyRead": ["./**/.env*", "./**/*.env", "~/.ssh", "~/.aws"]
     },
     "network": {
+      "allowLocalBinding": true,
       "allowedDomains": ["github.com", "*.github.com", "registry.npmjs.org"]
     }
   },

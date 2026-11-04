@@ -78,7 +78,7 @@ mise exec -- pnpm run lint         # Biome
 ## hook と設定
 
 - **SessionStart**（`session-start-check.sh`）: `.steering/` のアクティブなタスクの一覧を context に注入する
-- **承認制パスのガード**（`guard-gated-write.sh`・`guard-gated-delete.sh`）: permissions の ask と同じパス（CLAUDE.md・docs/・.claude/。正本は hook 冒頭の `# GATED_PATHS:` 行）への、Bash 経由の書き込みを ask にする。素の `rm`・`mv` は CLAUDE.md・docs/knowledge/ に限って deny にする。sandbox には「承認すれば進む」が無く、作業ディレクトリの CLAUDE.md・docs/ も守らないため
+- **承認制パスのガード**（`guard-gated-write.sh`・`guard-gated-delete.sh`）: permissions の ask と同じパス（CLAUDE.md・docs/・.claude/。正本は hook 冒頭の `# GATED_PATHS:` 行）への、Bash 経由の書き込みを ask にする。プロジェクトの中の CLAUDE.md・docs/ への `rm`・`mv` は deny にする（`.claude/` の素の `rm`・`mv` は sandbox が止める）。sandbox には「承認すれば進む」が無く、作業ディレクトリの CLAUDE.md・docs/ も守らないため
 - **品質ゲート**（`post-edit-lint.sh`・`stop-typecheck.sh`・`validate-skill-edit.sh`）
 - **sandbox**（`.claude/settings.json`）: Bash の秘密の読み取り・通信先・書き込み範囲を OS のレベルで制限する。`.env` の読み取りも止める。`autoAllowBashIfSandboxed: false` で、sandbox の中の Bash も通常の確認に乗せる（hook が見ない `sed -i` などの書き込みを確認なしで通さないため）。hook は sandbox の外で動く
 
@@ -98,8 +98,8 @@ mkdir -p "$DEST/.claude/skills" "$DEST/.claude/agents" "$DEST/.claude/hooks"
 cp -R .claude/skills/{design-doc,steering,frontend-code-review,pr-create} "$DEST/.claude/skills/"
 cp .claude/agents/review-*.md "$DEST/.claude/agents/"
 
-# hook: 配る 5 本
-cp .claude/hooks/{guard-gated-delete,guard-gated-write,post-edit-lint,session-start-check,stop-typecheck}.sh "$DEST/.claude/hooks/"
+# hook: 配る 5 本と、guard hook の共通の部品
+cp .claude/hooks/{guard-gated-delete,guard-gated-write,post-edit-lint,session-start-check,stop-typecheck}.sh .claude/hooks/guard_gated.py "$DEST/.claude/hooks/"
 
 # 知識: frontend-code-review の規約担当が読む
 mkdir -p "$DEST/docs"
@@ -115,6 +115,10 @@ cp -n templates/settings.template.json "$DEST/.claude/settings.json"
 - Claude Code を再起動する。sandbox を有効にする前から動いていたプロセスでは、通信先の制限が効かなかった（`/clear` では直らない）
 - 雛形の `allowedDomains` は GitHub と npm だけ。案件で要る通信先を足す。これは絶対の上限ではない。auto モードでは、Claude がコマンドごとに通信先を足し、自動の判定が認めれば確認なしで届く（公式の per-command allowed domains）。manual と acceptEdits では確認が出て、許可すれば届く。必ず止めたいなら、ユーザー設定か `--settings` で `network.strictAllowlist` を入れる（リポジトリの settings では効かない）
 - hook を減らしたら、settings の登録も消す
+- **sandbox の設定はチェックアウト中のブランチに従う。** 設定の無いブランチへ切り替えると、sandbox も guard hook も何の表示もなく外れる。設定を入れたコミットを統合ブランチに入れてからブランチを切り直し、古いブランチへ切り替えたら `/sandbox` で確かめる
+- `allowLocalBinding: true` で、E2E の開発サーバーがローカルのポートを listen できる。macOS では、sandbox の中のコマンドが localhost の他のサービスにも届くので、認証の無いサービスを動かしている案件では外すか、E2E を通常のターミナルで動かす。Vite の起動までは確かめた。Playwright のブラウザの起動は確かめていない
+- `permissions.allow` を足すと守りが薄くなる。`excludedCommands` のコマンドは sandbox の外で動き、`git rebase --exec` のように任意の処理も動かせる。今は通常の確認（auto モードでは自動の判定）だけが守っている
+- `gh` は `gh pr`・`gh api`・`gh repo view` だけを sandbox の外に出す。ほかのサブコマンドが要るなら `excludedCommands` に足す。除外が効くのは呼び出し全体が一致するときだけで、パイプ・`cd`・リダイレクトを付けると sandbox の中に残り、TLS や SSH の検証で失敗する。単独で呼び、本文は `--body-file` で渡す
 - `.env` の読み取り禁止は Bash から動かす開発ツールにも効く。Vite の `loadEnv` はエラーを出さずにそのファイルを飛ばすので、値が黙って入らない。追跡している `.env.example` などでは、`git status`・`git add` がエラーを表示したまま rc=0 で終わる。`.env` を使う案件では `sandbox.filesystem.denyRead` を案件に合わせて絞るか、その開発ツールを通常のターミナルで動かす
 
 ### 依存の一覧
@@ -142,6 +146,7 @@ cp -n templates/settings.template.json "$DEST/.claude/settings.json"
 | `session-start-check.sh` | - | 配る |
 | `guard-gated-write.sh` | python3（無ければ全文 grep に縮退） | 配る |
 | `guard-gated-delete.sh` | python3 | 配る |
+| `guard_gated.py` | guard hook 2 本が呼ぶ部品 | 配る（部品） |
 | `post-edit-lint.sh` | Biome か ESLint か Stylelint の設定 | 配る |
 | `stop-typecheck.sh` | jq・tsconfig.json・tsc | 配る |
 | `validate-skill-edit.sh` | `scripts/validate_skills.py` | マスター専用 |
@@ -154,9 +159,8 @@ cp -n templates/settings.template.json "$DEST/.claude/settings.json"
 
 ### settings の雛形
 
-`templates/settings.template.json` は、マスターの `.claude/settings.json` と次の 2 点だけが違う（`test:sandbox` が検査する）。
+`templates/settings.template.json` は、マスターの `.claude/settings.json` とマスター専用の `validate-skill-edit.sh` を登録しないことだけが違う（`test:sandbox` が検査する）。
 
-- `sandbox.failIfUnavailable` が `false`。sandbox の使えない環境でも起動できるようにする。その環境では sandbox が効かないので、`.env` の Bash からの読み取りを OS のレベルでは止められない（`Read` の deny と通常の確認だけが残る）
-- マスター専用の `validate-skill-edit.sh` を登録しない
+`sandbox.failIfUnavailable` は `true` で、sandbox の使えない環境では起動時に止まる。`.env` の Bash からの読み取りを止めているのが sandbox なので、黙って守りが消えないようにする。そうした環境で使うなら `false` にするが、`.env` などの Bash からの読み取りを OS のレベルでは止められなくなる。どのコマンドが確認なしで読めるかは確かめていないので、`Bash(cat .env*)` などの deny を足す。
 
 **`permissions.allow` に git の読み取り系（`Bash(git diff*)` など）を書かない。** 読み取りの形は書かなくても確認なしで動く。allow のパターンは書き込みの形にも一致する（公式の例: `Bash(git log * main)` は `git log --output=<file> main` に一致する）。20261103 に公式の permissions で確認した。

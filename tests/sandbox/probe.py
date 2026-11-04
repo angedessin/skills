@@ -14,6 +14,7 @@ Exit 0 = all pass. Exit 1 = failure. Exit 2 = sandbox の外で動いている�
 from __future__ import annotations
 
 import os
+import socket
 import subprocess
 import sys
 import time
@@ -50,8 +51,10 @@ def blocked_new_file(path: Path) -> str | None:
             pass
     except FileExistsError:
         return f"確かめる対象が既にある: {path}"
-    except OSError:
+    except PermissionError:
         return None
+    except OSError as e:
+        return f"作れない理由が権限でない: {path}（{type(e).__name__}）"
     path.unlink(missing_ok=True)
     return f"作れてしまう: {path}"
 
@@ -65,7 +68,7 @@ def unreadable_by_cat(path: Path) -> str | None:
 def unreadable_by_grep(directory: Path, denied: list[Path], plain: Path) -> str | None:
     """対照の plain だけが当たり、denied は全部エラーになること。"""
     p = run(["grep", "-rl", SENTINEL, str(directory)])
-    found = p.stdout.split()
+    found = p.stdout.splitlines()
     if found != [str(plain)]:
         return f"grep -r の結果が対照だけでない: {found}"
     silent = [f.name for f in denied if f.name not in p.stderr]
@@ -119,6 +122,17 @@ def succeeds(cmd: list[str]) -> str | None:
     return f"exit {p.returncode}: {' '.join(cmd)}\n  " + "\n  ".join(tail)
 
 
+def can_listen_on_localhost() -> str | None:
+    """E2E の開発サーバーが動く条件（allowLocalBinding）。"""
+    with socket.socket() as s:
+        try:
+            s.bind(("127.0.0.1", 0))
+            s.listen(1)
+        except OSError as e:
+            return f"ローカルのポートを listen できない: {e}"
+    return None
+
+
 def network(url: str, expect_ok: bool) -> str | None:
     p = run(["curl", "-sS", "-o", "/dev/null", "--max-time", "10", url], timeout=20)
     if expect_ok and p.returncode != 0:
@@ -169,6 +183,7 @@ def main() -> int:
         ("書けない: 作業ディレクトリの外", lambda: blocked_new_file(home / ".sandbox-probe-write")),
         ("通信: 許可した registry.npmjs.org", lambda: network("https://registry.npmjs.org/", True)),
         ("通信: 許可していない www.iana.org", lambda: network("https://www.iana.org/", False)),
+        ("動く: ローカルのポートの listen", can_listen_on_localhost),
         ("動く: mise 経由の pnpm", lambda: succeeds([*MISE, "pnpm", "-v"])),
         ("動く: validate", lambda: succeeds([*MISE, "pnpm", "run", "-s", "validate"])),
         ("動く: test:hooks", lambda: succeeds([*MISE, "pnpm", "run", "-s", "test:hooks"])),

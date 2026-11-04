@@ -1022,3 +1022,23 @@
 **分からないこと**: 新しいプロセスで auto-allow が切れて通常の確認に乗ること（`/sandbox` の表示と `sed -i` の確認）。`.claude/` の `rm`・`mv` は実行していない（新しいファイルを作れないことから止まると見ている）
 
 **上の「分からないこと」の続き（20261104。修正後に起動したマスターのセッションで、ユーザーが確認）**: `/sandbox` は「Sandbox commands, with regular permissions」。`test:sandbox:probe` は Bash ツールから 25/25 で、起動の遅いプロセスで通信先の制限が効く判断とも合う。`sed -i` などで実際に確認が出るところは見ていない
+
+## 20261104 — PR #20 のレビューの指摘 10 件を直す（ユーザーが推奨を承認）
+
+**決定**（前の決定を変えるものを含む）:
+- `network.allowLocalBinding: true` をマスターと雛形に入れる。配る e2e スキルの開発サーバーが listen できないため。macOS では sandbox の中から localhost の他のサービスにも届く（公式）。README に書いた
+- `excludedCommands` の `gh *` を `gh pr *`・`gh api *`・`gh repo view *` に絞る。`git rebase --exec` などの deny は足さない（公式が Bash の引数のパターンは脆いとする）。allow を足すと守りが薄くなることを README に書いた
+- 雛形の `failIfUnavailable` を `true` に変える（20261006 の「雛形は false」を取り消す）。黙って守りが消えるより起動時に止まる方を採る。雛形とマスターの差は `validate-skill-edit.sh` の登録だけになった
+- delete hook を作り直す（20261103 の「docs/ まで広げない」「大文字小文字・代入前置は守らない形」を取り消す）。`guard_gated.py` に write hook の抽出を移して共通にし、連鎖・ラッパー・大文字小文字・`/bin/rm` を見る。対象はプロジェクトの中の CLAUDE.md と docs/ の全体で、外のパスは止めない。同じ呼び出しの `cd` は解決する
+- ヒアドキュメントの本文は判定の前に落とす（本文の語で ask にならず、アポストロフィで縮退しない）
+- pr-create に「`git push`・`gh pr create` は単独で呼び、本文は `--body-file`」を足す
+- README に、sandbox の設定はブランチに従うことを足す
+
+**分かったこと（公式の sandboxing）**: excludedCommands は呼び出しの全コマンドが一致するときだけ効く。`cd`・リダイレクト・`$(...)` があると sandbox に残る。`git stash *` は引数なしにも一致する（前回のレビューの指摘 20 は解決）
+
+**一回限りの確認（20261104）**:
+- フィクスチャ 116/116（指摘の入力を守る形に足し、外のパスの沈黙も固定した）。README の手順でコピーした先の hook にも 116/116
+- `allowLocalBinding` を入れた後、このセッションで Vite 8.3.4 が 127.0.0.1 で起動した。probe の listen の項目も PASS
+- probe 25/26。落ちたのは `www.iana.org` だけで、sandbox を入れる前に起動したこのプロセスの既知の件
+
+**分からないこと**: Playwright のブラウザの起動。sandbox の中のコマンドとして `gh` の他のサブコマンドが要る場面

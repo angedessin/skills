@@ -168,6 +168,9 @@ Last updated: 20261104（区切り 3 の PR #20 を作った。マージは人�
 `feature/renewal-03-settings` → `feature/skillset-renewal`
 
 - [x] （20261104。#20。マージは人）pr-create で PR を作る
+- [x] PR #20 のレビューの指摘 10 件を直す（20261104。decisions.md）
+- [ ] 修正の回帰 `pr1-feature-branch`・`pr2-spike` を各 1 回（課金。通常のターミナル）
+- [ ] delete hook の作り直しの差分を frontend-code-review でレビューする（課金。見積もりを示して承認を取る）
 
 ## デプロイ
 
