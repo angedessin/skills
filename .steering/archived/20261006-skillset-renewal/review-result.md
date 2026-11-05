@@ -122,3 +122,54 @@
 
 - 直した: 1〜13。12 の解析の失敗（`rm CLAUDE.md "`）はシェルでも構文エラーになる形なので、守らない形としてフィクスチャで固定した。`$X/CLAUDE.md` も行き先が分からないので守らない形に残した（旧は deny）
 - 課金の再レビューは省いた
+
+## 20261105 — PR #21 全体のレビュー（`22da4db...d800a1e`、`.steering/` と削除を除く 48 件）
+
+32 件を検証し、確かめられた 28 件（High 0・Medium 7・Low 21）、問題ではない 4 件（18・21・23・32）。番号は検証時のもの。
+
+### Medium
+
+- 1 `guard_gated.py:313,349`: ルートの `rm *.md`・`rm -f *`・`mv *.md archive/`・`mv * /tmp/x`・`rm -rf */*` が沈黙する。守らない形の一覧に無い。B56 が `rm -f *` の沈黙を固定している（再現した）
+- 2 `guard-gated-write.sh:23-24`・`README.md:83`: 「cp・sed -i は通常の確認に落ちる」が acceptEdits では公式文書の記述と合わない（文書で確認。実機は未測定）
+- 10 `guard_gated.py:228-229,254-268`: プロジェクトが `docs/` の下にあると素の rm・mv がすべて deny（再現した）
+- 15 `eval/evalcase.py:60`: `\b` が `.claude/` に効かず `rm .claude/...` が合格し、`rm-mv-policy` で誤検知する（再現した）
+- 25 `guard_gated.py:17-24`: SEPS・REDIRS・WRAPPERS・CONTROL_WORDS を削っても 226/226 のまま（再現した）
+- 27 `check_settings.py:135-142`: guard を PostToolUse へ移しても check_settings・validate ともに緑（再現した）
+- 29 `probe.py:176-182`: `.claude/` の rm・mv を sandbox に任せているのに unlink・rename を確かめない（コードを読んだ。実測は未）
+
+### Low
+
+- 3 先頭がブレースの形が沈黙（`guard_gated.py:313`）
+- 4 pushd を追わない（`guard_gated.py:336`）
+- 5 `xargs -I {}`・`timeout -s KILL 5`・`mv --target-directory=` が沈黙（`guard_gated.py:143,156`）
+- 6 ヒアドキュメントの終端の誤認と複数の `<<`。解析失敗で後ろの実際の `rm CLAUDE.md` も沈黙（`guard_gated.py:42,47`）
+- 7 ルートの大文字小文字の違いで沈黙（`guard_gated.py:213,290`）
+- 8 `grep ">" docs/guide.md` が ASK（`guard_gated.py:114`）
+- 9 `find -delete`・`unlink`・`rmdir` が一覧にもフィクスチャにも無い（`guard-gated-delete.sh:30`）
+- 11 `.claude/worktrees/` への書き込みが絶対パスや本体からだと ASK（`guard-gated-write.sh:4`）。`$PWD` の形は再現しない
+- 12 `templates/README.md:10-11` の mkdir・cp が sandbox の中で失敗する（コードを読んだ）
+- 13 `README.md:164` に `.claude/` の守りへの影響が書かれていない
+- 14 プロジェクト外の `.env` が sandbox で読める（`settings.json:86`。再現した。通常の確認の有無は未確認）
+- 16 `prompts/adversarial-skill-review.md:10` に削除した「ツール語彙の出現数」が残る
+- 17 `CLAUDE.md:34` の承認制の一覧が `.claude/` 全体より狭い
+- 19 `docs/user-guide.md` の `../README.md` が配置先で別物を指す
+- 20 `README.md:11`・`docs/user-guide.md:9,35`・`templates/SKILL.template.md:16` の「同点は削除」が decisions.md:346,376,383,955 と食い違う
+- 22 review-test・review-ui-a11y・review-rules の「指摘しないもの」が design.md:275 の 4 項目に足りない
+- 24 `README.md:119,166` の確認の記述に「一回限り」の明記が無い
+- 26 session-start-check.sh・validate-skill-edit.sh に挙動のテストが無い
+- 28 deny・ask の Edit 以外を両方から消しても `check_settings.py` が緑
+- 30 `except Exception` を SILENT に変えても 226/226（`guard_gated.py`・`run_fixtures.py`）
+- 31 probe の `~/.ssh` 不在と curl の失敗が PASS 扱い（`probe.py:103-111,136-142`）
+
+### 問題ではないとした指摘（4 件）
+
+- 18 README.md:129 に「案内先のスキルは無くても動く」と明記
+- 21 decisions.md:786,792 はユーザー承認の決定の下にある。design.md を直していないだけで実害なし
+- 23 行動の指示で、経緯の記録ではない
+- 32 無言の fail-open は再現したが delete.sh:29-30 と README に明記
+
+### レビューできなかったもの
+
+- acceptEdits の実機の挙動（2・1 の影響）と sandbox の中の実際の rm・mv（29）
+- `gen_design_cases.py`・`gen_impl_cases.py`・`gen_knowledge_cases.py` のケースのデータは通読していない
+- 削除 122 件と `.steering/` の差分は対象外
