@@ -177,11 +177,11 @@ Last updated: 20261105（昇格の 2 行を入れ、アーカイブした。残�
 
 ## デプロイ
 
-- [ ] PR 作成（`pr-create` スキルまたは `gh pr create`）
+- [x] （20261105。#21。マージは人）PR 作成（`pr-create` スキルまたは `gh pr create`）
 - [x] ローカルの静的検査が緑（CI は削除済み）（20261105。アーカイブの後に流した）
 - [ ] `feature/skillset-renewal` → develop のマージ（その前にアーカイブを済ませる）
 - [ ] release ブランチで main へ出す
-- PR: none
+- PR: #21
 - CI: none
 - Feedback: no
 
