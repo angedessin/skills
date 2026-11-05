@@ -151,7 +151,7 @@ cp -n templates/settings.template.json "$DEST/.claude/settings.json"
 | `stop-typecheck.sh` | jq・tsconfig.json・tsc | 配る |
 | `validate-skill-edit.sh` | `scripts/validate_skills.py` | マスター専用 |
 
-持っていかないもの: `eval/`・`eval-pilot/`・`scripts/`・`tests/`・`prompts/`・`templates/`（雛形のコピーを除く）。`docs/user-guide.md` は持っていってもよい。
+持っていかないもの: `eval/`・`scripts/`・`tests/`・`prompts/`・`templates/`（雛形のコピーを除く）。`docs/user-guide.md` は持っていってもよい。
 
 ### 配置先の CLAUDE.md
 

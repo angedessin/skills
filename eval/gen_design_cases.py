@@ -1,4 +1,4 @@
-"""eval/evals/design/ と reserve/design/ のケースを生成する（ケースを直すときはこれを直して再実行し、生成物ごとコミットする）。使い方: python3 -I gen_design_cases.py "$PWD" """
+"""eval/evals/design/ と reserve/design/ のケースを生成する（ケースを直すときはこれを直して prepare.sh を流す。生成物はコミットしない）。使い方: python3 -I gen_design_cases.py "$PWD" """
 import os
 import sys
 

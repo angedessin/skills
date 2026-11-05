@@ -6,15 +6,15 @@ skillset-renewal のスキル評価（A・B・C の 3 条件）と、残した�
 
 | パス | 中身 |
 |---|---|
-| `evals/<group>/` | グループごとのケース（B と C で共通。1 か所だけに置く）。各ケースの tags の先頭がグループ名 |
-| `reserve/<group>/` | 再評価用の課題。C が B より悪かったときだけ `evals/<group>/` へ移して使う |
+| `evals/<group>/` | グループごとのケース（B と C で共通。1 か所だけに置く）。各ケースの tags の先頭がグループ名。`prepare.sh` が生成し、コミットしない |
+| `reserve/<group>/` | 再評価用の課題。`prepare.sh` が生成し、コミットしない。C が B より悪かったときだけ、`prepare.sh` の後に `evals/<group>/` へ移して使う |
 | `common-claude-md.md` | 全条件共通の CLAUDE.md。各ケースの `append_system_prompt` と一致しているかを `prepare.sh` が検査する |
 | `conditions/b/<group>-skill-claude-md.md` | B にだけ足す「スキルに触れる CLAUDE.md」（設計グループだけ。タグの .steering ルール 1〜3） |
 | `conditions/c/<group>/` | 評価中のグループの C（`skills/`・`agents/`）。判定が出たらマスターの `.claude/` へ移して消す |
 | `hooks/` | 上の CLAUDE.md を SessionStart で注入する hook（plugin の無い A には入らない） |
-| `prepare.sh` | `skills/`・`agents/`・`plugin.json` を、グループごとに条件 B か C に入れ替える |
+| `prepare.sh` | `evals/`・`reserve/` を生成し直し、`skills/`・`agents/`・`plugin.json` をグループごとに条件 B か C に入れ替える |
 | `evalcase.py` | ケースの生成の共通部品 |
-| `gen_<group>_cases.py` | ケースの生成元。ケースを直すときはこれを直して再実行する |
+| `gen_<group>_cases.py` | ケースの生成元（正本）。ケースを直すときはこれを直して `prepare.sh` を流す。判定のときの生成物は git の履歴（`79bf4d4`）にある |
 
 ## 実行（課金。sandbox を有効にした Claude Code の中ではなく、通常のターミナルから）
 

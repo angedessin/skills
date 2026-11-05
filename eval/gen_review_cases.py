@@ -1,4 +1,4 @@
-"""eval/evals/review/ のケースを生成する（ケースを直すときはこれを直して再実行し、生成物ごとコミットする）。使い方: python3 -I gen_review_cases.py "$PWD"
+"""eval/evals/review/ のケースを生成する（ケースを直すときはこれを直して prepare.sh を流す。生成物はコミットしない）。使い方: python3 -I gen_review_cases.py "$PWD"
 評価セットの正本は .steering/archived/20261006-skillset-renewal/eval-review-group.md。仕込みバグは新しいレビューの agent を書く前に固定する。"""
 import os
 import sys

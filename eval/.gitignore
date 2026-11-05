@@ -1,8 +1,8 @@
-# prepare.sh が条件ごとに作る（正本はタグと conditions/）
+# prepare.sh が作る（正本は gen_*_cases.py・タグ・conditions/）
+/evals/
+/reserve/
 /skills/
 /agents/
 /.claude-plugin/
 /hooks/skill-claude-md.md
-evals/**/results/
-evals/results/
 /results-*.json

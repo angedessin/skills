@@ -1,5 +1,0 @@
-{
-  "name": "pilot-b",
-  "version": "0.0.0",
-  "description": "評価の試作用。現行（B）の design-doc を plugin として読み込ませる。配布には使わない"
-}

@@ -1,5 +1,6 @@
 #!/bin/bash
 # 評価用 plugin の中身を、グループごとに条件 B か C に入れ替える。evals/ は両条件で共通（1 か所だけに置く）。
+# evals/ と reserve/ はコミットせず、毎回 gen_*_cases.py から作り直す（evals/results/ は消さない）。
 #   ./prepare.sh b design|impl|review|knowledge   タグ pre-renewal-20261006 の版（現行）
 #   ./prepare.sh c design|impl|review|knowledge   書き直し版（採用済みのグループはマスター、評価中のグループは conditions/c/<group>/）
 # 条件 A は plugin なしの baseline arm（plugin eval が自動で回す）なので、ここでは作らない。
@@ -50,6 +51,9 @@ case "${cond}" in
   b|c) ;;
   *) echo "usage: $0 b|c design|impl|review|knowledge|pr" >&2; exit 2 ;;
 esac
+
+rm -rf evals/design evals/impl evals/knowledge evals/pr evals/review reserve
+for g in design impl knowledge pr review; do python3 "gen_${g}_cases.py" "$PWD" >/dev/null; done
 
 rm -rf skills agents hooks/skill-claude-md.md .claude-plugin
 mkdir -p skills agents .claude-plugin

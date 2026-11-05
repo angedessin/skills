@@ -1,4 +1,4 @@
-"""eval/evals/pr/ のケースを生成する（ケースを直すときはこれを直して再実行し、生成物ごとコミットする）。使い方: python3 -I gen_pr_cases.py "$PWD"
+"""eval/evals/pr/ のケースを生成する（ケースを直すときはこれを直して prepare.sh を流す。生成物はコミットしない）。使い方: python3 -I gen_pr_cases.py "$PWD"
 
 pr-create は A・B・C の比較をしない（design.md の「評価しないスキル」）。書き直した版が push と PR の作成の前で止まるかだけを、
 `--ablation none` で確かめる。リモートは作業場所の中の bare リポジトリ（`.remote.git`）にする（評価の環境の通信の制限を受けない）。

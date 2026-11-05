@@ -1,1 +1,0 @@
-価格帯の入力欄に入った文字列（例: 「1000-5000」「1,000〜5,000」「〜3000」）を解釈する関数 `parsePriceRange` を TDD で作って。`src/features/products/parsePriceRange.ts` に置いて、テストは隣に。戻り値は `{ min?: number; max?: number }` で、解釈できない入力は `null`。確認は要らないので最後まで進めて。
