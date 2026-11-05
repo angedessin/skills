@@ -1,6 +1,6 @@
 # タスクリスト: skillset-renewal
 
-Last updated: 20261104（PR #20 の 0bd289f へのレビューの 6 コメントを直した。マージは人）
+Last updated: 20261105（昇格の 2 行を入れ、アーカイブした。残りは develop への PR・マージと main へのリリース）
 
 ## 0. 計測（実施済み）
 
@@ -144,7 +144,7 @@ Last updated: 20261104（PR #20 の 0bd289f へのレビューの 6 コメント
 
 - [x] 静的検査（`validate`・`test:hooks`・`lint`・`tests/sandbox`）が緑（20261103。10/10・96/96・lint・test:sandbox）
 - [x] decisions.md の判定表とスキルの集合が一致することを、一度だけ手で確かめる（20261103 に validate での検査をやめた）（20261103。8 本で一致）
-- [ ] 停止のケースを `plugin eval` で実走する（design-doc・pr-create。knowledge-capture は削除。課金・承認制。通常のターミナルから実行する）（pr-create は 20261101 に PR1・PR2 で確認済み。design-doc は評価の D1・D2 で確認済み。最後に `eval/README.md` の回帰テストで一式を流すかを決める）（20261103 ユーザー決定: 今回は流さない。約 12 ドルに対して評価の後の変更が小さいため。e2e は本文の変更後に動かしていない。配る前か気になったときに流す）
+- [x] （20261105 に見送りで閉じた。下の 20261103 のユーザー決定のとおり）停止のケースを `plugin eval` で実走する（design-doc・pr-create。knowledge-capture は削除。課金・承認制。通常のターミナルから実行する）（pr-create は 20261101 に PR1・PR2 で確認済み。design-doc は評価の D1・D2 で確認済み。最後に `eval/README.md` の回帰テストで一式を流すかを決める）（20261103 ユーザー決定: 今回は流さない。約 12 ドルに対して評価の後の変更が小さいため。e2e は本文の変更後に動かしていない。配る前か気になったときに流す）
 - [x] 自作の passthrough（`passthrough_check.py`・`tests/passthrough/`）を削除する（20261101）
 - [x] （20261103。C3 は実測せず公式の確認に留めた。ユーザーの「結果によらず hook を残す」の決定どおり、結果が判断を変えないため。post-edit-lint は実セッションでの発火を見ていない。単体で確認済み）検証用の使い捨て配置先に README の手順でコピーし、スキル・hook の発火・sandbox 下での lint と typecheck を確かめる。guard-gated-write の `ask` で実際に確認が出ることと、hook なしの acceptEdits で `git show X > CLAUDE.md` が通るか（6 から持ち越し。旧 C3。課金が要るなら見積もりを示す）も確かめ、hook の冒頭コメントを直す
   - 20261103: コピーと hook の単体の動きは `$TMPDIR` で確認済み（decisions.md）。実セッションでの発動・ask の表示・C3 が残り。ユーザーの通常のターミナルが要る
@@ -178,7 +178,7 @@ Last updated: 20261104（PR #20 の 0bd289f へのレビューの 6 コメント
 ## デプロイ
 
 - [ ] PR 作成（`pr-create` スキルまたは `gh pr create`）
-- [ ] ローカルの静的検査が緑（CI は削除済み）
+- [x] ローカルの静的検査が緑（CI は削除済み）（20261105。アーカイブの後に流した）
 - [ ] `feature/skillset-renewal` → develop のマージ（その前にアーカイブを済ませる）
 - [ ] release ブランチで main へ出す
 - PR: none
@@ -187,9 +187,9 @@ Last updated: 20261104（PR #20 の 0bd289f へのレビューの 6 コメント
 
 ## 福利化
 
-- [ ] 改善の案を出す（compound は削除。CLAUDE.md の規則どおり、skill-issues.md と decisions.md から繰り返す事象を探して昇格の案を示す）
+- [x] （20261105。CLAUDE.md と delete hook のコメントに 1 行ずつ。decisions.md）改善の案を出す（compound は削除。CLAUDE.md の規則どおり、skill-issues.md と decisions.md から繰り返す事象を探して昇格の案を示す）
 
 ## クローズ
 
-- [ ] steering archive モードでアーカイブ（マージ前）
-- [ ] アーカイブのとき、記録へのパスを `.steering/archived/` に直す（`README.md`・`eval/README.md`・`eval-pilot/README.md`・`eval/gen_impl_cases.py`・`eval/gen_review_cases.py`）
+- [x] steering archive モードでアーカイブ（マージ前）（20261105）
+- [x] （20261105）アーカイブのとき、記録へのパスを `.steering/archived/` に直す（`README.md`・`eval/README.md`・`eval-pilot/README.md`・`eval/gen_impl_cases.py`・`eval/gen_review_cases.py`）

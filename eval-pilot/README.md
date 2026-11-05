@@ -1,6 +1,6 @@
 # eval-pilot
 
-skillset-renewal の「評価の試作」用（`.steering/20261006-skillset-renewal/tasklist.md` の 0.5）。
+skillset-renewal の「評価の試作」用（`.steering/archived/20261006-skillset-renewal/tasklist.md` の 0.5）。
 `claude plugin eval` で現行（B）の design-doc を評価できるかを確かめる。試作が終わったら刷新の評価に引き継ぐか削除する。
 
 ## 準備

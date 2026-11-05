@@ -1,6 +1,6 @@
 # eval
 
-skillset-renewal のスキル評価（A・B・C の 3 条件）と、残したスキルの回帰テスト（末尾の節）。課題と採点基準の正本は `.steering/20261006-skillset-renewal/eval-<group>-group.md`（design・impl・review・knowledge）。
+skillset-renewal のスキル評価（A・B・C の 3 条件）と、残したスキルの回帰テスト（末尾の節）。課題と採点基準の正本は `.steering/archived/20261006-skillset-renewal/eval-<group>-group.md`（design・impl・review・knowledge）。
 
 ## 構成
 

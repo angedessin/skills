@@ -45,3 +45,4 @@ Tech stack: React / TypeScript / Vitest / React Testing Library / MSW / Playwrig
 ## 環境
 
 - mise 管理下では Bash から素の pnpm / node を呼ばず、`mise exec --` を使う
+- `gh`・git のリモート操作で TLS や Host key のエラーが出たら、まずパイプや `cd` を外して単独で呼び直す（sandbox の除外は呼び出し全体が一致するときだけ効く）
