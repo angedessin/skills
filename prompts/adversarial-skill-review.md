@@ -7,7 +7,7 @@ subagent に渡すのが望ましい。セッションの文脈は攻撃を甘�
 
 | 層 | 手段 | 見るもの |
 |---|---|---|
-| 静的・形式 | `scripts/validate_skills.py` | frontmatter・name 一致・When NOT to use の有無・停止契約の**構造**の有無・ツール語彙の出現数 |
+| 静的・形式 | `scripts/validate_skills.py` | frontmatter・name 一致・When NOT to use の有無・停止契約の**構造**の有無 |
 | 実地 | `claude plugin eval` の回帰ケース（課金。`eval/README.md`） | ハードストップが実行時に**守られるか** |
 | **本文の中身（このプロンプト）** | 人 or subagent の精読 | 境界の重複と空白・契約ズレ・片側修正・死んだ参照・迂回経路・配布分類違反 |
 

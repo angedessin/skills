@@ -59,6 +59,22 @@ def blocked_new_file(path: Path) -> str | None:
     return f"作れてしまう: {path}"
 
 
+def blocked_rename(path: Path) -> str | None:
+    """実際に動かそうとする。実在しないファイルや同じ名前への rename は sandbox の中でも権限エラーにならないので、確かめにならない。
+    通ってしまったらすぐ戻す。unlink は戻せないので確かめない（Seatbelt では同じ書き込みの制限）。"""
+    if not path.exists():
+        return f"確かめる対象が無い: {path}"
+    moved = path.with_name(path.name + ".sandbox-probe")
+    try:
+        os.rename(path, moved)
+    except PermissionError:
+        return None
+    except OSError as e:
+        return f"動かせない理由が権限でない: {path}（{type(e).__name__}）"
+    os.rename(moved, path)
+    return f"動かせてしまう: {path}"
+
+
 def unreadable_by_cat(path: Path) -> str | None:
     """出力の中身ではなく終了コードで見る。空のファイルが残っていても、読めれば落ちる。"""
     p = run(["cat", str(path)])
@@ -111,6 +127,10 @@ def unreadable_secret_dir(path: Path) -> str | None:
     return f"一覧が取れてしまう: {path}"
 
 
+def secret_label(home: Path, name: str) -> str:
+    return f"読めない: ~/{name}" + ("" if os.path.lexists(home / name) else "（無いので確かめていない）")
+
+
 def succeeds(cmd: list[str]) -> str | None:
     try:
         p = run(cmd)
@@ -134,12 +154,13 @@ def can_listen_on_localhost() -> str | None:
 
 
 def network(url: str, expect_ok: bool) -> str | None:
-    p = run(["curl", "-sS", "-o", "/dev/null", "--max-time", "10", url], timeout=20)
-    if expect_ok and p.returncode != 0:
-        return f"許可した通信先に届かない: {url}（{p.stderr.strip()}）"
-    if not expect_ok and p.returncode == 0:
+    """拒否は proxy の CONNECT の 403 で見分ける（名前解決の失敗やオフラインを拒否と数えない）。"""
+    p = run(["curl", "-sS", "-o", "/dev/null", "--max-time", "10", "-w", "%{http_connect}", url], timeout=20)
+    if expect_ok:
+        return None if p.returncode == 0 else f"許可した通信先に届かない: {url}（{p.stderr.strip()}）"
+    if p.returncode == 0:
         return f"許可していない通信先に届く: {url}"
-    return None
+    return None if p.stdout.strip() == "403" else f"proxy の拒否ではない失敗: {url}（{p.stderr.strip()}）"
 
 
 def main() -> int:
@@ -171,8 +192,8 @@ def main() -> int:
         ("読めない: *.env を cat", lambda: unreadable_by_cat(nested_named)),
         ("読めない: grep -r", lambda: unreadable_by_grep(work, [nested_env, nested_named], plain)),
         ("読めない: python", lambda: unreadable_by_python(nested_env)),
-        ("読めない: ~/.ssh", lambda: unreadable_secret_dir(home / ".ssh")),
-        ("読めない: ~/.aws", lambda: unreadable_secret_dir(home / ".aws")),
+        (secret_label(home, ".ssh"), lambda: unreadable_secret_dir(home / ".ssh")),
+        (secret_label(home, ".aws"), lambda: unreadable_secret_dir(home / ".aws")),
         ("書けない: .claude/settings.json", lambda: blocked_write(settings)),
         ("書けない: .claude/hooks", lambda: blocked_write(ROOT / ".claude/hooks/guard-gated-write.sh")),
         ("書けない: .claude/skills", lambda: blocked_write(ROOT / ".claude/skills/steering/SKILL.md")),
@@ -180,6 +201,9 @@ def main() -> int:
         ("作れない: .claude/hooks の新しいファイル", lambda: blocked_new_file(ROOT / ".claude/hooks/.sandbox-probe-new")),
         ("作れない: .claude/skills の新しいファイル", lambda: blocked_new_file(ROOT / ".claude/skills/.sandbox-probe-new")),
         ("作れない: .claude/agents の新しいファイル", lambda: blocked_new_file(ROOT / ".claude/agents/.sandbox-probe-new")),
+        ("動かせない: .claude/hooks", lambda: blocked_rename(ROOT / ".claude/hooks/guard-gated-write.sh")),
+        ("動かせない: .claude/skills", lambda: blocked_rename(ROOT / ".claude/skills/steering/SKILL.md")),
+        ("動かせない: .claude/agents", lambda: blocked_rename(ROOT / ".claude/agents/review-bug.md")),
         ("書けない: 作業ディレクトリの外", lambda: blocked_new_file(home / ".sandbox-probe-write")),
         ("通信: 許可した registry.npmjs.org", lambda: network("https://registry.npmjs.org/", True)),
         ("通信: 許可していない www.iana.org", lambda: network("https://www.iana.org/", False)),

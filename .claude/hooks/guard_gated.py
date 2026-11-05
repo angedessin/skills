@@ -4,9 +4,10 @@
 Usage: python3 guard_gated.py write <guard-gated-write.sh のパス>   # 標準出力: ASK / SILENT
        python3 guard_gated.py delete                               # 標準出力: DENY / SILENT
        入力は hook の stdin の JSON。tool_input.command だけを見る（transcript_path などが常に混ざるので全文は見ない）。
-       解析に失敗したら exit 3。何を守らないかは各 hook の冒頭コメントに書く。
+       解析に失敗したら exit 3。守る形と守らない形の正本はマスターの tests/hooks/run_fixtures.py。
 """
 import functools
+import glob
 import json
 import os
 import re
@@ -23,8 +24,9 @@ PUNCTUATION = set("();<>|&")
 WRAPPERS = {"timeout", "time", "nice", "nohup", "stdbuf", "command", "builtin", "noglob", "xargs", "env", "exec", "sudo", "{", "!"}
 CONTROL_WORDS = {"if", "then", "elif", "else", "while", "until", "do"}
 WRAPPER_VALUED = {"-u", "-g"}  # env -u NAME / sudo -u USER -g GROUP: 次の語は値
-HEREDOC_RE = re.compile(r"""(?<!<)<<-?(?!<)\s*(?:'([^']+)'|"([^"]+)"|\\?([A-Za-z_]\w*))""")
+HEREDOC_RE = re.compile(r"""(?<!<)<<(-?)(?!<)\s*(?:'([^']+)'|"([^"]+)"|\\?([A-Za-z_]\w*))""")
 PATH_META_RE = re.compile(r"[*?\[{$`]")
+BRACE_RE = re.compile(r"\{([^{}]*,[^{}]*)\}")
 
 
 def strip_heredocs(cmd):
@@ -39,14 +41,12 @@ def strip_heredocs(cmd):
         line = lines[i]
         out.append(line)
         i += 1
-        m = HEREDOC_RE.search(line)
-        if not m:
-            continue
-        delimiter = m.group(1) or m.group(2) or m.group(3)
-        for j in range(i, len(lines)):
-            if lines[j].strip() == delimiter:
-                i = j + 1
-                break
+        for m in HEREDOC_RE.finditer(line):
+            delimiter = m.group(2) or m.group(3) or m.group(4)
+            for j in range(i, len(lines)):
+                if (lines[j].lstrip("\t") if m.group(1) else lines[j]) == delimiter:
+                    i = j + 1
+                    break
     return "\n".join(out)
 
 
@@ -185,6 +185,16 @@ def write_decision(data, hook_path):
         if head == "tee":
             if any(gated(w) for w in words[1:] if not w.startswith("-")):
                 return "ASK"
+        elif head == "cp":
+            ops = operands(words[1:])
+            into = [w.split("=", 1)[1] for w in words if w.startswith("--target-directory=")]
+            into += [words[k + 1] for k, w in enumerate(words[:-1]) if w == "-t"]
+            if any(gated(w) for w in into + ops[-1:]):
+                return "ASK"
+        elif head == "sed":
+            if any(w == "--in-place" or w.startswith("--in-place=") or re.match(r"^-[A-Za-z]*i", w) for w in words[1:]):
+                if any(gated(w) for w in operands(words[1:])):
+                    return "ASK"
         elif head == "git":
             k, cdir = 1, ""
             while k < len(words) and words[k].startswith("-"):
@@ -198,9 +208,10 @@ def write_decision(data, hook_path):
     return "SILENT"
 
 
-def project_relative(path, cwd, root):
-    """プロジェクトのルートからの小文字の相対パスを返す。外か、解決できなければ None。
+def project_relative(path, cwd, roots):
+    """パスを含むルートのうち最も深いものからの、小文字の相対パスを返す。外か、解決できなければ None。
 
+    最も深いルートで見るのは、プロジェクト自身が親リポジトリの docs/ の下にあるときに全部を docs/ と誤認しないため。
     親だけを実パスに解決する。rm / mv が操作するのはリンクそのもので、リンク先ではない。
     大文字小文字は区別しない（macOS の既定の FS は区別しない）。
     """
@@ -210,18 +221,22 @@ def project_relative(path, cwd, root):
             return None
         path = os.path.join(cwd, path)
     parent, name = os.path.split(os.path.normpath(path))
-    rel = os.path.relpath(os.path.join(os.path.realpath(parent), name), root).lower()
-    return None if rel == ".." or rel.startswith("../") else rel
+    resolved = os.path.join(os.path.realpath(parent), name)
+    for root in sorted(roots, key=len, reverse=True):
+        rel = os.path.relpath(resolved, root).lower()
+        if rel != ".." and not rel.startswith("../"):
+            return rel
+    return None
 
 
-def relative_locations(path, cwd, root):
+def relative_locations(path, cwd, roots):
     """判定するプロジェクトからの相対パスの一覧。外か、解決できなければ空。
 
     末尾の `/` はリンクをたどる（`rm -rf link/` はリンクを残してリンク先の中身を消す。macOS で確認）ので、リンク先も見る。
     """
-    rels = [project_relative(path, cwd, root)]
+    rels = [project_relative(path, cwd, roots)]
     if path.endswith("/") and (cwd is not None or os.path.isabs(os.path.expanduser(path))):
-        rels.append(project_relative(os.path.realpath(os.path.join(cwd or "", os.path.expanduser(path))), cwd, root))
+        rels.append(project_relative(os.path.realpath(os.path.join(cwd or "", os.path.expanduser(path))), cwd, roots))
     return [r for r in rels if r is not None]
 
 
@@ -257,7 +272,9 @@ def project_roots(start, cwd):
     開始時の場所か今の場所（同じ呼び出しの `cd` の後）が同じリポジトリの中なら、その worktree のルートも足す。
     別のリポジトリなら足さない。プロジェクトがリポジトリの一部なら、リポジトリのルートも足される。
     """
-    root = os.path.realpath(os.environ.get("CLAUDE_PROJECT_DIR") or start)
+    project = os.environ.get("CLAUDE_PROJECT_DIR")
+    started_in = git_location(os.path.realpath(start))
+    root = os.path.realpath(project) if project else (started_in[0] if started_in else os.path.realpath(start))
     roots = [root]
     there = git_location(root)
     if there:
@@ -290,27 +307,48 @@ def removes_project_root(tok, cwd, roots):
     return any(r == real or r.startswith(real.rstrip(os.sep) + os.sep) for r in roots)
 
 
+def expand_braces(tok):
+    """`{a,b}` を展開する。`{}`・`{1..3}` は展開しない。"""
+    m = BRACE_RE.search(tok)
+    if not m:
+        return [tok]
+    return [t for alt in m.group(1).split(",") for t in expand_braces(tok[: m.start()] + alt + tok[m.end() :])]
+
+
+def glob_hits(tok, cwd):
+    """シェルと同じように、今あるファイルに対してグロブを展開する。"""
+    path = os.path.expanduser(tok)
+    if not os.path.isabs(path):
+        if cwd is None:
+            return []
+        path = os.path.join(glob.escape(cwd), path)
+    return glob.glob(path)
+
+
+def path_is_gated(path, cwd, roots):
+    return any(is_claude_md(rel) or under_docs(rel) for rel in relative_locations(path, cwd, roots))
+
+
 def delete_target_is_gated(tok, cwd, roots):
-    return any(target_is_gated_in(tok, cwd, root) for root in roots)
-
-
-def target_is_gated_in(tok, cwd, root):
     """プロジェクトの中の CLAUDE.md（どの階層でも）か、ルートの docs/ の下か。外のパスは当たらない。"""
     meta = PATH_META_RE.search(tok)
     if not meta:
-        return any(is_claude_md(rel) or under_docs(rel) for rel in relative_locations(tok, cwd, root))
+        return path_is_gated(tok, cwd, roots)
 
-    # グロブ・ブレース・変数の手前までは確定している（`docs/$f`・`docs*`・`CLAUDE.md*`）
+    # グロブ・変数の手前までは確定している（`docs/$f`・`docs*`・`CLAUDE.md*`）
     prefix = tok[: meta.start()]
-    rels = relative_locations(prefix or ".", cwd, root)
+    rels = relative_locations(prefix or ".", cwd, roots)
     if not rels:
         return False
     if any(under_docs(rel) or (prefix and is_claude_md(rel)) for rel in rels):
         return True
-    # 名前が書かれていて、手前にグロブがあるだけの形（`*/CLAUDE.md`）。変数は行き先が分からないので見ない
+    # 変数は行き先が分からないので見ない
     if "$" in tok or "`" in tok:
         return False
-    return tok.rsplit("/", 1)[-1].lower() == "claude.md"
+    # 名前が書かれている形（`*/CLAUDE.md`）は、今ファイルが無くても止める
+    if tok.rsplit("/", 1)[-1].lower() == "claude.md":
+        return True
+    return any(path_is_gated(hit, cwd, roots) for hit in glob_hits(tok, cwd))
 
 
 def delete_decision(data):
@@ -343,7 +381,7 @@ def delete_decision(data):
                 cwd = os.path.normpath(os.path.join(cwd or "", target))
         elif head in ("rm", "mv"):
             roots = project_roots(start, cwd)  # git を呼ぶので、rm / mv があったときだけ求める
-            ops = operands(words[1:])
+            ops = [t for w in operands(words[1:]) for t in expand_braces(w)]
             if any(delete_target_is_gated(w, cwd, roots) for w in ops):
                 return "DENY"
             if head == "rm" and is_recursive(words[1:]) and any(removes_project_root(w, cwd, roots) for w in ops):

@@ -30,6 +30,23 @@ REQUIRED_EXCLUDED = {
     "git restore *", "git rm *", "git mv *", "git cherry-pick *", "git revert *",
     "git fetch *", "git pull *", "git push *", "gh pr *", "gh api *", "gh repo view *",
 }
+REQUIRED_ASK = {
+    "Bash(git push*)", "Bash(npx *)", "Bash(rm -r*)",
+    "Edit(./CLAUDE.md)", "Edit(~/.claude/CLAUDE.md)", "Edit(./docs/**)", "Edit(./.claude/**)",
+}
+REQUIRED_DENY = {
+    "Bash(pnpm add *)", "Bash(pnpm remove *)", "Bash(pnpm install)", "Bash(pnpm install *)", "Bash(pnpm i)", "Bash(pnpm i *)", "Bash(pnpm dlx *)",
+    "Bash(npm install)", "Bash(npm install *)", "Bash(npm i)", "Bash(npm i *)", "Bash(npm ci)", "Bash(npm ci *)",
+    "Bash(npx -y *)", "Bash(npx --yes *)",
+    "Bash(yarn add *)", "Bash(yarn install)", "Bash(yarn install *)", "Bash(yarn dlx *)",
+    "Bash(bun add *)", "Bash(bun install)", "Bash(bun install *)", "Bash(bunx *)",
+    "Bash(pip install *)", "Bash(pip3 install *)", "Bash(brew install *)",
+    "Bash(printenv)", "Bash(printenv *)", "Bash(env)",
+    "Read(./.env*)", "Read(./**/.env*)", "Read(./*.env)", "Read(./**/*.env)", "Read(./**/*.pem)", "Read(./**/*.key)",
+    "Read(~/.ssh/**)", "Read(~/.aws/**)", "Read(~/.claude/.credentials.json)",
+    "Bash(rm -rf *)", "Bash(rm -fr *)",
+    "Bash(git push --force*)", "Bash(git push -f*)", "Bash(git push * +*)", "Bash(git reset --hard*)", "Bash(git clean -f*)",
+}
 REQUIRED_DENY_READ = {"./**/.env*", "./**/*.env", "~/.ssh", "~/.aws"}
 REQUIRED_DOMAINS = {"github.com", "*.github.com", "registry.npmjs.org"}
 REMOVED_HOOKS = {"guard-env-read.sh"}
@@ -132,14 +149,28 @@ def check_meta(settings: dict, gated: set[str]) -> str | None:
     return None
 
 
+def check_permissions(settings: dict, gated: set[str]) -> str | None:
+    perms = settings.get("permissions", {})
+    missing_ask = REQUIRED_ASK - set(perms.get("ask", []))
+    missing_deny = REQUIRED_DENY - set(perms.get("deny", []))
+    if missing_ask or missing_deny:
+        return f"必須のルールが無い（ask: {sorted(missing_ask)}・deny: {sorted(missing_deny)}）"
+    return None
+
+
 def check_hooks(settings: dict, gated: set[str]) -> str | None:
     files = hook_files(settings)
     removed = files & REMOVED_HOOKS
     if removed:
         return f"削除した hook が登録されている: {sorted(removed)}"
-    if not {"guard-gated-write.sh", "guard-gated-delete.sh"} <= files:
-        return "guard hook 2 本のどちらかが登録されていない"
-    return None
+    guards = {
+        name
+        for group in settings.get("hooks", {}).get("PreToolUse", [])
+        if group.get("matcher") == "Bash"
+        for name in hook_files({"hooks": group})
+    }
+    missing = {"guard-gated-write.sh", "guard-gated-delete.sh"} - guards
+    return f"guard hook が PreToolUse の matcher Bash に無い: {sorted(missing)}" if missing else None
 
 
 CHECKS: list[tuple[str, Callable[[dict, set[str]], str | None]]] = [
@@ -151,7 +182,8 @@ CHECKS: list[tuple[str, Callable[[dict, set[str]], str | None]]] = [
     ("denyRead が揃っている", check_deny_read),
     ("allowedDomains と allowLocalBinding が決めたとおり", check_domains),
     ("$schema と disableBypassPermissionsMode", check_meta),
-    ("guard hook の登録", check_hooks),
+    ("必須の deny・ask が揃っている", check_permissions),
+    ("guard hook が PreToolUse の matcher Bash にある", check_hooks),
 ]
 
 
@@ -176,6 +208,11 @@ def self_test(settings: dict, gated: set[str]) -> list[str]:
         ("local-binding", check_domains, lambda s: s["sandbox"]["network"].pop("allowLocalBinding")),
         ("meta", check_meta, lambda s: s.pop("$schema")),
         ("hooks", check_hooks, lambda s: s.update(hooks={})),
+        ("hooks-event", check_hooks, lambda s: s["hooks"].update(PostToolUse=s["hooks"].pop("PreToolUse"))),
+        ("hooks-matcher", check_hooks, lambda s: s["hooks"]["PreToolUse"][0].update(matcher="Edit")),
+        ("permissions-deny", check_permissions, lambda s: s["permissions"]["deny"].remove("Bash(git reset --hard*)")),
+        ("permissions-read", check_permissions, lambda s: s["permissions"]["deny"].remove("Read(~/.ssh/**)")),
+        ("permissions-ask", check_permissions, lambda s: s["permissions"]["ask"].remove("Bash(git push*)")),
     ]
     silent = [name for name, fn, broken in cases if fn(mutate(broken), gated) is None]
 

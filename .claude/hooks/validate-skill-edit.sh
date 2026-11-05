@@ -1,20 +1,8 @@
 #!/bin/bash
-# PostToolUse(Edit|Write) hook【マスター専用】: 編集対象に応じた検証を実行し、
-# 違反を exit 2 + stderr で AI に差し戻す。
-#
-# モード:
-#   skill    .claude/skills/**/SKILL.md      → validate_skills.py --skill
-#   template templates/SKILL.template.md     → validate_skills.py --template
-#            （テンプレは name がプレースホルダのため専用モードで検証する）
-#
-# 狙い: アストラル面絵文字（lone surrogate による API 400 クラッシュの実績あり）や
-# frontmatter 違反を「書いた瞬間」に機械検出する。
-#
-# **対象は「リポジトリルート基準の厳密なパス」で判定する。** 広いグロブにすると
-# 無関係な編集が差し戻される（警報疲れを招き、検査を黙らせる修正を誘発する）。
-#
-# scripts/ 配下のスクリプトに依存するため配置先には同送しない。
-# jq / python3 / スクリプト不在時はフェイルオープン（配置先で誤爆させない）。
+# PostToolUse(Edit|Write) hook【マスター専用】: SKILL.md と雛形を書いた瞬間に validate_skills.py で検証し、
+# 違反を exit 2 + stderr で差し戻す（絵文字の lone surrogate は API の 400 クラッシュの原因）。
+# 対象はルート基準の厳密なパスで見る（広いと無関係な編集が差し戻される）。
+# jq・python3・スクリプトが無ければ素通し。
 
 command -v jq >/dev/null 2>&1 || exit 0
 command -v python3 >/dev/null 2>&1 || exit 0

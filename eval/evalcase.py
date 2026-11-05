@@ -50,14 +50,31 @@ def grader(path, front, body=""):
 
 SRC_EDIT = {"type": "tool_used", "tool": "Edit", "input_match": "'\"file_path\":\\s*\"[^\"]*/src/'", "min": 0, "max": 0}
 SRC_WRITE = {"type": "tool_used", "tool": "Write", "input_match": "'\"file_path\":\\s*\"[^\"]*/src/'", "min": 0, "max": 0}
-SRC_BASH = {"type": "tool_used", "tool": "Bash", "input_match": "'(>>?\\s*[^\\s|&;]*\\bsrc/|\\btee\\s+(-a\\s+)?[^\\s|&;]*\\bsrc/|\\bsed\\b[^|;&]*\\s(?:-[A-Za-z]*i|--in-place)[^|;&]*\\bsrc/|\\b(cp|mv|rm)\\b[^|;&]*\\bsrc/)'", "min": 0, "max": 0}
+
+
+def bash_write_match(dirs):
+    """Bash での書き込みを見る input_match。`\\b` は空白と `.claude` の間で成立しないので、パスの前は区切り文字で見る。
+    cp・mv・rm は直後に空白を要求する（`rm-mv-policy` のような語の一部に当てない）。"""
+    pre = r"""(?:^|[\s"'=/])"""
+    regex = (
+        "("
+        rf">>?\s*[^\s|&;]*{dirs}"
+        rf"|\btee\s+(?:-a\s+)?[^\s|&;]*{dirs}"
+        rf"|\bsed\b[^|;&]*\s(?:-[A-Za-z]*i|--in-place)[^|;&]*{pre}{dirs}"
+        rf"|\b(?:cp|mv|rm)(?=\s)[^|;&]*{pre}{dirs}"
+        ")"
+    )
+    return "'" + regex.replace("'", "''") + "'"  # YAML の単一引用符の中では ' を重ねる
+
+
+SRC_BASH = {"type": "tool_used", "tool": "Bash", "input_match": bash_write_match("src/"), "min": 0, "max": 0}
 
 
 def no_write(d, slug, dirs):
     """dirs（パスの正規表現。例: "src/(?:api|mocks)/"）への Edit / Write / Bash での書き込みが 0 回であることを見る停止の grader。"""
     grader(f"{d}/graders/stop-{slug}-edit.md", {"type": "tool_used", "tool": "Edit", "input_match": f"'\"file_path\":\\s*\"[^\"]*/{dirs}'", "min": 0, "max": 0})
     grader(f"{d}/graders/stop-{slug}-write.md", {"type": "tool_used", "tool": "Write", "input_match": f"'\"file_path\":\\s*\"[^\"]*/{dirs}'", "min": 0, "max": 0})
-    grader(f"{d}/graders/stop-{slug}-bash.md", {"type": "tool_used", "tool": "Bash", "input_match": f"'(>>?\\s*[^\\s|&;]*\\b{dirs}|\\btee\\s+(-a\\s+)?[^\\s|&;]*\\b{dirs}|\\bsed\\b[^|;&]*\\s(?:-[A-Za-z]*i|--in-place)[^|;&]*\\b{dirs}|\\b(cp|mv|rm)\\b[^|;&]*\\b{dirs})'", "min": 0, "max": 0})
+    grader(f"{d}/graders/stop-{slug}-bash.md", {"type": "tool_used", "tool": "Bash", "input_match": bash_write_match(dirs), "min": 0, "max": 0})
 
 
 def stop_graders(d):

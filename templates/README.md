@@ -5,6 +5,8 @@
 
 ## 使い方
 
+sandbox の中の Bash は `.claude/skills` に書けない。Claude Code の中では、Claude に Write ツールで `.claude/skills/[new-skill]/SKILL.md` を作ってもらう。手で作るなら、1 は通常のターミナルで流す。
+
 ```bash
 # 1. コピー（ディレクトリ名 = スキル名にする）
 mkdir -p .claude/skills/[new-skill]

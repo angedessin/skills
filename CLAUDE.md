@@ -31,7 +31,7 @@ Tech stack: React / TypeScript / Vitest / React Testing Library / MSW / Playwrig
 ## 自律実行の境界
 
 - `.steering/[task]/` 配下のメモ（decisions.md・skill-issues.md・blockers.md）への追記は承認不要。気づいた時点で書く
-- CLAUDE.md・SKILL.md・docs/・.claude/settings*・.claude/hooks/ への書き込みは承認制。Edit / Write ツールでだけ書く（Bash の sed・python・リダイレクトは ask ゲートを自分で迂回する）
+- CLAUDE.md・docs/・.claude/ への書き込みは承認制。Edit / Write ツールでだけ書く（Bash の sed・python・リダイレクトは ask ゲートを自分で迂回する）
 - 判断基準: (1) git で巻き戻せる (2) 失敗に気づける (3) 影響がタスク内に閉じる — 3 つ全て満たす操作のみ承認なしで実行してよい
 - 課金を伴う実行（`claude plugin eval` など）は、費用の見積もりと無料の代替を示して承認を取ってから
 - `git add` / `git commit` の前に `git status --short` でステージ内容を確認する（サブエージェントが作ったファイルが混入する）
