@@ -12,12 +12,12 @@ Tech stack: React / TypeScript / Vitest / React Testing Library / MSW / Playwrig
 - 段階は Claude が決めて宣言し、迷うときだけ聞く。ユーザーはいつでも変えられる（「ちゃんと設計して」「直接やって」）
 - セッションの開始時は、SessionStart hook が注入するアクティブなタスクをすべて読む。複数あればどれを再開するか聞く
 
-## ブランチ運用（git-flow）
+## ブランチ運用（GitHub flow）
 
-- 統合ブランチは develop。main へは release ブランチで出す。git-flow CLI は使わず素の git（`checkout -b`・`merge --no-ff`）で操作する
-- 作業は develop から `feature/*` を切り、develop へは PR でマージする。typo・1〜2 ファイルの微修正だけは develop へ直接コミットしてよい
+- 統合ブランチは main。作業は main から `feature/*` を切り、main へは PR でマージする。typo・1〜2 ファイルの微修正だけは main へ直接コミットしてよい。素の git（`checkout -b`・`merge --no-ff`）で操作する
+- 大きな変更をマージする前は、main に注釈付きのタグを打ち、説明に役割（戻り先・比較の起点など）を書く
 - 大きなタスクはマージ用の feature ブランチを切り、子ブランチから PR で集める。子ブランチは `feature/x/child` のような階層名にしない（同名ブランチと ref が衝突する）
-- feature ブランチで開始したタスクは、develop へのマージ前にアーカイブまで済ませる（`.steering/` がブランチ間で分岐すると、別のセッションからタスクが見えなくなる）
+- feature ブランチで開始したタスクは、main へのマージ前にアーカイブまで済ませる（`.steering/` がブランチ間で分岐すると、別のセッションからタスクが見えなくなる）
 
 ## スキル管理
 
