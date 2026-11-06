@@ -342,6 +342,21 @@ CASES: list[dict] = [
     {"id": "W84", "hook": "guard-gated-write.sh", "command": 'cp -tdocs a.md', "expect": "ask"},
     {"id": "W85", "hook": "guard-gated-write.sh", "command": 'cp -rt docs a.md', "expect": "ask"},
     {"id": "W86", "hook": "guard-gated-write.sh", "command": 'cp --target-directory docs a.md', "expect": "ask"},
+    # リダイレクトと tee の先のグロブも展開する
+    {"id": "W88", "hook": "guard-gated-write.sh", "command": 'echo x > CLAUD*', "expect": "ask"},
+    {"id": "W89", "hook": "guard-gated-write.sh", "command": 'echo x > [C]LAUDE.md', "expect": "ask"},
+    {"id": "W90", "hook": "guard-gated-write.sh", "command": 'echo x >> doc?/user-guide.md', "expect": "ask"},
+    {"id": "W91", "hook": "guard-gated-write.sh", "command": 'echo x | tee *.md', "expect": "ask"},
+    {"id": "W92", "hook": "guard-gated-write.sh", "command": 'echo x | tee CLAUD*', "expect": "ask"},
+    {"id": "W93", "hook": "guard-gated-write.sh", "command": 'echo x | tee READM*', "expect": "silence"},
+    {"id": "W94", "hook": "guard-gated-write.sh", "command": 'echo x > src/*.ts', "expect": "silence"},
+    # 入力の cwd から、プロジェクトのルートからのパスに直して見る
+    {"id": "W95", "hook": "guard-gated-write.sh", "command": 'cp a user-guide.md', "cwd": "docs", "expect": "ask"},
+    {"id": "W96", "hook": "guard-gated-write.sh", "command": 'sed -i s/a/b/ *.md', "cwd": "docs", "expect": "ask"},
+    {"id": "W97", "hook": "guard-gated-write.sh", "command": 'echo x > user-guide.md', "cwd": "docs", "expect": "ask"},
+    {"id": "W98", "hook": "guard-gated-write.sh", "command": 'echo x > a', "cwd": ".claude/hooks", "expect": "ask"},
+    {"id": "W99", "hook": "guard-gated-write.sh", "command": 'echo x > a.txt', "cwd": "tests", "expect": "silence"},
+    {"id": "W100", "hook": "guard-gated-write.sh", "command": 'ls > ../README.md', "cwd": "docs", "expect": "silence"},
     # 展開が上限を超えたら判定せずに倒す
     {"id": "W87", "hook": "guard-gated-write.sh", "command": "cp a " + "{a,b}" * 20, "expect": "ask"},
     {"id": "A111", "hook": "guard-gated-delete.sh", "command": "rm " + "{a,b}" * 20, "expect": "deny"},
@@ -354,6 +369,7 @@ CASES: list[dict] = [
     {"id": "W66", "hook": "guard-gated-write.sh", "command": 'echo x > .claude/worktrees/x/src/a.txt', "expect": "ask"},
     # 守らない形（default モードでは通常の確認に落ちる。acceptEdits では作業ディレクトリの中の cp・sed・リダイレクトが
     # 確認なしで通りうる（README の「hook と設定」）。cd と連鎖した形の実機の挙動は確かめていない）
+    # 入力の cwd は解決する（W95〜W100）が、同じ呼び出しの中の cd は追わない
     {"id": "W67", "hook": "guard-gated-write.sh", "command": 'cd docs && echo x > a.md', "expect": "silence"},
     {"id": "W68", "hook": "guard-gated-write.sh", "command": 'echo x > $F', "expect": "silence"},
     {"id": "W69", "hook": "guard-gated-write.sh", "command": "bash -c 'echo x > CLAUDE.md'", "expect": "silence"},
@@ -548,7 +564,22 @@ def glob_cases(tmp: Path) -> list[dict]:
     bracket.mkdir()
     (bracket / "CLAUDE.md").write_text("x")
     bracket_base = {"hook": "guard-gated-delete.sh", "cwd": str(bracket), "project": str(bracket)}
+    # cp の最後の引数のグロブは、シェルの並び順に頼らず当たりのすべてを見る（zsh は a.md CLAUDE.md の順）
+    order = tmp / "glob-order"
+    for f in ("a.md", "CLAUDE.md", "src/a.ts", "src/b.ts"):
+        (order / f).parent.mkdir(parents=True, exist_ok=True)
+        (order / f).write_text("x")
+    order_base = {"hook": "guard-gated-write.sh", "cwd": str(order), "project": str(order)}
+    # 承認制のパスがどの並び順でも先頭に来る構成（最後の当たりだけを見る実装は当たらない）
+    first = tmp / "glob-first"
+    first.mkdir()
+    for f in ("CLAUDE.md", "n99.md"):  # n99 は APFS の走査でも CLAUDE.md の後ろに来る
+        (first / f).write_text("x")
+    first_base = {"hook": "guard-gated-write.sh", "cwd": str(first), "project": str(first)}
     return [
+        {**order_base, "id": "GL12", "command": "cp *.md", "expect": "ask"},
+        {**first_base, "id": "GL14", "command": "cp *.md", "expect": "ask"},
+        {**order_base, "id": "GL13", "command": "cp src/*.ts", "expect": "silence"},
         {**bare_base, "id": "GL6", "command": "rm -rf *", "expect": "deny"},
         {**bare_base, "id": "GL7", "command": "rm -rf ./*", "expect": "deny"},
         {**bare_base, "id": "GL8", "command": "rm -rf */", "expect": "deny"},

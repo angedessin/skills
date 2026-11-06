@@ -179,28 +179,41 @@ def write_decision(data, hook_path):
         else:
             pats.append(re.compile(r"(^|/)" + re.escape(g) + r"$", re.I))
 
-    def gated(tok):
-        return any(p.search(tok) for p in pats)
-
     cwd = data.get("cwd") or os.getcwd()
 
+    @functools.lru_cache(maxsize=None)
+    def roots():
+        return project_roots(cwd, cwd)  # git を呼ぶので、書き込み先の候補があったときだけ求める
+
+    def gated(tok):
+        """字面か、入力の cwd から解決したプロジェクトのルートからのパスが当たるか（cwd が docs/ の `> a.md`）。"""
+        if any(p.search(tok) for p in pats):
+            return True
+        if not tok or "$" in tok or "`" in tok:
+            return False
+        rel = project_relative(tok, cwd, roots())
+        return rel is not None and rel != "." and any(p.search(rel) for p in pats)
+
+    def globbed(x):
+        """グロブの当たり（無ければ字面）。シェルの並び順は当てにしない（zsh とロケールで違う）。"""
+        if not PATH_META_RE.search(x) or "$" in x or "`" in x:
+            return [x]
+        absolute = os.path.isabs(os.path.expanduser(x))
+        return [h if absolute else os.path.relpath(h, cwd) for h in glob_hits(x, cwd)] or [x]
+
     def expand(words):
-        """ブレースとグロブを展開する（シェルと同じく語の順を保つ）。当たらないグロブと変数は字面のまま残す。"""
-        out = []
-        for w in words:
-            for x in expand_braces(w):
-                hits = []
-                if PATH_META_RE.search(x) and "$" not in x and "`" not in x:
-                    absolute = os.path.isabs(os.path.expanduser(x))
-                    hits = sorted(h if absolute else os.path.relpath(h, cwd) for h in glob_hits(x, cwd))
-                out += hits or [x]
-        return out
+        """ブレースとグロブを展開する。当たらないグロブと変数は字面のまま残す。"""
+        return [h for w in words for x in expand_braces(w) for h in globbed(x)]
+
+    def last_target(words):
+        """cp の書き込み先の候補。ブレースは順が決まるので最後の候補、グロブは当たりのすべて。"""
+        return globbed(expand_braces(words[-1])[-1]) if words else []
 
     cmd = (data.get("tool_input") or {}).get("command") or ""
     if not cmd:
         return "SILENT"
     segs, targets = parse(cmd)
-    if any(gated(t) for t in targets):
+    if any(gated(t) for t in expand(targets)):
         return "ASK"
     for seg in segs:
         words = command_words(seg)
@@ -208,7 +221,7 @@ def write_decision(data, hook_path):
             continue
         head = command_name(words)
         if head == "tee":
-            if any(gated(w) for w in words[1:] if not w.startswith("-")):
+            if any(gated(w) for w in expand(w for w in words[1:] if not w.startswith("-"))):
                 return "ASK"
         elif head == "cp":
             into = []
@@ -221,7 +234,7 @@ def write_decision(data, hook_path):
                 elif re.match(r"^-[A-Za-z]*t", w):  # -t DIR・-tDIR・-rt DIR
                     rest = w[w.index("t") + 1 :]
                     into += [rest] if rest else nxt
-            if any(gated(w) for w in expand(into) + expand(operands(words[1:]))[-1:]):
+            if any(gated(w) for w in expand(into) + last_target(operands(words[1:]))):
                 return "ASK"
         elif head == "sed":
             if any(w == "--in-place" or w.startswith("--in-place=") or re.match(r"^-[A-Za-z]*[iI]", w) for w in words[1:]):
