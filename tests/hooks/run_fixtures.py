@@ -312,6 +312,28 @@ CASES: list[dict] = [
     {"id": "W59", "hook": "guard-gated-write.sh", "command": 'cp docs/a.md /tmp/', "expect": "silence"},
     {"id": "W60", "hook": "guard-gated-write.sh", "command": 'sed -n 1p docs/x.md', "expect": "silence"},
     {"id": "W61", "hook": "guard-gated-write.sh", "command": "sed -i '' s/a/b/ src/a.ts", "expect": "silence"},
+    # リダイレクトの番号（`2>`）を書き込み先と取り違えない
+    {"id": "W71", "hook": "guard-gated-write.sh", "command": 'cp /tmp/x CLAUDE.md 2>/dev/null', "expect": "ask"},
+    {"id": "W72", "hook": "guard-gated-write.sh", "command": 'cp /tmp/x docs/a.md 2>&1', "expect": "ask"},
+    {"id": "W73", "hook": "guard-gated-write.sh", "command": 'cp a CLAUDE.md 1>&2', "expect": "ask"},
+    {"id": "W74", "hook": "guard-gated-write.sh", "command": 'cp a .claude/settings.json >/dev/null 2>&1', "expect": "ask"},
+    {"id": "W75", "hook": "guard-gated-write.sh", "command": 'cp a /tmp/x 2>/dev/null', "expect": "silence"},
+    # cp・sed -i の対象のグロブとブレースは、今あるファイルに対して展開する
+    {"id": "W76", "hook": "guard-gated-write.sh", "command": "sed -i '' s/a/b/ *.md", "expect": "ask"},
+    {"id": "W77", "hook": "guard-gated-write.sh", "command": "sed -i '' s/a/b/ CLAUD*", "expect": "ask"},
+    {"id": "W78", "hook": "guard-gated-write.sh", "command": 'sed -i s/a/b/ {README,CLAUDE}.md', "expect": "ask"},
+    {"id": "W79", "hook": "guard-gated-write.sh", "command": 'cp CLAUDE.md{.bak,}', "expect": "ask"},
+    {"id": "W80", "hook": "guard-gated-write.sh", "command": "sed -i '' s/a/b/ src/*.ts", "expect": "silence"},
+    {"id": "W81", "hook": "guard-gated-write.sh", "command": 'cp {CLAUDE.md,/tmp/x}', "expect": "silence"},
+    # sed と cp の別の書き方
+    {"id": "W82", "hook": "guard-gated-write.sh", "command": "sed -I '' s/a/b/ CLAUDE.md", "expect": "ask"},
+    {"id": "W83", "hook": "guard-gated-write.sh", "command": 'sed --in-place=.bak s/a/b/ CLAUDE.md', "expect": "ask"},
+    {"id": "W84", "hook": "guard-gated-write.sh", "command": 'cp -tdocs a.md', "expect": "ask"},
+    {"id": "W85", "hook": "guard-gated-write.sh", "command": 'cp -rt docs a.md', "expect": "ask"},
+    {"id": "W86", "hook": "guard-gated-write.sh", "command": 'cp --target-directory docs a.md', "expect": "ask"},
+    # 展開が上限を超えたら判定せずに倒す
+    {"id": "W87", "hook": "guard-gated-write.sh", "command": "cp a " + "{a,b}" * 20, "expect": "ask"},
+    {"id": "A111", "hook": "guard-gated-delete.sh", "command": "rm " + "{a,b}" * 20, "expect": "deny"},
     # リダイレクトの種類
     {"id": "W62", "hook": "guard-gated-write.sh", "command": 'ls >& CLAUDE.md', "expect": "ask"},
     {"id": "W63", "hook": "guard-gated-write.sh", "command": 'ls >| CLAUDE.md', "expect": "ask"},
@@ -488,6 +510,28 @@ def link_cases(tmp: Path) -> list[dict]:
         {**linked_base, "id": "L14", "command": "rm -rf docs/", "expect": "deny"},
         {**base, "id": "L15", "command": "rm sub/*", "expect": "deny"},
         {**base, "id": "L16", "command": "rm sub/*.log", "expect": "silence"},
+    ]
+
+
+def glob_cases(tmp: Path) -> list[dict]:
+    """グロブの展開を、中身を決めた tmp のプロジェクトで確かめる（実リポジトリのファイルの有無に左右されない）。"""
+    deep = tmp / "glob-deep"
+    for f in ("CLAUDE.md", "docs/guide/a.md", "sub/a/b/CLAUDE.md", "src/x.md"):
+        (deep / f).parent.mkdir(parents=True, exist_ok=True)
+        (deep / f).write_text("x")
+    many = deep / "many"
+    many.mkdir()
+    for i in range(5001):
+        (many / f"{i}.log").write_text("")
+    base = {"hook": "guard-gated-delete.sh", "cwd": str(deep), "project": str(deep)}
+    return [
+        # `**` は zsh と同じく再帰する
+        {**base, "id": "GL1", "command": "rm -f **/*.md", "expect": "deny"},
+        {**base, "id": "GL2", "command": "rm sub/**/*.md", "expect": "deny"},
+        {**base, "id": "GL3", "command": "rm src/**/*.md", "expect": "silence"},
+        # 当たりが上限を超えたら判定せずに deny
+        {**base, "id": "GL4", "command": "rm many/*.log", "expect": "deny"},
+        {**base, "id": "GL5", "command": "rm many/1*.log", "expect": "silence"},
     ]
 
 
@@ -713,7 +757,7 @@ def main() -> int:
         paths = []
     tmp = Path(tempfile.mkdtemp(prefix="hook-fixtures-")).resolve()
     try:
-        cases = CASES + gated_cases(paths) + link_cases(tmp) + worktree_cases(tmp)
+        cases = CASES + gated_cases(paths) + link_cases(tmp) + glob_cases(tmp) + worktree_cases(tmp)
         for case in cases:
             ok, detail = run_case(case, hooks_dir, tmp)
             status = "PASS" if ok else "FAIL"

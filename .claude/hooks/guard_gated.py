@@ -14,6 +14,7 @@ import re
 import shlex
 import subprocess
 import sys
+import time
 
 REDIRS = {">", ">>", "&>", "&>>", ">|", ">&"}
 INPUT_REDIRS = {"<", "<<", "<<-", "<<<", "<&"}
@@ -27,6 +28,14 @@ WRAPPER_VALUED = {"-u", "-g"}  # env -u NAME / sudo -u USER -g GROUP: 次の語�
 HEREDOC_RE = re.compile(r"""(?<!<)<<(-?)(?!<)\s*(?:'([^']+)'|"([^"]+)"|\\?([A-Za-z_]\w*))""")
 PATH_META_RE = re.compile(r"[*?\[{$`]")
 BRACE_RE = re.compile(r"\{([^{}]*,[^{}]*)\}")
+# hook の timeout（10 秒）を超えると通常の確認に進むので、その手前で止めて deny / ask に倒す
+EXPAND_LIMIT = 1000
+GLOB_LIMIT = 5000
+GLOB_SECONDS = 3
+
+
+class TooMany(Exception):
+    """展開が上限を超えた。判定せずに deny / ask に倒す。"""
 
 
 def strip_heredocs(cmd):
@@ -111,6 +120,8 @@ def parse(cmd):
     i = 0
     while i < len(toks):
         t = toks[i]
+        if (t in REDIRS or t in INPUT_REDIRS) and cur and cur[-1].isdigit():
+            cur.pop()  # `2>`・`1>&2` の番号（shlex は `2` と `>` を分ける）
         if t in REDIRS:
             nxt = toks[i + 1] if i + 1 < len(toks) else ""
             if not (t == ">&" and nxt.isdigit()) and not nxt.startswith("&"):
@@ -171,6 +182,20 @@ def write_decision(data, hook_path):
     def gated(tok):
         return any(p.search(tok) for p in pats)
 
+    cwd = data.get("cwd") or os.getcwd()
+
+    def expand(words):
+        """ブレースとグロブを展開する（シェルと同じく語の順を保つ）。当たらないグロブと変数は字面のまま残す。"""
+        out = []
+        for w in words:
+            for x in expand_braces(w):
+                hits = []
+                if PATH_META_RE.search(x) and "$" not in x and "`" not in x:
+                    absolute = os.path.isabs(os.path.expanduser(x))
+                    hits = sorted(h if absolute else os.path.relpath(h, cwd) for h in glob_hits(x, cwd))
+                out += hits or [x]
+        return out
+
     cmd = (data.get("tool_input") or {}).get("command") or ""
     if not cmd:
         return "SILENT"
@@ -186,14 +211,21 @@ def write_decision(data, hook_path):
             if any(gated(w) for w in words[1:] if not w.startswith("-")):
                 return "ASK"
         elif head == "cp":
-            ops = operands(words[1:])
-            into = [w.split("=", 1)[1] for w in words if w.startswith("--target-directory=")]
-            into += [words[k + 1] for k, w in enumerate(words[:-1]) if w == "-t"]
-            if any(gated(w) for w in into + ops[-1:]):
+            into = []
+            for k, w in enumerate(words[1:], 1):
+                nxt = words[k + 1 : k + 2]
+                if w.startswith("--target-directory="):
+                    into.append(w.split("=", 1)[1])
+                elif w == "--target-directory":
+                    into += nxt
+                elif re.match(r"^-[A-Za-z]*t", w):  # -t DIR・-tDIR・-rt DIR
+                    rest = w[w.index("t") + 1 :]
+                    into += [rest] if rest else nxt
+            if any(gated(w) for w in expand(into) + expand(operands(words[1:]))[-1:]):
                 return "ASK"
         elif head == "sed":
-            if any(w == "--in-place" or w.startswith("--in-place=") or re.match(r"^-[A-Za-z]*i", w) for w in words[1:]):
-                if any(gated(w) for w in operands(words[1:])):
+            if any(w == "--in-place" or w.startswith("--in-place=") or re.match(r"^-[A-Za-z]*[iI]", w) for w in words[1:]):
+                if any(gated(w) for w in expand(operands(words[1:]))):
                     return "ASK"
         elif head == "git":
             k, cdir = 1, ""
@@ -308,21 +340,39 @@ def removes_project_root(tok, cwd, roots):
 
 
 def expand_braces(tok):
-    """`{a,b}` を展開する。`{}`・`{1..3}` は展開しない。"""
-    m = BRACE_RE.search(tok)
-    if not m:
-        return [tok]
-    return [t for alt in m.group(1).split(",") for t in expand_braces(tok[: m.start()] + alt + tok[m.end() :])]
+    """`{a,b}` を語の順を保って展開する。`{}`・`{1..3}` は展開しない。上限を超えたら TooMany。"""
+    words = [tok]
+    while True:
+        out, changed = [], False
+        for t in words:
+            m = BRACE_RE.search(t)
+            if m:
+                changed = True
+                out += [t[: m.start()] + alt + t[m.end() :] for alt in m.group(1).split(",")]
+            else:
+                out.append(t)
+            if len(out) > EXPAND_LIMIT:
+                raise TooMany(tok)
+        if not changed:
+            return out
+        words = out
 
 
 def glob_hits(tok, cwd):
-    """シェルと同じように、今あるファイルに対してグロブを展開する。"""
+    """今あるファイルに対してグロブを展開する。`**` は zsh と同じく再帰する（bash の既定より広く見る）。
+
+    当たりを 1 件ずつ返すので、呼び出し側は最初に当たった時点で止められる。上限の件数か時間を超えたら TooMany。
+    """
     path = os.path.expanduser(tok)
     if not os.path.isabs(path):
         if cwd is None:
-            return []
+            return
         path = os.path.join(glob.escape(cwd), path)
-    return glob.glob(path)
+    deadline = time.monotonic() + GLOB_SECONDS
+    for n, hit in enumerate(glob.iglob(path, recursive=True)):
+        if n >= GLOB_LIMIT or time.monotonic() > deadline:
+            raise TooMany(tok)
+        yield hit
 
 
 def path_is_gated(path, cwd, roots):
@@ -391,10 +441,12 @@ def delete_decision(data):
 
 def main():
     data = json.load(sys.stdin)
-    if sys.argv[1] == "write":
-        print(write_decision(data, sys.argv[2]))
-    else:
-        print(delete_decision(data))
+    write = sys.argv[1] == "write"
+    try:
+        verdict = write_decision(data, sys.argv[2]) if write else delete_decision(data)
+    except TooMany:
+        verdict = "ASK" if write else "DENY"
+    print(verdict)
 
 
 if __name__ == "__main__":
