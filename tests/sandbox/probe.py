@@ -75,6 +75,18 @@ def blocked_rename(path: Path) -> str | None:
     return f"動かせてしまう: {path}"
 
 
+def rename_control(path: Path) -> str | None:
+    """同じ方法で、書ける場所の rename は通る（動かせない検査が別の理由の PermissionError で通らないための対照）。"""
+    path.write_text("x")
+    moved = path.with_name(path.name + ".sandbox-probe")
+    try:
+        os.rename(path, moved)
+        os.rename(moved, path)
+    except OSError as e:
+        return f"書ける場所で rename できない: {path}（{type(e).__name__}）"
+    return None
+
+
 def unreadable_by_cat(path: Path) -> str | None:
     """出力の中身ではなく終了コードで見る。空のファイルが残っていても、読めれば落ちる。"""
     p = run(["cat", str(path)])
@@ -201,6 +213,7 @@ def main() -> int:
         ("作れない: .claude/hooks の新しいファイル", lambda: blocked_new_file(ROOT / ".claude/hooks/.sandbox-probe-new")),
         ("作れない: .claude/skills の新しいファイル", lambda: blocked_new_file(ROOT / ".claude/skills/.sandbox-probe-new")),
         ("作れない: .claude/agents の新しいファイル", lambda: blocked_new_file(ROOT / ".claude/agents/.sandbox-probe-new")),
+        ("動かせる（対照）: 作業ディレクトリの中", lambda: rename_control(work / "rename.txt")),
         ("動かせない: .claude/hooks", lambda: blocked_rename(ROOT / ".claude/hooks/guard-gated-write.sh")),
         ("動かせない: .claude/skills", lambda: blocked_rename(ROOT / ".claude/skills/steering/SKILL.md")),
         ("動かせない: .claude/agents", lambda: blocked_rename(ROOT / ".claude/agents/review-bug.md")),

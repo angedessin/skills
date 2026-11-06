@@ -28,6 +28,7 @@ HOOKS = ROOT / ".claude" / "hooks"
 # guard-gated-write.sh のヘッダにある対象パスの正本（1 行）。runner はここからケースを自動生成し、
 # permissions.ask との一致は tests/sandbox/check_settings.py で検査する。
 GATED_MARKER_RE = re.compile(r"^# GATED_PATHS:[ \t]*(.+)$", re.MULTILINE)
+SKIP = "SKIP"  # 直接の検査が確かめられなかったときの印（problem の位置に置く）
 
 # expect: "deny" | "ask" | "silence"
 CASES: list[dict] = [
@@ -153,6 +154,10 @@ CASES: list[dict] = [
     {"id": "A82", "hook": "guard-gated-delete.sh", "command": 'rm {CLAUDE,README}.md', "expect": "deny"},
     {"id": "A83", "hook": "guard-gated-delete.sh", "command": 'rm {docs,src}/a.md', "expect": "deny"},
     {"id": "A84", "hook": "guard-gated-delete.sh", "command": 'rm -rf {docs,src}', "expect": "deny"},
+    # 当たる候補が後ろにある形と 2 組の形（先頭だけ・1 組だけの展開では当たらない）
+    {"id": "A112", "hook": "guard-gated-delete.sh", "command": 'rm {README.md,CLAUDE.md}', "expect": "deny"},
+    {"id": "A113", "hook": "guard-gated-delete.sh", "command": 'rm {src,docs}/a.md', "expect": "deny"},
+    {"id": "A114", "hook": "guard-gated-delete.sh", "command": 'rm {x,y}/{a,CLAUDE.md}', "expect": "deny"},
     # 連鎖の演算子
     {"id": "A85", "hook": "guard-gated-delete.sh", "command": 'false || rm CLAUDE.md', "expect": "deny"},
     {"id": "A86", "hook": "guard-gated-delete.sh", "command": 'ls |& rm CLAUDE.md', "expect": "deny"},
@@ -183,6 +188,12 @@ CASES: list[dict] = [
     {"id": "A108", "hook": "guard-gated-delete.sh", "command": "cat <<-END\nit's\n\tEND\nrm CLAUDE.md", "expect": "deny"},
     {"id": "A109", "hook": "guard-gated-delete.sh", "command": "cat <<A >/tmp/a; cat <<B >/tmp/b\nit's\nA\nit's\nB\nrm CLAUDE.md", "expect": "deny"},
     {"id": "B69", "hook": "guard-gated-delete.sh", "command": 'cat <<END\n  END\nrm CLAUDE.md\nEND', "expect": "silence"},
+    {"id": "B81", "hook": "guard-gated-delete.sh", "command": 'cat <<END\n\tEND\nrm CLAUDE.md\nEND', "expect": "silence", "note": "タブを除くのは <<- だけ"},
+    {"id": "A115", "hook": "guard-gated-delete.sh", "command": 'cat <<"EOF" > /tmp/a\nit\'s\nEOF\nrm CLAUDE.md', "expect": "deny"},
+    # 入力のリダイレクトの先は消す対象ではない・ラッパーの値を取るオプション
+    {"id": "B82", "hook": "guard-gated-delete.sh", "command": 'rm x <<< CLAUDE.md', "expect": "silence"},
+    {"id": "B83", "hook": "guard-gated-delete.sh", "command": 'rm x <& CLAUDE.md', "expect": "silence"},
+    {"id": "A116", "hook": "guard-gated-delete.sh", "command": 'sudo -g staff rm CLAUDE.md', "expect": "deny"},
     # 守らない形（レビューで見つけて、判定を増やさないと決めたもの）
     {"id": "B70", "hook": "guard-gated-delete.sh", "command": 'pushd docs && rm x.md', "expect": "silence"},
     {"id": "B71", "hook": "guard-gated-delete.sh", "command": 'xargs -I {} rm docs/{}', "expect": "silence"},
@@ -524,7 +535,23 @@ def glob_cases(tmp: Path) -> list[dict]:
     for i in range(5001):
         (many / f"{i}.log").write_text("")
     base = {"hook": "guard-gated-delete.sh", "cwd": str(deep), "project": str(deep)}
+    # CLAUDE.md も docs/ も無いプロジェクト（ルートごと消す形は、展開の当たりでなく形で止める）
+    bare = tmp / "glob-bare"
+    (bare / "src").mkdir(parents=True)
+    (bare / "src" / "a.ts").write_text("x")
+    bare_base = {"hook": "guard-gated-delete.sh", "cwd": str(bare), "project": str(bare)}
+    # パスにグロブの記号を含むプロジェクト
+    bracket = tmp / "glob[1]"
+    bracket.mkdir()
+    (bracket / "CLAUDE.md").write_text("x")
+    bracket_base = {"hook": "guard-gated-delete.sh", "cwd": str(bracket), "project": str(bracket)}
     return [
+        {**bare_base, "id": "GL6", "command": "rm -rf *", "expect": "deny"},
+        {**bare_base, "id": "GL7", "command": "rm -rf ./*", "expect": "deny"},
+        {**bare_base, "id": "GL8", "command": "rm -rf */", "expect": "deny"},
+        {**bare_base, "id": "GL9", "command": "rm -rf **", "expect": "deny"},
+        {**bare_base, "id": "GL10", "command": "rm -rf src/*", "expect": "silence"},
+        {**bracket_base, "id": "GL11", "command": "rm *.md", "expect": "deny"},
         # `**` は zsh と同じく再帰する
         {**base, "id": "GL1", "command": "rm -f **/*.md", "expect": "deny"},
         {**base, "id": "GL2", "command": "rm sub/**/*.md", "expect": "deny"},
@@ -623,7 +650,8 @@ def check_gated_direct(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str |
     out = []
     for i, (mode, command, code, want) in enumerate(cases, 1):
         args = ["python3", str(script), mode] + ([str(hook)] if mode == "write" else [])
-        p = subprocess.run(args, input=json.dumps(base_payload(command)), capture_output=True, text=True, cwd=str(ROOT), check=False)
+        env = {k: v for k, v in os.environ.items() if k != "CLAUDE_PROJECT_DIR"}  # run_case と同じく継承しない
+        p = subprocess.run(args, input=json.dumps(base_payload(command)), capture_output=True, text=True, cwd=str(ROOT), env=env, check=False)
         ok = p.returncode == code and p.stdout.strip() == want
         out.append((f"P{i}", f"guard_gated.py {mode}: {command}", None if ok else f"exit {p.returncode}; stdout={p.stdout!r}; 期待 exit {code} {want!r}"))
     return out
@@ -642,22 +670,25 @@ def check_session_start(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str 
     expect_empty("SS1", ".steering/ が無ければ何も出さない")
     (project / ".steering" / "archived" / "old").mkdir(parents=True)
     expect_empty("SS2", "archived だけなら何も出さない")
-    (project / ".steering" / '2026-a"b').mkdir()
-    (project / ".steering" / "2026-c").mkdir()
+    names = ['2026-a"b', "2026-c\\x", "2026-d"]
+    for name in names:
+        (project / ".steering" / name).mkdir()
     p = run_hook(hook, "", project)
     try:
         context = json.loads(p.stdout)["hookSpecificOutput"]["additionalContext"]
-        bad = None if '2026-a"b' in context and "2026-c" in context and "archived" not in context else f"context={context!r}"
+        bad = None if all(n in context for n in names) and "archived" not in context else f"context={context!r}"
     except (json.JSONDecodeError, KeyError) as e:
         bad = f"{type(e).__name__}; stdout={p.stdout!r}"
-    out.append(("SS3", "タスク名の引用符でも JSON が壊れず、archived を含まない", bad))
+    out.append(("SS3", "タスク名の引用符と \\ でも JSON が壊れず、archived を含まない", bad))
     return out
 
 
 def check_validate_skill_edit(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | None]]:
     hook = hooks_dir / "validate-skill-edit.sh"
-    if not hook.is_file() or not shutil.which("jq"):  # マスター専用。jq が無ければ hook は素通しする
-        return []
+    if not hook.is_file():  # マスター専用
+        return [("VS", "validate-skill-edit.sh が無い", SKIP)]
+    if not shutil.which("jq"):  # jq が無ければ hook は素通しするので、確かめられない
+        return [("VS", "jq が無い", SKIP)]
     project = tmp / "skill-edit"
     skill = project / ".claude" / "skills" / "x" / "SKILL.md"
     other = project / "src" / "a.md"
@@ -667,16 +698,18 @@ def check_validate_skill_edit(hooks_dir: Path, tmp: Path) -> list[tuple[str, str
     validator = project / "scripts" / "validate_skills.py"
     validator.parent.mkdir()
     out = []
+    template = project / "templates" / "SKILL.template.md"
     cases = [
-        ("VS1", "SKILL.md の違反は exit 2 で差し戻す", skill, "sys.exit(1)", 2),
-        ("VS2", "雛形の違反は exit 2 で差し戻す", project / "templates" / "SKILL.template.md", "sys.exit(1)", 2),
-        ("VS3", "違反が無ければ exit 0", skill, "sys.exit(0)", 0),
-        ("VS4", "対象外のファイルは検証しない", other, "sys.exit(1)", 0),
+        ("VS1", "SKILL.md は --skill でディレクトリを渡し、違反は exit 2 で差し戻す", skill, "sys.exit(1)", 2, f"--skill {skill.parent}"),
+        ("VS2", "雛形は --template でファイルを渡し、違反は exit 2 で差し戻す", template, "sys.exit(1)", 2, f"--template {template}"),
+        ("VS3", "違反が無ければ exit 0", skill, "sys.exit(0)", 0, ""),
+        ("VS4", "対象外のファイルは検証しない", other, "sys.exit(1)", 0, ""),
     ]
-    for cid, label, path, body, code in cases:
-        validator.write_text(f"import sys\nprint('violation')\n{body}\n")
+    for cid, label, path, body, code, args in cases:
+        # スタブは受け取った引数を出す
+        validator.write_text(f"import sys\nprint('violation', ' '.join(sys.argv[1:]))\n{body}\n")
         p = run_hook(hook, json.dumps({"tool_input": {"file_path": str(path)}}), project)
-        ok = p.returncode == code and (code == 0 or "violation" in p.stderr)
+        ok = p.returncode == code and (code == 0 or f"violation {args}" in p.stderr)
         out.append((cid, label, None if ok else f"exit {p.returncode}; stderr={p.stderr!r}"))
     return out
 
@@ -767,6 +800,10 @@ def main() -> int:
                 print(f"  {detail}")
                 failed += 1
         direct = [r for check in (check_gated_direct, check_session_start, check_validate_skill_edit) for r in check(hooks_dir, tmp)]
+        skipped = [r for r in direct if r[2] is SKIP]
+        direct = [r for r in direct if r[2] is not SKIP]
+        for cid, label in ((c, l) for c, l, _ in skipped):
+            print(f"SKIP {cid}: {label}")
         for cid, label, problem in direct:
             print(f"{'FAIL' if problem else 'PASS'} {cid}: {label}")
             if problem:
@@ -775,7 +812,7 @@ def main() -> int:
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     total = len(cases) + len(direct) + (1 if not gated_paths(hooks_dir) else 0)
-    print(f"\n{total - failed}/{total} passed")
+    print(f"\n{total - failed}/{total} passed" + (f"（{len(skipped)} 件を SKIP）" if skipped else ""))
     return 1 if failed else 0
 
 
