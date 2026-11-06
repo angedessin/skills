@@ -179,9 +179,9 @@ Last updated: 20261105（昇格の 2 行を入れ、アーカイブした。残�
 
 - [x] （20261105。#21。マージは人）PR 作成（`pr-create` スキルまたは `gh pr create`）
 - [x] ローカルの静的検査が緑（CI は削除済み）（20261105。アーカイブの後に流した）
-- [ ] `feature/skillset-renewal` → develop のマージ（その前にアーカイブを済ませる）
-- [ ] release ブランチで main へ出す
-- PR: #21
+- [x] （20261107。#21。マージは人）`feature/skillset-renewal` → develop のマージ（その前にアーカイブを済ませる）。マージの前に、main と develop の戻り先のタグを説明付きにした（`pre-renewal-main-20261107`・`pre-renewal-20261006`）
+- [x] （20261107。#22。マージは人）develop から main への PR で出す（release ブランチは使わなかった）。これを最後に GitHub flow へ移行した（develop を廃止）
+- PR: #21・#22
 - CI: none
 - Feedback: no
 
