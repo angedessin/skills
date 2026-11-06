@@ -173,3 +173,15 @@
 - acceptEdits の実機の挙動（2・1 の影響）と sandbox の中の実際の rm・mv（29）
 - `gen_design_cases.py`・`gen_impl_cases.py`・`gen_knowledge_cases.py` のケースのデータは通読していない
 - 削除 122 件と `.steering/` の差分は対象外
+
+## 20261105 — PR #21 の対応コミットの再レビュー（`d800a1e...e0b1063`、`.steering/` を除く 19 件）
+
+検証した 27 件のうち 20 件を確かめた（PR のコメントは 18 本。probe の実行結果は指摘にせず、`--in-place=` は小さな要素の抜けにまとめた）。問題ではない 7 件（3・6・7・8・11・15・24）。前回の 28 件は 26 件を resolve し、#1・#2 は残りがあるので開けた。
+
+- High: `cp ... 2>/dev/null` で ask にならない（`guard_gated.py:192`。再現した）
+- Medium: write 側がグロブとブレースを展開しない（`:197`）、`**` が再帰にならない（`:325`）、ブレースのケースが壊れを検出しない（`run_fixtures.py:152`）。いずれも再現した
+- Low: 展開の上限（`:315`）、`sed -I` と cp の GNU の形（`:195`）、grader の幅（`eval/evalcase.py:58`）、`CLAUDE_PROJECT_DIR` の引き継ぎ（`run_fixtures.py:582`）、縮退の説明（`guard-gated-write.sh:14`）、W67 と README のずれ（`run_fixtures.py:322`）、テストの抜け（`guard_gated.py:19,297,324`・`run_fixtures.py:185,601,615,633`）、`blocked_rename` の対照（`probe.py:62`）
+
+ユーザーに確かめること: 守らない形の一覧を hook の冒頭から `run_fixtures.py` へ移したのは、`decisions.md:218` の「コードの隣」と違い、decisions.md に記録が無い。配置先には tests/ を配らないので一覧が読めない。
+
+レビューできなかったもの: acceptEdits の実機、課金の回帰テスト、probe の git object の書き込み（1 件。止めて流した）。
