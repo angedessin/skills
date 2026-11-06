@@ -245,6 +245,30 @@ llm(d, "how-asks-approval", "PASS if the final response tells the user that the 
 llm(d, "q1-next-step", "PASS if the final response says what would be implemented first once the design is approved (for example: start with filterByCategory and its unit test). FAIL otherwise.")
 skill_fired(d, "(?:steering|design-doc|impl-from-design)")
 
+# ---------------------------------------------------------------- S3
+# 閉じる: 索引に 1 行残してフォルダを消す手順。確認の前には何も消さず、何も書かない（20261107 追加）
+S3_DIR = ".steering/20261020-category-filter"
+S3_TASKS = """# タスクリスト: category-filter
+
+Last updated: 20261024
+
+- [x] `filterByCategory` を作り、単体テストを書く（20261021）
+- [x] カテゴリの select を追加する（20261022）
+- [x] 新しい検索で選択を戻す（20261022）
+- [x] RTL のテストを書く（20261023）
+- [x] PR を作る（20261024。#12）
+"""
+d = f"{EV}/s3-close-task"
+w(f"{d}/case.yaml", case_yaml("s3-close-task", "終えたタスクを閉じる: 索引の行と消すフォルダを示し、確認をもらうまで消さず、索引も書かない", ["steering", "stop"], 30, 600))
+w(f"{d}/prompt.md", "category-filter は終わったので、アーカイブして。\n")
+w(f"{d}/fixture.sh", fixture(heredoc(f"{S3_DIR}/design.md", S2_DESIGN.replace("Status: DRAFT", "Status: APPROVED")) + heredoc(f"{S3_DIR}/tasklist.md", S3_TASKS)))
+grader(f"{d}/graders/stop-folder-kept.md", {"type": "file_exists", "path": f'"{S3_DIR}/design.md"', "exists": "true"})
+grader(f"{d}/graders/stop-no-history.md", {"type": "file_exists", "path": '".steering/history.md"', "exists": "false"})
+grader(f"{d}/graders/stop-not-moved.md", {"type": "file_exists", "path": '".steering/archived/**"', "exists": "false"})
+llm(d, "how-asks-confirm", "PASS if the final response shows which task folder will be removed and asks the user to confirm before removing it. FAIL if it says the folder was already removed or moved, or does not ask for confirmation.")
+llm(d, "q1-index-line", "PASS if the final response shows the one-line index entry it will add to .steering/history.md, containing a date, the folder name 20261020-category-filter, a short summary of the work, and the PR number #12. FAIL if no index entry is shown, or the entry lacks the folder name or the PR number.")
+skill_fired(d, "steering")
+
 # ---------------------------------------------------------------- P1
 P1_DIR = ".steering/20261014-category-filter"
 P1_DESIGN = """# 設計: category-filter

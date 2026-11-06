@@ -1,9 +1,9 @@
 ---
 name: steering
-description: ".steering/ にある作業を再開する・状況を確かめる・終えたタスクをアーカイブする。再開では design.md・tasklist.md・decisions.md を読み合わせ、後から変わった方針を反映して次の項目を決める。design.md が DRAFT なら実装せず承認を求めて止まる。"
-when_to_use: "「〜の続きから」「〜を再開して」「〜を実装して」（.steering/ に設計があるもの）「進行中のタスクは？」「steering status」「〜をアーカイブして」など。.steering/ に無い新しい作業の設計は design-doc。"
+description: ".steering/ にある作業を再開する・状況を確かめる・終えたタスクを閉じる（索引に 1 行残してフォルダを消す）。再開では design.md・tasklist.md・decisions.md を読み合わせ、後から変わった方針を反映して次の項目を決める。design.md が DRAFT なら実装せず承認を求めて止まる。"
+when_to_use: "「〜の続きから」「〜を再開して」「〜を実装して」（.steering/ に設計があるもの）「進行中のタスクは？」「steering status」「〜を閉じて」「〜をアーカイブして」など。.steering/ に無い新しい作業の設計は design-doc。"
 metadata:
-  version: "2.0"
+  version: "2.1"
 ---
 
 # steering
@@ -12,7 +12,7 @@ metadata:
 
 - **再開:** 3 ファイルを読み合わせて次の項目を決め、進める。終えたら tasklist.md を更新する
 - **実装の可否:** design.md の Status が `DRAFT` なら実装せず、承認を求めて**ここで止まる**
-- **アーカイブ:** 移す前に確認を取って止まる
+- **閉じる:** 消す前に確認を取って止まる
 
 ## When NOT to use
 
@@ -21,7 +21,7 @@ metadata:
 
 ## タスクの見つけ方
 
-`.steering/` 直下のディレクトリ（`archived/` を除く）がアクティブなタスク。依頼の名前に合うものを選ぶ。複数が当てはまる・どれも当てはまらないときは、候補を示して聞く。`.steering/` が無ければ、そう伝えて design-doc での開始を提案する。
+`.steering/` 直下のディレクトリ（`archived/` を除く）がアクティブなタスク。直下のファイル（`history.md`・`skill-issues.md`）はタスクではない。依頼の名前に合うものを選ぶ。複数が当てはまる・どれも当てはまらないときは、候補を示して聞く。`.steering/` が無ければ、そう伝えて design-doc での開始を提案する。
 
 ## 再開
 
@@ -69,8 +69,23 @@ design.md の Status 行を読む。
 
 アクティブなタスクごとに、Status・tasklist の進み（済み / 全体）・次の項目を 1〜2 行で示す。ファイルは書き換えない。
 
-## アーカイブ
+## 閉じる
 
-1. tasklist.md の未チェックの項目を示す。残っているなら、それでもアーカイブするか聞く
-2. 移す内容（`.steering/[task]/` → `.steering/archived/[task]/`）を示し、確認を求めて**ここで止まる**
-3. 確認をもらったら、`.steering/archived/` が無ければ作り、git 管理下なら `git mv`、そうでなければ通常の移動で移す
+終えたタスクのフォルダは残さない。`.steering/history.md` に 1 行の索引を足して消す。中身は git の履歴から読める。「アーカイブして」と頼まれたときも、この手順で閉じる。
+
+1. tasklist.md の未チェックの項目を示す。残っているなら、それでも閉じるか聞く
+2. `git status --short -- .steering/[task]/` で、コミットしていない変更と追跡していないファイルを見る。あれば示し、先にコミットするか聞く（消すと履歴にも残らない）
+3. タスクのフォルダに skill-issues.md があれば（古い形）、その記録を `.steering/skill-issues.md` の末尾へ移す
+4. 足す索引の行と消すフォルダを示し、確認を求めて**ここで止まる**。索引の行の形:
+   ```
+   - [閉じた日 YYYY-MM-DD] [タスクのフォルダ名] — [何をしたか 1 行]（PR #[番号]。PR が無ければブランチ名）
+   ```
+5. 確認をもらったら、索引の行を `.steering/history.md` の末尾に足す。無ければ、先頭に次の説明を置いて作る:
+   ```
+   # 閉じたタスク
+
+   フォルダは消してある。中身は git の履歴から読む:
+   `git log --diff-filter=D --oneline -- .steering/<フォルダ名>/` で消したコミットを探し、
+   `git show <コミット>^:.steering/<フォルダ名>/design.md` で読む。
+   ```
+6. `git rm -r .steering/[task]/` で消す。git 管理下でなければ、消さずに `.steering/archived/[task]/` へ移す（履歴が無いので、消すと戻せない）

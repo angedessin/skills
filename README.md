@@ -8,7 +8,7 @@
 
 ## 方針
 
-- **スキルは、スキルなしより良い結果になったものだけを残す。** 2026-10 の刷新で、サンプルアプリの課題をスキルなし（A）・現行（B）・書き直し（C）で比べ、A と同点だったスキルは原則として削除した。例外は、同点でも残した `design-doc`・`design-premortem`（手動専用）と、評価していない `pr-create`・`skill-test`（記録: `.steering/archived/20261006-skillset-renewal/decisions.md`、手順: [eval/README.md](eval/README.md)）
+- **スキルは、スキルなしより良い結果になったものだけを残す。** 2026-10 の刷新で、サンプルアプリの課題をスキルなし（A）・現行（B）・書き直し（C）で比べ、A と同点だったスキルは原則として削除した。例外は、同点でも残した `design-doc`・`design-premortem`（手動専用）と、評価していない `pr-create`・`skill-test`（記録: 閉じたタスク `20261006-skillset-renewal` の decisions.md。探し方は `.steering/history.md`。手順: [eval/README.md](eval/README.md)）
 - 残ったのは、ユーザーに決めてもらうことを聞いて止まる・外に出る操作の前で止まる・決まった記録先を守る、という役割のもの
 - 作業の進め方（大きさで 3 段階）は [CLAUDE.md](CLAUDE.md) に行動ルールとして書く。スキルは発動したときの手順だけを持つ
 
@@ -19,9 +19,9 @@
 中くらい     design-doc（会話で設計を示して止まる）→ OK → 実装 → frontend-code-review
 大きな作業   design-doc（.steering/ に design.md を作って止まる）→ /design-premortem（任意）
              → APPROVED → 実装（e2e は主要な流れだけ）→ frontend-code-review
-             → pr-create（push の前で止まる）→ steering でアーカイブ → マージ（人）
+             → pr-create（push の前で止まる）→ steering で閉じる → マージ（人）
 再開         steering（design.md・tasklist.md・decisions.md を読み合わせて次の項目を示す）
-振り返り     session-retrospective → .steering/[task]/skill-issues.md → 頼まれたら改善の案
+振り返り     session-retrospective → .steering/skill-issues.md → 頼まれたら改善の案
 ```
 
 ## スキル
@@ -30,7 +30,7 @@
 |---|---|---|
 | [`design-doc`](.claude/skills/design-doc/SKILL.md) | 設計を書く。ユーザーにしか決められないことを聞く。大きな作業は `.steering/` に design.md（DRAFT）と tasklist.md を作る | 設計を示したところ（承認まで実装しない） |
 | [`design-premortem`](.claude/skills/design-premortem/SKILL.md) | 書いた design.md を、文脈を持たない攻撃役に読ませて穴を追記する。**手動専用**（`/design-premortem` で呼ぶ） | 所見を追記したところ（承認はしない） |
-| [`steering`](.claude/skills/steering/SKILL.md) | `.steering/` のタスクの再開・一覧・アーカイブ | DRAFT のときは実装しない。アーカイブの前に確認 |
+| [`steering`](.claude/skills/steering/SKILL.md) | `.steering/` のタスクの再開・一覧・閉じる | DRAFT のときは実装しない。閉じる（フォルダを消す）前に確認 |
 | [`e2e`](.claude/skills/e2e/SKILL.md) | E2E テストを主要な流れに絞って書く・レビューする | レビューは直さずに返す |
 | [`frontend-code-review`](.claude/skills/frontend-code-review/SKILL.md) | バグ担当 2・規約担当 1（＋該当時に UI と a11y・テスト）で一次レビューし、検証役が確かめた指摘だけを返す | 指摘を返したところ（コードは直さない） |
 | [`pr-create`](.claude/skills/pr-create/SKILL.md) | コミットとブランチを整え、差分から PR のタイトルと本文を書く | push と PR 作成の前。マージはしない |
