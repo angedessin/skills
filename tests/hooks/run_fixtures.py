@@ -357,6 +357,23 @@ CASES: list[dict] = [
     {"id": "W98", "hook": "guard-gated-write.sh", "command": 'echo x > a', "cwd": ".claude/hooks", "expect": "ask"},
     {"id": "W99", "hook": "guard-gated-write.sh", "command": 'echo x > a.txt', "cwd": "tests", "expect": "silence"},
     {"id": "W100", "hook": "guard-gated-write.sh", "command": 'ls > ../README.md', "cwd": "docs", "expect": "silence"},
+    # sed のスクリプトと -e・-f の値はファイルとして見ない（cwd が docs/ でも docs/1d と読まない）
+    {"id": "W101", "hook": "guard-gated-write.sh", "command": 'sed -i 1d /tmp/x', "cwd": "docs", "expect": "silence"},
+    {"id": "W102", "hook": "guard-gated-write.sh", "command": 'sed -i s/a/b/ /tmp/x', "cwd": "docs", "expect": "silence"},
+    {"id": "W103", "hook": "guard-gated-write.sh", "command": 'sed -i s/a/b/ ../src/a.ts', "cwd": "docs", "expect": "silence"},
+    {"id": "W104", "hook": "guard-gated-write.sh", "command": 'sed -i -e 1d -- /tmp/x', "cwd": "docs", "expect": "silence"},
+    {"id": "W105", "hook": "guard-gated-write.sh", "command": "sed -i '' -e 1d -f x.sed /tmp/x", "cwd": "docs", "expect": "silence"},
+    {"id": "W106", "hook": "guard-gated-write.sh", "command": 'sed -ni -e1d --expression=2d /tmp/x', "cwd": "docs", "expect": "silence"},
+    {"id": "W113", "hook": "guard-gated-write.sh", "command": 'sed -i --expression 1d /tmp/x', "cwd": "docs", "expect": "silence"},
+    {"id": "W114", "hook": "guard-gated-write.sh", "command": 'sed -i.bef 1d /tmp/x', "cwd": "docs", "expect": "silence", "note": "-i の後ろの e・f は拡張子"},
+    {"id": "W115", "hook": "guard-gated-write.sh", "command": "sed -i '' 1d /tmp/x", "cwd": "docs", "expect": "silence", "note": "BSD の -i '' の空の拡張子"},
+    # スクリプトを外しても、対象のファイルは見る
+    {"id": "W107", "hook": "guard-gated-write.sh", "command": 'sed -i -e 1d CLAUDE.md', "expect": "ask"},
+    {"id": "W108", "hook": "guard-gated-write.sh", "command": 'sed -i -f x.sed docs/x.md', "expect": "ask"},
+    {"id": "W109", "hook": "guard-gated-write.sh", "command": 'sed -i -ne 1d -- CLAUDE.md', "expect": "ask"},
+    {"id": "W110", "hook": "guard-gated-write.sh", "command": 'sed --expression 1d -i docs/x.md', "expect": "ask"},
+    {"id": "W111", "hook": "guard-gated-write.sh", "command": 'sed -i.bef 1d CLAUDE.md', "expect": "ask", "note": "-i の後ろの e・f は拡張子"},
+    {"id": "W112", "hook": "guard-gated-write.sh", "command": 'sed -i 1d a.md', "cwd": "docs", "expect": "ask"},
     # 展開が上限を超えたら判定せずに倒す
     {"id": "W87", "hook": "guard-gated-write.sh", "command": "cp a " + "{a,b}" * 20, "expect": "ask"},
     {"id": "A111", "hook": "guard-gated-delete.sh", "command": "rm " + "{a,b}" * 20, "expect": "deny"},

@@ -167,6 +167,36 @@ def operands(words):
     return [w for w in words if not w.startswith("-") or w == "-"]
 
 
+def sed_files(args):
+    """sed の対象のファイル。スクリプト（-e・-f が無いときの最初の語）と -e・-f の値は除く。
+
+    短いオプションの並びは 1 文字ずつ読む: `i` の後ろは拡張子（`-i.bak`）、`e`・`f` の後ろか次の語が値（`-ne 1d`）。
+    空の語は BSD の `-i ''` の拡張子なので除く。
+    """
+    files, script, k = [], False, 0
+    while k < len(args):
+        w = args[k]
+        k += 1
+        if w == "--":
+            files += args[k:]
+            break
+        if w in ("--expression", "--file"):
+            script, k = True, k + 1
+        elif w.startswith(("--expression=", "--file=")):
+            script = True
+        elif w.startswith("-") and w != "-":
+            for j, c in enumerate(w[1:], 1):
+                if c == "i":
+                    break
+                if c in "ef":
+                    script = True
+                    k += 1 if j == len(w) - 1 else 0
+                    break
+        elif w:
+            files.append(w)
+    return files if script else files[1:]
+
+
 def write_decision(data, hook_path):
     with open(hook_path, encoding="utf-8") as f:
         m = re.search(r"^# GATED_PATHS:[ \t]*(.+)$", f.read(), re.M)
@@ -238,7 +268,7 @@ def write_decision(data, hook_path):
                 return "ASK"
         elif head == "sed":
             if any(w == "--in-place" or w.startswith("--in-place=") or re.match(r"^-[A-Za-z]*[iI]", w) for w in words[1:]):
-                if any(gated(w) for w in expand(operands(words[1:]))):
+                if any(gated(w) for w in expand(sed_files(words[1:]))):
                     return "ASK"
         elif head == "git":
             k, cdir = 1, ""
