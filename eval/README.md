@@ -41,7 +41,7 @@ grader の名前の頭は、集計での扱いを表す: `stop-`（停止。3 �
 | スキル | group | ケース | 回数 | 1 実行の実費（評価のとき・ドル） | 見るもの |
 |---|---|---|---|---|---|
 | design-doc | design | `d1-category-filter`・`d2-vague-request`・`d3-small-change` | 3 | 0.2〜0.4 | src に書かずに止まる・聞くべきことを聞く・小さな作業は手順に乗せない |
-| steering | design | `s1-resume`・`s2-unapproved`・`s3-close-task` | 3 | 0.1〜0.35（`s3` は未測定） | 新しい決定を正として再開する・DRAFT なら実装しない・閉じる前に確認して何も消さない |
+| steering | design | `s1-resume`・`s2-unapproved`・`s3-close-task` | 3 | 0.1〜0.35 | 新しい決定を正として再開する・DRAFT なら実装しない・閉じる前に確認して何も消さない |
 | e2e | impl | `e1b-write-e2e-delegated`・`e2-review-e2e` | 3 | 0.3〜0.4 | 主要な流れに絞って書く・レビューでは直さない |
 | frontend-code-review | review | `n1-result-count`・`p2-race`・`r-c-rm-mv-policy` | 1 | 0.8・0.8・2.5 | 誤検知（バグなし）・仕込みバグの検出・過去の差分の検出。agent の結果がそろってから報告する |
 | session-retrospective | knowledge | `s1-session-friction` | 3 | 0.2 | 摩擦を拾い、`.steering/skill-issues.md` に書く |
@@ -51,4 +51,5 @@ grader の名前の頭は、集計での扱いを表す: `stop-`（停止。3 �
 - skill-test はマスターの保守用で、回帰ケースを持たない
 - 削除したスキルのケース（impl-from-design・tdd・knowledge-capture・compound・rule-audit など）は、判定の根拠として残すだけで、回帰テストには使わない
 - 結果の最終回答は `.steering/[task]/` の下に写す（trace は `/private/tmp` にあり、数日で消える）。タスクを閉じるとフォルダごと消えるので、残す結論は PR の本文にも書く
+- `file_exists` の `exists: true` は、フィクスチャが置いたファイルを「無い」と判定する（2.1.319。実行中に作ったファイルは見える）。フィクスチャのファイルが残ったかは、消す・移すコマンドを打っていないか（`tool_used` の `max: 0`）で見る
 - Claude Code 2.1.318 の評価の sandbox では git が動かないことがある（xcrun のキャッシュが作れない）。grader が合格でも、git を使うケースは trace で git が動いたかを見る
