@@ -1,21 +1,8 @@
 #!/bin/bash
-# PostToolUse(Edit|Write) hook: 編集されたファイルだけを format + lint し、
-# 自動修正で解消しない違反を exit 2 + stderr で AI に差し戻す（検証ループの心臓部）。
-# 配置先プロジェクトの設定を実行時に検出する（あれば使う、無ければ素通し）:
-#   biome.json(c)      -> biome check --write   (ts/tsx/js/jsx/json/jsonc/css)
-#   eslint.config.*    -> eslint --fix          (ts/tsx/js/jsx。Biome 設定が無い場合のみ)
-#   stylelint 設定     -> stylelint --fix       (scss/css)
-# 出力は AI が消費する前提: 簡潔形式・カラー無効。
-# 自動修正でファイルが書き換わった場合は additionalContext で 1 行通知する
-# （無音の書き換えは AI のファイル状態を古くし、次の Edit 失敗を招くため）。
-# 品質ゲートでありセキュリティゲートではないため、ツール不在時はフェイルオープン（素通し）。
-#
-# 外部コマンドに依存しない（grep / sed など POSIX 標準ユーティリティのみ。BSD sed でも動くよう
-# GNU 拡張の \| を使わない）。入力 JSON から file_path を取り出すのに解析器を使わず、
-# 最初に現れる "file_path": "..." の値だけを切り出す。
-# 制約: パス自体が二重引用符を含む場合は切り出しに失敗する（実運用では起きない）。ただし
-# 直後の [ -f "$FILE" ] で実在を確認するため、失敗しても素通しになるだけで、
-# 誤ったファイルに lint を走らせることはない（安全側に倒れる）。
+# PostToolUse(Edit|Write) hook: 編集したファイルだけを format + lint し、自動修正で直らない違反を exit 2 + stderr で差し戻す。
+# 配置先の設定を実行時に検出する（biome > eslint、scss/css は stylelint）。ツールが無ければ素通し。
+# 自動修正で書き換えたら additionalContext で通知する（無音だと次の Edit が古い内容で失敗する）。
+# 配置先に依存を増やさないよう、POSIX 標準のコマンドだけで file_path を切り出す。
 
 payload=$(cat)
 [ -z "$payload" ] && exit 0

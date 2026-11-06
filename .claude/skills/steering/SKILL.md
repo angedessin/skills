@@ -1,163 +1,76 @@
 ---
 name: steering
-description: ".steering/ クロスセッションコンテキスト管理のメタスキル。「new task」「start steering」「[task] を再開」「[task] をアーカイブ」「steering status」「進行中タスクは？」と明示的に言われた場合のみ起動。通常のセッション開始で .steering/ を読むだけの場合や design-doc がコンテキスト設定を担っている場合は自動起動しない。"
+description: ".steering/ にある作業を再開する・状況を確かめる・終えたタスクをアーカイブする。再開では design.md・tasklist.md・decisions.md を読み合わせ、後から変わった方針を反映して次の項目を決める。design.md が DRAFT なら実装せず承認を求めて止まる。"
+when_to_use: "「〜の続きから」「〜を再開して」「〜を実装して」（.steering/ に設計があるもの）「進行中のタスクは？」「steering status」「〜をアーカイブして」など。.steering/ に無い新しい作業の設計は design-doc。"
 metadata:
-  version: "1.4"
+  version: "2.0"
 ---
 
-# Steering
+# steering
 
-`.steering/` ディレクトリのライフサイクルを管理するインフラスキル。
-設計・実装ワークフローから独立した独立ツール。
-<!-- validator: no-stop-needed — 本文の「APPROVED」は design.md の Status 値の引用（例示・表示）であり、このスキル自身は承認ゲートを持たない。承認を伴う停止は design-doc / impl-from-design の担当。 -->
+`.steering/[YYYYMMDD]-[task]/` にある作業を、前のセッションの経緯を失わずに続ける。
+
+- **再開:** 3 ファイルを読み合わせて次の項目を決め、進める。終えたら tasklist.md を更新する
+- **実装の可否:** design.md の Status が `DRAFT` なら実装せず、承認を求めて**ここで止まる**
+- **アーカイブ:** 移す前に確認を取って止まる
 
 ## When NOT to use
 
-- `design-doc` スキルが新機能タスクを開始しているとき（そちらが `.steering/` の初期化を担当）
-- 通常のセッション開始で `.steering/` を読むだけのとき（読む → 普通に作業）
-- 別のスキルがすでに `.steering/` を管理しているとき
+- `.steering/` に無い新しい作業 → `design-doc`
+- 小さな作業（typo・数行の修正）→ そのまま進める
 
-## ディレクトリ構造
+## タスクの見つけ方
 
-```
-.steering/
-├── [YYYYMMDD]-[task-name]/
-│   ├── design.md           (必須 — 契約コアに目的/スコープ/完了条件等。DRAFT のみ実装禁止。SPIKE/APPROVED は実装可（SPIKE は外向き不可）。付録は境界マーカー以降)
-│   ├── tasklist.md         (必須 — セッションごとに更新)
-│   ├── decisions.md        (任意 — タスク固有の決定事項)
-│   ├── blockers.md         (任意 — 未解決の問題)
-│   ├── skill-issues.md     (任意 — スキル自体の不具合記録。compound が読む)
-│   ├── investigation.md    (任意 — debug が生成: 障害調査ログ)
-│   ├── review-result.md    (frontend-code-review が生成)
-│   ├── codify-log.md       (compound が生成 — 昇格履歴)
-│   ├── .capture-needed     (フラグ — knowledge-capture 未実行)
-│   ├── .codify-needed      (フラグ — compound 未実行)
-│   ├── pr_capture_done     (フラグ — PR 差分に属する知見の保存済み。アーカイブ条件ではない)
-│   └── capture_done        (フラグ — 最終 knowledge-capture 完了済み。アーカイブのハードストップはこちら)
-└── archived/
-    └── [YYYYMMDD]-[task-name]/   (完了タスク)
-```
+`.steering/` 直下のディレクトリ（`archived/` を除く）がアクティブなタスク。依頼の名前に合うものを選ぶ。複数が当てはまる・どれも当てはまらないときは、候補を示して聞く。`.steering/` が無ければ、そう伝えて design-doc での開始を提案する。
 
-旧構造のタスク（`requirements.md`・`session-log.md` がある）は読み取り時のみ対応する: あれば読む、新規には作らない。
+## 再開
 
-**Status 読み取り規則**: `Status:` 行の最初の語彙トークン（`**` を除く）∈ {DRAFT,SPIKE,APPROVED}。以外・欠落は停止。
-**実装可否の正本**: DRAFT のみ実装禁止。SPIKE/APPROVED は実装可（SPIKE は外向き不可）。詳細は `references/spec.md`。
+### 1. 読み合わせる
 
-詳細仕様: `references/spec.md`
+タスクのディレクトリの次のファイルを読む。ほかのメモは、今の項目に関係するものだけ読む（評価の回答の写しなどは読まない）:
 
----
+- `design.md` — Status と、設計の方針
+- `tasklist.md` — 済んだ項目と次の項目
+- `decisions.md`（あれば）— design.md の後に決まった変更
 
-## モード: init
+**decisions.md・会話の記録・メモが design.md や tasklist.md と食い違うときは、日付の新しい決定を正とする。** design.md や tasklist.md が古いまま残っていることはよくある。食い違いを見つけたら、どちらを採ったかを回答で 1 行述べる。
 
-**トリガー**: "新しいタスク"、"steering を始める"、直接呼び出し
+### 2. 実装してよいか確かめる
 
-1. ユーザーと確認してタスク名を決定（kebab-case、≤5 words）
-2. 日付は今日（YYYYMMDD 形式）
-3. `.steering/[YYYYMMDD]-[task-name]/` を作成
-4. 以下のファイルをテンプレートから生成:
-   - `design.md`（Status: DRAFT — 目的 / スコープ / 完了条件を含む）
-   - `tasklist.md`
-5. 作成したパスを報告
+design.md の Status 行を読む。
 
-**注**: 新機能タスクには `design-doc` スキルを使うこと（こちらの方が詳細なフロー）。
-`steering init` は軽量なコンテキスト設定用。
+| Status | 動き |
+|---|---|
+| `APPROVED` | 次へ進む |
+| `SPIKE` | 試し実装は可。push・PR などの外向きの操作はしない |
+| `DRAFT`・Status が無い・ほかの値 | 実装しない |
 
----
+`DRAFT` などで実装しないときは、未承認であることと、承認されたら最初に何をするか（tasklist の次の項目）を示して**ここで止まる**。「設計はできているから」と言われても、ユーザーが承認を明言するまで実装しない。Status を自分で APPROVED に書き換えない。ユーザーが承認を明言したら、Status を書き換えてから進む。
 
-## モード: resume
+### 3. 次の項目を進める
 
-**トリガー**: "再開"、"[task] の続き"、新セッションで `.steering/` あり
+依頼が「再開して」「状況は？」だけで、何をするかを言っていないときは、進めない。目的・Status・進み（済み / 全体）・反映した決定・次の項目を短く示し、次の項目から進めてよいか確認して**ここで止まる**。
 
-**`.steering/` ディレクトリ自体が無い場合**（このプロジェクトでまだ一度も使っていない）→ その旨を伝えて終了する。再開する対象が存在しないため、**勝手に `.steering/` を作らない**（新規タスクの開始は init モード、または `design-doc` の担当）。アクティブタスクが 0 件の場合も同じ。
+「進めて」「実装して」「次をやって」など、何をするかが分かる依頼なら進める:
 
-1. `.steering/` のアクティブタスク一覧（`archived/` 除外）を確認
-2. 対象タスクの以下を読む:
-   - `design.md`（**契約コアまで**を既定。`<!-- design-doc-boundary: appendix -->` より前の
-     目的・設計と Status。マーカーが無い旧ファイルは全文。旧構造で `requirements.md` があればそれも読む。
-     **操作定義**: ツールがファイル全文を返しても必須入力は境界より前に限定する。可能なら `Read` の
-     `limit` で境界行まで取得する。付録を要約・推論に使ってはならない）
-   - `tasklist.md`（進捗確認）
-   - `blockers.md`（なければ「なし」として扱う）
-   - `decisions.md`（なければ「記録なし」として扱う）
-3. セッションサマリーを表示:
+- tasklist.md の未チェックの最初の項目を、1 で反映した方針で進める。頼まれた数（「1 つ進めて」なら 1 項目）を超えて手を出さない
+- 項目の書き方が古い方針のままなら、項目の文言も新しい方針に直す
 
-```
-## セッション再開: [task-name]
+### 4. tasklist.md を更新する
 
-**目的**: [design.md の目的から一行]
-**設計**: DRAFT / SPIKE / APPROVED
-**進捗**: X/Y tasks チェック済み
+- 終えた項目にチェックを付け、日付と要点を短く添える（例: `（20261026。選択肢は検索結果から作る）`）
+- 途中で止めた項目はチェックせず、どこまで進んだかを書く
+- 方針の変更で項目の中身が変わったなら、項目の文言を直す
+- 先頭に `Last updated:` 行があれば日付を更新する
 
-### 残タスク
-- [ ] [未チェックの項目]
+回答の最後に、やったこと・次の項目・残った論点を短く書く。
 
-### ブロッカー
-[blockers.md の内容、なければ "なし"]
+## 状況の確認
 
-### 最新の決定事項
-[decisions.md の最後のエントリ、なければ "記録なし"]
-```
+アクティブなタスクごとに、Status・tasklist の進み（済み / 全体）・次の項目を 1〜2 行で示す。ファイルは書き換えない。
 
-4. 「何から始めますか？」と確認
+## アーカイブ
 
----
-
-## モード: status
-
-**トリガー**: "steering status"、"進行中のタスクは？"
-
-**`.steering/` ディレクトリ自体が無い場合** → 「このプロジェクトでは `.steering/` を使っていません」と伝えて終了する（エラーにしない・**作らない**）。ディレクトリはあるがアクティブタスクが 0 件の場合は、アーカイブ済みの直近 3 件だけを表示する。
-
-アクティブタスクの一覧テーブルを表示:
-
-```
-## ステアリング状況
-
-### アクティブタスク
-| タスク | 作成日 | Design | 進捗 |
-|--------|--------|--------|------|
-| [name] | [date] | APPROVED | 3/7 |
-| [name] | [date] | SPIKE | 1/5 |
-| [name] | [date] | DRAFT | 0/5 |
-
-### アーカイブ済み（直近3件）
-- [name] — archived [date]
-```
-
-進捗は `tasklist.md` のチェック済み / 全チェックボックス数から計算。
-
----
-
-## モード: archive
-
-**トリガー**: "[task] を完了"、"アーカイブして"、knowledge-capture 実行後
-
-**アーカイブ前チェック**:
-- [ ] `tasklist.md` の全項目がチェック済み
-- [ ] knowledge-capture **ハードストップ**（下記充足判定）
-
-**knowledge-capture 充足判定（ハードストップ）**:
-- **充足**: `capture_done` が存在する、またはユーザーが「知見なしでアーカイブ」と明示した
-- **非充足**: 上記どちらも無い → **ここで止まる**。アーカイブ手順に進まない。knowledge-capture を**最終 capture として**（呼び出し時に「アーカイブ前の最終」と指定して）実行するか、「知見なしでアーカイブ」と明示するかを聞く。マージ前にアーカイブするタスク（デプロイ項目が未チェックのまま）でも、最終と指定すれば `capture_done` が立つ
-- **非充足のままでは通さないもの**: 汎用「省略してアーカイブ」、`tasklist.md` の knowledge-capture `[x]` 単独、`pr_capture_done` 単独（PR 前の分だけで、最終 capture が済んでいない）
-
-チェックを満たしている場合:
-1. `.steering/[date]-[task]` を `.steering/archived/[date]-[task]` に移動
-2. `tasklist.md` の末尾に `Archived: [YYYYMMDD]` を追記
-3. 「アーカイブ完了。`.steering/archived/[task]` に保存されました。」と報告
-
-knowledge-capture 以外のチェックが不足している場合は、不足項目をリストして確認を求める。
-ユーザーが「省略してアーカイブ」と明示した場合は、**knowledge-capture ゲート以外**の未チェック項目をスキップしてアーカイブを実行する（knowledge-capture 未充足なら依然としてここで止まる）。
-
----
-
-## ファイル命名規則
-
-- タスク名: kebab-case、≤5 words、具体的（NG: `task-1` / OK: `user-auth-refresh`）
-- 日付: タスク作成時の YYYYMMDD（アーカイブ時も変えない）
-
-## Related skills
-
-- `design-doc` — 新機能タスクの主要な入口（.steering/ の詳細なフロー付き）
-- `knowledge-capture` — アーカイブ前ハードストップ（`capture_done` または「知見なしでアーカイブ」）
-- `impl-from-design` — 実装フェーズで tasklist.md を更新
+1. tasklist.md の未チェックの項目を示す。残っているなら、それでもアーカイブするか聞く
+2. 移す内容（`.steering/[task]/` → `.steering/archived/[task]/`）を示し、確認を求めて**ここで止まる**
+3. 確認をもらったら、`.steering/archived/` が無ければ作り、git 管理下なら `git mv`、そうでなければ通常の移動で移す

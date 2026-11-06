@@ -9,18 +9,11 @@ __pycache__/
 # スキル配置テスト環境（コミットしない）
 _test/
 
-# 配置先レジストリ（ローカル限定。中身は絶対パス＝ユーザー名/ローカル構造を含む）
-# 雛形は deployments.example.md を追跡する
-/deployments.md
-
 # Editor / OS
 .DS_Store
 .tmp/
 .vscode/
 .claude/settings.local.json
-# .steering ランタイムフラグ（セッション状態。知識は md が持つ）
-.steering/**/.capture-needed
-.steering/**/.codify-needed
-.steering/**/capture_done
-.steering/**/pr_capture_done
-.steering/.last-rule-audit
+
+# tests/sandbox/probe.py の仮ファイル（sandbox の中では消せないので使い回す）
+.env.sandbox-probe

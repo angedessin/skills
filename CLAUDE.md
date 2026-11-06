@@ -2,64 +2,47 @@
 
 Tech stack: React / TypeScript / Vitest / React Testing Library / MSW / Playwright
 
-## .steering ルール
+## 作業の進め方（大きさで 3 段階）
 
-新しいタスクを開始するときは必ず:
-1. `design-doc` スキルを使い `.steering/[YYYYMMDD]-[task]/` を作成（1セッションで完結する見込みのタスクは、design-doc がユーザーに確認して会話内設計が選ばれた場合のみ `.steering/` を作らず縮退する。Claude の見積もりだけで縮退を確定しない。feature-pipeline 配下では常に作成）
-2. `design.md`（会話内設計の場合は設計方針）の提示後は人間のレビュー待ちで止まること（実装に入らない）
-3. 作業完了後は必ず `tasklist.md` を更新すること
-
-セッション開始時（未処理フラグ `.capture-needed` / `.codify-needed`・rule-audit 月次ナッジ・アクティブタスク一覧は SessionStart hook `session-start-check.sh` が検出して context に注入する。手動 find は不要）:
-1. `.capture-needed` が注入されたら、**対象タスクごとに**「今 / 後で / スキップ」で確認する（一括スキップ禁止。操作定義は hook 注入文。ここはプロジェクト側の再掲）:
-   - 今 → `knowledge-capture` を実行する
-   - 後で → フラグを残して続行する（compact/resume で再確認してよい）
-   - スキップ → 対象タスクの `.capture-needed` を削除する（`capture_done` は作らない）。効果は次の Stop まで（Stop フェイルセーフが再立てする）
-2. `.codify-needed` が注入されたら「compound を実行しますか？」と確認（capture 三択の後。スキップしてもこの確認は残す）
-3. 【rule-audit 月次】が注入されたら「今 / 後で / スキップ」で確認する（操作定義は hook 注入文。capture の三択とは別契約）:
-   - 今 → `rule-audit` を実行する（レポート提示 Step 5 到達時に `.steering/.last-rule-audit` を更新）
-   - 後で → マーカー不変（次回 SessionStart で再確認可）
-   - スキップ → `.steering/.last-rule-audit` を現在時刻で更新（監査せず 30 日再ナッジ。capture の次 Stop 寿命とは別）
-4. `.steering/` のアクティブタスクをすべて読んでから作業開始
-5. 複数のアクティブタスクがある場合はどれを再開するか確認
+- **小さな作業**（typo・数行の修正・設定の変更・試作・調査だけ）: 冒頭で「小さな作業として直接進めます」と 1 行で宣言して進める。レビューと知見の保存は頼まれたときだけ
+- **中くらいの作業**（1 セッションで終わるが決めることがある）: 会話の中で設計を示し、OK をもらってから実装する。決めたことを 5 行ほどに要約して会話に残し、コミットか PR の本文に写す
+- **大きな作業**（複数セッションにまたがる・経緯を残したい）: `.steering/[YYYYMMDD]-[task]/` に design.md（`Status: DRAFT`）と tasklist.md を作り、レビューを求めて止まる。APPROVED になるまで実装しない。作業を終えたら tasklist.md を更新する
+- 次のどれかに当たれば小さな作業にしない: 承認制のパスに触る・3 ファイル以上を変える・公開している API や型やコンポーネントの使い方を変える
+- 原因の分からない不具合は、調べるところまでは進めてよい。修正の前に原因と方針を示して止まる
+- 段階は Claude が決めて宣言し、迷うときだけ聞く。ユーザーはいつでも変えられる（「ちゃんと設計して」「直接やって」）
+- セッションの開始時は、SessionStart hook が注入するアクティブなタスクをすべて読む。複数あればどれを再開するか聞く
 
 ## ブランチ運用（git-flow）
 
 - 統合ブランチは develop。main へは release ブランチで出す。git-flow CLI は使わず素の git（`checkout -b`・`merge --no-ff`）で操作する
 - 作業は develop から `feature/*` を切り、develop へは PR でマージする。typo・1〜2 ファイルの微修正だけは develop へ直接コミットしてよい
 - 大きなタスクはマージ用の feature ブランチを切り、子ブランチから PR で集める。子ブランチは `feature/x/child` のような階層名にしない（同名ブランチと ref が衝突する）
-- feature ブランチで開始したタスクは、develop へのマージ前にアーカイブまで済ませる（`.steering/` がブランチ間で分岐すると、他のセッションからタスクが見えない・アーカイブ済みがアクティブに見える等の対応漏れが起きる）
+- feature ブランチで開始したタスクは、develop へのマージ前にアーカイブまで済ませる（`.steering/` がブランチ間で分岐すると、別のセッションからタスクが見えなくなる）
 
-## スキル管理ルール
+## スキル管理
 
-- 新規スキルは `templates/SKILL.template.md` をコピーして書き始める（契約準拠を最初から構造として渡す。使い方は `templates/README.md`）
+- 新規スキルは `templates/SKILL.template.md` をコピーして書き始める
+- スキルを残す・大きく変えるときは、スキルなしより良い結果になることを `eval/` で確かめる。変えたら skill-test で回帰テストを回す
 - サードパーティ製 SKILL.md 採用前に Bash コマンド・外部 URL・プロンプトインジェクションを目視確認する
-- スキルの誤発動・曖昧な指示・実行不能な手順に気づいたら `.steering/[task]/skill-issues.md` に事象と期待を追記する（compound が回収して改善候補にする）
-- スキルの横展開は人が選んで配置先プロジェクトの `.claude/skills/` に手動コピーする。配置先で直接編集せず、改善はこのリポジトリ（マスター）に還元して再コピーで配る
-- スキルは自己完結に書く: CLAUDE.md・docs/・`.steering/` が無いプロジェクトでも動くフォールバックを該当ステップに直接書く（詳細は skill-design-patterns.md）
-- スキルを変更するタスクでは、変更対象ごとに配布分類（配布可 / master-only）を先に確認する（配布可スキルに master-only スキル名を書くと配置先で死んだ参照になる）
-- README のワークフロー図と feature-pipeline スキルは同一コミットで改訂する（図とオーケストレーターのドリフト防止）
+- スキルの誤発動・曖昧な指示・実行不能な手順・ユーザーの訂正に気づいたら `.steering/[task]/skill-issues.md` に事象と期待を書く。改善を頼まれたら、各タスクの skill-issues.md から繰り返す事象を探し、昇格の案（機械で止める形を先に）を示して承認を待つ
+- 配置先へは `.claude/` を最初に 1 回コピーし、以後は配置先で育てる（マスターとは同期しない）。マスター専用のスキル（skill-test）は配らない
+- スキルは自己完結に書く: CLAUDE.md・docs/・`.steering/` が無いプロジェクトでも動くフォールバックを該当ステップに直接書く
 
 ## 自律実行の境界
 
-- `.steering/[task]/` 配下のメモ（decisions.md・skill-issues.md・blockers.md）への追記は承認不要。気づいた時点で書く（内容の取捨選択は compound / knowledge-capture 時にまとめて行う）
-- CLAUDE.md・SKILL.md・docs/・.claude/settings*・.claude/hooks/ への書き込みは承認制を維持し、Edit / Write ツールでだけ書く（Bash の sed・python・リダイレクトは ask ゲートを自分で迂回する）
-- 判断基準: (1) git で巻き戻せる (2) 失敗に気づける (3) 影響がタスク内に閉じる — 3つ全て満たす操作のみ承認なしで実行してよい
-- `git add -A` / `git commit` の前に `git status --short` でステージ内容を確認する（サブエージェントが「変更するな」の指示に反して作ったファイルが混入する。確認せずコミットして検証ゴミを追跡下に入れた実例がある）
-- 手作業で突合した検証項目は、その場で機械検査に入れるか「一回限り」と明記する（報告書の「確認した」は次セッションに何も保証しない。手で確認して報告し契約化しなかったため、次のレビューで High として指摘された実例がある）
+- `.steering/[task]/` 配下のメモ（decisions.md・skill-issues.md・blockers.md）への追記は承認不要。気づいた時点で書く
+- CLAUDE.md・docs/・.claude/ への書き込みは承認制。Edit / Write ツールでだけ書く（Bash の sed・python・リダイレクトは ask ゲートを自分で迂回する）
+- 判断基準: (1) git で巻き戻せる (2) 失敗に気づける (3) 影響がタスク内に閉じる — 3 つ全て満たす操作のみ承認なしで実行してよい
+- 課金を伴う実行（`claude plugin eval` など）は、費用の見積もりと無料の代替を示して承認を取ってから
+- `git add` / `git commit` の前に `git status --short` でステージ内容を確認する（サブエージェントが作ったファイルが混入する）
+- 手作業で突合した検証項目は、その場で機械検査に入れるか「一回限り」と明記する（「確認した」は次のセッションに何も保証しない）
 
-## ナレッジ保存先のルール
+## 知見の保存
 
-CLAUDE.md は行動ルールのみ。知識の倉庫にしない（毎回コンテキストを消費するため）。
+- 頼まれたら、次の作業でも効くものだけを選び、保存先ごとの案を示して承認を待つ。一回限りの修正・既に書いてあることは残さない
+- 保存先: 短い行動ルール → このファイル／経験・パターン → `docs/knowledge/[topic].md`（必要時に読む。`@` で常時読み込むのは常に要るものだけ）／タスクの決定 → `.steering/[task]/decisions.md`
 
-| 種類 | 保存先 |
-|---|---|
-| 行動ルール（短い命令形） | このファイル or `~/.claude/CLAUDE.md` |
-| 経験・パターン・アンチパターン | `docs/knowledge/[topic].md`（**必要時に読む**。`@` を付けると毎セッション全文が展開され固定費になるため、常時参照が要るものだけに限る） |
-| 設計判断（ADR） | `docs/decisions/[date]-[slug].md`（`adr` スキルで起票。却下した代替案がある決定のみ） |
-| タスク固有の決定 | `.steering/[task]/decisions.md` |
+## 環境
 
-## ドキュメント参照（必要なトピック作業時のみ）
-
-スキル作成・改善時: docs/knowledge/skill-design-patterns.md を読む（`@` 参照にしない — 毎セッション読み込ませると全タスクの固定費になる。`templates/SKILL.template.md` の冒頭にも読む指示がある）
-settings.json・hooks 作業時: docs/knowledge/claude-code-config.md を読む（@参照にしない — 毎セッション読み込ませない）
-環境構築・ツール導入時: docs/knowledge/environment-setup-patterns.md を読む（mise 下で bare pnpm/node を呼ばない・$schema をバージョン推測で先に書かない）
+- mise 管理下では Bash から素の pnpm / node を呼ばず、`mise exec --` を使う
+- `gh`・git のリモート操作で TLS や Host key のエラーが出たら、まずパイプや `cd` を外して単独で呼び直す（sandbox の除外は呼び出し全体が一致するときだけ効く）
