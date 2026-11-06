@@ -78,7 +78,7 @@ mise exec -- pnpm run lint         # Biome
 ## hook と設定
 
 - **SessionStart**（`session-start-check.sh`）: `.steering/` のアクティブなタスクの一覧を context に注入する
-- **承認制パスのガード**（`guard-gated-write.sh`・`guard-gated-delete.sh`）: permissions の ask と同じパス（CLAUDE.md・docs/・.claude/。正本は hook 冒頭の `# GATED_PATHS:` 行）への、Bash 経由の書き込み（リダイレクト・`tee`・`cp`・`sed -i`・`git mv`）を ask にする。プロジェクトの中の CLAUDE.md・docs/ への `rm`・`mv` は deny にする（`.claude/` の素の `rm`・`mv` は sandbox が止める）。sandbox には「承認すれば進む」が無く、作業ディレクトリの CLAUDE.md・docs/ も守らないため
+- **承認制パスのガード**（`guard-gated-write.sh`・`guard-gated-delete.sh`）: permissions の ask と同じパス（CLAUDE.md・docs/・.claude/。正本は hook 冒頭の `# GATED_PATHS:` 行）への、Bash 経由の書き込み（リダイレクト・`tee`・`cp`・`sed -i`・`git mv`）を ask にする。プロジェクトの中の CLAUDE.md・docs/ への `rm`・`mv` は deny にする（`.claude/` の素の `rm`・`mv` は sandbox が止める）。sandbox には「承認すれば進む」が無く、作業ディレクトリの CLAUDE.md・docs/ も守らないため。python3 が無いと、書き込みの ask はリダイレクトと `tee` だけになる（`cp`・`sed -i`・`git mv`・`.claude/` は見ない）
 - **品質ゲート**（`post-edit-lint.sh`・`stop-typecheck.sh`・`validate-skill-edit.sh`）
 - **sandbox**（`.claude/settings.json`）: Bash の秘密の読み取り・通信先・書き込み範囲を OS のレベルで制限する。`.env` の読み取りも止めるが、対象はプロジェクトの中だけで、外の `.env` は sandbox では止まらない（20261105 に一回限りで確認）。`autoAllowBashIfSandboxed: false` で、sandbox の中の Bash も通常の確認に乗せる（hook が見ない書き込みを確認なしで通さないため）。ただし公式の説明では、acceptEdits は作業ディレクトリの中の `cp`・`sed` などを確認なしで通す。承認制のパスへの `cp`・`sed -i` を guard hook で ask にしているのはこのため。hook は sandbox の外で動く
 
@@ -144,7 +144,7 @@ cp -n templates/settings.template.json "$DEST/.claude/settings.json"
 | hook | 要るもの（無ければ素通し） | 配るか |
 |---|---|---|
 | `session-start-check.sh` | - | 配る |
-| `guard-gated-write.sh` | python3（無ければ全文 grep に縮退） | 配る |
+| `guard-gated-write.sh` | python3（無ければ全文 grep に縮退。リダイレクトと `tee` だけを見る） | 配る |
 | `guard-gated-delete.sh` | python3 | 配る |
 | `guard_gated.py` | guard hook 2 本が呼ぶ部品 | 配る（部品） |
 | `post-edit-lint.sh` | Biome か ESLint か Stylelint の設定 | 配る |

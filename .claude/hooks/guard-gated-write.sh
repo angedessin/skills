@@ -11,7 +11,8 @@
 #
 # 守る形と守らない形の正本はマスターの tests/hooks/run_fixtures.py。判定は guard_gated.py。
 # 全文は見ない: 入力の transcript_path（~/.claude/projects/...）が .claude/ に常に当たる。
-# 判定できないときは下の全文 grep に縮退する（.claude/ と git mv は見ない）。deny にしないのは誤検知の代償を確認 1 回に抑えるため。
+# 判定できないときは下の全文 grep に縮退する（リダイレクトと tee だけ。.claude/・git mv・cp・sed -i は見ない）。
+# deny にしないのは誤検知の代償を確認 1 回に抑えるため。
 
 payload=$(cat)
 [ -z "$payload" ] && exit 0

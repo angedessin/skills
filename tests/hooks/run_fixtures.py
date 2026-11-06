@@ -352,7 +352,8 @@ CASES: list[dict] = [
     # 誤検知として許容する形（代償は確認 1 回）
     {"id": "W65", "hook": "guard-gated-write.sh", "command": 'grep ">" docs/guide.md', "expect": "ask"},
     {"id": "W66", "hook": "guard-gated-write.sh", "command": 'echo x > .claude/worktrees/x/src/a.txt', "expect": "ask"},
-    # 守らない形（通常の確認に落ちる）
+    # 守らない形（default モードでは通常の確認に落ちる。acceptEdits では作業ディレクトリの中の cp・sed・リダイレクトが
+    # 確認なしで通りうる（README の「hook と設定」）。cd と連鎖した形の実機の挙動は確かめていない）
     {"id": "W67", "hook": "guard-gated-write.sh", "command": 'cd docs && echo x > a.md', "expect": "silence"},
     {"id": "W68", "hook": "guard-gated-write.sh", "command": 'echo x > $F', "expect": "silence"},
     {"id": "W69", "hook": "guard-gated-write.sh", "command": "bash -c 'echo x > CLAUDE.md'", "expect": "silence"},
@@ -410,6 +411,8 @@ CASES: list[dict] = [
         "expect": "silence",
         "no_python": True,
     },
+    {"id": "WP7", "hook": "guard-gated-write.sh", "command": "cp /tmp/x CLAUDE.md", "expect": "silence", "no_python": True, "note": "縮退経路は cp を見ない（W50 と対）"},
+    {"id": "WP8", "hook": "guard-gated-write.sh", "command": "sed -i '' s/a/b/ docs/x.md", "expect": "silence", "no_python": True, "note": "縮退経路は sed -i を見ない（W54 と対）"},
 ]
 
 
