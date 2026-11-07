@@ -53,7 +53,7 @@ claude plugin eval . --case '<ケースの名前 1 つ。省略せずに書く>'
 ## Step 4 — 結果を確かめて報告する
 
 - 結果の JSON を grader ごとの合否で読む（score は `ind-` も混ざるので使わない）
-- 最終回答（trace の `type: result`）を `.steering/[task]/` の下に写す。trace は `/private/tmp` にあり、数日で消える
+- 最終回答（trace の `type: result`）を `.steering/[task]/` の下に写す。trace は `/private/tmp` にあり、数日で消える。タスクを閉じるとフォルダごと消えるので、残す結論は PR の本文にも書く
 - 採点役（llm）の不合格と、怪しい合格は、最終回答を読んで確かめる。採点役の誤りは多い（厳しすぎる方向が多い）
 - 停止の grader が落ちたら、引っかかったコマンドを読む。`$TMPDIR` のコピーの中の書き込みや、読むだけのコマンドで落ちることがある
 

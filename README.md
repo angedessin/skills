@@ -120,6 +120,7 @@ cp -n templates/settings.template.json "$DEST/.claude/settings.json"
 - `permissions.allow` を足すと守りが薄くなる。`excludedCommands` のコマンドは sandbox の外で動き、`git rebase --exec` のように任意の処理も動かせる。`gh api --input` などで `denyRead` のファイルも外へ送れる。今は通常の確認（auto モードでは自動の判定）だけが守っている
 - `gh` は `gh pr`・`gh api`・`gh repo view` だけを sandbox の外に出す。ほかのサブコマンドが要るなら `excludedCommands` に足す。除外が効くのは呼び出し全体が一致するときだけで、パイプ・`cd`・リダイレクトを付けると sandbox の中に残り、TLS や SSH の検証で失敗する。単独で呼び、本文は `--body-file` で渡す
 - `.env` の読み取り禁止は Bash から動かす開発ツールにも効く。Vite の `loadEnv` はエラーを出さずにそのファイルを飛ばすので、値が黙って入らない。追跡している `.env.example` などでは、`git status`・`git add` がエラーを表示したまま rc=0 で終わる。`.env` を使う案件では `sandbox.filesystem.denyRead` を案件に合わせて絞るか、その開発ツールを通常のターミナルで動かす
+- `sandbox.filesystem.allowWrite` の `/private/var/folders/*/*/T/xcrun_db*` は、macOS の `/usr/bin/git`（xcrun の中継役）がツールの場所のキャッシュを書くためのもの。無いと、キャッシュを作り直すたびに `git: error: couldn't create cache file ...` が出る（git は動き rc=0 だが、Claude が失敗と読み違える）。開くのはこのキャッシュファイルだけで、同じ temp の他のファイルには書けない（20261107 に一回限りで確かめた）
 
 ### 依存の一覧
 

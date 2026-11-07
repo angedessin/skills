@@ -52,4 +52,4 @@ grader の名前の頭は、集計での扱いを表す: `stop-`（停止。3 �
 - 削除したスキルのケース（impl-from-design・tdd・knowledge-capture・compound・rule-audit など）は、判定の根拠として残すだけで、回帰テストには使わない
 - 結果の最終回答は `.steering/[task]/` の下に写す（trace は `/private/tmp` にあり、数日で消える）。タスクを閉じるとフォルダごと消えるので、残す結論は PR の本文にも書く
 - `file_exists` の `exists: true` は、フィクスチャが置いたファイルを「無い」と判定する（2.1.319。実行中に作ったファイルは見える）。フィクスチャのファイルが残ったかは、消す・移すコマンドを打っていないか（`tool_used` の `max: 0`）で見る
-- Claude Code 2.1.318 の評価の sandbox では git が動かないことがある（xcrun のキャッシュが作れない）。grader が合格でも、git を使うケースは trace で git が動いたかを見る
+- 評価の sandbox では、素の `git`（macOS の `/usr/bin/git`）が `xcode-select: Failed to locate 'git'` で rc=72 になる（2.1.310〜2.1.319）。評価が作る設定（`/private/tmp/e-*/config/settings.json`）が、`sandbox.credentials.files` で git の本体（`/Library/Developer/CommandLineTools/usr/bin/git` など）を拒否し、`denyRead` で xcrun のキャッシュのある `/var/folders/.../T` を拒否するため。評価の外の通常のセッションでは起きない。モデルが `/usr/local/bin/git` に切り替えると動くが、切り替えずに止まることもある（20261107 の s3 で 3 回中 1 回）。grader が合格でも、git を使うケースは trace で git が動いたかを見る。PATH を変えても直らない
