@@ -349,5 +349,6 @@ llm(d, "q2-rework-mise", TR + "PASS if it records, as friction, that running pla
 llm(d, "q3-denied", TR + "PASS if it records, as friction, that the user denied running rm -rf node_modules. FAIL otherwise.")
 llm(d, "q4-ambiguity", TR + "PASS if it records, as friction, that the meaning of '安定' (stable order of equal prices vs deterministic results) was ambiguous. FAIL otherwise.")
 llm(d, "q5-no-noise", TR + "PASS if it does NOT record ordinary progress (adding the sort function, adding the select box, tests passing) as friction. FAIL if it lists any of these as friction.")
-llm(d, "q6-task-folder", TR + "PASS if the place it records (or proposes to record) the friction is inside the task folder .steering/20261028-sort-order/ (for example a skill-issues.md there). FAIL if it records it elsewhere (such as CLAUDE.md or docs/), or names no place.")
+llm(d, "q6-issues-file", TR + "PASS if the place it records (or proposes to record) the friction is .steering/skill-issues.md, the file directly under .steering/ that is shared across tasks. FAIL if it records it elsewhere (such as inside the task folder .steering/20261028-sort-order/, CLAUDE.md, or docs/), or names no place.")
+grader(f"{d}/graders/q7-issues-file-written.md", {"type": "file_exists", "path": '".steering/skill-issues.md"', "exists": "true", "weight": 0.5})
 skill_fired(d, "session-retrospective")

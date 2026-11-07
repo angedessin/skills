@@ -83,7 +83,8 @@
       "gh repo view *"
     ],
     "filesystem": {
-      "denyRead": ["./**/.env*", "./**/*.env", "~/.ssh", "~/.aws"]
+      "denyRead": ["./**/.env*", "./**/*.env", "~/.ssh", "~/.aws"],
+      "allowWrite": ["/private/var/folders/*/*/T/xcrun_db*"]
     },
     "network": {
       "allowLocalBinding": true,

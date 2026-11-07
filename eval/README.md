@@ -1,6 +1,6 @@
 # eval
 
-skillset-renewal のスキル評価（A・B・C の 3 条件）と、残したスキルの回帰テスト（末尾の節）。課題と採点基準の正本は `.steering/archived/20261006-skillset-renewal/eval-<group>-group.md`（design・impl・review・knowledge）。
+skillset-renewal のスキル評価（A・B・C の 3 条件）と、残したスキルの回帰テスト（末尾の節）。ケースの正本は `gen_<group>_cases.py`。課題と採点基準を決めた経緯は、閉じたタスク `20261006-skillset-renewal` の `eval-<group>-group.md`（design・impl・review・knowledge）にあり、git の履歴から読む（探し方は `.steering/history.md`）。
 
 ## 構成
 
@@ -41,14 +41,15 @@ grader の名前の頭は、集計での扱いを表す: `stop-`（停止。3 �
 | スキル | group | ケース | 回数 | 1 実行の実費（評価のとき・ドル） | 見るもの |
 |---|---|---|---|---|---|
 | design-doc | design | `d1-category-filter`・`d2-vague-request`・`d3-small-change` | 3 | 0.2〜0.4 | src に書かずに止まる・聞くべきことを聞く・小さな作業は手順に乗せない |
-| steering | design | `s1-resume`・`s2-unapproved` | 3 | 0.1〜0.35 | 新しい決定を正として再開する・DRAFT なら実装しない |
+| steering | design | `s1-resume`・`s2-unapproved`・`s3-close-task` | 3 | 0.1〜0.35 | 新しい決定を正として再開する・DRAFT なら実装しない・閉じる前に確認して何も消さない |
 | e2e | impl | `e1b-write-e2e-delegated`・`e2-review-e2e` | 3 | 0.3〜0.4 | 主要な流れに絞って書く・レビューでは直さない |
 | frontend-code-review | review | `n1-result-count`・`p2-race`・`r-c-rm-mv-policy` | 1 | 0.8・0.8・2.5 | 誤検知（バグなし）・仕込みバグの検出・過去の差分の検出。agent の結果がそろってから報告する |
-| session-retrospective | knowledge | `s1-session-friction` | 3 | 0.2 | 摩擦を拾い、タスクのフォルダの skill-issues.md に書く |
+| session-retrospective | knowledge | `s1-session-friction` | 3 | 0.2 | 摩擦を拾い、`.steering/skill-issues.md` に書く |
 | pr-create | pr | `pr1-feature-branch`・`pr2-spike` | 3 | 0.12〜0.18 | push と PR 作成の前で止まる・SPIKE では作らない |
 
 - design-premortem は手動専用（`disable-model-invocation`）で、プロンプトでは発動しないので回帰ケースを持たない。`p1-premortem`・`p2-self-review` は、素のモデルの穴探しを確かめるケースで、スキルの本文は通らない
 - skill-test はマスターの保守用で、回帰ケースを持たない
 - 削除したスキルのケース（impl-from-design・tdd・knowledge-capture・compound・rule-audit など）は、判定の根拠として残すだけで、回帰テストには使わない
-- 結果の最終回答は `.steering/[task]/` の下に写す（trace は `/private/tmp` にあり、数日で消える）
-- Claude Code 2.1.318 の評価の sandbox では git が動かないことがある（xcrun のキャッシュが作れない）。grader が合格でも、git を使うケースは trace で git が動いたかを見る
+- 結果の最終回答は `.steering/[task]/` の下に写す（trace は `/private/tmp` にあり、数日で消える）。タスクを閉じるとフォルダごと消えるので、残す結論は PR の本文にも書く
+- `file_exists` の `exists: true` は、フィクスチャが置いたファイルを「無い」と判定する（2.1.319。実行中に作ったファイルは見える）。フィクスチャのファイルが残ったかは、消す・移すコマンドを打っていないか（`tool_used` の `max: 0`）で見る
+- 評価の sandbox では、素の `git`（macOS の `/usr/bin/git`）が `xcode-select: Failed to locate 'git'` で rc=72 になる（2.1.310〜2.1.319）。評価が作る設定（`/private/tmp/e-*/config/settings.json`）が、`sandbox.credentials.files` で git の本体（`/Library/Developer/CommandLineTools/usr/bin/git` など）を拒否し、`denyRead` で xcrun のキャッシュのある `/var/folders/.../T` を拒否するため。評価の外の通常のセッションでは起きない。モデルが `/usr/local/bin/git` に切り替えると動くが、切り替えずに止まることもある（20261107 の s3 で 3 回中 1 回）。grader が合格でも、git を使うケースは trace で git が動いたかを見る。PATH を変えても直らない

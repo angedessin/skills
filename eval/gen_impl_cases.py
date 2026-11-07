@@ -1,5 +1,5 @@
 """eval/evals/impl/ と reserve/impl/ のケースを生成する（ケースを直すときはこれを直して prepare.sh を流す。生成物はコミットしない）。使い方: python3 -I gen_impl_cases.py "$PWD"
-課題と採点基準の正本は .steering/archived/20261006-skillset-renewal/eval-impl-group.md。"""
+このファイルがケースの正本。課題と採点基準を決めた経緯は、閉じたタスク 20261006-skillset-renewal の eval-impl-group.md（git の履歴。探し方は .steering/history.md）。"""
 import os
 import sys
 

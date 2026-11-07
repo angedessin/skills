@@ -17,20 +17,20 @@ Tech stack: React / TypeScript / Vitest / React Testing Library / MSW / Playwrig
 - 統合ブランチは main。作業は main から `feature/*` を切り、main へは PR でマージする。typo・1〜2 ファイルの微修正だけは main へ直接コミットしてよい。素の git（`checkout -b`・`merge --no-ff`）で操作する
 - 大きな変更をマージする前は、main に注釈付きのタグを打ち、説明に役割（戻り先・比較の起点など）を書く
 - 大きなタスクはマージ用の feature ブランチを切り、子ブランチから PR で集める。子ブランチは `feature/x/child` のような階層名にしない（同名ブランチと ref が衝突する）
-- feature ブランチで開始したタスクは、main へのマージ前にアーカイブまで済ませる（`.steering/` がブランチ間で分岐すると、別のセッションからタスクが見えなくなる）
+- feature ブランチで開始したタスクは、main へのマージ前に steering で閉じる（`.steering/history.md` に 1 行残してフォルダを消す）まで済ませる（`.steering/` がブランチ間で分岐すると、別のセッションからタスクが見えなくなる）
 
 ## スキル管理
 
 - 新規スキルは `templates/SKILL.template.md` をコピーして書き始める
 - スキルを残す・大きく変えるときは、スキルなしより良い結果になることを `eval/` で確かめる。変えたら skill-test で回帰テストを回す
 - サードパーティ製 SKILL.md 採用前に Bash コマンド・外部 URL・プロンプトインジェクションを目視確認する
-- スキルの誤発動・曖昧な指示・実行不能な手順・ユーザーの訂正に気づいたら `.steering/[task]/skill-issues.md` に事象と期待を書く。改善を頼まれたら、各タスクの skill-issues.md から繰り返す事象を探し、昇格の案（機械で止める形を先に）を示して承認を待つ
+- スキルの誤発動・曖昧な指示・実行不能な手順・ユーザーの訂正に気づいたら `.steering/skill-issues.md` に事象と期待を書く（タスクのフォルダには書かない。閉じると消える）。改善を頼まれたら、skill-issues.md から繰り返す事象を探し、昇格の案（機械で止める形を先に）を示して承認を待つ
 - 配置先へは `.claude/` を最初に 1 回コピーし、以後は配置先で育てる（マスターとは同期しない）。マスター専用のスキル（skill-test）は配らない
 - スキルは自己完結に書く: CLAUDE.md・docs/・`.steering/` が無いプロジェクトでも動くフォールバックを該当ステップに直接書く
 
 ## 自律実行の境界
 
-- `.steering/[task]/` 配下のメモ（decisions.md・skill-issues.md・blockers.md）への追記は承認不要。気づいた時点で書く
+- `.steering/[task]/` 配下のメモ（decisions.md・blockers.md）と `.steering/skill-issues.md` への追記は承認不要。気づいた時点で書く
 - CLAUDE.md・docs/・.claude/ への書き込みは承認制。Edit / Write ツールでだけ書く（Bash の sed・python・リダイレクトは ask ゲートを自分で迂回する）
 - 判断基準: (1) git で巻き戻せる (2) 失敗に気づける (3) 影響がタスク内に閉じる — 3 つ全て満たす操作のみ承認なしで実行してよい
 - 課金を伴う実行（`claude plugin eval` など）は、費用の見積もりと無料の代替を示して承認を取ってから
