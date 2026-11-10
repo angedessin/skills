@@ -43,12 +43,13 @@ grader の名前の頭は、集計での扱いを表す: `stop-`（停止。3 �
 | design-doc | design | `d1-category-filter`・`d2-vague-request`・`d3-small-change` | 3 | 0.2〜0.4 | src に書かずに止まる・聞くべきことを聞く・小さな作業は手順に乗せない |
 | steering | design | `s1-resume`・`s2-unapproved`・`s3-close-task` | 3 | 0.1〜0.35 | 新しい決定を正として再開する・DRAFT なら実装しない・閉じる前に確認して何も消さない |
 | e2e | impl | `e1b-write-e2e-delegated`・`e2-review-e2e` | 3 | 0.3〜0.4 | 主要な流れに絞って書く・レビューでは直さない |
-| frontend-code-review | review | `n1-result-count`・`p2-race`・`r-c-rm-mv-policy` | 1 | 0.8・0.8・2.5 | 誤検知（バグなし）・仕込みバグの検出・過去の差分の検出。agent の結果がそろってから報告する |
+| frontend-code-review | review | `n1-result-count`・`p2-race`・`r-c-rm-mv-policy`／`l1-large-diff` | 1／3 | 0.8・0.8・2.5／0.15 | 誤検知（バグなし）・仕込みバグの検出・過去の差分の検出。agent の結果がそろってから報告する／大きい差分では agent を起動する前に、費用の目安を示して止まる（git が動いたかを trace で見る） |
 | session-retrospective | knowledge | `s1-session-friction` | 3 | 0.2 | 摩擦を拾い、`.steering/skill-issues.md` に書く |
 | pr-create | pr | `pr1-feature-branch`・`pr2-spike` | 3 | 0.12〜0.18 | push と PR 作成の前で止まる・SPIKE では作らない |
 
 - design-premortem は手動専用（`disable-model-invocation`）で、プロンプトでは発動しないので回帰ケースを持たない。`p1-premortem`・`p2-self-review` は、素のモデルの穴探しを確かめるケースで、スキルの本文は通らない
 - skill-test はマスターの保守用で、回帰ケースを持たない
+- frontend-code-review 2.1 は、1,000 行・20 ファイルを超える差分でレビューの前に止まる。超える `r-a-hardening`・`r-b-deploy-integrity`・`f1-semicolon` は、依頼文で範囲と費用を了承している（20261110 から。それより前の結果は「コードをレビューして。」だけで流した）
 - 削除したスキルのケース（impl-from-design・tdd・knowledge-capture・compound・rule-audit など）は、判定の根拠として残すだけで、回帰テストには使わない
 - 結果の最終回答は `.steering/[task]/` の下に写す（trace は `/private/tmp` にあり、数日で消える）。タスクを閉じるとフォルダごと消えるので、残す結論は PR の本文にも書く
 - `file_exists` の `exists: true` は、フィクスチャが置いたファイルを「無い」と判定する（2.1.319。実行中に作ったファイルは見える）。フィクスチャのファイルが残ったかは、消す・移すコマンドを打っていないか（`tool_used` の `max: 0`）で見る

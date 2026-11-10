@@ -32,7 +32,7 @@
 | [`design-premortem`](.claude/skills/design-premortem/SKILL.md) | 書いた design.md を、文脈を持たない攻撃役に読ませて穴を追記する。**手動専用**（`/design-premortem` で呼ぶ） | 所見を追記したところ（承認はしない） |
 | [`steering`](.claude/skills/steering/SKILL.md) | `.steering/` のタスクの再開・一覧・閉じる | DRAFT のときは実装しない。閉じる（フォルダを消す）前に確認 |
 | [`e2e`](.claude/skills/e2e/SKILL.md) | E2E テストを主要な流れに絞って書く・レビューする | レビューは直さずに返す |
-| [`frontend-code-review`](.claude/skills/frontend-code-review/SKILL.md) | バグ担当 2・規約担当 1（＋該当時に UI と a11y・テスト）で一次レビューし、検証役が確かめた指摘だけを返す | 指摘を返したところ（コードは直さない） |
+| [`frontend-code-review`](.claude/skills/frontend-code-review/SKILL.md) | バグ担当 2・規約担当 1（＋該当時に UI と a11y・テスト）で一次レビューし、検証役が確かめた指摘だけを返す | 指摘を返したところ（コードは直さない）。差分が大きいときは、費用の目安を示してレビューの前 |
 | [`pr-create`](.claude/skills/pr-create/SKILL.md) | コミットとブランチを整え、差分から PR のタイトルと本文を書く | push と PR 作成の前。マージはしない |
 | [`session-retrospective`](.claude/skills/session-retrospective/SKILL.md) | 訂正・手戻り・拒否・曖昧さを skill-issues.md に記録する | 止まらない（`.steering/` への記録だけ） |
 | [`skill-test`](.claude/skills/skill-test/SKILL.md) | **マスター専用**。静的検査と、`claude plugin eval` の回帰ケースの実行（課金の前に承認） | 課金の実行の前 |
