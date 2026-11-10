@@ -49,6 +49,7 @@ grader の名前の頭は、集計での扱いを表す: `stop-`（停止。3 �
 
 - design-premortem は手動専用（`disable-model-invocation`）で、プロンプトでは発動しないので回帰ケースを持たない。`p1-premortem`・`p2-self-review` は、素のモデルの穴探しを確かめるケースで、スキルの本文は通らない
 - skill-test はマスターの保守用で、回帰ケースを持たない
+- frontend-code-review 2.1 は、1,000 行・20 ファイルを超える差分でレビューの前に止まる。超える `r-a-hardening`・`r-b-deploy-integrity`・`f1-semicolon` は、依頼文で範囲と費用を了承している（20261110 から。それより前の結果は「コードをレビューして。」だけで流した）
 - 削除したスキルのケース（impl-from-design・tdd・knowledge-capture・compound・rule-audit など）は、判定の根拠として残すだけで、回帰テストには使わない
 - 結果の最終回答は `.steering/[task]/` の下に写す（trace は `/private/tmp` にあり、数日で消える）。タスクを閉じるとフォルダごと消えるので、残す結論は PR の本文にも書く
 - `file_exists` の `exists: true` は、フィクスチャが置いたファイルを「無い」と判定する（2.1.319。実行中に作ったファイルは見える）。フィクスチャのファイルが残ったかは、消す・移すコマンドを打っていないか（`tool_used` の `max: 0`）で見る

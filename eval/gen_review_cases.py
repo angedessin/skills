@@ -12,6 +12,7 @@ EV = os.path.join(ROOT, "evals", "review")
 PC = "src/features/products/ProductSearch.tsx"
 PT = "src/features/products/ProductSearch.test.tsx"
 PROMPT = "コードをレビューして。"
+LARGE_OK = "コードをレビューして。大きい差分だけど、範囲と費用は了承しているので全部見て。"
 
 
 REPO = os.path.dirname(os.path.abspath(ROOT))  # マスター（このリポジトリ）。過去の差分の取り出し元
@@ -46,12 +47,13 @@ def planted(cid, desc, files, bug, tags=("planted",)):
     return d
 
 
-def past(cid, desc, before, after, findings, tags=("past",)):
+def past(cid, desc, before, after, findings, tags=("past",), prompt=PROMPT):
     """マスターの before の状態を作業場所に展開してコミットし、after の状態を未コミットの変更として重ねる。
-    findings は (slug, 採点基準) の並び。採点基準が PASS になるのが望ましい結果（真の指摘は「指摘した」、誤検知は「出さなかった」）。"""
+    findings は (slug, 採点基準) の並び。採点基準が PASS になるのが望ましい結果（真の指摘は「指摘した」、誤検知は「出さなかった」）。
+    prompt は依頼文。frontend-code-review 2.1 の大きさの基準（1,000 行・20 ファイル超）を超える差分は LARGE_OK で範囲を了承し、Step 1 で止まらずにレビューさせる。"""
     d = f"{EV}/{cid}"
     w(f"{d}/case.yaml", case_yaml(cid, desc, ["frontend-code-review", *tags], 80, 2400, group="review"))
-    w(f"{d}/prompt.md", PROMPT + "\n")
+    w(f"{d}/prompt.md", prompt + "\n")
     w(f"{d}/fixture.sh", (
         "#!/bin/bash\n"
         "set -euo pipefail\n"
@@ -363,7 +365,7 @@ past("r-a-hardening", "過去の差分 R-a（20260725 skillset-hardening）: 真
     ("t6-truncation", "PASS if it points out that the report truncates text with [:120], so a difference located later in the line (for example around character 192) is not visible. FAIL otherwise."),
     ("t7-word-boundary", "PASS if it points out that removing skill names does not respect word boundaries (for example removing 'adr' also breaks 'adrenaline'). FAIL otherwise."),
     ("t8-stack-words", "PASS if it points out that STACK_WORDS lacks '.test.tsx' / '.spec.tsx' (or that the replacement order breaks them). FAIL otherwise."),
-])
+], prompt=LARGE_OK)  # 30 ファイル・1,926 行
 past("r-b-deploy-integrity", "過去の差分 R-b（20260726 deploy-integrity）: 真の指摘 T9〜T14", "04b912c", "76779ff", [
     ("t9-exit2-masks", "PASS if it points out that in check_asset_consistency.py the exit code 2 for 'no target' swallows FAIL results from other contracts, so the hook stays silent even when something is broken. FAIL otherwise."),
     ("t10-warning-not-shown", "PASS if it points out that a warning documented as always listed is not printed in the default run. FAIL otherwise."),
@@ -371,7 +373,7 @@ past("r-b-deploy-integrity", "過去の差分 R-b（20260726 deploy-integrity）
     ("t12-settings-edit", "PASS if it points out that validate-skill-edit.sh does not trigger the check when .claude/settings.json is edited. FAIL otherwise."),
     ("t13-heredoc-comments", "PASS if it points out that dropping lines starting with '#' also removes lines inside heredocs (and that the shebang is not compared). FAIL otherwise."),
     ("t14-unanchored-glob", "PASS if it points out that the hook's path glob is not anchored, so edits in another worktree (or another path containing the same segment) also trigger it. FAIL otherwise."),
-])
+], prompt=LARGE_OK)  # 9 ファイル・1,281 行
 past("r-c-rm-mv-policy", "過去の差分 R-c（20260806 rm-mv-policy）: 真の指摘 T15〜T19", "57be75a^", "57be75a", [
     ("t15-quoted-path", "PASS if it points out that in guard-gated-delete.sh a path wrapped in double quotes inside the JSON is cut by the [^\"]* pattern, so detection silently fails. FAIL otherwise."),
     ("t16-dir-without-slash", "PASS if it points out that a directory given without a trailing slash (for example 'rm -rf docs/knowledge') is not detected. FAIL otherwise."),
@@ -387,7 +389,7 @@ past("r-d-pr13-mustfix", "過去の差分 R-d（20260807 pr13-mustfix）: 真の
 # ---------------------------------------------------------------- 過去の誤検知（出さないのが望ましい）
 past("f1-semicolon", "過去の誤検知 F1: 空白の無い ; の連鎖で完全一致の検査が素通りする、という実測で否定された High", "2b7fdbe^", "2b7fdbe", [
     ("no-f1", "Background: this was checked by running it; shlex with punctuation_chars=True does split ';' even without spaces, and the four forms were confirmed to be asked. PASS if the review does NOT claim (as a real problem) that commands chained with ';' without spaces slip past the exact-match checks in the guard hooks. FAIL if it makes that claim."),
-], tags=("past", "false-positive"))
+], tags=("past", "false-positive"), prompt=LARGE_OK)  # 19 ファイル・1,082 行
 past("f4-env-example", "過去の誤検知 F4: Read(./.env*) が .env.example まで拒否する、という意図どおりの設定への指摘", "226c14d^", "226c14d", [
     ("no-f4", "Background: denying .env.example together with other .env files is an intentional, safe-side choice. PASS if the review does NOT raise, as a problem to fix, that the Read(./.env*) deny rule also blocks .env.example. FAIL if it does."),
 ], tags=("past", "false-positive"))
