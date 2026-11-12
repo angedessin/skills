@@ -20,6 +20,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -765,6 +766,429 @@ def check_validate_skill_edit(hooks_dir: Path, tmp: Path) -> list[tuple[str, str
     return out
 
 
+def check_typecheck(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | None]]:
+    """stop-typecheck.sh を偽の tsc で流す。状態はケースの間で持ち越す（順番に意味がある）。"""
+    hook = hooks_dir / "stop-typecheck.sh"
+    if not shutil.which("jq"):  # jq が無ければ hook は素通しするので、確かめられない
+        return [("TC", "jq が無い", SKIP)]
+    project = tmp / "typecheck"
+    tsc = project / "node_modules" / ".bin" / "tsc"
+    tsc.parent.mkdir(parents=True)
+    (project / "tsconfig.json").write_text("{}")
+    errors = project / "errors.txt"  # 偽の tsc は、このファイルの中身を出して失敗する。無ければ成功する
+    tsc.write_text(f'#!/bin/bash\n[ -f "{errors}" ] || exit 0\ncat "{errors}"\nexit 2\n')
+    tsc.chmod(0o755)
+    state = tmp / "typecheck-tmpdir"
+    state.mkdir()
+    env = {**os.environ, "CLAUDE_PROJECT_DIR": str(project), "TMPDIR": str(state)}
+
+    def stop(active: bool, session: str = "s1") -> subprocess.CompletedProcess[str]:
+        raw = json.dumps({"session_id": session, "stop_hook_active": active, "cwd": str(project)})
+        return subprocess.run(["bash", str(hook)], input=raw, capture_output=True, text=True, cwd=str(project), env=env, check=False)
+
+    def write_errors(text: str | None) -> None:
+        if text is None:
+            errors.unlink(missing_ok=True)
+        else:
+            errors.write_text(text)
+
+    cases = [
+        # (id, 説明, tsc のエラー, stop_hook_active, session_id, 期待の終了コード)
+        ("TC1", "ほかの hook の差し戻しの後（stop_hook_active）でも、初めての型エラーなら 2", "a.ts(1,1): error TS1\n", True, "s1", 2),
+        ("TC2", "同じエラーの 2 回目は 0 で警告", "a.ts(1,1): error TS1\n", True, "s1", 0),
+        ("TC3", "同じエラーが続く間は 0 のまま（交互に差し戻さない）", "a.ts(1,1): error TS1\n", False, "s1", 0),
+        ("TC4", "エラーが変われば 2", "a.ts(2,1): error TS2\n", True, "s1", 2),
+        ("TC5", "型エラーが無ければ 0", None, False, "s1", 0),
+        ("TC6", "直った後に同じエラーが戻れば、また 2", "a.ts(2,1): error TS2\n", False, "s1", 2),
+        ("TC7", "別のセッションの状態は使わない", "a.ts(2,1): error TS2\n", False, "s2", 2),
+    ]
+    out = []
+    for cid, label, text, active, session, code in cases:
+        write_errors(text)
+        p = stop(active, session)
+        ok = p.returncode == code and (code == 0 or (text or "") in p.stderr) and (text is None or code == 2 or "still failing" in p.stderr)
+        out.append((cid, label, None if ok else f"exit {p.returncode}（期待 {code}）; stderr={p.stderr!r}"))
+    return out
+
+
+# 偽の vitest: `related <file> --run --reporter=json --outputFile=<path>` を受け、
+# node_modules/.fake/related の「<パス> <件数> [落ちるテストのパス...]」の行から、本物と同じ形の json を書く
+# （20261112 に vitest 5.1.0 で確かめた形: 落ちたら numFailedTestSuites と testResults[].status=="failed"）。
+# 呼ばれるたびに .fake/calls に 1 行足す。.fake/sleep があればその秒数だけ眠る（眠るプロセスの pid を .fake/sleep-pid に残す）。
+# .fake/exit があれば json を書かずにその終了コードで終える（道具の故障・設定のエラーのまね）。
+FAKE_VITEST = r"""#!/bin/bash
+here=$(cd "$(dirname "$0")/.." && pwd)
+echo "$*" >> "$here/.fake/calls"
+file=""; out=""
+for a in "$@"; do
+  case "$a" in
+    --outputFile=*) out="${a#--outputFile=}" ;;
+    related|--run|--reporter=*) ;;
+    *) file="$a" ;;
+  esac
+done
+if [ -f "$here/.fake/sleep" ]; then
+  sleep "$(cat "$here/.fake/sleep")" &
+  echo $! > "$here/.fake/sleep-pid"
+  wait
+fi
+if [ -f "$here/.fake/exit" ]; then
+  echo "fake vitest: failed to load config" >&2
+  exit "$(cat "$here/.fake/exit")"
+fi
+line=$(awk -v f="$file" '$1==f' "$here/.fake/related" 2>/dev/null)
+set -- $line
+n=${2:-0}
+shift 2 2>/dev/null || set --
+cwd=$(pwd -P)
+if [ $# -gt 0 ]; then
+  tr=""
+  for t in "$@"; do
+    tr="$tr${tr:+,}{\"name\":\"$cwd/$t\",\"status\":\"failed\",\"message\":\"\",\"assertionResults\":[{\"fullName\":\"case in $t\",\"status\":\"failed\",\"failureMessages\":[\"AssertionError: boom in $t\"]}]}"
+  done
+  printf '{"numTotalTestSuites":%s,"numFailedTestSuites":%s,"numFailedTests":%s,"success":false,"testResults":[%s]}' "$n" "$#" "$#" "$tr" > "$out"
+  exit 1
+fi
+printf '{"numTotalTestSuites":%s,"numFailedTestSuites":0,"numFailedTests":0,"success":true,"testResults":[]}' "$n" > "$out"
+exit 0
+"""
+
+
+def check_test_gate(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | None]]:
+    """stop-test-gate.sh の骨格（判定 1〜4・免除のファイル）。ケースごとに一時的な git リポジトリを作る。"""
+    hook = hooks_dir / "stop-test-gate.sh"
+    if not hook.is_file():
+        return [("GT", "stop-test-gate.sh が無い", "hook missing")]
+    if not shutil.which("jq"):  # jq が無ければ hook は素通しするので、確かめられない
+        return [("GT", "jq が無い", SKIP)]
+    gate_tmp = tmp / "gate-tmpdir"
+    gate_tmp.mkdir()
+    root = tmp / "gate"
+    root.mkdir()
+
+    def git(*args: str, cwd: Path) -> None:
+        subprocess.run(
+            ["git", "-c", "user.name=fixture", "-c", "user.email=fixture@example.com", "-c", "commit.gpgsign=false", *args],
+            cwd=cwd,
+            check=True,
+            capture_output=True,
+        )
+
+    def install_vitest(repo: Path, related: dict[str, int | str]) -> None:
+        vitest = repo / "node_modules" / ".bin" / "vitest"
+        vitest.parent.mkdir(parents=True, exist_ok=True)
+        vitest.write_text(FAKE_VITEST)
+        vitest.chmod(0o755)
+        fake = repo / "node_modules" / ".fake"
+        fake.mkdir(exist_ok=True)
+        (fake / "related").write_text("".join(f"{p} {n}\n" for p, n in related.items()))
+
+    def write(repo: Path, rel: str, text: str = "export {}\n") -> None:
+        f = repo / rel
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text(text)
+
+    def make_repo(name: str, related: dict[str, int | str] | None = None, vitest: bool = True, base_files: dict[str, str] | None = None) -> Path:
+        """main に src/base.ts（と base_files）をコミットし、feature ブランチに移った状態のリポジトリ。"""
+        repo = root / name
+        repo.mkdir()
+        write(repo, ".gitignore", "node_modules/\n")
+        write(repo, "src/base.ts")
+        for rel, text in (base_files or {}).items():
+            write(repo, rel, text)
+        git("init", "-q", "-b", "main", cwd=repo)
+        git("add", ".", cwd=repo)
+        git("commit", "-qm", "init", cwd=repo)
+        git("checkout", "-qb", "feature", cwd=repo)
+        if vitest:
+            install_vitest(repo, related or {})
+        return repo
+
+    def commit(repo: Path, msg: str = "x") -> None:
+        git("add", "-A", cwd=repo)
+        git("commit", "-qm", msg, cwd=repo)
+
+    def stop(repo: Path, cwd: Path | None = None, session: str = "gate", timeout: int | None = None) -> subprocess.CompletedProcess[str]:
+        raw = json.dumps({"session_id": session, "stop_hook_active": False, "cwd": str(cwd or repo)})
+        env = {**os.environ, "CLAUDE_PROJECT_DIR": str(repo), "TMPDIR": str(gate_tmp)}
+        if timeout is not None:
+            env["STOP_TEST_GATE_TIMEOUT"] = str(timeout)
+        return subprocess.run(["bash", str(hook)], input=raw, capture_output=True, text=True, errors="replace", cwd=str(repo), env=env, check=False, timeout=60)
+
+    def calls(repo: Path) -> int:
+        f = repo / "node_modules" / ".fake" / "calls"
+        return len(f.read_text().splitlines()) if f.is_file() else 0
+
+    out: list[tuple[str, str, str | None]] = []
+
+    def expect(cid: str, label: str, p: subprocess.CompletedProcess[str], code: int, *, says: str | None = None, called: int | None = None, repo: Path | None = None) -> None:
+        problems = []
+        if p.returncode != code:
+            problems.append(f"exit {p.returncode}（期待 {code}）")
+        if "\ufffd" in p.stderr:
+            problems.append("stderr に UTF-8 として読めないバイトがある")
+        if says is not None and says not in p.stderr:
+            problems.append(f"stderr に {says!r} が無い")
+        if called is not None and repo is not None and calls(repo) != called:
+            problems.append(f"vitest の呼び出し {calls(repo)} 回（期待 {called}）")
+        out.append((cid, label, f"{'; '.join(problems)}; stderr={p.stderr!r}" if problems else None))
+
+    def exemption(repo: Path, rel: str, lines: str) -> None:
+        write(repo, rel, f"# テストの免除\n\n## テスト不要\n{lines}\n## 失敗を残す\n")
+
+    # 1. 素通し
+    plain = root / "plain"
+    write(plain, "src/a.ts")
+    install_vitest(plain, {})
+    expect("GT1", "git の管理下でなければ素通し", stop(plain), 0, called=0, repo=plain)
+    r = make_repo("no-vitest", vitest=False)
+    write(r, "src/a.ts")
+    expect("GT2", "vitest が無ければ素通し", stop(r), 0)
+
+    # 4. 関係するテストの有無
+    r = make_repo("untested")
+    write(r, "src/a.ts")
+    expect("GT3", "未追跡の実装ファイルに関係するテストが無いと 2（ファイル名を出す）", stop(r), 2, says="src/a.ts", repo=r)
+    r = make_repo("tested", {"src/a.ts": 1})
+    write(r, "src/a.ts")
+    expect("GT4", "関係するテストがあれば 0", stop(r), 0, called=1, repo=r)
+    r = make_repo("modified")
+    write(r, "src/base.ts", "export const x = 1\n")
+    expect("GT5", "コミット前の変更（追跡済み）にテストが無いと 2", stop(r), 2, says="src/base.ts")
+    r = make_repo("mixed", {"src/a.ts": 1})
+    write(r, "src/a.ts")
+    write(r, "src/b.ts")
+    p = stop(r)
+    expect("GT6", "テストのあるファイルと無いファイルを混ぜると、無い方だけを挙げて 2", p, 2, says="src/b.ts")
+    if p.returncode == 2 and "src/a.ts" in p.stderr:
+        out[-1] = ("GT6", out[-1][1], f"テストのある src/a.ts まで挙げた; stderr={p.stderr!r}")
+
+    # 3. 対象の実装ファイル
+    r = make_repo("committed")
+    write(r, "src/a.ts")
+    commit(r)
+    expect("GT7", "コミット済みでも、ベースとの分岐点からの差分にテストが無いと 2", stop(r), 2, says="src/a.ts")
+    r = make_repo("on-main")
+    git("checkout", "-q", "main", cwd=r)
+    write(r, "src/a.ts")
+    commit(r)
+    expect("GT8", "ベースそのもの（main）の上では、コミット済みの分は見ない", stop(r), 0, called=0, repo=r)
+    write(r, "src/b.ts")
+    expect("GT9", "ベースの上でも、未コミットの変更は見る", stop(r), 2, says="src/b.ts")
+    r = make_repo("origin-head")
+    git("checkout", "-q", "main", cwd=r)
+    git("branch", "-q", "-m", "main", "trunk", cwd=r)
+    git("update-ref", "refs/remotes/origin/trunk", "trunk", cwd=r)
+    git("symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/trunk", cwd=r)
+    git("checkout", "-q", "feature", cwd=r)
+    write(r, "src/a.ts")
+    commit(r)
+    expect("GT10", "ベースは origin/HEAD を先に見る（main が無くても分岐点を取る）", stop(r), 2, says="src/a.ts")
+    r = make_repo("excluded")
+    for rel in ("src/types.d.ts", "vite.config.ts", "src/Button.stories.tsx", "src/a.test.ts", "src/b.spec.tsx", "src/__tests__/c.ts", "tests/d.ts", "e2e/e.ts", "README.md"):
+        write(r, rel)
+    expect("GT11", "実装ファイルでないもの（d.ts・config・stories・テスト・md）だけなら vitest を呼ばずに 0", stop(r), 0, called=0, repo=r)
+    r = make_repo("deleted")
+    (r / "src" / "base.ts").unlink()
+    expect("GT12", "削除だけの変更は判定しない", stop(r), 0, called=0, repo=r)
+    r = make_repo("added-then-deleted")
+    write(r, "src/a.ts")
+    commit(r)
+    (r / "src" / "a.ts").unlink()
+    expect("GT13", "ブランチで足して作業ツリーで消したファイルは判定しない", stop(r), 0, called=0, repo=r)
+
+    # 2. 根は入力の cwd から決める
+    r = make_repo("wt-main")
+    wt = root / "wt-linked"
+    git("worktree", "add", "-q", str(wt), "-b", "wt", cwd=r)
+    install_vitest(wt, {})
+    write(wt, "src/a.ts")
+    expect("GT14", "worktree の中の変更を判定する（CLAUDE_PROJECT_DIR は本体のまま）", stop(r, cwd=wt), 2, says="src/a.ts")
+    write(wt, "src/a.ts", "")
+    (wt / "src" / "a.ts").unlink()
+    write(r, "src/b.ts")
+    expect("GT15", "cwd が worktree なら、本体の変更は見ない", stop(r, cwd=wt), 0)
+
+    # 免除のファイル
+    task = ".steering/20261111-x/test-exemptions.md"
+    r = make_repo("exempt-task")
+    write(r, "src/a.ts")
+    exemption(r, task, "- src/a.ts — 文言の変更だけ（20261111）\n")
+    expect("GT16", "アクティブなタスクの「テスト不要」に載っていれば 0", stop(r), 0)
+    r = make_repo("exempt-no-reason")
+    write(r, "src/a.ts")
+    exemption(r, task, "- src/a.ts\n- src/a.ts — \n")
+    expect("GT17", "理由の無い行では免除しない", stop(r), 2, says="src/a.ts")
+    r = make_repo("exempt-other-section")
+    write(r, "src/a.ts")
+    write(r, task, "# テストの免除\n\n## テスト不要\n\n## テストを弱める\n- src/a.ts — 別の節（20261111）\n")
+    expect("GT18", "「テスト不要」以外の節の行では免除しない", stop(r), 2, says="src/a.ts")
+    r = make_repo("exempt-two-tasks")
+    write(r, "src/a.ts")
+    write(r, "src/b.ts")
+    exemption(r, ".steering/20261111-x/test-exemptions.md", "- src/a.ts — 理由（20261111）\n")
+    exemption(r, ".steering/20261111-y/test-exemptions.md", "- src/b.ts — 理由（20261111）\n")
+    expect("GT19", "アクティブなタスクが複数なら、全タスクの免除を合わせて見る", stop(r), 0)
+    r = make_repo("exempt-archived")
+    write(r, "src/a.ts")
+    write(r, ".steering/20261111-x/design.md", "x\n")
+    exemption(r, ".steering/archived/old/test-exemptions.md", "- src/a.ts — 理由（20261111）\n")
+    expect("GT20", "archived の下の免除は見ない", stop(r), 2, says="src/a.ts")
+    r = make_repo("exempt-global")
+    write(r, "src/a.ts")
+    exemption(r, ".steering/test-exemptions.md", "- src/a.ts — 理由（20261111）\n")
+    expect("GT21", "タスクが無ければ .steering/test-exemptions.md を見る", stop(r), 0)
+    r = make_repo("exempt-global-with-task")
+    write(r, "src/a.ts")
+    write(r, ".steering/20261111-x/design.md", "x\n")
+    exemption(r, ".steering/test-exemptions.md", "- src/a.ts — 理由（20261111）\n")
+    expect("GT22", "タスクがあれば、差し戻しの文はタスクの免除のファイルを案内する", stop(r), 2, says=".steering/20261111-x/test-exemptions.md")
+
+    def exemption_fail(repo: Path, lines: str) -> None:
+        write(repo, ".steering/test-exemptions.md", f"# テストの免除\n\n## テスト不要\n\n## 失敗を残す\n{lines}\n")
+
+    # 5. テストの成否
+    r = make_repo("fail", {"src/a.ts": "1 src/a.test.ts"})
+    write(r, "src/a.ts")
+    expect("GT23", "関係するテストが落ちると 2（落ちたテストと失敗の文を出す）", stop(r), 2, says="AssertionError: boom in src/a.test.ts")
+    r = make_repo("fail-exempt", {"src/a.ts": "1 src/a.test.ts"})
+    write(r, "src/a.ts")
+    exemption_fail(r, "- src/a.test.ts — 外部 API の仕様変更待ち（20261112）\n")
+    expect("GT24", "落ちたテストが「失敗を残す」に載っていれば 0", stop(r), 0)
+    r = make_repo("fail-partly-exempt", {"src/a.ts": "2 src/a.test.ts src/b.test.ts"})
+    write(r, "src/a.ts")
+    exemption_fail(r, "- src/a.test.ts — 理由（20261112）\n")
+    p = stop(r)
+    expect("GT25", "落ちたテストの一部だけが載っていれば、載っていない方を挙げて 2", p, 2, says="src/b.test.ts")
+    if p.returncode == 2 and "boom in src/a.test.ts" in p.stderr:
+        out[-1] = ("GT25", out[-1][1], f"免除したテストまで挙げた; stderr={p.stderr!r}")
+    r = make_repo("fail-impl-exempt", {"src/a.ts": "1 src/a.test.ts"})
+    write(r, "src/a.ts")
+    exemption_fail(r, "- src/a.ts — 理由（20261112）\n")
+    expect("GT26", "実装ファイルが「失敗を残す」に載っていれば vitest を呼ばずに 0", stop(r), 0, called=0, repo=r)
+
+    # 6. 時間切れ
+    r = make_repo("slow", {"src/a.ts": 1})
+    write(r, "src/a.ts")
+    (r / "node_modules" / ".fake" / "sleep").write_text("20")
+    t0 = time.monotonic()
+    p = stop(r, timeout=1)
+    took = time.monotonic() - t0
+    expect("GT27", "打ち切り時間を超えると 2（流しきれなかった）", p, 2, says="流しきれなかった")
+    if took > 10:
+        out[-1] = ("GT27", out[-1][1], f"打ち切らずに {took:.1f} 秒かかった; stderr={p.stderr!r}")
+    sleep_pid = int((r / "node_modules" / ".fake" / "sleep-pid").read_text())
+    for _ in range(30):  # 止めた後、親が消えて回収されるまで少し待つ
+        try:
+            os.kill(sleep_pid, 0)
+        except ProcessLookupError:
+            break
+        time.sleep(0.1)
+    else:
+        out.append(("GT27b", "打ち切ったら、vitest が起こした子のプロセスまで止める", f"pid {sleep_pid} が残っている"))
+    r = make_repo("slow-two", {"src/a.ts": 1, "src/b.ts": 1})
+    write(r, "src/a.ts")
+    write(r, "src/b.ts")
+    (r / "node_modules" / ".fake" / "sleep").write_text("20")
+    p = stop(r, timeout=1)
+    expect("GT28", "打ち切ったら、判定していない残りのファイルも挙げる", p, 2, says="src/b.ts", called=1, repo=r)
+
+    # 7. 道具の故障
+    for cid, code, label in (("GT29", "127", "道具の故障（127）は 0 で警告"), ("GT30", "1", "json の無い失敗（設定のエラー）は 0 で警告")):
+        r = make_repo(f"broken-{code}", {"src/a.ts": 1})
+        write(r, "src/a.ts")
+        (r / "node_modules" / ".fake" / "exit").write_text(code)
+        expect(cid, label, stop(r), 0, says="failed to load config")
+
+    # 9. 同じ差分で何度も流さない
+    r = make_repo("cache", {"src/a.ts": 1})
+    write(r, "src/a.ts")
+    stop(r, session="c1")
+    expect("GT31", "同じ差分で通った後は vitest を呼ばない", stop(r, session="c1"), 0, called=1, repo=r)
+    write(r, "src/a.ts", "export const a = 1\n")
+    expect("GT32", "差分が変われば、また流す", stop(r, session="c1"), 0, called=2, repo=r)
+    expect("GT33", "別のセッションでは、また流す", stop(r, session="c2"), 0, called=3, repo=r)
+    r = make_repo("cache-fail", {"src/a.ts": "1 src/a.test.ts"})
+    write(r, "src/a.ts")
+    stop(r, session="c1")
+    expect("GT34", "落ちた差分は残さない（同じ差分でも、また流して 2）", stop(r, session="c1"), 2, called=2, repo=r)
+    r = make_repo("cache-broken", {"src/a.ts": 1})
+    write(r, "src/a.ts")
+    (r / "node_modules" / ".fake" / "exit").write_text("127")
+    stop(r, session="c1")
+    expect("GT35", "道具の故障で通した差分も残さない", stop(r, session="c1"), 0, called=2, repo=r)
+    r = make_repo("cache-exemption")
+    write(r, "src/a.ts")
+    write(r, ".gitignore", "node_modules/\n.steering/\n")  # 免除のファイルが git の差分に出ないプロジェクト
+    exemption(r, ".steering/test-exemptions.md", "- src/a.ts — 理由（20261112）\n")
+    stop(r, session="c1")
+    exemption(r, ".steering/test-exemptions.md", "")
+    expect("GT36", "免除のファイルを変えれば、同じコードの差分でも判定し直す（.steering/ を無視していても）", stop(r, session="c1"), 2, says="src/a.ts")
+    a = make_repo("cache-same-a", {"src/a.ts": 1})
+    b = make_repo("cache-same-b")
+    for repo in (a, b):
+        write(repo, "src/a.ts")
+    stop(a, session="c1")
+    expect("GT37", "同じ差分でも、別のリポジトリの記録は使わない", stop(b, session="c1"), 2, says="src/a.ts")
+
+    # 8. テストを弱めた
+    spec = "src/a.test.ts"
+    two = "import { it, expect } from 'vitest'\nit('a', () => {\n  expect.assertions(2)\n  expect(1).toBe(1)\n  expect.soft(2).toBe(2)\n})\n"
+
+    def weak_repo(name: str) -> Path:
+        return make_repo(name, base_files={spec: two})
+
+    r = weak_repo("weak-expect")
+    write(r, spec, two.replace("  expect(1).toBe(1)\n", ""))
+    expect("GT38", "テストファイルの expect が減ると 2（実装ファイルが変わっていなくても）", stop(r), 2, says=spec, called=0, repo=r)
+    r = weak_repo("weak-soft")
+    write(r, spec, two.replace("  expect.soft(2).toBe(2)\n", ""))
+    expect("GT39", "expect.soft も expect として数える", stop(r), 2, says=spec)
+    r = weak_repo("weak-same")
+    write(r, spec, two.replace("toBe(1)", "toEqual(1)").replace("  expect.assertions(2)\n", ""))
+    expect("GT40", "expect の数が同じなら 0（expect.assertions は数えない）", stop(r), 0, called=0, repo=r)
+    for cid, label, line in (
+        ("GT41", "it.skip が増えると 2", "it.skip('b', () => {})\n"),
+        ("GT42", "test.only が増えると 2", "test.only('b', () => {})\n"),
+        ("GT43", "describe.todo が増えると 2", "describe.todo('b')\n"),
+        ("GT44", "it.skipIf が増えると 2", "it.skipIf(true)('b', () => {})\n"),
+        ("GT45", "xit が増えると 2", "xit('b', () => {})\n"),
+    ):
+        r = weak_repo(f"weak-{cid}")
+        write(r, spec, two + line)
+        expect(cid, label, stop(r), 2, says=spec)
+    r = weak_repo("weak-not-skip")
+    write(r, spec, two + "it('c', () => { ctx.skip(); expect(skipped).toBe(1); expect(latest.only).toBe(1) })\n")
+    expect("GT46", "テストの外の skip・only という語（ctx.skip・skipped・latest.only）は数えない", stop(r), 0)
+    r = weak_repo("weak-deleted")
+    (r / spec).unlink()
+    expect("GT47", "テストファイルを消すと 2", stop(r), 2, says=spec)
+    r = make_repo("weak-new-file")
+    write(r, "src/b.test.ts", "it.todo('later')\n")
+    expect("GT48", "新しいテストファイルでも todo を足すと 2", stop(r), 2, says="src/b.test.ts")
+    r = weak_repo("weak-exempt")
+    write(r, spec, two.replace("  expect(1).toBe(1)\n", ""))
+    write(r, ".steering/test-exemptions.md", f"# テストの免除\n\n## テストを弱める\n- {spec} — 重複したテストの整理（20261112）\n")
+    expect("GT49", "「テストを弱める」に載っていれば 0", stop(r), 0)
+    r = weak_repo("weak-exempt-wrong-section")
+    write(r, spec, two.replace("  expect(1).toBe(1)\n", ""))
+    write(r, ".steering/test-exemptions.md", f"# テストの免除\n\n## 失敗を残す\n- {spec} — 別の節（20261112）\n")
+    expect("GT50", "「テストを弱める」以外の節では弱めた判定を免除しない", stop(r), 2, says=spec)
+
+    # 10. タスクの外の免除に載ったファイルが変わった
+    global_ex = "# テストの免除\n\n## テスト不要\n- src/base.ts — 文言だけのファイル（20261101）\n"
+    r = make_repo("global-warn", base_files={".steering/test-exemptions.md": global_ex})
+    write(r, "src/base.ts", "export const changed = 1\n")
+    expect("GT51", "タスクの外の免除に載ったファイルが変わると、0 で警告（理由を添える）", stop(r), 0, says="文言だけのファイル")
+    r = make_repo("global-quiet", base_files={".steering/test-exemptions.md": global_ex}, related={"src/a.ts": 1})
+    write(r, "src/a.ts")
+    p = stop(r)
+    expect("GT52", "載っていないファイルの変更では警告しない", p, 0)
+    if p.returncode == 0 and p.stderr.strip():
+        out[-1] = ("GT52", out[-1][1], f"警告が出た; stderr={p.stderr!r}")
+    return out
+
+
 def path_without_python(tmp: Path) -> str:
     """python3 を含まない PATH を作る（hook が使う外部コマンドだけを置く）。"""
     bindir = tmp / "bin"
@@ -850,7 +1274,7 @@ def main() -> int:
             if not ok:
                 print(f"  {detail}")
                 failed += 1
-        direct = [r for check in (check_gated_direct, check_session_start, check_validate_skill_edit) for r in check(hooks_dir, tmp)]
+        direct = [r for check in (check_gated_direct, check_session_start, check_validate_skill_edit, check_typecheck, check_test_gate) for r in check(hooks_dir, tmp)]
         skipped = [r for r in direct if r[2] is SKIP]
         direct = [r for r in direct if r[2] is not SKIP]
         for cid, label in ((c, l) for c, l, _ in skipped):

@@ -150,6 +150,7 @@ cp -n templates/settings.template.json "$DEST/.claude/settings.json"
 | `guard_gated.py` | guard hook 2 本が呼ぶ部品 | 配る（部品） |
 | `post-edit-lint.sh` | Biome か ESLint か Stylelint の設定 | 配る |
 | `stop-typecheck.sh` | jq・tsconfig.json・tsc | 配る |
+| `stop-test-gate.sh` | jq・git・`node_modules/.bin/vitest` | 配る |
 | `validate-skill-edit.sh` | `scripts/validate_skills.py` | マスター専用 |
 
 持っていかないもの: `eval/`・`scripts/`・`tests/`・`prompts/`・`templates/`（雛形のコピーを除く）。`docs/user-guide.md` は持っていってもよい。

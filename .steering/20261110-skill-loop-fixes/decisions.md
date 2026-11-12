@@ -66,3 +66,42 @@
 - 穴 9: C3 の目印はファイルごとに分ける（CLAUDE.md は「承認制のパス」、design-doc は「CLAUDE.md」「docs」「.claude」）。条件の数（3 つ）の一致も見る
 - 穴 10: スクリプトのテストは `tests/skills/`、`package.json` に `test:skills` を足し、全 PR 共通の検査に入れる。README の依存の一覧に要るもの（python3 など）を書く
 - 論点 11: スクリプトが使えないときの代わりの手順は残さない。「スクリプトが無い」と伝えて止まる（スクリプトはスキルのフォルダで一緒に配るので、「自己完結」はスキルのフォルダ単位で満たす）
+
+## 20261111 — `vitest related` で関係するテストの有無を判定できるか（tasklist 1）
+
+- 結論: 判定できる。ただし終了コードではできない。判定する範囲は C（`merge-base` からの差分＋未コミット）のまま
+- 確かめ方: スクラッチパッドに一時プロジェクトを作り（vitest 5.1.0・node 24）、`a.ts`＋通るテスト・`b.ts`（テスト無し）・`c.ts`＋落ちるテスト・`d.ts`（`a.ts` を import するだけ）で `vitest related <file> --run` を流した
+- 結果:
+  | 対象 | 終了コード | 出力 |
+  |---|---|---|
+  | a.ts（テストあり・通る） | 0 | `Affected 1 of 2 test files` |
+  | b.ts（テスト無し） | 0 | stdout に `No affected test files found, exiting with code 0`（`--passWithNoTests` の有無で変わらない） |
+  | c.ts（テストが落ちる） | 1 | `Test Files 1 failed` |
+  | d.ts（テストが import していない） | 0 | b.ts と同じ。間接に使われるだけのファイルは「テスト無し」になる |
+  | 存在しないファイル | 0 | b.ts と同じ |
+  | a.ts と b.ts をまとめて | 0 | `related to 2 files` と合計だけ出る。どのファイルにテストが無いかは分からない |
+- `--reporter=json --outputFile=<path>` で `numTotalTestSuites` を読むと、0 件（b.ts）と 1 件以上を区別できる。`numFailedTests`・`success` で成否も取れる
+- 実装への影響:
+  - 有無の判定はファイルごとに `vitest related <file> --run --reporter=json --outputFile=<TMPDIR の下>` を呼び、`numTotalTestSuites == 0` を「関係するテストが無い」とする。まとめて呼ぶと区別できない
+  - `--outputFile` を省くと、json の結果はプロジェクトの中（`.vitest/json/output.json`）に書かれる。必ずプロジェクトの外を指す
+  - `list` には `--related` が無い（`Unknown option`）。流さずに有無だけを見る手段は無い
+  - 1 回の起動は小さなプロジェクトで 0.3 秒ほど。ファイルが多いと回数が増えるので、実際のプロジェクトでの時間は打ち切り時間（150 秒）の見直しと一緒に測る
+- 補足: このマシンでは、mise の設定の無い場所で `mise exec -- pnpm` を呼ぶと `~/Library/pnpm` の壊れた pnpm 11.12.0（実行ファイルが置き場所の文字列のまま）が呼ばれる。`mise exec pnpm@10.34.5 -- pnpm` と明示して避けた（20261112 にユーザーが直した。mise の設定の無い場所でも `mise exec -- pnpm` が 10.34.5 になり、壊れた 11.12.0 は消えている）
+
+## 20261112 — ゲートの成否・打ち切り・道具の故障の細部（tasklist 4）
+
+- テストの失敗と道具の故障の見分け方: json に `numTotalTestSuites` の数があればテストの結果、無ければ道具の故障（警告だけで差し戻さない）。vitest 5.1.0 で確かめた: テストの失敗とテストファイルの import のエラーはどちらも `numFailedTestSuites` が 1 以上で `testResults[].status == "failed"`。設定のエラーは終了コード 1 で件数が無い
+- 「## 失敗を残す」の行は 2 通りに効く: テストファイルなら、そのテストが落ちても通す。実装ファイルなら、その実装ファイルはテストを流さない（時間切れの逃げ道。設計の「抜けるのは『失敗を残す』」を、何を書けば抜けられるかが分かる形にした）
+- 打ち切りは全体で 1 つの持ち時間（`STOP_TEST_GATE_TIMEOUT`、既定 150 秒）。超えたら vitest をプロセスグループごと止め、判定していない残りのファイルも挙げて差し戻す。macOS に `timeout` が無いので bash の `set -m` と監視の子で書いた
+- 同じ差分の記録は、テストが通り、道具の故障も無かったときだけ残す。ハッシュには根のパス（別のリポジトリと混ざらない）と免除のファイルの中身（`.steering/` を gitignore していても免除の変更で判定し直す）を入れる
+- 落ちたテストの文は、末尾のログではなく json の `assertionResults[].failureMessages` の 1 行目と、テストファイルの `message`（import のエラーなど）から作る（reporter の出力の形に左右されない）
+- 気づき: bash 3.2 では `$var（` のように変数の直後に全角の文字が続くと、そのバイトまで変数名として読み、出力が UTF-8 として壊れる。日本語の文を組む hook では `${var}` と囲む。fixture は stderr に U+FFFD が出たら FAIL にする
+
+## 20261112 — テストを弱めた判定と、タスクの外の免除の警告の細部（tasklist 5。設計の論点「expect の数え方」）
+
+- 比べ方: 差分の中のテストファイルごとに、ベース（merge-base）の版と今の版で数える。ベースに無いファイルは 0 件から、消したファイルは 0 件へ、として比べる（新しいテストファイルに todo を足しても差し戻す。テストファイルを消すのは expect が減るので差し戻す）
+- expect の数え方: `expect(`・`expect.soft(`・`expect.poll(` を数える。`expect.assertions`・`expect.hasAssertions`・`expect.any` などの補助は数えない。前が英数字・`_`・`$`・`.` の場合は別の名前として数えない
+- skip・only・todo: `it`・`test`・`describe`・`suite`・`bench` に `.skip`・`.skipIf`・`.only`・`.todo` が付いたもの（間に `.each` などがあってもよい）と、`xit`・`xtest`・`xdescribe`・`fit`・`fdescribe`。`ctx.skip()` や `latest.only` は数えない
+- 弱めた判定は、実装ファイルが変わっていない差分でも行う（テストだけを弱める変更を見逃さない）。抜けるのは「## テストを弱める」に載せたテストファイルだけ
+- 弱さ: 文字列の数え方なので、コメントや文字列の中の `expect(` も数える。1 つの expect を別の形の検査（`assert` など）に置き換えると「減った」になる。そのときは免除のファイルに書いて抜ける
+- タスクの外の免除の警告: タスクが無く `.steering/test-exemptions.md` を使っているときだけ、変わったファイル（削除を除く）がそこに `- <パス> — ` で載っていれば、その行を添えて警告する。差し戻さない

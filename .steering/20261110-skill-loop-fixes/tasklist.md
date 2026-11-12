@@ -1,4 +1,4 @@
-Last updated: 2026-11-11
+Last updated: 2026-11-12
 
 # tasklist: skill-loop-fixes
 
@@ -6,11 +6,11 @@ Last updated: 2026-11-11
 
 ## PR 1 — テストの必須化（ブランチ `feature/test-gate`）
 
-- [ ] 1. `vitest related` で、関係するテストが 0 件のとき・あるとき・落ちたときの終了コードと出力を、一時的なプロジェクトで確かめる。結果を decisions.md に残す（判定できなければ、判定する範囲を未コミットだけに戻す）
-- [ ] 2. 型検査の hook を自分の状態で判定する形に直す（A1'）。fixture を先に書いて落ちることを確かめてから直す
-- [ ] 3. ゲートの fixture の仕組みと、テストの有無・免除・ベースとの差分・worktree・削除だけ・対象外のファイルのケースを書き、ゲートの骨格（判定 1〜4・免除のファイル）を通す
-- [ ] 4. テストの成否・打ち切り・道具の故障・同じ差分で流さない、のケースと実装
-- [ ] 5. テストを弱めた判定・タスクの外の免除の警告、のケースと実装
+- [x] 1. `vitest related` で、関係するテストが 0 件のとき・あるとき・落ちたときの終了コードと出力を、一時的なプロジェクトで確かめる。結果を decisions.md に残す（判定できなければ、判定する範囲を未コミットだけに戻す）（20261111。判定できる。終了コードは 0 件でも 0 なので、ファイルごとに json の `numTotalTestSuites` で見る。範囲は C のまま）
+- [x] 2. 型検査の hook を自分の状態で判定する形に直す（A1'）。fixture を先に書いて落ちることを確かめてから直す（20261112。tsc の出力の cksum を `${TMPDIR}/claude-stop-typecheck/<session_id>` に残す。fixture TC1〜7 は直す前に TC1・3・4 が落ち、直した後 `test:hooks` 389/389。validate・test:sandbox・lint も通る）
+- [x] 3. ゲートの fixture の仕組みと、テストの有無・免除・ベースとの差分・worktree・削除だけ・対象外のファイルのケースを書き、ゲートの骨格（判定 1〜4・免除のファイル）を通す（20261112。`stop-test-gate.sh` と fixture GT1〜22（偽の vitest は対応表で件数を返し、呼び出しを数える）。hook が無い状態で FAIL、書いた後 `test:hooks` 411/411。hook を 5 か所壊すと該当ケースが落ちることも確かめた（一回限り）。lint・test:sandbox は通る。validate は「配る hook が雛形に未登録」の 1 件だけ FAIL で、項目 6 の登録で直る。vitest の結果を読めないときは警告だけ（項目 4 で道具の故障として仕上げる）。実行ビットが未設定）
+- [x] 4. テストの成否・打ち切り・道具の故障・同じ差分で流さない、のケースと実装（20261112。fixture GT23〜37（偽の vitest は本物と同じ形の json を書き、眠る・json 無しで終わるも真似る）。書く前に 11 件 FAIL、実装後 `test:hooks` 426/426。hook を 8 か所壊すと該当ケースが落ちることを確かめた（一回限り）。打ち切りで子のプロセスまで止めることは GT27 で pid を見て確かめる。lint・test:sandbox は通る。validate は項目 6 まで 1 件 FAIL のまま。細部は decisions.md）
+- [x] 5. テストを弱めた判定・タスクの外の免除の警告、のケースと実装（20261112。fixture GT38〜52。書く前に 11 件 FAIL、実装後 `test:hooks` 441/441。hook を 7 か所壊すと該当ケースが落ちることを確かめた（一回限り。見分けられなかった 1 か所は GT46 を足して直した）。lint・test:sandbox は通る。validate は項目 6 まで 1 件 FAIL のまま。数え方は decisions.md）
 - [ ] 6. settings とその雛形に登録し、README（依存の一覧・hook の説明・cp の行・外す目安）を直す。`test:sandbox` を通す
 - [ ] 7. steering の 3・4（A2）と design-doc の 4（A4）を直す。`eval/gen_design_cases.py` の s1・s2 の tasklist と `q1-right-item` を直し、A2・A4 の grader を足す
 - [ ] 8. validate に C3 の検査と self-test を足す
