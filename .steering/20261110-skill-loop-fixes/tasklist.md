@@ -14,7 +14,7 @@ Last updated: 2026-11-13
 - [x] 6. settings とその雛形に登録し、README（依存の一覧・hook の説明・cp の行・外す目安）を直す。`test:sandbox` を通す（20261113。Stop に timeout 180 で登録。`check_settings.py` に「Stop に 2 本あり、ゲートの timeout が hook の中の既定の打ち切り（150）より長い」検査と self-test 3 件を足し、登録前に FAIL を確かめた。validate 10/10・test:hooks 441/441（SKIP 0）・test:sandbox・lint が通る。依存の一覧は項目 3 で済み。実行ビットは sandbox で付けられず、ユーザーに依頼（`bash` 経由で呼ぶので動作には影響しない））
 - [x] 7. steering の 3・4（A2）と design-doc の 4（A4）を直す。`eval/gen_design_cases.py` の s1・s2 の tasklist と `q1-right-item` を直し、A2・A4 の grader を足す（20261113。steering の 3 に完了条件をテストで確かめてコマンドと結果を書く・確かめられないときは書かない・免除のファイルに書き足す、4 に結果の 1 行を足した。design-doc の 4 に実装の項目にテストを含める・テスト不要は test-exemptions.md、5 にそのパスの報告。s1・s2 の tasklist を実装とテストを同じ項目にし、`q1-right-item` を合わせた。A2 は `s1-resume` の `q4-test-evidence`、A4 は D1_ITEMS の `tests-in-items`（d1b にも付く）。生成を一時ディレクトリで確かめた。validate・test:hooks 441/441・test:sandbox・lint が通る。採点の確かめは項目 9 の回帰ケース）
 - [x] 8. validate に C3 の検査と self-test を足す（20261113。項目 10 として、導入の語で行を探し「:」の後ろを「・」で分けた条件が 3 つで、ファイルごとの目印の組（CLAUDE.md は「承認制のパス」、design-doc は「CLAUDE.md」「docs」「.claude」）にそれぞれ 1 つずつ当たるかを見る。self-test は目印 1 つずつの削除・条件の追加・行の削除の 12 通りで、落ちなかったものは 0。validate 11/11・test:hooks 441/441・test:sandbox・lint が通る）
-- [ ] 9. `validate`・`test:hooks`・`test:sandbox`・`lint` を流す → 回帰ケースの見積もりを示し、承認後にユーザーに流してもらう → 結果を読んで確かめる
+- [x] 9. `validate`・`test:hooks`・`test:sandbox`・`lint` を流す → 回帰ケースの見積もりを示し、承認後にユーザーに流してもらう → 結果を読んで確かめる（20261113。静的検査は 4 つとも通る。回帰ケースは 3 回に分けて流し、合計 8.33 ドル。d1・d2・d3・s1〜s3 に回帰なし。採点を 2 つ直した（A4 は d1 では確かめられないので d1b へ、s1 の tasklist の採点はテストを流せず未チェックで残すのも合格に）。d1b が 3 回中 2 回だったので、design-doc に「既存のテスト・型検査だけでは項目のテストにならない」を足し、3 回とも合格。詳細は eval-20261113.md・decisions.md）
 - [ ] 10. レビュー → PR（統合用ブランチへ）
 
 ## PR 2 — 知見を設計で読む（ブランチ `feature/design-reads-knowledge`）
