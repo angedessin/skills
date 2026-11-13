@@ -173,6 +173,36 @@ def check_hooks(settings: dict, gated: set[str]) -> str | None:
     return f"guard hook が PreToolUse の matcher Bash に無い: {sorted(missing)}" if missing else None
 
 
+STOP_HOOKS = ("stop-typecheck.sh", "stop-test-gate.sh")
+GATE_HOOK = ROOT / ".claude" / "hooks" / "stop-test-gate.sh"
+GATE_TIMEOUT_RE = re.compile(r'^TIMEOUT="\$\{STOP_TEST_GATE_TIMEOUT:-(\d+)\}"', re.MULTILINE)
+
+
+def gate_inner_timeout() -> int | None:
+    m = GATE_TIMEOUT_RE.search(GATE_HOOK.read_text(encoding="utf-8")) if GATE_HOOK.exists() else None
+    return int(m.group(1)) if m else None
+
+
+def check_stop_hooks(settings: dict, gated: set[str]) -> str | None:
+    """Stop に型検査とテストのゲートがあり、ゲートの hook の timeout が中の打ち切り時間より長い。"""
+    timeouts = {
+        name: h.get("timeout")
+        for group in settings.get("hooks", {}).get("Stop", [])
+        for h in group.get("hooks", [])
+        for name in HOOK_PATH_RE.findall(h.get("command", ""))
+    }
+    missing = [n for n in STOP_HOOKS if n not in timeouts]
+    if missing:
+        return f"Stop に無い: {missing}"
+    inner = gate_inner_timeout()
+    if inner is None:
+        return f"{GATE_HOOK.name} に打ち切り時間（STOP_TEST_GATE_TIMEOUT の既定）の行が無い"
+    outer = timeouts["stop-test-gate.sh"]
+    if not isinstance(outer, int) or outer <= inner:
+        return f"stop-test-gate.sh の timeout {outer} が中の打ち切り {inner} 秒より長くない（時間切れが差し戻さないエラーになる）"
+    return None
+
+
 CHECKS: list[tuple[str, Callable[[dict, set[str]], str | None]]] = [
     ("(s) GATED_PATHS と permissions.ask の Edit(./...) が一致", check_s),
     ("(t) allow に Bash(git ...) が無い", check_t),
@@ -184,6 +214,7 @@ CHECKS: list[tuple[str, Callable[[dict, set[str]], str | None]]] = [
     ("$schema と disableBypassPermissionsMode", check_meta),
     ("必須の deny・ask が揃っている", check_permissions),
     ("guard hook が PreToolUse の matcher Bash にある", check_hooks),
+    ("Stop に型検査とテストのゲートがあり、ゲートの timeout が中の打ち切りより長い", check_stop_hooks),
 ]
 
 
@@ -213,6 +244,9 @@ def self_test(settings: dict, gated: set[str]) -> list[str]:
         ("permissions-deny", check_permissions, lambda s: s["permissions"]["deny"].remove("Bash(git reset --hard*)")),
         ("permissions-read", check_permissions, lambda s: s["permissions"]["deny"].remove("Read(~/.ssh/**)")),
         ("permissions-ask", check_permissions, lambda s: s["permissions"]["ask"].remove("Bash(git push*)")),
+        ("stop-gate-missing", check_stop_hooks, lambda s: s["hooks"]["Stop"][0]["hooks"].pop()),
+        ("stop-typecheck-missing", check_stop_hooks, lambda s: s["hooks"]["Stop"][0]["hooks"].pop(0)),
+        ("stop-gate-timeout", check_stop_hooks, lambda s: s["hooks"]["Stop"][0]["hooks"][-1].update(timeout=120)),
     ]
     silent = [name for name, fn, broken in cases if fn(mutate(broken), gated) is None]
 
