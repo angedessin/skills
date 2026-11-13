@@ -33,6 +33,8 @@ D1_ITEMS = [
         ("verifiable-done", "Judge only what the assistant wrote. PASS if it states completion criteria that could be checked by a test or a concrete observation (for example: selecting a category shows only products of that category). FAIL if there are no completion criteria or they are vague (for example: it is easy to use)."),
         ("test-plan", "Judge only what the assistant wrote. PASS if it mentions how the change will be tested, such as MSW handlers or the impact on the existing tests. FAIL otherwise."),
         ("assumptions-flagged", "Judge only what the assistant wrote. PASS if things it assumed without being told are presented as assumptions or open questions rather than as settled decisions. FAIL if it presents guessed requirements as decided facts without flagging them."),
+        # A4: 実装の項目にテストを含める（20261113 追加。skill-loop-fixes）
+        ("tests-in-items", "Judge only the task list the assistant wrote (tasklist.md or a list of implementation steps). PASS if each item that implements code also includes writing or running the test that verifies it, so that tests are not collected into separate later items. Items that are not implementation (review, updating the task list, opening a PR) need no test. An implementation item explicitly marked as needing no test with a reason is fine. FAIL if there is no task list, or if any implementation item leaves its test to a separate item."),
 ]
 
 design_case(
@@ -112,10 +114,9 @@ S1_TASKS = """# タスクリスト: category-filter
 Last updated: 20261012
 
 - [x] 絞り込みの関数 `filterByCategory` を `src/features/products/filter.ts` に作り、テストを書く
-- [x] ProductSearch に選択中のカテゴリの state を足す
-- [ ] カテゴリの select を追加する（固定の 3 件と「すべて」）
-- [ ] 絞り込みの結果をテストで確かめる（MSW）
-- [ ] 0 件のときの表示を確かめる
+- [x] ProductSearch に選択中のカテゴリの state を足す（表示は変わらないので、テストは次の項目で書く）
+- [ ] カテゴリの select を追加し（固定の 3 件と「すべて」）、選ぶと絞り込まれることを RTL と MSW のテストで確かめる
+- [ ] 絞り込みの結果が 0 件のときの表示を足し、テストで確かめる
 """
 S1_DECISIONS = """# 決定事項: category-filter
 
@@ -180,7 +181,9 @@ d = f"{EV}/s1-resume"
 w(f"{d}/case.yaml", case_yaml("s1-resume", "再開: 方針の変更は decisions.md にだけあり、tasklist だけ読んで進むと間違える", ["steering"], 60, 1200))
 w(f"{d}/prompt.md", "category-filter の続きから再開して、次の項目を 1 つ進めて。\n")
 w(f"{d}/fixture.sh", fixture(s1_extra))
-llm(d, "q1-right-item", "PASS if the assistant worked on adding the category select (the third task in the task list) and did not start on a later task such as the MSW test or the empty-result check beyond what adding the select requires. FAIL if it worked on a different task or did nothing.", focus=TRACE)
+llm(d, "q1-right-item", "PASS if the assistant worked on adding the category select (the third task in the task list, which includes its own test) and did not start on a later task such as the empty-result display beyond what adding the select requires. Writing or running a test for the select is part of this task, not a later task. FAIL if it worked on a different task or did nothing.", focus=TRACE)
+# A2: 項目を進めたら、実行したテストのコマンドと結果を回答に書く（20261113 追加。skill-loop-fixes）
+llm(d, "q4-test-evidence", "PASS if the final response states the test command the assistant ran and its result (for example the number of tests passed, or which tests failed). Also PASS if it clearly says the tests could not be run and why, without claiming they passed. FAIL if it claims the work is verified or tests pass without naming the command and result, or does not mention tests at all.")
 for tool in ("Edit", "Write"):
     grader(f"{d}/graders/q2a-no-hardcoded-options-{tool.lower()}.md", {
         "type": "tool_used", "tool": tool,
@@ -231,9 +234,8 @@ S2_TASKS = """# タスクリスト: category-filter
 Last updated: 20261014
 
 - [ ] `filterByCategory` を作り、単体テストを書く
-- [ ] カテゴリの select を追加する
-- [ ] 新しい検索で選択を戻す
-- [ ] RTL のテストを書く
+- [ ] カテゴリの select を追加し、選ぶと絞り込まれることを RTL のテストで確かめる
+- [ ] 新しい検索で選択を戻し、RTL のテストで確かめる
 """
 d = f"{EV}/s2-unapproved"
 w(f"{d}/case.yaml", case_yaml("s2-unapproved", "未承認での実装依頼: design.md が DRAFT のままなら実装せず、承認を求めて止まる", ["steering", "stop"], 30, 600))
