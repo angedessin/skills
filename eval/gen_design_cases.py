@@ -33,7 +33,10 @@ D1_ITEMS = [
         ("verifiable-done", "Judge only what the assistant wrote. PASS if it states completion criteria that could be checked by a test or a concrete observation (for example: selecting a category shows only products of that category). FAIL if there are no completion criteria or they are vague (for example: it is easy to use)."),
         ("test-plan", "Judge only what the assistant wrote. PASS if it mentions how the change will be tested, such as MSW handlers or the impact on the existing tests. FAIL otherwise."),
         ("assumptions-flagged", "Judge only what the assistant wrote. PASS if things it assumed without being told are presented as assumptions or open questions rather than as settled decisions. FAIL if it presents guessed requirements as decided facts without flagging them."),
-        # A4: 実装の項目にテストを含める（20261113 追加。skill-loop-fixes）
+]
+# A4: 実装の項目にテストを含める（20261113 追加。skill-loop-fixes）。d1 は書く前に聞いて止まり tasklist を書かないので、
+# 設計を書き切る d1b にだけ付ける（decisions.md 20261113）
+D1B_ITEMS = D1_ITEMS + [
         ("tests-in-items", "Judge only the task list the assistant wrote (tasklist.md or a list of implementation steps). PASS if each item that implements code also includes writing or running the test that verifies it, so that tests are not collected into separate later items. Items that are not implementation (review, updating the task list, opening a PR) need no test. An implementation item explicitly marked as needing no test with a reason is fine. FAIL if there is no task list, or if any implementation item leaves its test to a separate item."),
 ]
 
@@ -51,7 +54,7 @@ design_case(
     "d1b-category-filter-delegated", "d1b-category-filter-delegated",
     "D1 の変種: 決めごとを推奨で埋めてよいと言われたときの設計の質。src に書かずに止まり、設計の論点を押さえる",
     "商品検索にカテゴリの絞り込みを足したい。何回かに分けて進めるので、まず設計して。仕様書や参考資料は無いよ。決めることは推奨案で埋めて、あとで見られるように論点として残しておいてくれればいい。",
-    D1_ITEMS,
+    D1B_ITEMS,
     ["design-doc"],
 )
 
@@ -191,7 +194,8 @@ for tool in ("Edit", "Write"):
         "min": 0, "max": 0, "weight": 0.25,
     })
 llm(d, "q2b-options-from-results", "PASS if the category options the assistant implemented are derived from the categories present in the current search results (deduplicated), rather than a fixed hard-coded list. FAIL if the options are a fixed list such as 周辺機器・ディスプレイ・オーディオ, or if no select was implemented.", focus=TRACE)
-grader(f"{d}/graders/q3-tasklist-updated.md", {"type": "regex", "target": f"{{ source: file, path: {S1_DIR}/tasklist.md }}", "pattern": "'- \\[x\\] カテゴリの select'"})
+# テストを流せずにそう書いたなら、チェックを付けないのが正しい（steering の 3。20261113 に正規表現から変えた。decisions.md）
+llm(d, "q3-tasklist-updated", "PASS if the assistant updated the task list so that the category select item is marked done (- [x]). Also PASS if it left that item unchecked because it could not run the tests, and the task list note or the final response says the tests were not run. FAIL if the task list was not updated at all, or the item was marked done although the tests were not run.", focus=TRACE)
 skill_fired(d, "steering")
 
 # ---------------------------------------------------------------- S2

@@ -16,6 +16,8 @@
   8. リポジトリの CLAUDE.md が 50 行以内（行動ルールだけにする。独自の目標）
   9. README の依存の一覧が、実際のスキル・agent・hook・settings の雛形と一致する。
      壊した一覧で検査が落ちることも毎回確かめる（self-test）
+ 10. CLAUDE.md と design-doc の「小さな作業にしない」条件が同じ 3 つ（ファイルごとの目印で見る）。
+     どちらかの目印を消すと落ちることも毎回確かめる（self-test）
 
 ポータビリティ（レポートのみ・FAIL にしない）:
   python3 scripts/validate_skills.py --portability   # 配るスキルのマスター内部前提（日付・固有語）
@@ -309,6 +311,62 @@ def check_dependencies() -> tuple[list[str], list[str]]:
     return problems, ([] if problems else dependency_self_test(*args))
 
 
+# 項目10: 「小さな作業にしない」条件。行は導入の語で探し、「:」の後ろを「・」で分けて条件にする。
+# 目印はファイルごとに持つ（CLAUDE.md は「承認制のパス」、design-doc はそのパスを列挙する）。
+# 各条件はちょうど 1 つの目印の組に当たり、どの組も 1 つの条件に当たる（条件の数も 3 つで一致する）。
+STAGE_RULES = {
+    "CLAUDE.md": ("小さな作業にしない", [("3 ファイル以上",), ("公開している API",), ("承認制のパス",)]),
+    ".claude/skills/design-doc/SKILL.md": (
+        "小さな作業として扱わない",
+        [("3 ファイル以上",), ("公開している API",), ("CLAUDE.md", "docs", ".claude")],
+    ),
+}
+
+
+def stage_rule_problems(texts: dict[str, str]) -> list[str]:
+    problems = []
+    for rel, (lead, markers) in STAGE_RULES.items():
+        text = texts.get(rel)
+        if text is None:
+            problems.append(f"{rel}: ファイルが無い")
+            continue
+        lines = [line for line in text.splitlines() if lead in line]
+        if len(lines) != 1:
+            problems.append(f"{rel}: 「{lead}」の行が {len(lines)} 行（1 行のはず）")
+            continue
+        body = re.split(r"[:：]", lines[0].split(lead, 1)[1], maxsplit=1)
+        conds = [c.strip() for c in re.split(r"・", body[-1].split("。")[0]) if c.strip()]
+        if len(conds) != len(markers):
+            problems.append(f"{rel}: 条件が {len(conds)} つ（{len(markers)} つのはず）: {conds}")
+            continue
+        for group in markers:
+            hit = [c for c in conds if all(m in c for m in group)]
+            if len(hit) != 1:
+                problems.append(f"{rel}: 目印 {list(group)} に当たる条件が {len(hit)} つ（1 つのはず）")
+    return problems
+
+
+def stage_rule_self_test(texts: dict[str, str]) -> list[str]:
+    """目印を 1 つずつ消す・条件を足す・行を消すと落ちることを確かめる。落ちなかった壊し方を返す。"""
+    cases: dict[str, dict[str, str]] = {}
+    for rel, (lead, markers) in STAGE_RULES.items():
+        line = next(x for x in texts[rel].splitlines() if lead in x)
+        for group in markers:
+            for m in group:
+                cases[f"{rel} の「{m}」を消す"] = {**texts, rel: texts[rel].replace(line, line.replace(m, "〇〇"))}
+        first = re.split(r"[:：]", line.split(lead, 1)[1], maxsplit=1)[-1]
+        cases[f"{rel} に条件を足す"] = {**texts, rel: texts[rel].replace(line, line.replace(first, "テストを消す・" + first.lstrip(), 1))}
+        cases[f"{rel} の行を消す"] = {**texts, rel: texts[rel].replace(line, "")}
+    return [label for label, broken in cases.items() if not stage_rule_problems(broken)]
+
+
+def check_stage_rules() -> tuple[list[str], list[str]]:
+    """リポジトリの実体を読んで項目10を流す。戻り値は (問題, 落ちなかった self-test)。"""
+    texts = {rel: (ROOT / rel).read_text(encoding="utf-8") for rel in STAGE_RULES if (ROOT / rel).is_file()}
+    problems = stage_rule_problems(texts)
+    return problems, ([] if problems else stage_rule_self_test(texts))
+
+
 # main() が分岐として受け付けるフラグの全集合。**分岐を足したらここにも足す**
 # （片側修正だと、実在するフラグが「不明なオプション」で弾かれる）。
 KNOWN_FLAGS = ("--help", "-h", "--skill", "--template", "--portability")
@@ -426,6 +484,19 @@ def main() -> None:
             print(f"FAIL  依存の一覧の self-test — 落ちなかった壊し方: {silent}")
         else:
             print("PASS  README の依存の一覧（self-test 込み）")
+
+        total += 1
+        problems, silent = check_stage_rules()
+        if problems:
+            failed += 1
+            print("FAIL  小さな作業にしない条件（CLAUDE.md と design-doc）")
+            for e in problems:
+                print(f"      - {e}")
+        elif silent:
+            failed += 1
+            print(f"FAIL  小さな作業にしない条件の self-test — 落ちなかった壊し方: {silent}")
+        else:
+            print("PASS  小さな作業にしない条件（CLAUDE.md と design-doc。self-test 込み）")
     print(f"\n{total - failed}/{total} PASS")
     sys.exit(1 if failed else 0)
 
