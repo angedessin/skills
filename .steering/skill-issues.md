@@ -10,3 +10,8 @@
 
 - 事象: 検証役が F2 を再現するとき、`mktemp -d`（既定の /var/folders/.../T）が sandbox に拒まれ、`cd "$D/r"` も失敗したまま後続のコマンドがリポジトリの根で動いた。`git init`・コミット（e938c3f）・未追跡ファイル 3 つを作った。本人が `git reset --mixed 76bcbe2` とファイルの削除で戻し、メインのセッションで HEAD・status・reflog を確かめた
 - 期待: 写しや一時リポジトリでの再現は、作る・移るの失敗で止まる（`set -e` か `&&` でつなぐ、`cd` の後に `pwd` が写しの中かを確かめる）。sandbox の中では `$TMPDIR` を使う。review-verify.md の「作業ツリーを変えない」を、手順で守れる形にする
+
+## 20261115 — SessionStart の hook が .steering の隠しディレクトリをタスクとして挙げた
+
+- 事象: `.steering/.claude/.cc-writes`（空。Bash の作業ディレクトリを .steering にしたまま書いたときに Claude Code が作ったと見られる）があり、SessionStart の hook がアクティブなタスクに `.claude` を挙げた。空なのを確かめて消した
+- 期待: hook は `.` で始まるディレクトリ（と archived/）をタスクに数えない。steering スキルの「タスクの見つけ方」も同じ
