@@ -346,7 +346,7 @@ planted(
     tags=("test-review",),
 )
 # T2 の並べ替えのテストは、2 件が表示されることだけを見るので、sort を消しても逆順にしても通る
-planted(
+T2 = planted(
     "t2-shallow-test", "テストの指摘 T2: 結果を価格の安い順に並べ、並び順を確かめないテストを足す（形だけ）",
     {
         PC: sub(BC, [("          {state.products.map((p) => (",
@@ -360,6 +360,8 @@ planted(
     "PASS if it points out that the new test for price ordering does not check the order of the items (it only checks that both names appear), so it would still pass if the sort were removed or reversed, AND it states how this was established (for example: it removed or reversed the sort and the test still passed, or it names the change to the sort that the test would not catch). FAIL if the problem is not mentioned, or if it is mentioned without saying how the implementation would be broken.",
     tags=("test-review",),
 )
+# A5: テストファイルが変わったので、検証の前に変える前のコードで流す（結果は q1 の「どう壊したか」に出る）
+grader(f"{T2}/graders/q2-ran-tests-on-base.md", {"type": "tool_used", "tool": "Bash", "input_match": "'run-tests-on-base\\.sh'", "min": 1})
 
 # ---------------------------------------------------------------- L1 大きい差分（費用を示して止まる）。20261108 に足した回帰ケース
 def bench(name, n, ms):
