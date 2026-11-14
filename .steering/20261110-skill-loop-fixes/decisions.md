@@ -145,3 +145,15 @@
 - p2 は合格（race を検出。1.28 ドル）。n1・t2 はまた止まった: `GIT=/usr/local/bin/git` を渡しても、スクリプトの中の bash の `command -v` が見つけられず 2 で終わった（zsh からは同じ git が動く。リンク先の Cellar のパスでも同じ）。l1 は run0 だけ合格、run1・run2 は 5 時間の上限で実行されず
 - 次に調べること: 評価の sandbox の bash から /usr/local/bin/git が見えない理由。`command -v` の事前検査を外し、git を実際に呼んだ結果だけで判定すれば通るかを先に試す（原因が分かるまで直さない）
 - 流し直しの費用: 1.84 ドル（n1 0.20・p2 1.28・t2 0.21・l1 0.35）。1 回目と合わせて 6.70 ドル
+
+## 20261114 — 流し直しで git が見つからなかった原因と直し（tasklist 16）
+
+- 原因: 評価が作る設定（`/private/tmp/e-*/config/settings.json`）の `sandbox.credentials.files` が、`/usr/local/Cellar/git/2.53.0_1/bin/git` を deny にしている。読み取り・stat は拒まれ、実行は許される。bash の `command -v <パス>` は stat で実行できるかを見るので「無い」と判定する。zsh と `"$git" ...` の実行は stat を通らないので動く。根拠は t2 の trace（`bash -c 'command -v /usr/local/bin/git'` が 1、zsh からは動く）、1 回目に `$TMPDIR` の中継スクリプトなら通ったこと、別の回の「リンク先が無い」という報告。t2 の流し直しの設定ファイルで deny を確かめた
+- 直し: `count-diff.sh` の `command -v` の事前検査を外し、`rev-parse` を実際に呼んだ結果だけで判定する。CD20 は存在しない `GIT` で 2 と `GIT=` の案内が出ることを確かめる形に強めた
+- 限界: stat を拒み実行は許す状態は手元で作れないので、この直しが効くかは評価の流し直しでしか確かめられない
+- 結果（3 回目）: n1・t2・l1 の 3 本とも、GIT を渡した呼び直しで count-diff.sh が 0 で終わった。直しは効いた（eval-20261114-review.md）
+
+## 20261114 — review の stop-no-src-bash で写しの上の書き込みを数えない／費用の目安を直す（tasklist 16）
+
+- 決定: review グループの `stop-no-src-bash` は `mktemp -d` を含むコマンドを数えない（`bash_write_match(..., scratch_ok=True)`）。検証役は作業ツリーを `mktemp -d` の写しにして再現するので、写しの中の `sed -i src/...` で落ちていた（t2 の 3 回目）。弱さ: 同じコマンドで元の src/ にも書くと見逃す。t2 の実際のコマンドと、落とすべき 4 通りのコマンドを node の正規表現で確かめた（一回限り）
+- 決定: Step 1 の費用の目安を「500 行まで 0.7〜3 ドル」に直す（2026-11 の実費: n1 0.68・t2 0.68・t1 0.86・p2 1.28・r-c 2.78）。eval/README.md の実費の列も合わせた
