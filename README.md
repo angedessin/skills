@@ -68,7 +68,7 @@ agent（`.claude/agents/`）: `review-bug`・`review-rules`・`review-ui-a11y`�
 ```bash
 mise exec -- pnpm run validate     # スキルの frontmatter・構造、CLAUDE.md の行数、依存の一覧
 mise exec -- pnpm run test:hooks   # PreToolUse hook のフィクスチャ
-mise exec -- pnpm run test:skills  # スキルのフォルダに置いたスクリプト（frontend-code-review の差分の数え方）と評価の src の採点
+mise exec -- pnpm run test:skills  # スキルのフォルダに置いたスクリプト（frontend-code-review の差分の数え方・変える前のコードで流す判定）と評価の src の採点
 mise exec -- pnpm run test:sandbox # settings.json の形（sandbox の中での確認は tests/sandbox/README.md）
 mise exec -- pnpm run lint         # Biome
 ```
