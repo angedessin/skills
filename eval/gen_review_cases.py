@@ -335,7 +335,7 @@ planted(
 
 # ---------------------------------------------------------------- T1・T2 テストの指摘（A3。skill-loop-fixes）
 # T1 は実装ファイルだけを変えるので、review-test はテストファイルが変わっていなくても起動する条件でしか呼ばれない
-planted(
+T1 = planted(
     "t1-missing-test", "テストの指摘 T1: 検索をやり直す「クリア」ボタンを足したが、テストを足していない",
     {PC: sub(BC, [
         ("  async function handleSubmit(", '  function handleClear() {\n    setQuery("");\n    setState({ status: "idle" });\n  }\n\n  async function handleSubmit('),
@@ -346,7 +346,7 @@ planted(
     tags=("test-review",),
 )
 # T2 の並べ替えのテストは、2 件が表示されることだけを見るので、sort を消しても逆順にしても通る
-planted(
+T2 = planted(
     "t2-shallow-test", "テストの指摘 T2: 結果を価格の安い順に並べ、並び順を確かめないテストを足す（形だけ）",
     {
         PC: sub(BC, [("          {state.products.map((p) => (",
@@ -360,6 +360,11 @@ planted(
     "PASS if it points out that the new test for price ordering does not check the order of the items (it only checks that both names appear), so it would still pass if the sort were removed or reversed, AND it states how this was established (for example: it removed or reversed the sort and the test still passed, or it names the change to the sort that the test would not catch). FAIL if the problem is not mentioned, or if it is mentioned without saying how the implementation would be broken.",
     tags=("test-review",),
 )
+# A5: テストファイルが変わったら、検証の前に変える前のコードで流す（結果は q1 の「どう壊したか」に出る）。
+# 中身を読んだだけで通らないよう、bash で実行した形だけを数える。T1 はテストファイルが変わらないので呼ばない
+RUN_ON_BASE = "'\\bbash\\s+\\S*run-tests-on-base\\.sh'"
+grader(f"{T2}/graders/q2-ran-tests-on-base.md", {"type": "tool_used", "tool": "Bash", "input_match": RUN_ON_BASE, "min": 1})
+grader(f"{T1}/graders/q2-skips-tests-on-base.md", {"type": "tool_used", "tool": "Bash", "input_match": RUN_ON_BASE, "min": 0, "max": 0})
 
 # ---------------------------------------------------------------- L1 大きい差分（費用を示して止まる）。20261108 に足した回帰ケース
 def bench(name, n, ms):

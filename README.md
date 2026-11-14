@@ -68,7 +68,7 @@ agent（`.claude/agents/`）: `review-bug`・`review-rules`・`review-ui-a11y`�
 ```bash
 mise exec -- pnpm run validate     # スキルの frontmatter・構造、CLAUDE.md の行数、依存の一覧
 mise exec -- pnpm run test:hooks   # PreToolUse hook のフィクスチャ
-mise exec -- pnpm run test:skills  # スキルのフォルダに置いたスクリプト（frontend-code-review の差分の数え方）と評価の src の採点
+mise exec -- pnpm run test:skills  # スキルのフォルダに置いたスクリプト（frontend-code-review の差分の数え方・変える前のコードで流す判定）と評価の src の採点
 mise exec -- pnpm run test:sandbox # settings.json の形（sandbox の中での確認は tests/sandbox/README.md）
 mise exec -- pnpm run lint         # Biome
 ```
@@ -133,7 +133,7 @@ cp -n templates/settings.template.json "$DEST/.claude/settings.json"
 
 - **agent:** 無いと、スキルは汎用の subagent に指示を渡す代替に落ちる。一緒に持っていく
 - **案内先のスキル:** 本文で名前を出すだけで、無くても動く
-- **スキルのフォルダのスクリプト:** スキルと一緒にフォルダごと持っていく。`frontend-code-review` の `scripts/count-diff.sh` は bash と git が要る
+- **スキルのフォルダのスクリプト:** スキルと一緒にフォルダごと持っていく。`frontend-code-review` の `scripts/count-diff.sh` は bash と git が、`scripts/run-tests-on-base.sh` はそれに加えて jq・tar・`node_modules/.bin/vitest` が要る（無ければ 2 で止まる）
 
 <!-- deps:skills -->
 | スキル | agent | 案内先のスキル | 配るか |
