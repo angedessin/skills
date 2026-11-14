@@ -1,4 +1,4 @@
-Last updated: 2026-11-11
+Last updated: 2026-11-14
 
 # tasklist: skill-loop-fixes
 
@@ -6,16 +6,18 @@ Last updated: 2026-11-11
 
 ## PR 1 — テストの必須化（ブランチ `feature/test-gate`）
 
-- [ ] 1. `vitest related` で、関係するテストが 0 件のとき・あるとき・落ちたときの終了コードと出力を、一時的なプロジェクトで確かめる。結果を decisions.md に残す（判定できなければ、判定する範囲を未コミットだけに戻す）
-- [ ] 2. 型検査の hook を自分の状態で判定する形に直す（A1'）。fixture を先に書いて落ちることを確かめてから直す
-- [ ] 3. ゲートの fixture の仕組みと、テストの有無・免除・ベースとの差分・worktree・削除だけ・対象外のファイルのケースを書き、ゲートの骨格（判定 1〜4・免除のファイル）を通す
-- [ ] 4. テストの成否・打ち切り・道具の故障・同じ差分で流さない、のケースと実装
-- [ ] 5. テストを弱めた判定・タスクの外の免除の警告、のケースと実装
-- [ ] 6. settings とその雛形に登録し、README（依存の一覧・hook の説明・cp の行・外す目安）を直す。`test:sandbox` を通す
-- [ ] 7. steering の 3・4（A2）と design-doc の 4（A4）を直す。`eval/gen_design_cases.py` の s1・s2 の tasklist と `q1-right-item` を直し、A2・A4 の grader を足す
-- [ ] 8. validate に C3 の検査と self-test を足す
-- [ ] 9. `validate`・`test:hooks`・`test:sandbox`・`lint` を流す → 回帰ケースの見積もりを示し、承認後にユーザーに流してもらう → 結果を読んで確かめる
-- [ ] 10. レビュー → PR（統合用ブランチへ）
+- [x] 1. `vitest related` で、関係するテストが 0 件のとき・あるとき・落ちたときの終了コードと出力を、一時的なプロジェクトで確かめる。結果を decisions.md に残す（判定できなければ、判定する範囲を未コミットだけに戻す）（20261111。判定できる。終了コードは 0 件でも 0 なので、ファイルごとに json の `numTotalTestSuites` で見る。範囲は C のまま）
+- [x] 2. 型検査の hook を自分の状態で判定する形に直す（A1'）。fixture を先に書いて落ちることを確かめてから直す（20261112。tsc の出力の cksum を `${TMPDIR}/claude-stop-typecheck/<session_id>` に残す。fixture TC1〜7 は直す前に TC1・3・4 が落ち、直した後 `test:hooks` 389/389。validate・test:sandbox・lint も通る）
+- [x] 3. ゲートの fixture の仕組みと、テストの有無・免除・ベースとの差分・worktree・削除だけ・対象外のファイルのケースを書き、ゲートの骨格（判定 1〜4・免除のファイル）を通す（20261112。`stop-test-gate.sh` と fixture GT1〜22（偽の vitest は対応表で件数を返し、呼び出しを数える）。hook が無い状態で FAIL、書いた後 `test:hooks` 411/411。hook を 5 か所壊すと該当ケースが落ちることも確かめた（一回限り）。lint・test:sandbox は通る。validate は「配る hook が雛形に未登録」の 1 件だけ FAIL で、項目 6 の登録で直る。vitest の結果を読めないときは警告だけ（項目 4 で道具の故障として仕上げる）。実行ビットが未設定）
+- [x] 4. テストの成否・打ち切り・道具の故障・同じ差分で流さない、のケースと実装（20261112。fixture GT23〜37（偽の vitest は本物と同じ形の json を書き、眠る・json 無しで終わるも真似る）。書く前に 11 件 FAIL、実装後 `test:hooks` 426/426。hook を 8 か所壊すと該当ケースが落ちることを確かめた（一回限り）。打ち切りで子のプロセスまで止めることは GT27 で pid を見て確かめる。lint・test:sandbox は通る。validate は項目 6 まで 1 件 FAIL のまま。細部は decisions.md）
+- [x] 5. テストを弱めた判定・タスクの外の免除の警告、のケースと実装（20261112。fixture GT38〜52。書く前に 11 件 FAIL、実装後 `test:hooks` 441/441。hook を 7 か所壊すと該当ケースが落ちることを確かめた（一回限り。見分けられなかった 1 か所は GT46 を足して直した）。lint・test:sandbox は通る。validate は項目 6 まで 1 件 FAIL のまま。数え方は decisions.md）
+- [x] 6. settings とその雛形に登録し、README（依存の一覧・hook の説明・cp の行・外す目安）を直す。`test:sandbox` を通す（20261113。Stop に timeout 180 で登録。`check_settings.py` に「Stop に 2 本あり、ゲートの timeout が hook の中の既定の打ち切り（150）より長い」検査と self-test 3 件を足し、登録前に FAIL を確かめた。validate 10/10・test:hooks 441/441（SKIP 0）・test:sandbox・lint が通る。依存の一覧は項目 3 で済み。実行ビットは sandbox で付けられず、ユーザーに依頼（`bash` 経由で呼ぶので動作には影響しない））
+- [x] 7. steering の 3・4（A2）と design-doc の 4（A4）を直す。`eval/gen_design_cases.py` の s1・s2 の tasklist と `q1-right-item` を直し、A2・A4 の grader を足す（20261113。steering の 3 に完了条件をテストで確かめてコマンドと結果を書く・確かめられないときは書かない・免除のファイルに書き足す、4 に結果の 1 行を足した。design-doc の 4 に実装の項目にテストを含める・テスト不要は test-exemptions.md、5 にそのパスの報告。s1・s2 の tasklist を実装とテストを同じ項目にし、`q1-right-item` を合わせた。A2 は `s1-resume` の `q4-test-evidence`、A4 は D1_ITEMS の `tests-in-items`（d1b にも付く）。生成を一時ディレクトリで確かめた。validate・test:hooks 441/441・test:sandbox・lint が通る。採点の確かめは項目 9 の回帰ケース）
+- [x] 8. validate に C3 の検査と self-test を足す（20261113。項目 10 として、導入の語で行を探し「:」の後ろを「・」で分けた条件が 3 つで、ファイルごとの目印の組（CLAUDE.md は「承認制のパス」、design-doc は「CLAUDE.md」「docs」「.claude」）にそれぞれ 1 つずつ当たるかを見る。self-test は目印 1 つずつの削除・条件の追加・行の削除の 12 通りで、落ちなかったものは 0。validate 11/11・test:hooks 441/441・test:sandbox・lint が通る）
+- [x] 9. `validate`・`test:hooks`・`test:sandbox`・`lint` を流す → 回帰ケースの見積もりを示し、承認後にユーザーに流してもらう → 結果を読んで確かめる（20261113。静的検査は 4 つとも通る。回帰ケースは 3 回に分けて流し、合計 8.33 ドル。d1・d2・d3・s1〜s3 に回帰なし。採点を 2 つ直した（A4 は d1 では確かめられないので d1b へ、s1 の tasklist の採点はテストを流せず未チェックで残すのも合格に）。d1b が 3 回中 2 回だったので、design-doc に「既存のテスト・型検査だけでは項目のテストにならない」を足し、3 回とも合格。詳細は eval-20261113.md・decisions.md）
+- [x] 9b. レビューの 20 件を直す（review-result.md の 20261114）。fixture を先に足して落ちることを確かめてから hook を直す。型検査はターンごとに差し戻し直す・timeout の余裕は 10 秒・拡張子は足しモノレポは README に対象外と書く（decisions.md 20261114）（20261114。fixture GT53〜78・TC3b を先に足して 10 件 FAIL を確かめ、hook を直して test:hooks 468/468。hook を 20 か所壊して全部落ちることを確かめた（一回限り）。test:sandbox に余裕 10 秒の検査。validate・lint も通る。詳細は review-result.md。直しのレビューで出た 13 件も直した（カバレッジを切る・設定の dotfile を除く・run の部分一致・fixture GT79〜91。test:hooks 481/481。13 通り壊して全部落ちた））
+- [x] 10. レビュー → PR（統合用ブランチへ）（20261114。レビュー 2 回・指摘 33 件を直した。feature/skill-loop-fixes を push し、PR #26 を作った。CI は無い）
+- [ ] 10b. 配置先の最初のプロジェクトで、テストのゲートの所要時間を測り、打ち切り時間（150 秒）と実装ファイルごとの起動を見直す（レビューで「設計どおり」とした性能の件）
 
 ## PR 2 — 知見を設計で読む（ブランチ `feature/design-reads-knowledge`）
 
