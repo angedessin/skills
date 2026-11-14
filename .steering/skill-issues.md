@@ -15,3 +15,8 @@
 
 - 事象: `.steering/.claude/.cc-writes`（空。Bash の作業ディレクトリを .steering にしたまま書いたときに Claude Code が作ったと見られる）があり、SessionStart の hook がアクティブなタスクに `.claude` を挙げた。空なのを確かめて消した
 - 期待: hook は `.` で始まるディレクトリ（と archived/）をタスクに数えない。steering スキルの「タスクの見つけ方」も同じ
+
+## 20261115 — 未了: テストのゲートの所要時間を配置先で測る（skill-loop-fixes の tasklist 10b）
+
+- 事象: stop-test-gate.sh は実装ファイルごとに vitest を起動し、打ち切りは 150 秒（settings の timeout 180）。このリポジトリには vitest が無く、実際のプロジェクトでの時間を測っていない（PR 1 のレビューで「設計どおり」とした性能の件）
+- 期待: 配置先の最初のプロジェクトで所要時間を測り、打ち切り時間と、実装ファイルごとに起動する作りを見直す
