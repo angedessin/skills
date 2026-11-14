@@ -164,3 +164,13 @@
 - 採点: 写しの目印を `mktemp -d` から一時ディレクトリ全般（mktemp・TMPDIR・/var/folders/・/tmp/claude-）に広げ、Edit・Write にも同じ除外を足した（`evalcase.src_graders`）。評価の作業ツリーは /private/tmp/e-*/home/cwd なので目印に当たらない。弱さは、一時ディレクトリを指す同じ呼び出しで元の src/ に書くと見逃すこと（EG11 に残した）
 - count-diff.sh: 未追跡の名前は `./` を付けて渡し、stdin も塞ぐ。改行を含む名前は一覧で `%q` の形にする。合計の行は最後の行から読み、形が違えば 2 で止まる。bash 3.2 はコマンド置換の中の case の `)` を読み違えるので、`[[ ]]` で見る
 - 実装ファイルの定義をゲートに合わせ、`*.d.mts`・`*.d.cts`・`.` で始まる名前を除く。ルートの README の「限界」の行は今の手順と逆なので消した
+
+## 20261114 — 変える前のコードで流す手順の作り（tasklist 17）
+
+- 決定（ユーザーの OK）: `frontend-code-review/scripts/run-tests-on-base.sh`。範囲の指定は count-diff.sh と同じ（指定なし＝未コミットを HEAD のコードで／`--base`＝コミット済みを merge-base のコードで／`--worktree` で未コミットも足す）
+- ベースのコードは `git archive | tar -x` で `$TMPDIR` に展開し、`node_modules` はリンクで借りる（`git worktree add` は sandbox で `.git/worktrees` に書けない）。作業ツリーと HEAD は変えない
+- 新しいテストだけを報告する: 変えたテストファイルはベースの版を先に流し、ベースで通っていた名前を除く。改名は元のパスの版と比べる。ベースで落ちていた同名のテストは除かない
+- import のエラーなどでファイルごと落ちたものは「落ちた」と数える。vitest が結果を返さない・打ち切り（既定 120 秒）・vitest や jq が無いときは 2
+- リファクタリングの除外はスクリプトではなくスキル（18）で決める
+- 弱さ: 名前を変えずに中身だけ変えたテストは見逃す。テストが新しく足した補助のファイルを import すると、形だけでも落ちたと数えて見逃す
+- 気づき: bash 3.2 の `printf %q` は日本語をバイトごとに崩し、grep が illegal byte sequence で読めない（偽の vitest では見えず、本物の vitest のサンプルアプリで見つけた。RB23 を足した）。コマンド置換の中の case の `)` も読み違える
