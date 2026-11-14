@@ -2,9 +2,10 @@
 # Stop hook: 終了宣言時に型チェック（tsc --noEmit --incremental）を実行し、
 # エラーがあれば exit 2 + stderr で AI に差し戻す（「できました（できてない）」対策）。
 # tsconfig.json が無い / tsc が未導入なら素通し（配置先プロジェクトに依存しない）。
-# 無限ループの防止は自分の状態で判定する: 差し戻した tsc の出力のハッシュを残し、同じエラーが続くときだけ警告で通す。
-# エラーが変われば再び差し戻す。stop_hook_active は見ない（どの Stop hook の差し戻しでも立つので、
-# ほかの Stop hook と並べると型検査が素通りになる）。状態はプロジェクトの外（TMPDIR の下に session_id ごと）に置く。
+# 無限ループの防止は自分の状態で判定する: 差し戻した tsc の出力のハッシュを残し、ターンの中で同じエラーが続くときだけ
+# 警告で通す。エラーが変われば再び差し戻す。stop_hook_active が true でも緩めない（どの Stop hook の差し戻しでも立つので、
+# ほかの Stop hook と並べると型検査が素通りになる）。false（ターンの最初の Stop）では状態を消し、ユーザーの新しい依頼の
+# たびに残った型エラーを 1 回は差し戻す。状態はプロジェクトの外（TMPDIR の下に session_id ごと）に置く。
 # 実測で 20-30 秒を超えるプロジェクトでは、この hook を外して CI に移すこと。
 
 command -v jq >/dev/null 2>&1 || exit 0
@@ -20,6 +21,8 @@ TSC="$PROJECT_ROOT/node_modules/.bin/tsc"
 session=$(printf '%s' "$input" | jq -r '.session_id // "nosession"' 2>/dev/null | tr -c 'A-Za-z0-9_-' '_')
 STATE_DIR="${TMPDIR:-/tmp}/claude-stop-typecheck"
 STATE="$STATE_DIR/${session:-nosession}"
+active=$(printf '%s' "$input" | jq -r '.stop_hook_active // false' 2>/dev/null)
+[ "$active" = "true" ] || rm -f "$STATE"
 
 out=$(cd "$PROJECT_ROOT" && "$TSC" --noEmit --incremental --pretty false 2>&1)
 if [ $? -eq 0 ]; then

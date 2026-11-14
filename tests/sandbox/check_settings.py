@@ -178,13 +178,18 @@ GATE_HOOK = ROOT / ".claude" / "hooks" / "stop-test-gate.sh"
 GATE_TIMEOUT_RE = re.compile(r'^TIMEOUT="\$\{STOP_TEST_GATE_TIMEOUT:-(\d+)\}"', re.MULTILINE)
 
 
-def gate_inner_timeout() -> int | None:
-    m = GATE_TIMEOUT_RE.search(GATE_HOOK.read_text(encoding="utf-8")) if GATE_HOOK.exists() else None
+GATE_MARGIN = 10  # 打ち切った後の後片付け（kill・sleep 2・jq）と、計測の前の git・ハッシュの処理の分
+
+
+def gate_inner_timeout(text: str | None = None) -> int | None:
+    if text is None:
+        text = GATE_HOOK.read_text(encoding="utf-8") if GATE_HOOK.exists() else ""
+    m = GATE_TIMEOUT_RE.search(text)
     return int(m.group(1)) if m else None
 
 
-def check_stop_hooks(settings: dict, gated: set[str]) -> str | None:
-    """Stop に型検査とテストのゲートがあり、ゲートの hook の timeout が中の打ち切り時間より長い。"""
+def check_stop_hooks(settings: dict, gated: set[str], hook_text: str | None = None) -> str | None:
+    """Stop に型検査とテストのゲートがあり、ゲートの hook の timeout が中の打ち切り時間より GATE_MARGIN 秒以上長い。"""
     timeouts = {
         name: h.get("timeout")
         for group in settings.get("hooks", {}).get("Stop", [])
@@ -194,12 +199,12 @@ def check_stop_hooks(settings: dict, gated: set[str]) -> str | None:
     missing = [n for n in STOP_HOOKS if n not in timeouts]
     if missing:
         return f"Stop に無い: {missing}"
-    inner = gate_inner_timeout()
+    inner = gate_inner_timeout(hook_text)
     if inner is None:
         return f"{GATE_HOOK.name} に打ち切り時間（STOP_TEST_GATE_TIMEOUT の既定）の行が無い"
     outer = timeouts["stop-test-gate.sh"]
-    if not isinstance(outer, int) or outer <= inner:
-        return f"stop-test-gate.sh の timeout {outer} が中の打ち切り {inner} 秒より長くない（時間切れが差し戻さないエラーになる）"
+    if not isinstance(outer, int) or outer - inner < GATE_MARGIN:
+        return f"stop-test-gate.sh の timeout {outer} が中の打ち切り {inner} 秒より {GATE_MARGIN} 秒以上長くない（時間切れが差し戻さないエラーになる）"
     return None
 
 
@@ -247,8 +252,11 @@ def self_test(settings: dict, gated: set[str]) -> list[str]:
         ("stop-gate-missing", check_stop_hooks, lambda s: s["hooks"]["Stop"][0]["hooks"].pop()),
         ("stop-typecheck-missing", check_stop_hooks, lambda s: s["hooks"]["Stop"][0]["hooks"].pop(0)),
         ("stop-gate-timeout", check_stop_hooks, lambda s: s["hooks"]["Stop"][0]["hooks"][-1].update(timeout=120)),
+        ("stop-gate-timeout-margin", check_stop_hooks, lambda s: s["hooks"]["Stop"][0]["hooks"][-1].update(timeout=155)),
     ]
     silent = [name for name, fn, broken in cases if fn(mutate(broken), gated) is None]
+    if check_stop_hooks(settings, gated, hook_text="# 打ち切りの行が無い hook\n") is None:
+        silent.append("stop-gate-no-inner-timeout")
 
     good = expected_template(settings)
     template_cases: list[tuple[str, Callable[[dict], None]]] = [

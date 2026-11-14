@@ -80,8 +80,8 @@ mise exec -- pnpm run lint         # Biome
 - **SessionStart**（`session-start-check.sh`）: `.steering/` のアクティブなタスクの一覧を context に注入する
 - **承認制パスのガード**（`guard-gated-write.sh`・`guard-gated-delete.sh`）: permissions の ask と同じパス（CLAUDE.md・docs/・.claude/。正本は hook 冒頭の `# GATED_PATHS:` 行）への、Bash 経由の書き込み（リダイレクト・`tee`・`cp`・`sed -i`・`git mv`）を ask にする。プロジェクトの中の CLAUDE.md・docs/ への `rm`・`mv` は deny にする（`.claude/` の素の `rm`・`mv` は sandbox が止める）。sandbox には「承認すれば進む」が無く、作業ディレクトリの CLAUDE.md・docs/ も守らないため。python3 が無いと、書き込みの ask はリダイレクトと `tee` だけになる（`cp`・`sed -i`・`git mv`・`.claude/` は見ない）
 - **品質ゲート**（`post-edit-lint.sh`・`stop-typecheck.sh`・`stop-test-gate.sh`・`validate-skill-edit.sh`）
-  - **型検査**（`stop-typecheck.sh`）: 応答を終える前に tsc を流し、型エラーなら差し戻す。同じエラーが 2 回続いたら警告だけで通す（差し戻した出力のハッシュを `${TMPDIR}` の下に session_id ごとに残す。`stop_hook_active` は他の Stop hook の差し戻しでも立つので使わない）
-  - **テストのゲート**（`stop-test-gate.sh`）: ベースブランチとの分岐点からの差分・未コミット・未追跡の実装ファイルごとに `vitest related` を流し、関係するテストが無い・落ちる・`STOP_TEST_GATE_TIMEOUT` 秒（既定 150。hook の timeout 180 より短く）で流しきれない・テストを弱めた（`expect` が減った・`skip`・`only`・`todo` が増えた）ときに差し戻す。vitest が件数を返さない（node が無い・設定のエラー）ときは警告だけで通す。通った差分は流し直さない
+  - **型検査**（`stop-typecheck.sh`）: 応答を終える前に tsc を流し、型エラーなら差し戻す。ターンの中で同じエラーが 2 回続いたら警告だけで通し、ユーザーの新しい依頼（ターンの最初の Stop）ではまた差し戻す（差し戻した出力のハッシュを `${TMPDIR}` の下に session_id ごとに残す。`stop_hook_active` が true でも緩めない。他の Stop hook の差し戻しでも立つため）
+  - **テストのゲート**（`stop-test-gate.sh`）: ベースブランチ（origin/HEAD → `init.defaultBranch` → main → master）との分岐点からの差分・未コミット・未追跡の実装ファイル（ts・tsx・js・jsx・mts・cts・mjs・cjs・vue・svelte）ごとに `vitest related` を流し、変えたテストファイルも流す（e2e/ の下は除く）。関係するテストが無い・落ちる・vitest が 0 以外で終わる・`STOP_TEST_GATE_TIMEOUT` 秒（既定 150。hook の timeout 180 より 10 秒以上短く）で流しきれない・テストを弱めた（`expect` が減った・`skip`・`only`・`todo` が増えた。git が組にした改名は古いパスの版と比べる）ときに差し戻す。vitest が件数を返さない（node が無い・設定のエラー）ときは警告だけで通す。通った差分は流し直さない
   - **テストの免除**: アクティブなタスクがあれば `.steering/<task>/test-exemptions.md`、無ければ `.steering/test-exemptions.md` に、`## テスト不要`・`## 失敗を残す`・`## テストを弱める` の節を置き、`- <パス> — <理由>（YYYYMMDD）` の行を書く。理由の無い行は効かない。「失敗を残す」に実装ファイルを書くと、その実装ファイルはテストを流さない（時間切れの逃げ道）。タスクの外の免除に載ったファイルが変わると、通しつつ警告する
 - **sandbox**（`.claude/settings.json`）: Bash の秘密の読み取り・通信先・書き込み範囲を OS のレベルで制限する。`.env` の読み取りも止めるが、対象はプロジェクトの中だけで、外の `.env` は sandbox では止まらない（20261105 に一回限りで確認）。`autoAllowBashIfSandboxed: false` で、sandbox の中の Bash も通常の確認に乗せる（hook が見ない書き込みを確認なしで通さないため）。ただし公式の説明では、acceptEdits は作業ディレクトリの中の `cp`・`sed` などを確認なしで通す。承認制のパスへの `cp`・`sed -i` を guard hook で ask にしているのはこのため。hook は sandbox の外で動く
 
@@ -118,8 +118,8 @@ cp -n templates/settings.template.json "$DEST/.claude/settings.json"
 - Claude Code を再起動する。sandbox を有効にする前から動いていたプロセスでは、通信先の制限が効かなかった（`/clear` では直らない）
 - 雛形の `allowedDomains` は GitHub と npm だけ。案件で要る通信先を足す。これは絶対の上限ではない。auto モードでは、Claude がコマンドごとに通信先を足し、自動の判定が認めれば確認なしで届く（公式の per-command allowed domains）。manual と acceptEdits では確認が出て、許可すれば届く。必ず止めたいなら、ユーザー設定か `--settings` で `network.strictAllowlist` を入れる（リポジトリの settings では効かない）
 - hook を減らしたら、settings の登録も消す
-- **Stop の hook を外す目安:** テストのゲートが打ち切り（150 秒）で差し戻すことが続く、型検査が毎回 120 秒近くかかるプロジェクトでは、その hook と settings の登録を外し、CI で流す。一部のファイルだけが遅いなら、外さずに免除のファイルの「失敗を残す」にその実装ファイルを書く。打ち切り時間は `STOP_TEST_GATE_TIMEOUT` で変えられるが、settings の timeout（180）より短く保つ（`test:sandbox` が既定値で検査する）
-- テストのゲートは vitest だけを見る（`node_modules/.bin/vitest` が無ければ素通し）。Jest などのプロジェクトでは外す
+- **Stop の hook を外す目安:** テストのゲートが打ち切り（150 秒）で差し戻すことが続く、型検査が実測で 20〜30 秒を超えるプロジェクトでは、その hook と settings の登録を外し、CI で流す。一部のファイルだけが遅いなら、外さずに免除のファイルの「失敗を残す」にその実装ファイルを書く。打ち切り時間は `STOP_TEST_GATE_TIMEOUT` で変えられるが、settings の timeout（180）より 10 秒以上短く保つ（`test:sandbox` が既定値で検査する）
+- テストのゲートは vitest だけを見る（`node_modules/.bin/vitest` が無ければ素通し）。Jest などのプロジェクトでは外す。vitest をリポジトリの根ではなくサブパッケージにだけ入れたモノレポも、根の `node_modules` に無いので素通しになる（対応していない）
 - **sandbox の設定はチェックアウト中のブランチに従う。** 設定の無いブランチへ切り替えると、sandbox も guard hook も何の表示もなく外れる。設定を入れたコミットを統合ブランチに入れてからブランチを切り直し、古いブランチへ切り替えたら `/sandbox` で確かめる
 - `allowLocalBinding: true` で、E2E の開発サーバーがローカルのポートを listen できる。macOS では、sandbox の中のコマンドが localhost の他のサービスにも届くので、認証の無いサービスを動かしている案件では外すか、E2E を通常のターミナルで動かす。Vite の起動は 20261103 に一回限りで確かめた。Playwright のブラウザの起動は確かめていない
 - `permissions.allow` を足すと守りが薄くなる。`excludedCommands` のコマンドは sandbox の外で動き、`git rebase --exec` のように任意の処理も動かせる。`gh api --input` などで `denyRead` のファイルも外へ送れる。今は通常の確認（auto モードでは自動の判定）だけが守っている

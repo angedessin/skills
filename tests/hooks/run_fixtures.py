@@ -796,7 +796,8 @@ def check_typecheck(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | No
         # (id, 説明, tsc のエラー, stop_hook_active, session_id, 期待の終了コード)
         ("TC1", "ほかの hook の差し戻しの後（stop_hook_active）でも、初めての型エラーなら 2", "a.ts(1,1): error TS1\n", True, "s1", 2),
         ("TC2", "同じエラーの 2 回目は 0 で警告", "a.ts(1,1): error TS1\n", True, "s1", 0),
-        ("TC3", "同じエラーが続く間は 0 のまま（交互に差し戻さない）", "a.ts(1,1): error TS1\n", False, "s1", 0),
+        ("TC3", "ターンが変われば（stop_hook_active が false）、同じエラーでもまた 2", "a.ts(1,1): error TS1\n", False, "s1", 2),
+        ("TC3b", "ターンの中で同じエラーが続けば 0 のまま（交互に差し戻さない）", "a.ts(1,1): error TS1\n", True, "s1", 0),
         ("TC4", "エラーが変われば 2", "a.ts(2,1): error TS2\n", True, "s1", 2),
         ("TC5", "型エラーが無ければ 0", None, False, "s1", 0),
         ("TC6", "直った後に同じエラーが戻れば、また 2", "a.ts(2,1): error TS2\n", False, "s1", 2),
@@ -811,20 +812,24 @@ def check_typecheck(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | No
     return out
 
 
-# 偽の vitest: `related <file> --run --reporter=json --outputFile=<path>` を受け、
-# node_modules/.fake/related の「<パス> <件数> [落ちるテストのパス...]」の行から、本物と同じ形の json を書く
-# （20261112 に vitest 5.1.0 で確かめた形: 落ちたら numFailedTestSuites と testResults[].status=="failed"）。
-# 呼ばれるたびに .fake/calls に 1 行足す。.fake/sleep があればその秒数だけ眠る（眠るプロセスの pid を .fake/sleep-pid に残す）。
-# .fake/exit があれば json を書かずにその終了コードで終える（道具の故障・設定のエラーのまね）。
+# 偽の vitest。本物と同じ形の json を書く（20261112 に vitest 5.1.0 で確かめた形: 落ちたら numFailedTestSuites と
+# testResults[].status=="failed"。一回限りの突き合わせで、本物の形が変わっても test:hooks は気づけない）。
+# - `related <file> --run --reporter=json --outputFile=<path>`: node_modules/.fake/related の「<パス> <件数> [札...]」の行から作る。
+#   札: <テストのパス>（assertion で落ちる）・msg:<テストのパス>（import のエラーなど、message だけで落ちる）・
+#   exit=<N>（json を書かずに N で終える）・rc=<N>（落ちたファイルの無い json を書いて N で終える。Unhandled Errors のまね）
+# - `run <テストのパス>... --reporter=json --outputFile=<path>`: 渡したファイルを流したことにする。.fake/failing に載ったパスは落ちる
+# 呼ばれるたびに .fake/calls に引数を 1 行足す。.fake/sleep があればその秒数だけ眠る（眠るプロセスの pid を .fake/sleep-pid に残す）。
+# .fake/exit があれば、どの呼び出しも json を書かずにその終了コードで終える（道具の故障・設定のエラーのまね）。
 FAKE_VITEST = r"""#!/bin/bash
 here=$(cd "$(dirname "$0")/.." && pwd)
 echo "$*" >> "$here/.fake/calls"
-file=""; out=""
+mode=""; out=""; files=()
 for a in "$@"; do
   case "$a" in
     --outputFile=*) out="${a#--outputFile=}" ;;
-    related|--run|--reporter=*) ;;
-    *) file="$a" ;;
+    related|run) [ -z "$mode" ] && mode="$a" || files+=("$a") ;;
+    --run|--reporter=*) ;;
+    *) files+=("$a") ;;
   esac
 done
 if [ -f "$here/.fake/sleep" ]; then
@@ -836,21 +841,42 @@ if [ -f "$here/.fake/exit" ]; then
   echo "fake vitest: failed to load config" >&2
   exit "$(cat "$here/.fake/exit")"
 fi
-line=$(awk -v f="$file" '$1==f' "$here/.fake/related" 2>/dev/null)
-set -- $line
-n=${2:-0}
-shift 2 2>/dev/null || set --
 cwd=$(pwd -P)
-if [ $# -gt 0 ]; then
-  tr=""
-  for t in "$@"; do
-    tr="$tr${tr:+,}{\"name\":\"$cwd/$t\",\"status\":\"failed\",\"message\":\"\",\"assertionResults\":[{\"fullName\":\"case in $t\",\"status\":\"failed\",\"failureMessages\":[\"AssertionError: boom in $t\"]}]}"
+entry() { # $1 = テストのパス, $2 = assert|msg
+  if [ "$2" = msg ]; then
+    printf '{"name":"%s/%s","status":"failed","message":"Failed to resolve import in %s","assertionResults":[]}' "$cwd" "$1" "$1"
+  else
+    printf '{"name":"%s/%s","status":"failed","message":"","assertionResults":[{"fullName":"case in %s","status":"failed","failureMessages":["AssertionError: boom in %s"]}]}' "$cwd" "$1" "$1" "$1"
+  fi
+}
+tr=""; nf=0; rc=0
+if [ "$mode" = run ]; then
+  n=${#files[@]}
+  for t in "${files[@]}"; do
+    if grep -qxF -- "$t" "$here/.fake/failing" 2>/dev/null; then
+      tr="$tr${tr:+,}$(entry "$t" assert)"; nf=$((nf + 1))
+    else
+      tr="$tr${tr:+,}{\"name\":\"$cwd/$t\",\"status\":\"passed\",\"message\":\"\",\"assertionResults\":[]}"
+    fi
   done
-  printf '{"numTotalTestSuites":%s,"numFailedTestSuites":%s,"numFailedTests":%s,"success":false,"testResults":[%s]}' "$n" "$#" "$#" "$tr" > "$out"
-  exit 1
+else
+  line=$(awk -v f="${files[0]}" '$1==f' "$here/.fake/related" 2>/dev/null)
+  set -- $line
+  n=${2:-0}
+  shift 2 2>/dev/null || set --
+  for t in "$@"; do
+    case "$t" in
+      exit=*) echo "fake vitest: crashed" >&2; exit "${t#exit=}" ;;
+      rc=*) rc=${t#rc=} ;;
+      msg:*) tr="$tr${tr:+,}$(entry "${t#msg:}" msg)"; nf=$((nf + 1)) ;;
+      *) tr="$tr${tr:+,}$(entry "$t" assert)"; nf=$((nf + 1)) ;;
+    esac
+  done
 fi
-printf '{"numTotalTestSuites":%s,"numFailedTestSuites":0,"numFailedTests":0,"success":true,"testResults":[]}' "$n" > "$out"
-exit 0
+[ "$nf" -gt 0 ] && rc=1
+ok=true; [ "$rc" -ne 0 ] && ok=false
+printf '{"numTotalTestSuites":%s,"numFailedTestSuites":%s,"numFailedTests":%s,"success":%s,"testResults":[%s]}' "$n" "$nf" "$nf" "$ok" "$tr" > "$out"
+exit "$rc"
 """
 
 
@@ -913,22 +939,43 @@ def check_test_gate(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | No
         env = {**os.environ, "CLAUDE_PROJECT_DIR": str(repo), "TMPDIR": str(gate_tmp)}
         if timeout is not None:
             env["STOP_TEST_GATE_TIMEOUT"] = str(timeout)
-        return subprocess.run(["bash", str(hook)], input=raw, capture_output=True, text=True, errors="replace", cwd=str(repo), env=env, check=False, timeout=60)
+        try:
+            return subprocess.run(["bash", str(hook)], input=raw, capture_output=True, text=True, errors="replace", cwd=str(repo), env=env, check=False, timeout=60)
+        except subprocess.TimeoutExpired:  # hook が固まっても runner 全体を止めず、そのケースを落とす
+            return subprocess.CompletedProcess(["bash", str(hook)], -1, "", "fixture: hook が 60 秒で終わらなかった")
 
     def calls(repo: Path) -> int:
         f = repo / "node_modules" / ".fake" / "calls"
         return len(f.read_text().splitlines()) if f.is_file() else 0
 
     out: list[tuple[str, str, str | None]] = []
+    NO_TEST = "関係するテストがありません"
 
-    def expect(cid: str, label: str, p: subprocess.CompletedProcess[str], code: int, *, says: str | None = None, called: int | None = None, repo: Path | None = None) -> None:
+    def expect(
+        cid: str,
+        label: str,
+        p: subprocess.CompletedProcess[str],
+        code: int,
+        *,
+        says: str | tuple[str, ...] | None = None,
+        absent: str | tuple[str, ...] = (),
+        quiet: bool = False,
+        called: int | None = None,
+        repo: Path | None = None,
+    ) -> None:
         problems = []
         if p.returncode != code:
             problems.append(f"exit {p.returncode}（期待 {code}）")
         if "\ufffd" in p.stderr:
             problems.append("stderr に UTF-8 として読めないバイトがある")
-        if says is not None and says not in p.stderr:
-            problems.append(f"stderr に {says!r} が無い")
+        for want in (says,) if isinstance(says, str) else (says or ()):
+            if want not in p.stderr:
+                problems.append(f"stderr に {want!r} が無い")
+        for bad in (absent,) if isinstance(absent, str) else absent:
+            if bad in p.stderr:
+                problems.append(f"stderr に {bad!r} がある")
+        if quiet and p.stderr.strip():
+            problems.append("stderr が空でない")
         if called is not None and repo is not None and calls(repo) != called:
             problems.append(f"vitest の呼び出し {calls(repo)} 回（期待 {called}）")
         out.append((cid, label, f"{'; '.join(problems)}; stderr={p.stderr!r}" if problems else None))
@@ -943,18 +990,18 @@ def check_test_gate(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | No
     expect("GT1", "git の管理下でなければ素通し", stop(plain), 0, called=0, repo=plain)
     r = make_repo("no-vitest", vitest=False)
     write(r, "src/a.ts")
-    expect("GT2", "vitest が無ければ素通し", stop(r), 0)
+    expect("GT2", "vitest が無ければ素通し（警告も出さない）", stop(r), 0, quiet=True)
 
     # 4. 関係するテストの有無
     r = make_repo("untested")
     write(r, "src/a.ts")
-    expect("GT3", "未追跡の実装ファイルに関係するテストが無いと 2（ファイル名を出す）", stop(r), 2, says="src/a.ts", repo=r)
+    expect("GT3", "未追跡の実装ファイルに関係するテストが無いと 2（ファイル名を出す）", stop(r), 2, says=("src/a.ts", NO_TEST), repo=r)
     r = make_repo("tested", {"src/a.ts": 1})
     write(r, "src/a.ts")
-    expect("GT4", "関係するテストがあれば 0", stop(r), 0, called=1, repo=r)
+    expect("GT4", "関係するテストがあれば 0", stop(r), 0, quiet=True, called=1, repo=r)
     r = make_repo("modified")
     write(r, "src/base.ts", "export const x = 1\n")
-    expect("GT5", "コミット前の変更（追跡済み）にテストが無いと 2", stop(r), 2, says="src/base.ts")
+    expect("GT5", "コミット前の変更（追跡済み）にテストが無いと 2", stop(r), 2, says=("src/base.ts", NO_TEST))
     r = make_repo("mixed", {"src/a.ts": 1})
     write(r, "src/a.ts")
     write(r, "src/b.ts")
@@ -967,14 +1014,14 @@ def check_test_gate(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | No
     r = make_repo("committed")
     write(r, "src/a.ts")
     commit(r)
-    expect("GT7", "コミット済みでも、ベースとの分岐点からの差分にテストが無いと 2", stop(r), 2, says="src/a.ts")
+    expect("GT7", "コミット済みでも、ベースとの分岐点からの差分にテストが無いと 2", stop(r), 2, says=("src/a.ts", NO_TEST))
     r = make_repo("on-main")
     git("checkout", "-q", "main", cwd=r)
     write(r, "src/a.ts")
     commit(r)
     expect("GT8", "ベースそのもの（main）の上では、コミット済みの分は見ない", stop(r), 0, called=0, repo=r)
     write(r, "src/b.ts")
-    expect("GT9", "ベースの上でも、未コミットの変更は見る", stop(r), 2, says="src/b.ts")
+    expect("GT9", "ベースの上でも、未コミットの変更は見る", stop(r), 2, says=("src/b.ts", NO_TEST))
     r = make_repo("origin-head")
     git("checkout", "-q", "main", cwd=r)
     git("branch", "-q", "-m", "main", "trunk", cwd=r)
@@ -983,11 +1030,15 @@ def check_test_gate(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | No
     git("checkout", "-q", "feature", cwd=r)
     write(r, "src/a.ts")
     commit(r)
-    expect("GT10", "ベースは origin/HEAD を先に見る（main が無くても分岐点を取る）", stop(r), 2, says="src/a.ts")
+    expect("GT10", "ベースは origin/HEAD を先に見る（main が無くても分岐点を取る）", stop(r), 2, says=("src/a.ts", NO_TEST))
     r = make_repo("excluded")
     for rel in ("src/types.d.ts", "vite.config.ts", "src/Button.stories.tsx", "src/a.test.ts", "src/b.spec.tsx", "src/__tests__/c.ts", "tests/d.ts", "e2e/e.ts", "README.md"):
         write(r, rel)
-    expect("GT11", "実装ファイルでないもの（d.ts・config・stories・テスト・md）だけなら vitest を呼ばずに 0", stop(r), 0, called=0, repo=r)
+    expect("GT11", "実装ファイルでないもの（d.ts・config・stories・テスト・md）だけなら related は呼ばず、変えたテストを 1 回流して 0", stop(r), 0, called=1, repo=r)
+    calls_file = r / "node_modules" / ".fake" / "calls"
+    line = calls_file.read_text() if calls_file.is_file() else ""
+    if not line.startswith("run ") or "e2e/e.ts" in line:
+        out[-1] = ("GT11", out[-1][1], f"related を呼んだか、e2e を流した: {line!r}")
     r = make_repo("deleted")
     (r / "src" / "base.ts").unlink()
     expect("GT12", "削除だけの変更は判定しない", stop(r), 0, called=0, repo=r)
@@ -1003,8 +1054,7 @@ def check_test_gate(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | No
     git("worktree", "add", "-q", str(wt), "-b", "wt", cwd=r)
     install_vitest(wt, {})
     write(wt, "src/a.ts")
-    expect("GT14", "worktree の中の変更を判定する（CLAUDE_PROJECT_DIR は本体のまま）", stop(r, cwd=wt), 2, says="src/a.ts")
-    write(wt, "src/a.ts", "")
+    expect("GT14", "worktree の中の変更を判定する（CLAUDE_PROJECT_DIR は本体のまま）", stop(r, cwd=wt), 2, says=("src/a.ts", NO_TEST))
     (wt / "src" / "a.ts").unlink()
     write(r, "src/b.ts")
     expect("GT15", "cwd が worktree なら、本体の変更は見ない", stop(r, cwd=wt), 0)
@@ -1014,15 +1064,15 @@ def check_test_gate(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | No
     r = make_repo("exempt-task")
     write(r, "src/a.ts")
     exemption(r, task, "- src/a.ts — 文言の変更だけ（20261111）\n")
-    expect("GT16", "アクティブなタスクの「テスト不要」に載っていれば 0", stop(r), 0)
+    expect("GT16", "アクティブなタスクの「テスト不要」に載っていれば 0", stop(r), 0, quiet=True)
     r = make_repo("exempt-no-reason")
     write(r, "src/a.ts")
     exemption(r, task, "- src/a.ts\n- src/a.ts — \n")
-    expect("GT17", "理由の無い行では免除しない", stop(r), 2, says="src/a.ts")
+    expect("GT17", "理由の無い行では免除しない", stop(r), 2, says=("src/a.ts", NO_TEST))
     r = make_repo("exempt-other-section")
     write(r, "src/a.ts")
     write(r, task, "# テストの免除\n\n## テスト不要\n\n## テストを弱める\n- src/a.ts — 別の節（20261111）\n")
-    expect("GT18", "「テスト不要」以外の節の行では免除しない", stop(r), 2, says="src/a.ts")
+    expect("GT18", "「テスト不要」以外の節の行では免除しない", stop(r), 2, says=("src/a.ts", NO_TEST))
     r = make_repo("exempt-two-tasks")
     write(r, "src/a.ts")
     write(r, "src/b.ts")
@@ -1033,16 +1083,16 @@ def check_test_gate(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | No
     write(r, "src/a.ts")
     write(r, ".steering/20261111-x/design.md", "x\n")
     exemption(r, ".steering/archived/old/test-exemptions.md", "- src/a.ts — 理由（20261111）\n")
-    expect("GT20", "archived の下の免除は見ない", stop(r), 2, says="src/a.ts")
+    expect("GT20", "archived の下の免除は見ない", stop(r), 2, says=("src/a.ts", NO_TEST))
     r = make_repo("exempt-global")
     write(r, "src/a.ts")
     exemption(r, ".steering/test-exemptions.md", "- src/a.ts — 理由（20261111）\n")
-    expect("GT21", "タスクが無ければ .steering/test-exemptions.md を見る", stop(r), 0)
+    expect("GT21", "タスクが無ければ .steering/test-exemptions.md を見る", stop(r), 0, says="免除したまま変わりました")
     r = make_repo("exempt-global-with-task")
     write(r, "src/a.ts")
     write(r, ".steering/20261111-x/design.md", "x\n")
     exemption(r, ".steering/test-exemptions.md", "- src/a.ts — 理由（20261111）\n")
-    expect("GT22", "タスクがあれば、差し戻しの文はタスクの免除のファイルを案内する", stop(r), 2, says=".steering/20261111-x/test-exemptions.md")
+    expect("GT22", "タスクがあれば、差し戻しの文はタスクの免除のファイルを案内し、タスクの外の免除では警告しない", stop(r), 2, says=(".steering/20261111-x/test-exemptions.md", NO_TEST), absent="免除したまま変わりました")
 
     def exemption_fail(repo: Path, lines: str) -> None:
         write(repo, ".steering/test-exemptions.md", f"# テストの免除\n\n## テスト不要\n\n## 失敗を残す\n{lines}\n")
@@ -1054,7 +1104,7 @@ def check_test_gate(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | No
     r = make_repo("fail-exempt", {"src/a.ts": "1 src/a.test.ts"})
     write(r, "src/a.ts")
     exemption_fail(r, "- src/a.test.ts — 外部 API の仕様変更待ち（20261112）\n")
-    expect("GT24", "落ちたテストが「失敗を残す」に載っていれば 0", stop(r), 0)
+    expect("GT24", "落ちたテストが「失敗を残す」に載っていれば 0", stop(r), 0, quiet=True)
     r = make_repo("fail-partly-exempt", {"src/a.ts": "2 src/a.test.ts src/b.test.ts"})
     write(r, "src/a.ts")
     exemption_fail(r, "- src/a.test.ts — 理由（20261112）\n")
@@ -1123,13 +1173,13 @@ def check_test_gate(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | No
     exemption(r, ".steering/test-exemptions.md", "- src/a.ts — 理由（20261112）\n")
     stop(r, session="c1")
     exemption(r, ".steering/test-exemptions.md", "")
-    expect("GT36", "免除のファイルを変えれば、同じコードの差分でも判定し直す（.steering/ を無視していても）", stop(r, session="c1"), 2, says="src/a.ts")
+    expect("GT36", "免除のファイルを変えれば、同じコードの差分でも判定し直す（.steering/ を無視していても）", stop(r, session="c1"), 2, says=("src/a.ts", NO_TEST))
     a = make_repo("cache-same-a", {"src/a.ts": 1})
     b = make_repo("cache-same-b")
     for repo in (a, b):
         write(repo, "src/a.ts")
     stop(a, session="c1")
-    expect("GT37", "同じ差分でも、別のリポジトリの記録は使わない", stop(b, session="c1"), 2, says="src/a.ts")
+    expect("GT37", "同じ差分でも、別のリポジトリの記録は使わない", stop(b, session="c1"), 2, says=("src/a.ts", NO_TEST))
 
     # 8. テストを弱めた
     spec = "src/a.test.ts"
@@ -1140,13 +1190,13 @@ def check_test_gate(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | No
 
     r = weak_repo("weak-expect")
     write(r, spec, two.replace("  expect(1).toBe(1)\n", ""))
-    expect("GT38", "テストファイルの expect が減ると 2（実装ファイルが変わっていなくても）", stop(r), 2, says=spec, called=0, repo=r)
+    expect("GT38", "テストファイルの expect が減ると 2（実装ファイルが変わっていなくても）", stop(r), 2, says=spec)
     r = weak_repo("weak-soft")
     write(r, spec, two.replace("  expect.soft(2).toBe(2)\n", ""))
     expect("GT39", "expect.soft も expect として数える", stop(r), 2, says=spec)
     r = weak_repo("weak-same")
     write(r, spec, two.replace("toBe(1)", "toEqual(1)").replace("  expect.assertions(2)\n", ""))
-    expect("GT40", "expect の数が同じなら 0（expect.assertions は数えない）", stop(r), 0, called=0, repo=r)
+    expect("GT40", "expect の数が同じなら 0（expect.assertions は数えない）", stop(r), 0, quiet=True)
     for cid, label, line in (
         ("GT41", "it.skip が増えると 2", "it.skip('b', () => {})\n"),
         ("GT42", "test.only が増えると 2", "test.only('b', () => {})\n"),
@@ -1168,8 +1218,8 @@ def check_test_gate(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | No
     expect("GT48", "新しいテストファイルでも todo を足すと 2", stop(r), 2, says="src/b.test.ts")
     r = weak_repo("weak-exempt")
     write(r, spec, two.replace("  expect(1).toBe(1)\n", ""))
-    write(r, ".steering/test-exemptions.md", f"# テストの免除\n\n## テストを弱める\n- {spec} — 重複したテストの整理（20261112）\n")
-    expect("GT49", "「テストを弱める」に載っていれば 0", stop(r), 0)
+    write(r, task, f"# テストの免除\n\n## テストを弱める\n- {spec} — 重複したテストの整理（20261112）\n")
+    expect("GT49", "「テストを弱める」に載っていれば 0", stop(r), 0, quiet=True)
     r = weak_repo("weak-exempt-wrong-section")
     write(r, spec, two.replace("  expect(1).toBe(1)\n", ""))
     write(r, ".steering/test-exemptions.md", f"# テストの免除\n\n## 失敗を残す\n- {spec} — 別の節（20261112）\n")
@@ -1186,6 +1236,113 @@ def check_test_gate(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | No
     expect("GT52", "載っていないファイルの変更では警告しない", p, 0)
     if p.returncode == 0 and p.stderr.strip():
         out[-1] = ("GT52", out[-1][1], f"警告が出た; stderr={p.stderr!r}")
+
+    # 20261114 のレビューで足したケース（review-result.md）
+    # 追跡済みファイルの変更も、同じ差分の判定に効く
+    r = make_repo("cache-tracked", {"src/a.ts": 1})
+    write(r, "src/a.ts")
+    commit(r)
+    stop(r, session="c1")
+    write(r, "src/a.ts", "export const a = 2\n")
+    expect("GT53", "通った後に追跡済みの実装ファイルを変えれば、また流す", stop(r, session="c1"), 0, called=2, repo=r)
+    # 日本語のファイル名（git が引用符で囲まない）
+    r = make_repo("japanese-impl")
+    write(r, "src/商品一覧.ts")
+    expect("GT54", "日本語名の実装ファイルも判定する", stop(r), 2, says=("src/商品一覧.ts", NO_TEST))
+    r = make_repo("japanese-test", base_files={"src/商品一覧.test.ts": two})
+    write(r, "src/商品一覧.test.ts", two.replace("  expect(1).toBe(1)\n", ""))
+    expect("GT55", "日本語名のテストファイルで expect が減ると 2", stop(r), 2, says="src/商品一覧.test.ts")
+    # origin/HEAD があり、その名前のブランチの上にいる
+    r = make_repo("origin-head-on-main")
+    git("checkout", "-q", "main", cwd=r)
+    git("update-ref", "refs/remotes/origin/main", "main", cwd=r)
+    git("symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main", cwd=r)
+    write(r, "src/a.ts")
+    commit(r)
+    expect("GT56", "origin/HEAD の指すブランチ（main）の上では、コミット済みの分は見ない", stop(r), 0, called=0, repo=r)
+    # import のエラーなど、message だけで落ちたテスト
+    r = make_repo("fail-message", {"src/a.ts": "1 msg:src/a.test.ts"})
+    write(r, "src/a.ts")
+    expect("GT57", "message だけで落ちたテストは、その文を添えて 2", stop(r), 2, says="Failed to resolve import in src/a.test.ts")
+    # 実装ファイル・テストファイルの種類
+    exts = ("src/b.tsx", "src/c.js", "src/d.jsx", "src/e.mts", "src/f.cts", "src/g.mjs", "src/h.cjs", "src/i.vue", "src/j.svelte")
+    r = make_repo("impl-exts")
+    for rel in exts:
+        write(r, rel)
+    write(r, "src/types.d.mts")
+    expect("GT58", "ts 以外の実装ファイル（tsx・js・jsx・mts・cts・mjs・cjs・vue・svelte）も判定し、d.mts は除く", stop(r), 2, says=(*exts, NO_TEST), absent="src/types.d.mts")
+    places = ("src/a.spec.tsx", "src/__tests__/b.ts", "tests/c.ts", "e2e/d.spec.ts", "src/e.test.mts")
+    r = make_repo("weak-places", base_files={rel: two for rel in places})
+    for rel in places:
+        write(r, rel, two.replace("  expect(1).toBe(1)\n", ""))
+    expect("GT59", "spec・__tests__・tests・e2e・.test.mts でも expect が減ると 2", stop(r), 2, says=places)
+    for cid, label, line in (
+        ("GT60", "fit が増えると 2", "fit('b', () => {})\n"),
+        ("GT61", "xtest が増えると 2", "xtest('b', () => {})\n"),
+        ("GT62", "xdescribe が増えると 2", "xdescribe('b', () => {})\n"),
+        ("GT63", "fdescribe が増えると 2", "fdescribe('b', () => {})\n"),
+        ("GT64", "bench.skip が増えると 2", "bench.skip('b', () => {})\n"),
+        ("GT65", "suite.skip が増えると 2", "suite.skip('b', () => {})\n"),
+        ("GT66", "間に修飾のある skip（it.concurrent.skip）が増えると 2", "it.concurrent.skip('b', () => {})\n"),
+    ):
+        r = weak_repo(f"weak-{cid}")
+        write(r, spec, two + line)
+        expect(cid, label, stop(r), 2, says=spec)
+    r = make_repo("weak-poll", base_files={spec: two + "it('p', async () => { await expect.poll(() => 1).toBe(1) })\n"})
+    write(r, spec, two + "it('p', async () => {})\n")
+    expect("GT67", "expect.poll も expect として数える", stop(r), 2, says=spec)
+    # 偽の vitest に渡す引数（--run・出力先がプロジェクトの外）
+    r = make_repo("args", {"src/a.ts": 1})
+    write(r, "src/a.ts")
+    stop(r)
+    calls_file = r / "node_modules" / ".fake" / "calls"
+    line = (calls_file.read_text().splitlines() or [""])[0] if calls_file.is_file() else ""
+    m = re.fullmatch(r"related src/a\.ts --run --reporter=json --outputFile=(\S+)", line)
+    out.append(("GT68", "vitest に related <file> --run --reporter=json を渡し、json はプロジェクトの外に書く",
+                None if m and not Path(m.group(1)).resolve().is_relative_to(r.resolve()) else f"引数: {line!r}"))
+    # ファイルごとに json を空にする（前のファイルの結果を使わない）
+    r = make_repo("json-reset", {"src/a.ts": 1, "src/b.ts": "1 exit=127"})
+    write(r, "src/a.ts")
+    write(r, "src/b.ts")
+    expect("GT69", "2 つ目のファイルだけが道具の故障なら、そのファイルを挙げて 0 で警告", stop(r, session="j1"), 0, says=("src/b.ts", "crashed"), called=2, repo=r)
+    expect("GT70", "道具の故障があった差分は残さない（もう一度流す）", stop(r, session="j1"), 0, called=4, repo=r)
+    # 改名
+    r = weak_repo("rename-weak")
+    git("mv", spec, "src/a.spec.ts", cwd=r)
+    write(r, "src/a.spec.ts", two.replace("  expect(1).toBe(1)\n", ""))
+    commit(r)
+    expect("GT71", "テストファイルを改名して expect を減らすと 2（古いパスの版と比べる）", stop(r), 2, says="src/a.spec.ts")
+    r = make_repo("rename-only", base_files={"src/b.test.ts": two + "it.skip('x', () => {})\n"})
+    git("mv", "src/b.test.ts", "src/b.spec.ts", cwd=r)
+    commit(r)
+    expect("GT72", "skip を含むテストファイルを改名しただけなら 0", stop(r), 0, quiet=True)
+    # 変えたテストファイルそのものを流す
+    r = weak_repo("run-changed-fail")
+    write(r, spec, two.replace("toBe(1)", "toBe(2)"))
+    (r / "node_modules" / ".fake" / "failing").write_text(f"{spec}\n")
+    expect("GT73", "実装を変えずにテストだけを変えて落ちると 2", stop(r), 2, says=f"AssertionError: boom in {spec}")
+    r = weak_repo("run-changed-pass")
+    write(r, spec, two.replace("toBe(1)", "toEqual(1)"))
+    expect("GT74", "変えたテストが通れば 0（まとめて 1 回流す）", stop(r), 0, quiet=True, called=1, repo=r)
+    r = make_repo("run-changed-e2e", base_files={"e2e/x.spec.ts": two})
+    write(r, "e2e/x.spec.ts", two.replace("toBe(1)", "toEqual(1)"))
+    expect("GT75", "e2e/ の下のテストは vitest で流さない", stop(r), 0, called=0, repo=r)
+    # 落ちたファイルが無いのに vitest が失敗で終わる
+    r = make_repo("rc-only", {"src/a.ts": "1 rc=1"})
+    write(r, "src/a.ts")
+    expect("GT76", "落ちたテストファイルが無くても、vitest が 0 以外で終われば 2", stop(r), 2, says=("src/a.ts", "失敗で終わりました"))
+    # ベースの候補に master
+    r = make_repo("master-base")
+    git("branch", "-q", "-m", "main", "master", cwd=r)
+    write(r, "src/a.ts")
+    commit(r)
+    expect("GT77", "origin/HEAD も main も無ければ master を分岐点に使う", stop(r), 2, says=("src/a.ts", NO_TEST))
+    # 免除のパスの書き方
+    r = make_repo("exempt-loose")
+    write(r, "src/a.ts")
+    write(r, "src/b.ts")
+    exemption(r, task, "- `src/a.ts` — 文言だけ（20261114）\n- ./src/b.ts — 文言だけ（20261114）\n")
+    expect("GT78", "免除のパスはバッククォートで囲んでも、./ を付けても効く", stop(r), 0, quiet=True)
     return out
 
 
@@ -1279,6 +1436,12 @@ def main() -> int:
         direct = [r for r in direct if r[2] is not SKIP]
         for cid, label in ((c, l) for c, l, _ in skipped):
             print(f"SKIP {cid}: {label}")
+        # 型検査とゲートの SKIP は失敗にする（完了条件「SKIP が 0 件」を機械で保証する）。jq の無い環境で
+        # わざと流すときだけ HOOK_FIXTURES_ALLOW_SKIP=1 で通す
+        hard = [c for c, _, _ in skipped if c in ("TC", "GT")]
+        if hard and os.environ.get("HOOK_FIXTURES_ALLOW_SKIP") != "1":
+            print(f"FAIL SKIP: {hard} を確かめられなかった（jq を入れるか、HOOK_FIXTURES_ALLOW_SKIP=1）")
+            failed += 1
         for cid, label, problem in direct:
             print(f"{'FAIL' if problem else 'PASS'} {cid}: {label}")
             if problem:
