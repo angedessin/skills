@@ -10,5 +10,5 @@
 | p2-race | 2 | `passed-on-base: 0`・`failed-on-base: 3` | 競合を High で検出。2 回目は q1 が上限で採点されず、最終回答を読んで合格。「変えたテスト 3 件は変える前に落ちた＝形だけではない」と書いた |
 
 - 評価の sandbox でも vitest が動いた（node が見つからない心配は起きなかった）
-- 気になった点: t2 の 3 回目は報告の後に、周辺も読むバグ担当の結果がもう一度届いたと書いた（同じ指摘で結論は変わらず）。「全員の結果がそろうまで報告しない」に反していないかは trace で確かめていない
+- 気になった点: t2 の 3 回目は報告の後に、周辺も読むバグ担当の結果がもう一度届いたと書いた（同じ指摘で結論は変わらず）。trace で確かめると、報告の前に 5 体とも終わっていた（background_tasks_changed の一覧が空）。後の通知は同じ結果の再送で、手順には反していない
 - trace: /private/tmp/e-8zeO2x・e-X2oPsC・e-7P4owM（t2）、e-deLQ4V・e-VOFuyF・e-rvlgMA（t1）、e-KuwFQe・e-mkelww（n1）、e-sVlmbz・e-N5JoBb（p2）
