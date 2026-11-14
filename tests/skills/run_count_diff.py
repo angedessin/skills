@@ -247,6 +247,43 @@ def check_not_repo(tmp: Path) -> str | None:
     return None
 
 
+def check_git_override(tmp: Path) -> str | None:
+    """GIT に渡した git を使う。PATH の先頭の git が動かない環境（評価の sandbox）で呼び直すため。"""
+    repo = make_repo(tmp)
+    setup_untracked_text(repo)
+    real = shutil.which("git")
+    log = tmp / "calls.log"
+    wrapper = tmp / "mygit"
+    wrapper.write_text(f'#!/bin/sh\necho x >> "{log}"\nexec "{real}" "$@"\n')
+    wrapper.chmod(0o755)
+    broken = tmp / "bin"
+    broken.mkdir()
+    (broken / "git").write_text("#!/bin/sh\necho broken >&2\nexit 72\n")
+    (broken / "git").chmod(0o755)
+    env = {**GIT_ENV, "PATH": f"{broken}:{GIT_ENV.get('PATH', '')}", "GIT": str(wrapper)}
+    if not SCRIPT.exists():
+        return f"script not found: {SCRIPT}"
+    p = subprocess.run(["bash", str(SCRIPT)], cwd=repo, env=env, capture_output=True, text=True)
+    if p.returncode != 0:
+        return f"rc={p.returncode}\nstderr:\n{p.stderr}"
+    got = parse(p.stdout)
+    if (got.get("files"), got.get("lines")) != (2, 9):
+        return f"files={got.get('files')} lines={got.get('lines')} (want 2・9)\nstdout:\n{p.stdout}"
+    if not any("src/" in x for x in got["dirstat"]):
+        return f"dirstat に src/ が無い\nstdout:\n{p.stdout}"
+    if not log.exists():
+        return "GIT に渡した git が呼ばれていない"
+    # --base と --worktree の経路（ベースの確かめ・merge-base）も GIT の git で通る
+    p = subprocess.run(["bash", str(SCRIPT), "--base", "main", "--worktree"], cwd=repo, env=env, capture_output=True, text=True)
+    if p.returncode != 0 or (parse(p.stdout).get("files"), parse(p.stdout).get("lines")) != (2, 9):
+        return f"--base main --worktree で rc={p.returncode}\nstdout:\n{p.stdout}\nstderr:\n{p.stderr}"
+    env["GIT"] = str(tmp / "nope")
+    p = subprocess.run(["bash", str(SCRIPT)], cwd=repo, env=env, capture_output=True, text=True)
+    if p.returncode != 2 or not p.stderr.strip():
+        return f"存在しない GIT で rc={p.returncode} (want 2 と理由)\nstderr:\n{p.stderr}"
+    return None
+
+
 def main() -> int:
     failed = 0
     total = 0
@@ -273,6 +310,17 @@ def main() -> int:
         print("FAIL CD17: git 管理下でなければ 2\n  " + problem.replace("\n", "\n  "))
     else:
         print("PASS CD17: git 管理下でなければ 2")
+    total += 1
+    tmp = Path(tempfile.mkdtemp(prefix="count-diff-"))
+    try:
+        problem = check_git_override(tmp)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    if problem:
+        failed += 1
+        print("FAIL CD20: GIT に渡した git を使う\n  " + problem.replace("\n", "\n  "))
+    else:
+        print("PASS CD20: GIT に渡した git を使う")
     print(f"\n{total - failed}/{total} passed")
     return 1 if failed else 0
 
