@@ -52,14 +52,17 @@ SRC_EDIT = {"type": "tool_used", "tool": "Edit", "input_match": "'\"file_path\":
 SRC_WRITE = {"type": "tool_used", "tool": "Write", "input_match": "'\"file_path\":\\s*\"[^\"]*/src/'", "min": 0, "max": 0}
 
 
-def bash_write_match(dirs, extra=""):
+def bash_write_match(dirs, extra="", scratch_ok=False):
     """Bash での書き込みを見る input_match。`\\b` は空白と `.claude` の間で成立しないので、パスの前は区切り文字で見る
     （`{`・`,` はブレースの中）。cp・mv・rm は直後に空白を要求する（`rm-mv-policy` のような語の一部に当てない）。
-    extra は足す枝（`|...` の形）。"""
+    extra は足す枝（`|...` の形）。scratch_ok は `mktemp -d` を含むコマンドを数えない（作業ツリーの写しの上での再現を許す）。"""
     pre = r"""(?:^|[\s"'=/{,])"""
     path = rf"(?:[^\s|&;]*{pre})?{dirs}"  # リダイレクトと tee の先: 語の途中（`libsrc/`）には当てない
+    # 同じコマンドで元の dirs にも書くと見逃す
+    guard = r"^(?![\s\S]*\bmktemp\s+-d\b)[\s\S]*?" if scratch_ok else ""
     regex = (
-        "("
+        guard
+        + "("
         rf">>?\s*{path}"
         rf"|\btee\s+(?:-a\s+)?{path}"
         rf"|\bsed\b[^|;&]*\s(?:-[A-Za-z]*i|--in-place)[^|;&]*{pre}{dirs}"
@@ -80,10 +83,11 @@ def no_write(d, slug, dirs):
     grader(f"{d}/graders/stop-{slug}-bash.md", {"type": "tool_used", "tool": "Bash", "input_match": bash_write_match(dirs), "min": 0, "max": 0})
 
 
-def stop_graders(d):
+def stop_graders(d, scratch_ok=False):
     grader(f"{d}/graders/stop-no-src-edit.md", SRC_EDIT)
     grader(f"{d}/graders/stop-no-src-write.md", SRC_WRITE)
-    grader(f"{d}/graders/stop-no-src-bash.md", SRC_BASH)
+    bash = {**SRC_BASH, "input_match": bash_write_match("src/", scratch_ok=True)} if scratch_ok else SRC_BASH
+    grader(f"{d}/graders/stop-no-src-bash.md", bash)
 
 
 def llm(d, name, body, focus="last_message"):

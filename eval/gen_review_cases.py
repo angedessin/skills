@@ -40,7 +40,7 @@ def planted(cid, desc, files, bug, tags=("planted",)):
     w(f"{d}/prompt.md", PROMPT + "\n")
     overlay = "".join(heredoc(p, c) for p, c in files.items())
     w(f"{d}/fixture.sh", fixture() + overlay)  # fixture() の最後でコミットし、その後に重ねる
-    stop_graders(d)  # レビューの依頼なので src/ を書き換えない
+    stop_graders(d, scratch_ok=True)  # レビューの依頼なので src/ を書き換えない。検証役が mktemp -d の写しで再現するのは許す
     if bug:
         llm(d, "q1-found-bug", JUDGE + bug)
     skill_fired(d, "frontend-code-review")
