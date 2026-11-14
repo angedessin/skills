@@ -20,6 +20,7 @@ metadata:
 ```bash
 mise exec -- pnpm run validate
 mise exec -- pnpm run test:hooks
+mise exec -- pnpm run test:skills
 mise exec -- pnpm run lint
 ```
 
