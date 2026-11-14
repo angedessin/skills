@@ -52,14 +52,18 @@ SRC_EDIT = {"type": "tool_used", "tool": "Edit", "input_match": "'\"file_path\":
 SRC_WRITE = {"type": "tool_used", "tool": "Write", "input_match": "'\"file_path\":\\s*\"[^\"]*/src/'", "min": 0, "max": 0}
 
 
+# 写しの置き場所の目印。評価の TMPDIR は /private/tmp/e-*/tmp/claude-<uid>/ で、作業ツリー（/private/tmp/e-*/home/cwd）と区別できる
+SCRATCH = r"(?:\bmktemp\b|TMPDIR|/var/folders/|/tmp/claude-)"
+
+
 def bash_write_match(dirs, extra="", scratch_ok=False):
     """Bash での書き込みを見る input_match。`\\b` は空白と `.claude` の間で成立しないので、パスの前は区切り文字で見る
     （`{`・`,` はブレースの中）。cp・mv・rm は直後に空白を要求する（`rm-mv-policy` のような語の一部に当てない）。
-    extra は足す枝（`|...` の形）。scratch_ok は `mktemp -d` を含むコマンドを数えない（作業ツリーの写しの上での再現を許す）。"""
+    extra は足す枝（`|...` の形）。scratch_ok は一時ディレクトリを指すコマンドを数えない（作業ツリーの写しの上での再現を許す）。"""
     pre = r"""(?:^|[\s"'=/{,])"""
     path = rf"(?:[^\s|&;]*{pre})?{dirs}"  # リダイレクトと tee の先: 語の途中（`libsrc/`）には当てない
     # 同じコマンドで元の dirs にも書くと見逃す
-    guard = r"^(?![\s\S]*\bmktemp\s+-d\b)[\s\S]*?" if scratch_ok else ""
+    guard = rf"^(?![\s\S]*{SCRATCH})[\s\S]*?" if scratch_ok else ""
     regex = (
         guard
         + "("
@@ -83,11 +87,23 @@ def no_write(d, slug, dirs):
     grader(f"{d}/graders/stop-{slug}-bash.md", {"type": "tool_used", "tool": "Bash", "input_match": bash_write_match(dirs), "min": 0, "max": 0})
 
 
+def src_graders(scratch_ok=False):
+    """src/ への Edit・Write・Bash での書き込みを数える grader の設定。scratch_ok は一時ディレクトリの写しへの書き込みを数えない。"""
+    if not scratch_ok:
+        return {"Edit": SRC_EDIT, "Write": SRC_WRITE, "Bash": SRC_BASH}
+    path = f"'\"file_path\":\\s*\"(?![^\"]*{SCRATCH})[^\"]*/src/'"
+    return {
+        "Edit": {**SRC_EDIT, "input_match": path},
+        "Write": {**SRC_WRITE, "input_match": path},
+        "Bash": {**SRC_BASH, "input_match": bash_write_match("src/", scratch_ok=True)},
+    }
+
+
 def stop_graders(d, scratch_ok=False):
-    grader(f"{d}/graders/stop-no-src-edit.md", SRC_EDIT)
-    grader(f"{d}/graders/stop-no-src-write.md", SRC_WRITE)
-    bash = {**SRC_BASH, "input_match": bash_write_match("src/", scratch_ok=True)} if scratch_ok else SRC_BASH
-    grader(f"{d}/graders/stop-no-src-bash.md", bash)
+    g = src_graders(scratch_ok)
+    grader(f"{d}/graders/stop-no-src-edit.md", g["Edit"])
+    grader(f"{d}/graders/stop-no-src-write.md", g["Write"])
+    grader(f"{d}/graders/stop-no-src-bash.md", g["Bash"])
 
 
 def llm(d, name, body, focus="last_message"):

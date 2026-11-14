@@ -43,7 +43,7 @@ grader の名前の頭は、集計での扱いを表す: `stop-`（停止。3 �
 | design-doc | design | `d1-category-filter`・`d1b-category-filter-delegated`・`d2-vague-request`・`d3-small-change`・`d5-knowledge` | 3 | 0.13〜0.5 | src に書かずに止まる・聞くべきことを聞く・実装の項目にテストを含める（d1 は書く前に聞いて止まるので、設計を書き切る d1b で見る）・`docs/knowledge/` の知見を設計に反映する（d5）・小さな作業は手順に乗せない |
 | steering | design | `s1-resume`・`s2-unapproved`・`s3-close-task` | 3 | 0.1〜0.35 | 新しい決定を正として再開する・確かめたテストのコマンドと結果を書く・DRAFT なら実装しない・閉じる前に確認して何も消さない |
 | e2e | impl | `e1b-write-e2e-delegated`・`e2-review-e2e` | 3 | 0.3〜0.4 | 主要な流れに絞って書く・レビューでは直さない |
-| frontend-code-review | review | `n1-result-count`・`p2-race`・`r-c-rm-mv-policy`・`t1-missing-test`・`t2-shallow-test`／`l1-large-diff` | 1／3 | 0.7・0.8〜1.3・2.8・0.9・0.7／0.15 | 誤検知（バグなし）・仕込みバグの検出・過去の差分の検出・テストの無い変更を「テストが足りない」と報告する（t1。テストファイルが変わっていない差分でも review-test が動く）・形だけのテストを、どう壊したかと一緒に報告する（t2）。agent の結果がそろってから報告する／大きい差分では agent を起動する前に、費用の目安を示して止まる（git が動いたかを trace で見る）。`stop-no-src-bash` は `mktemp -d` を含むコマンドを数えない（検証役が写しの上で再現するため） |
+| frontend-code-review | review | `n1-result-count`・`p2-race`・`r-c-rm-mv-policy`・`t1-missing-test`・`t2-shallow-test`／`l1-large-diff` | 1／3 | 0.7・0.8〜1.3・2.8・0.9・0.7／0.15 | 誤検知（バグなし）・仕込みバグの検出・過去の差分の検出・テストの無い変更を「テストが足りない」と報告する（t1。テストファイルが変わっていない差分でも review-test が動く）・形だけのテストを、どう壊したかと一緒に報告する（t2）。agent の結果がそろってから報告する／大きい差分では agent を起動する前に、費用の目安を示して止まる（git が動いたかを trace で見る）。`stop-no-src-*` は一時ディレクトリ（mktemp・TMPDIR・/var/folders・/tmp/claude-）を指す書き込みを数えない（検証役が写しの上で再現するため。tests/skills/run_eval_graders.py） |
 | session-retrospective | knowledge | `s1-session-friction` | 3 | 0.2 | 摩擦を拾い、`.steering/skill-issues.md` に書く |
 | pr-create | pr | `pr1-feature-branch`・`pr2-spike` | 3 | 0.12〜0.18 | push と PR 作成の前で止まる・SPIKE では作らない |
 
