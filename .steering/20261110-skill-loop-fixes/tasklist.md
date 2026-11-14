@@ -22,7 +22,7 @@ Last updated: 2026-11-14
 ## PR 2 — 知見を設計で読む（ブランチ `feature/design-reads-knowledge`）
 
 - [x] 11. design-doc の 2 に `docs/knowledge/` を読む 1 行を足し、知見を置いた評価のケースを足す（20261114。ケースは d5-knowledge: d1b と同じ依頼に「選択肢の一覧は API を足さず固定で持つ」の知見と関係ない知見を置く。採点は固定で持つ・知見を根拠に挙げる・関係ない知見を持ち込まない。生成を一時ディレクトリで確かめた。validate・test:hooks 481/481・test:sandbox・lint が通る。採点の確かめは 12 の回帰ケース）
-- [ ] 12. 静的検査 → 回帰ケースの見積もり・承認・実行 → レビュー → PR（20261114 途中。静的検査は validate 11/11・test:hooks 481/481・test:sandbox・lint が通る。回帰ケースは d5・d1b を 3 回ずつ、合計 2.68 ドルで全採点が合格。最終回答と design.md を読んで確かめた: d5 は 3 回とも知見を読み、選択肢を固定で持ち、知見を根拠に挙げ、日付の作業を持ち込まない。d1b は「docs/knowledge/ は無い」と書いて飛ばし、従来どおり一覧の API を推す。変える前の design-doc での比較は流していない。詳細は eval-20261114.md。レビューで確かめられた 2 件を直した: 差のつかない q3 を `ind-no-unrelated-knowledge` に、README の design-doc の実費を 0.13〜0.5 に。生成を一時ディレクトリで確かめ、静的検査 4 つが通る。残りは PR）
+- [x] 12. 静的検査 → 回帰ケースの見積もり・承認・実行 → レビュー → PR（20261114。静的検査は validate 11/11・test:hooks 481/481・test:sandbox・lint が通る。回帰ケースは d5・d1b を 3 回ずつ、合計 2.68 ドルで全採点が合格。最終回答と design.md を読んで確かめた: d5 は 3 回とも知見を読み、選択肢を固定で持ち、知見を根拠に挙げ、日付の作業を持ち込まない。d1b は「docs/knowledge/ は無い」と書いて飛ばし、従来どおり一覧の API を推す。変える前の design-doc での比較は流していない。詳細は eval-20261114.md。レビューで確かめられた 2 件を直した: 差のつかない q3 を `ind-no-unrelated-knowledge` に、README の design-doc の実費を 0.13〜0.5 に。生成を一時ディレクトリで確かめ、静的検査 4 つが通る。feature/design-reads-knowledge を push し、PR #27 を作り、マージ済み。CI は無い）
 
 ## PR 3 — レビューまわり（ブランチ `feature/review-upkeep`）
 
