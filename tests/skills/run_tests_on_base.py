@@ -27,7 +27,11 @@ import json, os, sys, time
 here = os.path.dirname(os.path.realpath(__file__))
 fake = os.path.join(here, "..", ".fake")
 with open(os.path.join(fake, "calls"), "a") as f:
-    f.write(os.getcwd() + " " + " ".join(sys.argv[1:]) + "\n")
+    f.write(os.getcwd() + " " + " ".join(sys.argv[1:]) + " CI=" + os.environ.get("CI", "") + "\n")
+# 本物の vitest は cwd の node_modules/.vite/vitest にキャッシュを書く
+cache = os.path.join(os.getcwd(), "node_modules", ".vite", "vitest")
+os.makedirs(cache, exist_ok=True)
+open(os.path.join(cache, "results.json"), "w").write("{}")
 if os.path.exists(os.path.join(fake, "sleep")):
     with open(os.path.join(fake, "pid"), "w") as f:
         f.write(str(os.getpid()))
@@ -58,6 +62,22 @@ for t in files:
         w = ln.split()
         if len(w) >= 2 and w[0] == "import" and not os.path.exists(os.path.join(cwd, w[1])):
             broken = "Failed to resolve import " + w[1]
+        if len(w) >= 4 and w[0] == "case" and w[2] == "snapshot":
+            # 値は <パス> の 1 行目。スナップショットが無ければ、CI でなければ書いて通し、CI なら落ちる（本物と同じ）
+            src = os.path.join(cwd, w[3])
+            val = open(src).read().splitlines()[0] if os.path.exists(src) else "MISSING"
+            snap = os.path.join(os.path.dirname(path), "__snapshots__", os.path.basename(path) + ".snap")
+            saved = dict(l.split("=", 1) for l in open(snap).read().splitlines()) if os.path.exists(snap) else {}
+            if w[1] in saved:
+                ok = saved[w[1]] == val
+            elif os.environ.get("CI"):
+                ok = False
+            else:
+                os.makedirs(os.path.dirname(snap), exist_ok=True)
+                open(snap, "a").write(w[1] + "=" + val + "\n")
+                ok = True
+            asserts.append({"fullName": w[1], "status": "passed" if ok else "failed",
+                            "failureMessages": [] if ok else ["Snapshot mismatched: " + w[1]]})
         if len(w) >= 4 and w[0] == "case" and w[2] == "needs":
             rel, _, s = w[3].partition(":")
             p = os.path.join(cwd, rel)
@@ -111,6 +131,8 @@ def make_repo(tmp: Path, vitest: bool = True) -> Path:
         bin_.write_text(FAKE_VITEST)
         bin_.chmod(0o755)
         (repo / "node_modules" / ".fake").mkdir()
+        # 本物の node_modules に前からあるキャッシュ。写しから書かれないことを確かめる
+        (repo / "node_modules" / ".vite" / "vitest").mkdir(parents=True)
     git(repo, "add", "-A")
     git(repo, "commit", "-q", "-m", "init")
     return repo
@@ -128,7 +150,7 @@ def run(repo: Path, *args: str, env: dict | None = None, timeout: int = 60) -> t
 
 
 def parse(out: str) -> dict:
-    res: dict = {"passed_list": []}
+    res: dict = {"passed_list": [], "broken_list": []}
     section = None
     for ln in out.splitlines():
         if ln.startswith("tests: "):
@@ -140,8 +162,11 @@ def parse(out: str) -> dict:
         elif ln.startswith("failed-on-base: "):
             res["failed"] = int(ln.split(": ", 1)[1])
             section = None
-        elif section == "passed" and ln.startswith("  "):
-            res["passed_list"].append(ln[2:])
+        elif ln.startswith("broken-on-base: "):
+            res["broken"] = int(ln.split(": ", 1)[1])
+            section = "broken"
+        elif section and ln.startswith("  "):
+            res[section + "_list"].append(ln[2:])
     return res
 
 
@@ -233,6 +258,45 @@ def s_extra_run(repo: Path) -> None:
     (repo / "node_modules" / ".fake" / "extra").write_text("src/sort.test.ts\n")
 
 
+def s_unstaged_mv(repo: Path) -> None:
+    # git mv を使わない改名（ステージしない）。中身は同じなので前から通っていたテスト
+    change_impl(repo)
+    (repo / "src/sort.test.ts").rename(repo / "src/sorting.test.ts")
+
+
+def s_snapshot(repo: Path) -> None:
+    # 新しいスナップショットのテスト。変える前のコードでスナップショットを書かせれば通ってしまう
+    change_impl(repo)
+    write(repo, "src/snap.test.ts", "case shows snapshot src/sort.ts\n")
+    write(repo, "src/__snapshots__/snap.test.ts.snap", "shows=export const sortByPrice = list => [...list].sort() // NEW\n")
+
+
+def s_paths(repo: Path) -> None:
+    change_impl(repo)
+    write(repo, "src/a/x.test.ts", "case in-a needs src/sort.ts:sortByPrice\n")
+    write(repo, "src/b/y.test.ts", "case in-b needs src/sort.ts:sortByPrice\n")
+    # 絞った外の、追跡済みのテストの変更も除く
+    write(repo, "src/sort.test.ts", "case keeps-items needs src/sort.ts:sortByPrice\ncase outside needs src/sort.ts:sortByPrice\n")
+
+
+def s_kinds(repo: Path) -> None:
+    change_impl(repo)
+    shallow = "case k needs src/sort.ts:sortByPrice\n"
+    for rel in ("apps/web/e2e/x.spec.ts", "tests/types.d.ts", "src/g.test.json",  # 対象外
+                "src/a.spec.ts", "src/__tests__/b.ts", "tests/c.ts", "src/d.test.tsx", "src/e.test.mjs", "src/f.test.vue"):
+        write(repo, rel, shallow)
+
+
+def s_unborn(repo: Path) -> None:
+    write(repo, "src/sort.new.test.ts", "case sorts needs src/sort.ts:sortByPrice\n")
+    git(repo, "update-ref", "-d", "refs/heads/main")
+
+
+def s_no_merge_base(repo: Path) -> None:
+    git(repo, "checkout", "-q", "--orphan", "lone")
+    git(repo, "commit", "-q", "-m", "lone")
+
+
 def s_rename(repo: Path) -> None:
     git(repo, "checkout", "-q", "-b", "feature/x")
     git(repo, "mv", "src/sort.test.ts", "src/sorting.test.ts")
@@ -252,12 +316,14 @@ def s_space_name(repo: Path) -> None:
 CASES = [
     ("RB1", "テストが変わっていなければ vitest を呼ばない", s_none, [], {"rc": 0, "tests": 0, "no_vitest_call": True}),
     ("RB2", "新しいテストファイルが変える前に落ちれば報告しない", s_new_file_real, [], {"rc": 0, "tests": 1, "passed": 0, "failed": 1}),
-    ("RB3", "新しいテストファイルが変える前でも通れば報告する", s_new_file_shallow, [],
-     {"rc": 0, "tests": 1, "passed": 1, "failed": 0, "passed_list": ["src/sort.new.test.ts > sorts"]}),
+    ("RB3", "新しいテストファイルが変える前でも通れば報告する（vitest は CI でカバレッジを切って流す）", s_new_file_shallow, [],
+     {"rc": 0, "tests": 1, "passed": 1, "failed": 0, "broken": 0, "passed_list": ["src/sort.new.test.ts > sorts"],
+      "argv_has": ["run", "--coverage.enabled=false", "--reporter=json", "CI=true"]}),
     ("RB4", "変えたテストファイルは、前から通っていたテストを除いて報告する", s_modified_shallow, [],
      {"rc": 0, "tests": 1, "passed": 1, "passed_list": ["src/sort.test.ts > sorts"]}),
     ("RB5", "変えたテストファイルの新しいテストが変える前に落ちれば報告しない", s_modified_real, [], {"rc": 0, "tests": 1, "passed": 0, "failed": 1}),
-    ("RB6", "ベースに無いファイルを import するテストは落ちたと数える", s_new_helper, [], {"rc": 0, "tests": 1, "passed": 0, "failed": 1}),
+    ("RB6", "読み込めずにファイルごと落ちたテストは broken に分ける", s_new_helper, [],
+     {"rc": 0, "tests": 1, "passed": 0, "failed": 0, "broken": 1, "broken_list": ["src/sort.new.test.ts"]}),
     ("RB7", "e2e/ の下とテスト以外のファイルは対象にしない", s_ignored_kinds, [], {"rc": 0, "tests": 0, "no_vitest_call": True}),
     ("RB8", "--base はコミット済みのテストだけ", s_branch, ["--base", "main"],
      {"rc": 0, "tests": 1, "passed": 1, "passed_list": ["src/sort.new.test.ts > committed-shallow"]}),
@@ -277,6 +343,18 @@ CASES = [
      {"rc": 0, "tests": 1, "passed": 1, "passed_list": ["src/sort.test.ts > 安い順に並べる"]}),
     ("RB22", "渡していないのに流れたテストファイルは数えない", s_extra_run, [],
      {"rc": 0, "tests": 1, "passed": 1, "failed": 0, "passed_list": ["src/sort.new.test.ts > sorts"]}),
+    ("RB24", "ステージしない mv の改名は、前から通っていたので報告しない", s_unstaged_mv, [],
+     {"rc": 0, "tests": 1, "passed": 0, "failed": 0}),
+    ("RB25", "新しいスナップショットのテストは、無いスナップショットを書かせずに落とす", s_snapshot, [],
+     {"rc": 0, "tests": 1, "passed": 0, "failed": 1}),
+    ("RB26", "-- <パス> で対象のテストを絞る", s_paths, ["--", "src/a"],
+     {"rc": 0, "tests": 1, "passed": 1, "passed_list": ["src/a/x.test.ts > in-a"]}),
+    ("RB27", "テストファイルの判定（入れ子の e2e・.d.ts・コードでない拡張子を除き、spec・__tests__・tests/・各拡張子を含む）", s_kinds, [],
+     {"rc": 0, "tests": 6, "passed": 6, "passed_list": ["src/__tests__/b.ts > k", "src/a.spec.ts > k", "src/d.test.tsx > k",
+                                                        "src/e.test.mjs > k", "src/f.test.vue > k", "tests/c.ts > k"]}),
+    ("RB30", "--base に値が無ければ 2", s_none, ["--base"], {"rc": 2, "err_has": "ref が要る"}),
+    ("RB31", "コミットが 1 つも無ければ 2", s_unborn, [], {"rc": 2, "err_has": "HEAD が無い"}),
+    ("RB32", "merge-base が無ければ 2", s_no_merge_base, ["--base", "main"], {"rc": 2, "err_has": "merge-base"}),
     ("RB13", "存在しないベースは 2", s_none, ["--base", "nope"], {"rc": 2, "err_has": "ベースが見つからない"}),
     ("RB14", "--worktree だけ（--base 無し）は 2", s_none, ["--worktree"], {"rc": 2}),
     ("RB15", "知らない引数は 2", s_none, ["--bogus"], {"rc": 2}),
@@ -287,17 +365,20 @@ def check(case_id: str, setup, args: list[str], expect: dict, tmp: Path) -> str 
     repo = make_repo(tmp)
     setup(repo)
     before = git(repo, "status", "--porcelain", "--untracked-files=all")
-    head = git(repo, "rev-parse", "HEAD")
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, env=GIT_ENV, capture_output=True, text=True).stdout
     tdir = tmp / "t"
     tdir.mkdir()
     rc, out, err = run(repo, *args, env={**GIT_ENV, "TMPDIR": str(tdir)})
     if rc != expect["rc"]:
         return f"rc={rc} (want {expect['rc']})\nstdout:\n{out}\nstderr:\n{err}"
     # 作業ツリーと HEAD を変えない・写しを残さない
-    if git(repo, "status", "--porcelain", "--untracked-files=all") != before or git(repo, "rev-parse", "HEAD") != head:
+    head_after = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, env=GIT_ENV, capture_output=True, text=True).stdout
+    if git(repo, "status", "--porcelain", "--untracked-files=all") != before or head_after != head:
         return f"作業ツリーか HEAD が変わった\nstatus:\n{git(repo, 'status', '--porcelain')}"
     if any(tdir.iterdir()):
         return f"一時ディレクトリが残った: {[p.name for p in tdir.iterdir()]}"
+    if (repo / "node_modules" / ".vite" / "vitest" / "results.json").exists():
+        return "vitest のキャッシュが本物の node_modules に書かれた"
     if rc != 0:
         if not err.strip():
             return "失敗したのに stderr に理由が無い"
@@ -309,6 +390,11 @@ def check(case_id: str, setup, args: list[str], expect: dict, tmp: Path) -> str 
     got = parse(out)
     for k, v in expect.items():
         if k in ("rc", "err_has", "no_vitest_call"):
+            continue
+        if k == "argv_has":
+            missing = [a for a in v if not any(a in c.split() for c in calls(repo))]
+            if missing:
+                return f"vitest の呼び出しに {missing} が無い: {calls(repo)}"
             continue
         key = {"passed_list": "passed_list"}.get(k, k)
         if got.get(key) != v:
@@ -408,6 +494,61 @@ def check_special(tmp: Path) -> list[tuple[str, str, str | None]]:
         if rc != 2 or "GIT=" not in err:
             problem = f"存在しない GIT で rc={rc} (want 2 と GIT=<パス> の案内)\nstderr:\n{err}"
     res.append(("RB19", "GIT に渡した git を使う", problem))
+
+    # RB28: 打ち切りは 2 回の起動の合計。1 回目で 2 秒ほど使えば、2 回目は残りの 1〜2 秒で打ち切る（SECONDS は秒単位で丸まる）
+    d = tmp / "rb28"
+    d.mkdir()
+    repo = make_repo(d)
+    s_modified_shallow(repo)
+    (repo / "node_modules" / ".fake" / "sleep").write_text("2")
+    tdir = d / "t"
+    tdir.mkdir()
+    rc, out, err = run(repo, env={**GIT_ENV, "TMPDIR": str(tdir), "RUN_TESTS_ON_BASE_TIMEOUT": "4"}, timeout=40)
+    n = len(calls(repo))
+    problem = None if rc == 2 and "打ち切った" in err and n == 2 else f"rc={rc} calls={n}\nstdout:\n{out}\nstderr:\n{err}"
+    res.append(("RB28", "打ち切りの時間は 2 回の起動の合計", problem))
+
+    # RB29: 打ち切りの時間が整数でなければ 2
+    d = tmp / "rb29"
+    d.mkdir()
+    repo = make_repo(d)
+    s_new_file_shallow(repo)
+    rc, out, err = run(repo, env={**GIT_ENV, "TMPDIR": str(d), "RUN_TESTS_ON_BASE_TIMEOUT": "1.5"})
+    problem = None if rc == 2 and "RUN_TESTS_ON_BASE_TIMEOUT" in err and not calls(repo) else f"rc={rc}\nstdout:\n{out}\nstderr:\n{err}"
+    res.append(("RB29", "打ち切りの時間が整数でなければ vitest を呼ばずに 2", problem))
+
+    # RB33・RB34: jq が無い・tar が失敗する。要る道具だけを置いた PATH で呼ぶ
+    def tool_path(d: Path, skip: str, fail: str = "") -> str:
+        b = d / "bin"
+        b.mkdir()
+        for t in ("bash", "git", "tar", "jq", "mktemp", "rm", "mkdir", "cp", "ln", "dirname", "sleep", "tail", "sort",
+                  "env", "python3", "cat", "ls", "tr", "kill"):
+            if t == skip:
+                continue
+            if t == fail:
+                (b / t).write_text("#!/bin/sh\necho broken >&2\nexit 1\n")
+                (b / t).chmod(0o755)
+                continue
+            real = shutil.which(t)
+            if real:
+                (b / t).symlink_to(real)
+        return str(b)
+
+    for cid, desc, skip, fail, want in (("RB33", "jq が無ければ 2", "jq", "", "jq"),
+                                        ("RB34", "変える前のコードを展開できなければ 2", "", "tar", "展開できない")):
+        d = tmp / cid.lower()
+        d.mkdir()
+        repo = make_repo(d)
+        s_new_file_shallow(repo)
+        tdir = d / "t"
+        tdir.mkdir()
+        rc, out, err = run(repo, env={**GIT_ENV, "TMPDIR": str(tdir), "PATH": tool_path(d, skip, fail)})
+        problem = None
+        if rc != 2 or want not in err:
+            problem = f"rc={rc}\nstdout:\n{out}\nstderr:\n{err}"
+        elif any(tdir.iterdir()):
+            problem = "一時ディレクトリが残った"
+        res.append((cid, desc, problem))
     return res
 
 

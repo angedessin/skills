@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
-# 新しく書いた・変えたテストを、変える前のコードで流す（frontend-code-review の Step 3）。
+# 新しく書いたテストを、変える前のコードで流す（frontend-code-review の Step 3）。
+# 新しいテストは「変える前の版に同じファイル・同じ名前で通るテストが無いもの」。名前を変えずに本文だけ変えたテストは対象にならない。
 #
-# Usage: run-tests-on-base.sh [--base <ref> [--worktree]]
+# Usage: run-tests-on-base.sh [--base <ref> [--worktree]] [-- <path>...]
 #   指定なし            未コミットの変更と未追跡のテストを、HEAD のコードで流す
 #   --base <ref>        <ref> との merge-base から HEAD までにコミットしたテストを、merge-base のコードで流す
 #   --worktree          --base と一緒に。未コミットの変更と未追跡のテストも足す
+#   -- <path>...        パスで絞る
 #   GIT=<path>          使う git（PATH の先頭の git が動かない環境で、動く git を渡す）
-#   RUN_TESTS_ON_BASE_TIMEOUT=<秒>  vitest の打ち切り（既定 120。2 回の起動の合計）
+#   RUN_TESTS_ON_BASE_TIMEOUT=<秒>  vitest の打ち切り（既定 90。2 回の起動の合計）
 #
 # 出力: tests（対象のテストファイルの数）・passed-on-base（変える前でも通った新しいテスト。<ファイル> > <名前>）・
-#       failed-on-base（変える前に落ちたテストと、import などで落ちたファイルの数）
+#       failed-on-base（変える前に落ちたテストの数）・broken-on-base（読み込めずにファイルごと落ちたテストファイル）
 # 終了コード: 0 = 判定した / 2 = 判定できない（理由は stderr）
 set -u
 set -o pipefail
@@ -32,12 +34,21 @@ while [ $# -gt 0 ]; do
       worktree=1
       shift
       ;;
+    --)
+      shift
+      break
+      ;;
     *) die "知らない引数: $1" ;;
   esac
 done
 if [ "$worktree" = 1 ] && [ -z "$base" ]; then
   die "--worktree は --base と一緒に使う"
 fi
+# Bash ツールの既定の打ち切り（120 秒）より短く保ち、こちらの「打ち切った」で理由を返す
+TIMEOUT="${RUN_TESTS_ON_BASE_TIMEOUT:-90}"
+case "$TIMEOUT" in
+  '' | *[!0-9]*) die "RUN_TESTS_ON_BASE_TIMEOUT は秒の整数で渡す: ${TIMEOUT}" ;;
+esac
 
 # command -v で先に確かめない: stat を拒み実行は許す sandbox では、動く git も「無い」と判定する
 git=${GIT:-git}
@@ -81,12 +92,21 @@ work=$(mktemp -d "${TMPDIR:-/tmp}/run-tests-on-base.XXXXXX") || die "一時デ�
 trap 'rm -rf "$work"' EXIT
 
 if [ "$with_wt" = 1 ]; then
+  # 未追跡のファイルを一時的な索引に登録した形にして、ステージしない mv も改名として検出させる（本物の索引は変えない）
+  index=$("$git" rev-parse --git-path index) || die "索引の場所が分からない"
+  export GIT_INDEX_FILE="$work/index"
+  if [ -f "$index" ]; then cp -- "$index" "$GIT_INDEX_FILE" || die "索引を写せない"; fi
+  "$git" ls-files --others --exclude-standard -z -- "$@" >"$work/untracked" || die "git ls-files が失敗した"
+  if [ -s "$work/untracked" ]; then
+    "$git" add -N --pathspec-from-file="$work/untracked" --pathspec-file-nul || die "未追跡のファイルを一時的な索引に登録できない"
+  fi
   diff_args=("$old")
 else
   diff_args=("$old" HEAD)
 fi
 # プロセス置換は sandbox で /dev/fd が使えず落ちるので、ファイルに書いてから読む
-"$git" diff --no-ext-diff --name-status -z -M --diff-filter=AMR "${diff_args[@]}" >"$work/changed" || die "git diff が失敗した"
+"$git" diff --no-ext-diff --name-status -z -M --diff-filter=AMR "${diff_args[@]}" -- "$@" >"$work/changed" || die "git diff が失敗した"
+unset GIT_INDEX_FILE
 # -z の出力は「状態 NUL パス NUL」（改名は「状態 NUL 元 NUL 先 NUL」）
 while IFS= read -r -d '' st; do
   case "$st" in
@@ -105,16 +125,10 @@ while IFS= read -r -d '' st; do
       ;;
   esac
 done <"$work/changed"
-if [ "$with_wt" = 1 ]; then
-  "$git" ls-files --others --exclude-standard -z >"$work/untracked" || die "git ls-files が失敗した"
-  while IFS= read -r -d '' p; do
-    add "$p" ""
-  done <"$work/untracked"
-fi
 
 total=${#now_paths[@]}
 if [ "$total" -eq 0 ]; then
-  printf 'tests: 0\npassed-on-base: 0\nfailed-on-base: 0\n'
+  printf 'tests: 0\npassed-on-base: 0\nfailed-on-base: 0\nbroken-on-base: 0\n'
   exit 0
 fi
 
@@ -122,11 +136,18 @@ VITEST="$root/node_modules/.bin/vitest"
 [ -x "$VITEST" ] || die "vitest が無い: node_modules/.bin/vitest（依存を入れてから呼ぶ。vitest がサブパッケージにだけあるモノレポは対象外）"
 jq --version >/dev/null 2>&1 || die "jq が無い"
 
-TIMEOUT="${RUN_TESTS_ON_BASE_TIMEOUT:-120}"
 copy="$work/base"
 mkdir "$copy" || die "一時ディレクトリを作れない"
 "$git" archive "$old" | tar -x -C "$copy" || die "変える前のコードを展開できない: ${old}"
-[ -e "$copy/node_modules" ] || ln -s "$root/node_modules" "$copy/node_modules" || die "node_modules を借りられない"
+# node_modules は中身ごとにリンクする: まるごとリンクすると vitest のキャッシュ（node_modules/.vite）が本物の側に書かれる
+if [ ! -e "$copy/node_modules" ]; then
+  mkdir "$copy/node_modules" || die "node_modules を借りられない"
+  for e in "$root/node_modules"/* "$root/node_modules"/.[!.]*; do
+    [ -e "$e" ] || continue
+    [ "${e##*/}" = .vite ] && continue
+    ln -s "$e" "$copy/node_modules/${e##*/}" || die "node_modules を借りられない"
+  done
+fi
 copy_real=$(cd "$copy" && pwd -P) || die "一時ディレクトリに移れない"
 json="$work/result.json"
 log="$work/vitest.log"
@@ -140,7 +161,8 @@ run_vitest() { # 引数 = 写しの中のテストのパス
   rm -f "$marker"
   set -m
   # カバレッジを切る: 設定でしきい値を有効にしていると、一部のテストだけを流すと割って 0 以外で終わる
-  (cd "$copy" && exec "$VITEST" run "$@" --coverage.enabled=false --reporter=json --outputFile="$json") </dev/null >"$log" 2>&1 &
+  # CI=true: CI でない vitest は無いスナップショットを書いて通すので、新しいスナップショットのテストが変える前でも通ってしまう
+  (cd "$copy" && CI=true exec "$VITEST" run "$@" --coverage.enabled=false --reporter=json --outputFile="$json") </dev/null >"$log" 2>&1 &
   local pid=$!
   (
     sleep "$remain"
@@ -195,14 +217,15 @@ if [ "${#befores[@]}" -gt 0 ]; then
   done <"$work/results"
 fi
 
-for p in "${now_paths[@]}"; do
-  mkdir -p "$copy/$(dirname "$p")" || die "テストを写しに置けない: ${p}"
+put() { # $1 = パス。今の版を写しに置く
+  mkdir -p "$copy/$(dirname "$1")" || die "テストを写しに置けない: ${1}"
   if [ "$with_wt" = 1 ]; then
-    cp -- "$p" "$copy/$p" || die "テストを写しに置けない: ${p}"
+    cp -- "$1" "$copy/$1" || die "テストを写しに置けない: ${1}"
   else
-    "$git" show "HEAD:$p" >"$copy/$p" || die "テストを写しに置けない: ${p}"
+    "$git" show "HEAD:$1" >"$copy/$1" || die "テストを写しに置けない: ${1}"
   fi
-done
+}
+for p in "${now_paths[@]}"; do put "$p"; done
 run_vitest "${now_paths[@]}"
 
 nl=$'\n'
@@ -213,6 +236,8 @@ show() { # 改行を含む名前は 1 行に収めないと一覧が崩れる
 passed_list=""
 passed=0
 failed=0
+broken_list=""
+broken=0
 results
 while IFS= read -r -d '' f && IFS= read -r -d '' st && IFS= read -r -d '' name; do
   # vitest run のフィルタは部分一致で、渡していない似た名前のテストも流れる
@@ -225,7 +250,11 @@ while IFS= read -r -d '' f && IFS= read -r -d '' st && IFS= read -r -d '' name; 
       passed=$((passed + 1))
       passed_list="$passed_list  $(show "$f") > $(show "$name")$nl"
       ;;
-    failed | broken) failed=$((failed + 1)) ;;
+    failed) failed=$((failed + 1)) ;;
+    broken)
+      broken=$((broken + 1))
+      broken_list="$broken_list  $(show "$f")$nl"
+      ;;
   esac
 done <"$work/results"
 
@@ -233,4 +262,6 @@ printf 'tests: %d\n' "$total"
 printf 'passed-on-base: %d\n' "$passed"
 [ -n "$passed_list" ] && printf '%s' "$passed_list" | sort
 printf 'failed-on-base: %d\n' "$failed"
+printf 'broken-on-base: %d\n' "$broken"
+[ -n "$broken_list" ] && printf '%s' "$broken_list" | sort
 exit 0
