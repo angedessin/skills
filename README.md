@@ -55,6 +55,7 @@ frontend-code-review の限界: テスト担当はテストファイルが変わ
 ├── eval/                     # スキルの評価（A・B・C の比較）と回帰テスト（マスター専用）
 ├── scripts/validate_skills.py # スキルの frontmatter・構造・CLAUDE.md の行数・依存の一覧の検査（マスター専用）
 ├── tests/hooks/              # PreToolUse hook のフィクスチャ（test:hooks）
+├── tests/skills/              # スキルのフォルダに置いたスクリプトのテスト（test:skills）
 ├── tests/sandbox/            # settings.json と sandbox の検査（test:sandbox・test:sandbox:probe）
 ├── templates/                # 新しいスキルの雛形（マスター専用）と、配置先の settings の雛形
 ├── prompts/                  # 人が貼って使う、スキルの敵対的レビューのプロンプト（マスター専用）
@@ -69,6 +70,7 @@ frontend-code-review の限界: テスト担当はテストファイルが変わ
 ```bash
 mise exec -- pnpm run validate     # スキルの frontmatter・構造、CLAUDE.md の行数、依存の一覧
 mise exec -- pnpm run test:hooks   # PreToolUse hook のフィクスチャ
+mise exec -- pnpm run test:skills  # スキルのフォルダに置いたスクリプト（frontend-code-review の差分の数え方）
 mise exec -- pnpm run test:sandbox # settings.json の形（sandbox の中での確認は tests/sandbox/README.md）
 mise exec -- pnpm run lint         # Biome
 ```
@@ -133,6 +135,7 @@ cp -n templates/settings.template.json "$DEST/.claude/settings.json"
 
 - **agent:** 無いと、スキルは汎用の subagent に指示を渡す代替に落ちる。一緒に持っていく
 - **案内先のスキル:** 本文で名前を出すだけで、無くても動く
+- **スキルのフォルダのスクリプト:** スキルと一緒にフォルダごと持っていく。`frontend-code-review` の `scripts/count-diff.sh` は bash と git が要る
 
 <!-- deps:skills -->
 | スキル | agent | 案内先のスキル | 配るか |

@@ -26,7 +26,7 @@ Last updated: 2026-11-14
 
 ## PR 3 — レビューまわり（ブランチ `feature/review-upkeep`）
 
-- [ ] 13. 差分を数えるスクリプトと `tests/skills/` のテスト・`test:skills` を書き、Step 1 を短くする（C1）
+- [x] 13. 差分を数えるスクリプトと `tests/skills/` のテスト・`test:skills` を書き、Step 1 を短くする（C1）（20261114。`scripts/count-diff.sh`（bash と git だけ。指定なし／`--base`／`--base --worktree`／`-- <パス>`）。テスト CD1〜19 は書く前に 17/17 FAIL、実装後 `test:skills` 19/19。各ケースで今の手順（shortstat＋未追跡の no-index numstat）と files・lines が一致することもテストの中で突き合わせる。写しを 12 通り壊し、等価な 1 通り以外は落ちることを確かめた（一回限り。見逃した IFS の件は CD18 を足して直した）。Step 1 の patch の書き出しに `--worktree` とパスの指定を足した。skill-test の Step 1・README に test:skills を足した。validate 11/11・test:hooks 481/481・test:sandbox・lint が通る）
 - [ ] 14. `review-test` の起動条件と観点、`review-verify` の 3 種類の基準を足す（A3）。テストの無い差分・形だけのテストの評価のケースを足す
 - [ ] 15. 報告に担当を添える（C2）
 - [ ] 16. 静的検査 → 回帰ケースの見積もり・承認・実行（Step 1 の費用の目安を測り直す）→ レビュー → PR
