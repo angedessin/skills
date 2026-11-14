@@ -12,3 +12,10 @@
 - 評価の sandbox でも vitest が動いた（node が見つからない心配は起きなかった）
 - 気になった点: t2 の 3 回目は報告の後に、周辺も読むバグ担当の結果がもう一度届いたと書いた（同じ指摘で結論は変わらず）。trace で確かめると、報告の前に 5 体とも終わっていた（background_tasks_changed の一覧が空）。後の通知は同じ結果の再送で、手順には反していない
 - trace: /private/tmp/e-8zeO2x・e-X2oPsC・e-7P4owM（t2）、e-deLQ4V・e-VOFuyF・e-rvlgMA（t1）、e-KuwFQe・e-mkelww（n1）、e-sVlmbz・e-N5JoBb（p2）
+
+# 20261115 — レビューの直し（候補として検証役に渡す）の後の t2（3 回・2.13 ドル）
+
+- 3 回とも合格（q1・q2・stop）
+- run0・run1: スクリプトが `passed-on-base: 1`（価格の安い順に並べる）を出し、検証役への依頼に「変える前」の根拠が入り、報告に形だけのテストとして残った。run0 は写しで高い順に壊しても通ることも再現した
+- run2: モデルが PATH の先頭に mise の shim を足して呼び、mise が node を nodejs.org から取りに行って sandbox に拒まれ、スクリプトは 2（vitest が結果を返さなかった）。スキルの手順どおり「実行できなかったもの」に理由を書いて続け、形だけのテストは検証役の再現で報告した。評価の sandbox の事情で、スクリプトの不具合ではない
+- trace: /private/tmp/e-z9SWA5・e-tihsm9・e-mn0ju6
