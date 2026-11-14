@@ -1,4 +1,4 @@
-Last updated: 2026-11-13
+Last updated: 2026-11-14
 
 # tasklist: skill-loop-fixes
 
@@ -16,7 +16,7 @@ Last updated: 2026-11-13
 - [x] 8. validate に C3 の検査と self-test を足す（20261113。項目 10 として、導入の語で行を探し「:」の後ろを「・」で分けた条件が 3 つで、ファイルごとの目印の組（CLAUDE.md は「承認制のパス」、design-doc は「CLAUDE.md」「docs」「.claude」）にそれぞれ 1 つずつ当たるかを見る。self-test は目印 1 つずつの削除・条件の追加・行の削除の 12 通りで、落ちなかったものは 0。validate 11/11・test:hooks 441/441・test:sandbox・lint が通る）
 - [x] 9. `validate`・`test:hooks`・`test:sandbox`・`lint` を流す → 回帰ケースの見積もりを示し、承認後にユーザーに流してもらう → 結果を読んで確かめる（20261113。静的検査は 4 つとも通る。回帰ケースは 3 回に分けて流し、合計 8.33 ドル。d1・d2・d3・s1〜s3 に回帰なし。採点を 2 つ直した（A4 は d1 では確かめられないので d1b へ、s1 の tasklist の採点はテストを流せず未チェックで残すのも合格に）。d1b が 3 回中 2 回だったので、design-doc に「既存のテスト・型検査だけでは項目のテストにならない」を足し、3 回とも合格。詳細は eval-20261113.md・decisions.md）
 - [x] 9b. レビューの 20 件を直す（review-result.md の 20261114）。fixture を先に足して落ちることを確かめてから hook を直す。型検査はターンごとに差し戻し直す・timeout の余裕は 10 秒・拡張子は足しモノレポは README に対象外と書く（decisions.md 20261114）（20261114。fixture GT53〜78・TC3b を先に足して 10 件 FAIL を確かめ、hook を直して test:hooks 468/468。hook を 20 か所壊して全部落ちることを確かめた（一回限り）。test:sandbox に余裕 10 秒の検査。validate・lint も通る。詳細は review-result.md。直しのレビューで出た 13 件も直した（カバレッジを切る・設定の dotfile を除く・run の部分一致・fixture GT79〜91。test:hooks 481/481。13 通り壊して全部落ちた））
-- [ ] 10. レビュー → PR（統合用ブランチへ）
+- [x] 10. レビュー → PR（統合用ブランチへ）（20261114。レビュー 2 回・指摘 33 件を直した。feature/skill-loop-fixes を push し、PR #26 を作った。CI は無い）
 - [ ] 10b. 配置先の最初のプロジェクトで、テストのゲートの所要時間を測り、打ち切り時間（150 秒）と実装ファイルごとの起動を見直す（レビューで「設計どおり」とした性能の件）
 
 ## PR 2 — 知見を設計で読む（ブランチ `feature/design-reads-knowledge`）
