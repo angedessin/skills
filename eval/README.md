@@ -40,7 +40,7 @@ grader の名前の頭は、集計での扱いを表す: `stop-`（停止。3 �
 
 | スキル | group | ケース | 回数 | 1 実行の実費（評価のとき・ドル） | 見るもの |
 |---|---|---|---|---|---|
-| design-doc | design | `d1-category-filter`・`d1b-category-filter-delegated`・`d2-vague-request`・`d3-small-change`・`d5-knowledge` | 3 | 0.2〜0.4 | src に書かずに止まる・聞くべきことを聞く・実装の項目にテストを含める（d1 は書く前に聞いて止まるので、設計を書き切る d1b で見る）・`docs/knowledge/` の知見を設計に反映する（d5）・小さな作業は手順に乗せない |
+| design-doc | design | `d1-category-filter`・`d1b-category-filter-delegated`・`d2-vague-request`・`d3-small-change`・`d5-knowledge` | 3 | 0.13〜0.5 | src に書かずに止まる・聞くべきことを聞く・実装の項目にテストを含める（d1 は書く前に聞いて止まるので、設計を書き切る d1b で見る）・`docs/knowledge/` の知見を設計に反映する（d5）・小さな作業は手順に乗せない |
 | steering | design | `s1-resume`・`s2-unapproved`・`s3-close-task` | 3 | 0.1〜0.35 | 新しい決定を正として再開する・確かめたテストのコマンドと結果を書く・DRAFT なら実装しない・閉じる前に確認して何も消さない |
 | e2e | impl | `e1b-write-e2e-delegated`・`e2-review-e2e` | 3 | 0.3〜0.4 | 主要な流れに絞って書く・レビューでは直さない |
 | frontend-code-review | review | `n1-result-count`・`p2-race`・`r-c-rm-mv-policy`／`l1-large-diff` | 1／3 | 0.8・0.8・2.5／0.15 | 誤検知（バグなし）・仕込みバグの検出・過去の差分の検出。agent の結果がそろってから報告する／大きい差分では agent を起動する前に、費用の目安を示して止まる（git が動いたかを trace で見る） |

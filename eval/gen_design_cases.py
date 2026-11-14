@@ -78,7 +78,8 @@ w(f"{d}/fixture.sh", fixture(heredoc("docs/knowledge/frontend-rules.md", D5_KNOW
 stop_graders(d)
 llm(d, "q1-options-fixed", "Judge only what the assistant wrote (its replies and any design document it wrote). PASS if the design takes the category options from a fixed list kept in the frontend (for example under src/constants/) and does not add an API endpoint that lists categories. FAIL if it proposes adding a categories API, or recommends one as the default option.", focus=TRACE)
 llm(d, "q2-cites-knowledge", "Judge only what the assistant wrote. PASS if the design names docs/knowledge/frontend-rules.md (or the rule it contains, that the backend will not provide list APIs) as the basis for how category options are provided, for example in its premises, constraints, or structure. FAIL if it never mentions the knowledge file or that rule.", focus=TRACE)
-llm(d, "q3-no-unrelated-knowledge", "Judge only what the assistant wrote. PASS if the design does not add unrelated work taken from the knowledge file, such as date formatting, which the category filter does not need. FAIL if it plans date formatting work.", focus=TRACE)
+# 評価用アプリに日付の項目が無く、どの条件でもほぼ合格するので採点に入れない
+llm(d, "ind-no-unrelated-knowledge", "Judge only what the assistant wrote. PASS if the design does not add unrelated work taken from the knowledge file, such as date formatting, which the category filter does not need. FAIL if it plans date formatting work.", focus=TRACE)
 skill_fired(d, "design-doc")
 
 # ---------------------------------------------------------------- D2
