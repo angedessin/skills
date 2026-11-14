@@ -43,8 +43,8 @@ if [ "$worktree" = 1 ] && [ -z "$base" ]; then
 fi
 
 # macOS の /usr/bin/git は sandbox の中でキャッシュの警告を stderr に出すので、成否は終了コードで見る
+# command -v で先に確かめない: stat を拒み実行は許す sandbox では、動く git も「無い」と判定する
 git=${GIT:-git}
-command -v "$git" >/dev/null 2>&1 || die "git が見つからない: ${git}（動く git は GIT=<パス> で渡す）"
 "$git" rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "git が動かないか、git の作業ツリーの外にいる（動く git は GIT=<パス> で渡す）"
 "$git" rev-parse --verify -q HEAD >/dev/null 2>&1 || die "HEAD が無い（コミットが 1 つも無い）"
 

@@ -279,8 +279,8 @@ def check_git_override(tmp: Path) -> str | None:
         return f"--base main --worktree で rc={p.returncode}\nstdout:\n{p.stdout}\nstderr:\n{p.stderr}"
     env["GIT"] = str(tmp / "nope")
     p = subprocess.run(["bash", str(SCRIPT)], cwd=repo, env=env, capture_output=True, text=True)
-    if p.returncode != 2 or not p.stderr.strip():
-        return f"存在しない GIT で rc={p.returncode} (want 2 と理由)\nstderr:\n{p.stderr}"
+    if p.returncode != 2 or "GIT=" not in p.stderr:
+        return f"存在しない GIT で rc={p.returncode} (want 2 と GIT=<パス> の案内)\nstderr:\n{p.stderr}"
     return None
 
 
