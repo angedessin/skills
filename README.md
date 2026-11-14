@@ -39,8 +39,6 @@
 
 agent（`.claude/agents/`）: `review-bug`・`review-rules`・`review-ui-a11y`・`review-test`・`review-verify`（frontend-code-review が使う）、`premortem-attacker`（design-premortem が使う）。モデル・エフォート・使える道具は定義の側に書く。読み取り専用の agent は Bash を持たない（`git diff --output=` などで書けてしまうため）。
 
-frontend-code-review の限界: テスト担当はテストファイルが変わったときだけ動くので、実装だけを変えた差分のテストの抜けは見ない。
-
 ## ディレクトリ構成
 
 ```
@@ -70,7 +68,7 @@ frontend-code-review の限界: テスト担当はテストファイルが変わ
 ```bash
 mise exec -- pnpm run validate     # スキルの frontmatter・構造、CLAUDE.md の行数、依存の一覧
 mise exec -- pnpm run test:hooks   # PreToolUse hook のフィクスチャ
-mise exec -- pnpm run test:skills  # スキルのフォルダに置いたスクリプト（frontend-code-review の差分の数え方）
+mise exec -- pnpm run test:skills  # スキルのフォルダに置いたスクリプト（frontend-code-review の差分の数え方）と評価の src の採点
 mise exec -- pnpm run test:sandbox # settings.json の形（sandbox の中での確認は tests/sandbox/README.md）
 mise exec -- pnpm run lint         # Biome
 ```
