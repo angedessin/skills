@@ -70,6 +70,8 @@ added=${rest%% *}
 deleted=${rest#* }
 
 untracked_list=""
+# bash 3.2 はコマンド置換の中の case の「)」を読み違えるので、型は [[ ]] で見る
+nl=$'\n'
 if [ "$with_untracked" = 1 ]; then
   # 名前に空白や改行があっても崩れないよう -z で読む。プロセス置換は sandbox で /dev/fd が使えず落ちるのでパイプにする
   ut=$("$git" ls-files --others --exclude-standard -z -- "$@" | {
@@ -77,13 +79,23 @@ if [ "$with_untracked" = 1 ]; then
     a=0
     while IFS= read -r -d '' f; do
       c=$((c + 1))
-      n=$("$git" diff --no-index --no-ext-diff --numstat -- /dev/null "$f" 2>/dev/null | awk -F'\t' '$1 != "-" { s += $1 } END { print s + 0 }')
+      # 名前が「-」だと git が stdin（このループの入力）を読むので、./ を付けて stdin も塞ぐ
+      n=$("$git" diff --no-index --no-ext-diff --numstat -- /dev/null "./$f" </dev/null 2>/dev/null | awk -F'\t' '$1 != "-" { s += $1 } END { print s + 0 }')
       a=$((a + n))
-      printf 'F %s\n' "$f"
+      # 改行を含む名前は 1 行に収めないと一覧と合計の行が崩れる
+      if [[ $f == *"$nl"* ]]; then
+        printf 'F %q\n' "$f"
+      else
+        printf 'F %s\n' "$f"
+      fi
     done
     printf 'T %d %d\n' "$c" "$a"
   }) || die "git ls-files が失敗した"
-  t=$(printf '%s\n' "$ut" | sed -n 's/^T //p')
+  t=$(printf '%s\n' "$ut" | tail -n 1)
+  case $t in
+    "T "[0-9]*" "[0-9]*) t=${t#T } ;;
+    *) die "未追跡のファイルを数えられない" ;;
+  esac
   files=$((files + ${t%% *}))
   added=$((added + ${t#* }))
   untracked_list=$(printf '%s\n' "$ut" | sed -n 's/^F /  /p')

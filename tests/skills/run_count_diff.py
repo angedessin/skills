@@ -148,6 +148,22 @@ def setup_branch(repo: Path) -> None:
     write(repo, "src/new.ts", lines(3))
 
 
+def setup_dash_name(repo: Path) -> None:
+    # 名前が「-」だと git diff --no-index が stdin を読むので、後に並ぶ未追跡も一緒に置く
+    write(repo, "-", lines(2))
+    write(repo, "z1.txt", lines(3))
+    write(repo, "z2.txt", lines(1))
+
+
+def setup_newline_name(repo: Path) -> None:
+    write(repo, "nl\nsecond.ts", lines(2))
+    write(repo, "q\nT 7", lines(1))
+
+
+def setup_unborn(repo: Path) -> None:
+    git(repo, "update-ref", "-d", "refs/heads/main")
+
+
 def setup_paths(repo: Path) -> None:
     setup_untracked_text(repo)
     write(repo, "docs/c.md", lines(3) + "more\n")  # +1
@@ -168,18 +184,24 @@ CASES = [
     ("CD18", "先頭が空白の名前の未追跡", setup_lead_space, [], {"rc": 0, "files": 1, "lines": 2, "untracked": [" lead.ts"]}),
     ("CD19", "追跡済みのバイナリはファイル数に足し、行数に入れない", setup_tracked_binary, [],
      {"rc": 0, "files": 2, "lines": 5, "added": 3, "deleted": 2}),
-    ("CD9", "--base は merge-base からのコミット済みだけ", setup_branch, ["--base", "main"],
-     {"rc": 0, "files": 2, "lines": 2, "added": 1, "deleted": 1, "untracked": []}),
+    ("CD9", "--base は merge-base からのコミット済みだけ（内訳も同じ範囲）", setup_branch, ["--base", "main"],
+     {"rc": 0, "files": 2, "lines": 2, "added": 1, "deleted": 1, "untracked": [], "dirstat": ["50.0% docs/", "50.0% src/"]}),
     ("CD10", "--base --worktree は未コミットと未追跡も足す", setup_branch, ["--base", "main", "--worktree"],
      {"rc": 0, "files": 4, "lines": 6, "added": 5, "deleted": 1, "untracked": ["src/new.ts"]}),
     ("CD11", "パスで絞ると、未追跡も絞る", setup_paths, ["--", "docs"],
      {"rc": 0, "files": 2, "lines": 3, "added": 3, "deleted": 0, "untracked": ["docs/new.md"]}),
     ("CD12", "--base とパスの絞り込み", setup_branch, ["--base", "main", "--", "docs"],
      {"rc": 0, "files": 1, "lines": 1, "untracked": []}),
-    ("CD13", "ディレクトリごとの内訳を出す", setup_paths, [], {"rc": 0, "dirstat_has": ["src/", "docs/"]}),
-    ("CD14", "存在しないベースは 2", setup_none, ["--base", "nope"], {"rc": 2}),
+    ("CD13", "ディレクトリごとの内訳を変更行の割合で出す", setup_paths, [], {"rc": 0, "dirstat": ["16.6% docs/", "83.3% src/"]}),
+    ("CD14", "存在しないベースは 2", setup_none, ["--base", "nope"], {"rc": 2, "err_has": "ベースが見つからない"}),
     ("CD15", "知らない引数は 2", setup_none, ["--bogus"], {"rc": 2}),
     ("CD16", "--worktree だけ（--base 無し）は 2", setup_none, ["--worktree"], {"rc": 2}),
+    ("CD21", "名前が - の未追跡があっても、後に並ぶ未追跡を数える", setup_dash_name, [],
+     {"rc": 0, "files": 3, "lines": 6, "untracked": ["-", "z1.txt", "z2.txt"]}),
+    ("CD22", "改行を含む名前の未追跡は、一覧で $'...' の形にして 1 行に出す", setup_newline_name, [],
+     {"rc": 0, "files": 2, "lines": 3, "untracked": ["$'nl\\nsecond.ts'", "$'q\\nT 7'"]}),
+    ("CD23", "--base に値が無ければ 2", setup_none, ["--base"], {"rc": 2, "err_has": "ref が要る"}),
+    ("CD24", "コミットが 1 つも無ければ 2", setup_unborn, [], {"rc": 2, "err_has": "HEAD が無い"}),
 ]
 
 
@@ -199,10 +221,12 @@ def old_procedure(repo: Path, args: list[str]) -> tuple[int, int]:
     files = nums[0] if nums else 0
     changed = sum(nums[1:]) if nums else 0
     if untracked:
-        for f in git(repo, "ls-files", "--others", "--exclude-standard", "--", *paths).splitlines():
+        for f in git(repo, "ls-files", "--others", "--exclude-standard", "-z", "--", *paths).split("\0"):
+            if not f:
+                continue
             files += 1
-            out = subprocess.run(["git", "diff", "--no-index", "--numstat", "/dev/null", f], cwd=repo, env=GIT_ENV,
-                                 capture_output=True, text=True).stdout
+            out = subprocess.run(["git", "diff", "--no-index", "--numstat", "--", "/dev/null", "./" + f], cwd=repo, env=GIT_ENV,
+                                 stdin=subprocess.DEVNULL, capture_output=True, text=True).stdout
             add = out.split("\t", 1)[0] if out else "0"
             changed += int(add) if add.isdigit() else 0
     return files, changed
@@ -217,6 +241,8 @@ def check(case_id: str, desc: str, setup, args: list[str], expect: dict, tmp: Pa
     if rc != 0:
         if not err.strip():
             return "失敗したのに stderr に理由が無い"
+        if expect.get("err_has") and expect["err_has"] not in err:
+            return f"stderr に {expect['err_has']!r} が無い\nstderr:\n{err}"
         return None
     got = parse(out)
     want_files, want_lines = old_procedure(repo, args)
@@ -224,12 +250,6 @@ def check(case_id: str, desc: str, setup, args: list[str], expect: dict, tmp: Pa
         return f"今の手順と合わない: files={got.get('files')} lines={got.get('lines')} (手順は {want_files}・{want_lines})\nstdout:\n{out}"
     for k, v in expect.items():
         if k == "rc":
-            continue
-        if k == "dirstat_has":
-            joined = " ".join(got["dirstat"])
-            missing = [d for d in v if d not in joined]
-            if missing:
-                return f"dirstat に {missing} が無い\nstdout:\n{out}"
             continue
         if got.get(k) != v:
             return f"{k}={got.get(k)!r} (want {v!r})\nstdout:\n{out}"
