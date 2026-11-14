@@ -21,7 +21,7 @@ Last updated: 2026-11-14
 
 ## PR 2 — 知見を設計で読む（ブランチ `feature/design-reads-knowledge`）
 
-- [ ] 11. design-doc の 2 に `docs/knowledge/` を読む 1 行を足し、知見を置いた評価のケースを足す
+- [x] 11. design-doc の 2 に `docs/knowledge/` を読む 1 行を足し、知見を置いた評価のケースを足す（20261114。ケースは d5-knowledge: d1b と同じ依頼に「選択肢の一覧は API を足さず固定で持つ」の知見と関係ない知見を置く。採点は固定で持つ・知見を根拠に挙げる・関係ない知見を持ち込まない。生成を一時ディレクトリで確かめた。validate・test:hooks 481/481・test:sandbox・lint が通る。採点の確かめは 12 の回帰ケース）
 - [ ] 12. 静的検査 → 回帰ケースの見積もり・承認・実行 → レビュー → PR
 
 ## PR 3 — レビューまわり（ブランチ `feature/review-upkeep`）

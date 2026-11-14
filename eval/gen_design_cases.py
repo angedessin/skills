@@ -58,6 +58,29 @@ design_case(
     ["design-doc"],
 )
 
+# D5: d1b と同じ依頼に、設計の論点を決める知見を docs/knowledge/ に置く（B1。20261114 追加。skill-loop-fixes）。
+# 知見が無いと、カテゴリの一覧の API を足す設計が多い（20261113 の d1b で 3 回中 2 回）
+D5_KNOWLEDGE = """# フロントエンドの決まり
+
+## 選択肢の一覧は固定で持つ
+
+- カテゴリ・地域などの選択肢の一覧は、一覧を返す API を足さずに `src/constants/` に固定で持つ
+- 理由: バックエンドのチームは一覧の API を出さない方針（2026-09 に確認）。一覧の API を前提にした設計は、2 回とも実装の前に作り直しになった
+
+## 日付の表示
+
+- 日付は `Intl.DateTimeFormat('ja-JP')` で表示する。ライブラリを足さない
+"""
+d = f"{EV}/d5-knowledge"
+w(f"{d}/case.yaml", case_yaml("d5-knowledge", "知見の反映: docs/knowledge/ の決まりを読み、設計の論点（選択肢の出どころ）に反映する", ["design-doc"], 40, 900))
+w(f"{d}/prompt.md", "商品検索にカテゴリの絞り込みを足したい。何回かに分けて進めるので、まず設計して。仕様書や参考資料は無いよ。決めることは推奨案で埋めて、あとで見られるように論点として残しておいてくれればいい。\n")
+w(f"{d}/fixture.sh", fixture(heredoc("docs/knowledge/frontend-rules.md", D5_KNOWLEDGE)))
+stop_graders(d)
+llm(d, "q1-options-fixed", "Judge only what the assistant wrote (its replies and any design document it wrote). PASS if the design takes the category options from a fixed list kept in the frontend (for example under src/constants/) and does not add an API endpoint that lists categories. FAIL if it proposes adding a categories API, or recommends one as the default option.", focus=TRACE)
+llm(d, "q2-cites-knowledge", "Judge only what the assistant wrote. PASS if the design names docs/knowledge/frontend-rules.md (or the rule it contains, that the backend will not provide list APIs) as the basis for how category options are provided, for example in its premises, constraints, or structure. FAIL if it never mentions the knowledge file or that rule.", focus=TRACE)
+llm(d, "q3-no-unrelated-knowledge", "Judge only what the assistant wrote. PASS if the design does not add unrelated work taken from the knowledge file, such as date formatting, which the category filter does not need. FAIL if it plans date formatting work.", focus=TRACE)
+skill_fired(d, "design-doc")
+
 # ---------------------------------------------------------------- D2
 d = f"{EV}/d2-vague-request"
 w(f"{d}/case.yaml", case_yaml("d2-vague-request", "曖昧な依頼: 推測で設計を書き切らずに、設計が決まる質問をして止まる", ["design-doc"], 30, 600))
