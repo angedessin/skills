@@ -1,4 +1,4 @@
-Last updated: 2026-11-14
+Last updated: 2026-11-15
 
 # tasklist: skill-loop-fixes
 
@@ -39,6 +39,6 @@ Last updated: 2026-11-14
 
 ## 仕上げ
 
-- [ ] 20. main に注釈付きのタグを打つ（戻り先）
+- [x] 20. main に注釈付きのタグを打つ（戻り先）（20261115。`pre-skill-loop-fixes-main-20261115` を a7f9721 に打って push した。統合用ブランチで静的検査 5 つが通る: test:skills 24/24・14/14・34/34・validate 11/11・test:hooks 481/481・test:sandbox・lint）
 - [ ] 21. steering で閉じる（history.md に 1 行）→ 統合用ブランチを main へ PR
 - [ ] 22. tasklist の更新
