@@ -251,12 +251,21 @@ def self_test(settings: dict, gated: set[str]) -> list[str]:
         ("permissions-ask", check_permissions, lambda s: s["permissions"]["ask"].remove("Bash(git push*)")),
         ("stop-gate-missing", check_stop_hooks, lambda s: s["hooks"]["Stop"][0]["hooks"].pop()),
         ("stop-typecheck-missing", check_stop_hooks, lambda s: s["hooks"]["Stop"][0]["hooks"].pop(0)),
-        ("stop-gate-timeout", check_stop_hooks, lambda s: s["hooks"]["Stop"][0]["hooks"][-1].update(timeout=120)),
-        ("stop-gate-timeout-margin", check_stop_hooks, lambda s: s["hooks"]["Stop"][0]["hooks"][-1].update(timeout=155)),
     ]
     silent = [name for name, fn, broken in cases if fn(mutate(broken), gated) is None]
     if check_stop_hooks(settings, gated, hook_text="# 打ち切りの行が無い hook\n") is None:
         silent.append("stop-gate-no-inner-timeout")
+    # 余裕の境界は、hook の既定値に左右されないよう、打ち切り 150 秒の hook の文で確かめる
+    fixed = 'TIMEOUT="${STOP_TEST_GATE_TIMEOUT:-150}"\n'
+
+    def with_gate_timeout(t: int) -> dict:
+        return mutate(lambda s: s["hooks"]["Stop"][0]["hooks"][-1].update(timeout=t))
+
+    for t in (120, 150 + GATE_MARGIN - 1):  # 打ち切りより短い・余裕が 1 秒足りない
+        if check_stop_hooks(with_gate_timeout(t), gated, hook_text=fixed) is None:
+            silent.append(f"stop-gate-timeout-{t}")
+    if check_stop_hooks(with_gate_timeout(150 + GATE_MARGIN), gated, hook_text=fixed) is not None:
+        silent.append(f"stop-gate-timeout-{150 + GATE_MARGIN}（ちょうどの余裕を誤って止めた）")
 
     good = expected_template(settings)
     template_cases: list[tuple[str, Callable[[dict], None]]] = [

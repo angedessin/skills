@@ -799,9 +799,9 @@ def check_typecheck(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | No
         ("TC3", "ターンが変われば（stop_hook_active が false）、同じエラーでもまた 2", "a.ts(1,1): error TS1\n", False, "s1", 2),
         ("TC3b", "ターンの中で同じエラーが続けば 0 のまま（交互に差し戻さない）", "a.ts(1,1): error TS1\n", True, "s1", 0),
         ("TC4", "エラーが変われば 2", "a.ts(2,1): error TS2\n", True, "s1", 2),
-        ("TC5", "型エラーが無ければ 0", None, False, "s1", 0),
-        ("TC6", "直った後に同じエラーが戻れば、また 2", "a.ts(2,1): error TS2\n", False, "s1", 2),
-        ("TC7", "別のセッションの状態は使わない", "a.ts(2,1): error TS2\n", False, "s2", 2),
+        ("TC5", "型エラーが無ければ 0", None, True, "s1", 0),
+        ("TC6", "ターンの中で直った後に同じエラーが戻れば、また 2（直ったら状態を消す）", "a.ts(2,1): error TS2\n", True, "s1", 2),
+        ("TC7", "別のセッションの状態は使わない（s1 に同じエラーの記録があっても 2）", "a.ts(2,1): error TS2\n", True, "s2", 2),
     ]
     out = []
     for cid, label, text, active, session, code in cases:
@@ -815,9 +815,11 @@ def check_typecheck(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | No
 # 偽の vitest。本物と同じ形の json を書く（20261112 に vitest 5.1.0 で確かめた形: 落ちたら numFailedTestSuites と
 # testResults[].status=="failed"。一回限りの突き合わせで、本物の形が変わっても test:hooks は気づけない）。
 # - `related <file> --run --reporter=json --outputFile=<path>`: node_modules/.fake/related の「<パス> <件数> [札...]」の行から作る。
-#   札: <テストのパス>（assertion で落ちる）・msg:<テストのパス>（import のエラーなど、message だけで落ちる）・
+#   札: <テストのパス>（assertion で落ちる）・msg:<テストのパス>（import のエラーなど、message だけで落ちる）・ok:<テストのパス>（流れて通る）・
 #   exit=<N>（json を書かずに N で終える）・rc=<N>（落ちたファイルの無い json を書いて N で終える。Unhandled Errors のまね）
-# - `run <テストのパス>... --reporter=json --outputFile=<path>`: 渡したファイルを流したことにする。.fake/failing に載ったパスは落ちる
+# - `run <テストのパス>... --reporter=json --outputFile=<path>`: 渡したファイルを流したことにする。.fake/failing に載ったパスは落ちる。
+#   .fake/run-extra に載ったパスも落ちたとして足す（本物のフィルタは部分一致なので、渡していない似た名前のファイルも流れる）
+# -- で始まる引数（--run・--reporter・--coverage.enabled など）はファイルとして扱わない
 # 呼ばれるたびに .fake/calls に引数を 1 行足す。.fake/sleep があればその秒数だけ眠る（眠るプロセスの pid を .fake/sleep-pid に残す）。
 # .fake/exit があれば、どの呼び出しも json を書かずにその終了コードで終える（道具の故障・設定のエラーのまね）。
 FAKE_VITEST = r"""#!/bin/bash
@@ -828,7 +830,7 @@ for a in "$@"; do
   case "$a" in
     --outputFile=*) out="${a#--outputFile=}" ;;
     related|run) [ -z "$mode" ] && mode="$a" || files+=("$a") ;;
-    --run|--reporter=*) ;;
+    --*) ;;
     *) files+=("$a") ;;
   esac
 done
@@ -859,6 +861,9 @@ if [ "$mode" = run ]; then
       tr="$tr${tr:+,}{\"name\":\"$cwd/$t\",\"status\":\"passed\",\"message\":\"\",\"assertionResults\":[]}"
     fi
   done
+  while IFS= read -r t; do
+    [ -n "$t" ] && tr="$tr${tr:+,}$(entry "$t" assert)" && nf=$((nf + 1))
+  done < <(cat "$here/.fake/run-extra" 2>/dev/null)
 else
   line=$(awk -v f="${files[0]}" '$1==f' "$here/.fake/related" 2>/dev/null)
   set -- $line
@@ -869,6 +874,7 @@ else
       exit=*) echo "fake vitest: crashed" >&2; exit "${t#exit=}" ;;
       rc=*) rc=${t#rc=} ;;
       msg:*) tr="$tr${tr:+,}$(entry "${t#msg:}" msg)"; nf=$((nf + 1)) ;;
+      ok:*) tr="$tr${tr:+,}{\"name\":\"$cwd/${t#ok:}\",\"status\":\"passed\",\"message\":\"\",\"assertionResults\":[]}" ;;
       *) tr="$tr${tr:+,}$(entry "$t" assert)"; nf=$((nf + 1)) ;;
     esac
   done
@@ -936,7 +942,7 @@ def check_test_gate(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | No
 
     def stop(repo: Path, cwd: Path | None = None, session: str = "gate", timeout: int | None = None) -> subprocess.CompletedProcess[str]:
         raw = json.dumps({"session_id": session, "stop_hook_active": False, "cwd": str(cwd or repo)})
-        env = {**os.environ, "CLAUDE_PROJECT_DIR": str(repo), "TMPDIR": str(gate_tmp)}
+        env = {**os.environ, "CLAUDE_PROJECT_DIR": str(repo), "TMPDIR": str(gate_tmp), "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
         if timeout is not None:
             env["STOP_TEST_GATE_TIMEOUT"] = str(timeout)
         try:
@@ -1032,9 +1038,9 @@ def check_test_gate(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | No
     commit(r)
     expect("GT10", "ベースは origin/HEAD を先に見る（main が無くても分岐点を取る）", stop(r), 2, says=("src/a.ts", NO_TEST))
     r = make_repo("excluded")
-    for rel in ("src/types.d.ts", "vite.config.ts", "src/Button.stories.tsx", "src/a.test.ts", "src/b.spec.tsx", "src/__tests__/c.ts", "tests/d.ts", "e2e/e.ts", "README.md"):
+    for rel in ("src/types.d.ts", "vite.config.ts", "src/Button.stories.tsx", "src/a.test.ts", "src/b.spec.tsx", "src/__tests__/c.ts", "tests/d.ts", "e2e/e.ts", "README.md", ".eslintrc.cjs", ".prettierrc.mjs", "src/.hidden.ts"):
         write(r, rel)
-    expect("GT11", "実装ファイルでないもの（d.ts・config・stories・テスト・md）だけなら related は呼ばず、変えたテストを 1 回流して 0", stop(r), 0, called=1, repo=r)
+    expect("GT11", "実装ファイルでないもの（d.ts・config・stories・テスト・md・名前が . で始まる設定）だけなら related は呼ばず、変えたテストを 1 回流して 0", stop(r), 0, called=1, repo=r)
     calls_file = r / "node_modules" / ".fake" / "calls"
     line = calls_file.read_text() if calls_file.is_file() else ""
     if not line.startswith("run ") or "e2e/e.ts" in line:
@@ -1237,7 +1243,7 @@ def check_test_gate(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | No
     if p.returncode == 0 and p.stderr.strip():
         out[-1] = ("GT52", out[-1][1], f"警告が出た; stderr={p.stderr!r}")
 
-    # 20261114 のレビューで足したケース（review-result.md）
+    # 20261114 のレビューの指摘への回帰ケース
     # 追跡済みファイルの変更も、同じ差分の判定に効く
     r = make_repo("cache-tracked", {"src/a.ts": 1})
     write(r, "src/a.ts")
@@ -1297,8 +1303,8 @@ def check_test_gate(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | No
     stop(r)
     calls_file = r / "node_modules" / ".fake" / "calls"
     line = (calls_file.read_text().splitlines() or [""])[0] if calls_file.is_file() else ""
-    m = re.fullmatch(r"related src/a\.ts --run --reporter=json --outputFile=(\S+)", line)
-    out.append(("GT68", "vitest に related <file> --run --reporter=json を渡し、json はプロジェクトの外に書く",
+    m = re.fullmatch(r"related src/a\.ts --run --coverage\.enabled=false --reporter=json --outputFile=(\S+)", line)
+    out.append(("GT68", "vitest に related <file> --run とカバレッジを切る指定を渡し、json はプロジェクトの外に書く",
                 None if m and not Path(m.group(1)).resolve().is_relative_to(r.resolve()) else f"引数: {line!r}"))
     # ファイルごとに json を空にする（前のファイルの結果を使わない）
     r = make_repo("json-reset", {"src/a.ts": 1, "src/b.ts": "1 exit=127"})
@@ -1311,7 +1317,7 @@ def check_test_gate(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | No
     git("mv", spec, "src/a.spec.ts", cwd=r)
     write(r, "src/a.spec.ts", two.replace("  expect(1).toBe(1)\n", ""))
     commit(r)
-    expect("GT71", "テストファイルを改名して expect を減らすと 2（古いパスの版と比べる）", stop(r), 2, says="src/a.spec.ts")
+    expect("GT71", "テストファイルを改名して expect を減らすと 2（古いパスの版と比べ、旧 → 新 と出す）", stop(r), 2, says="src/a.test.ts → src/a.spec.ts")
     r = make_repo("rename-only", base_files={"src/b.test.ts": two + "it.skip('x', () => {})\n"})
     git("mv", "src/b.test.ts", "src/b.spec.ts", cwd=r)
     commit(r)
@@ -1343,6 +1349,73 @@ def check_test_gate(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | No
     write(r, "src/b.ts")
     exemption(r, task, "- `src/a.ts` — 文言だけ（20261114）\n- ./src/b.ts — 文言だけ（20261114）\n")
     expect("GT78", "免除のパスはバッククォートで囲んでも、./ を付けても効く", stop(r), 0, quiet=True)
+
+    # 20261114 の直しのレビューの指摘への回帰ケース
+    # 変えたテストを流す枝
+    r = weak_repo("run-deleted-exempt")
+    (r / spec).unlink()
+    write(r, task, f"# テストの免除\n\n## テストを弱める\n- {spec} — 重複したテストの整理（20261114）\n")
+    expect("GT79", "消したテストは流さない（「テストを弱める」に載せれば vitest を呼ばずに 0）", stop(r), 0, quiet=True, called=0, repo=r)
+    r = weak_repo("run-fail-exempt")
+    write(r, spec, two.replace("toBe(1)", "toBe(2)"))
+    (r / "node_modules" / ".fake" / "failing").write_text(f"{spec}\n")
+    write(r, task, f"# テストの免除\n\n## 失敗を残す\n- {spec} — 仕様の確認待ち（20261114）\n")
+    expect("GT80", "「失敗を残す」に載った変えたテストは流さずに 0", stop(r), 0, quiet=True, called=0, repo=r)
+    r = weak_repo("run-timeout")
+    write(r, spec, two.replace("toBe(1)", "toEqual(1)"))
+    (r / "node_modules" / ".fake" / "sleep").write_text("20")
+    expect("GT81", "変えたテストを流しきれなければ 2（そのテストを挙げる）", stop(r, timeout=1), 2, says=("流しきれなかった", spec))
+    r = weak_repo("run-broken")
+    write(r, spec, two.replace("toBe(1)", "toEqual(1)"))
+    (r / "node_modules" / ".fake" / "exit").write_text("127")
+    expect("GT82", "変えたテストを流して道具が故障したら 0 で警告", stop(r, session="rb"), 0, says="failed to load config", called=1, repo=r)
+    expect("GT83", "変えたテストで道具が故障した差分は残さない（もう一度流す）", stop(r, session="rb"), 0, called=2, repo=r)
+    r = make_repo("run-args", {"src/a.ts": 1}, base_files={spec: two, "src/b.test.ts": two})
+    write(r, "src/a.ts")
+    write(r, spec, two.replace("toBe(1)", "toEqual(1)"))
+    write(r, "src/b.test.ts", two.replace("toBe(1)", "toEqual(1)"))
+    write(r, ".steering/20261111-x/test-exemptions.md", "# テストの免除\n\n## 失敗を残す\n- src/b.test.ts — 理由（20261114）\n")
+    stop(r)
+    lines = (r / "node_modules" / ".fake" / "calls").read_text().splitlines()
+    ok = len(lines) == 2 and re.fullmatch(rf"run {re.escape(spec)} --coverage\.enabled=false --reporter=json --outputFile=\S+", lines[1])
+    out.append(("GT84", "変えたテストの run には、流すテストのパスだけ（実装ファイル・免除したテストを除く）とカバレッジを切る指定を渡す",
+                None if ok else f"呼び出し: {lines!r}"))
+    # 関係するテストとして流れたテストは、もう流さない
+    r = make_repo("ran-dedupe", {"src/a.ts": f"1 ok:{spec}"}, base_files={spec: two})
+    write(r, "src/a.ts")
+    write(r, spec, two.replace("toBe(1)", "toEqual(1)"))
+    expect("GT85", "変えたテストが関係するテストとして流れて通れば、run で流し直さない", stop(r), 0, quiet=True, called=1, repo=r)
+    r = make_repo("ran-dedupe-fail", {"src/a.ts": f"1 {spec}"}, base_files={spec: two})
+    write(r, "src/a.ts")
+    write(r, spec, two.replace("toBe(1)", "toEqual(1)"))
+    p = stop(r)
+    expect("GT86", "変えたテストが関係するテストとして落ちれば、run で流し直さず 1 回だけ挙げる", p, 2, says=f"boom in {spec}", called=1, repo=r)
+    if p.stderr.count(f"AssertionError: boom in {spec}") != 1:
+        out[-1] = ("GT86", out[-1][1], f"失敗の文が {p.stderr.count(f'AssertionError: boom in {spec}')} 回出た; stderr={p.stderr!r}")
+    # vitest run のフィルタは部分一致なので、渡していない似た名前のテストも流れる。その失敗では差し戻さない
+    r = weak_repo("run-partial-match")
+    write(r, spec, two.replace("toBe(1)", "toEqual(1)"))
+    (r / "node_modules" / ".fake" / "run-extra").write_text("src/a.test.tsx\n")
+    expect("GT87", "run で渡していない似た名前のテストが落ちても、差し戻さない", stop(r), 0, quiet=True)
+    # init.defaultBranch
+    r = make_repo("default-branch")
+    git("branch", "-q", "-m", "main", "trunk", cwd=r)
+    git("config", "init.defaultBranch", "trunk", cwd=r)
+    write(r, "src/a.ts")
+    commit(r)
+    expect("GT88", "origin/HEAD が無ければ init.defaultBranch を分岐点に使う", stop(r), 2, says=("src/a.ts", NO_TEST))
+    # タスクの外の免除の警告でも、パスの書き方の揺れを無視する
+    r = make_repo("global-warn-loose", base_files={".steering/test-exemptions.md": "# テストの免除\n\n## テスト不要\n- `src/base.ts` — 文言だけのファイル（20261101）\n"})
+    write(r, "src/base.ts", "export const changed = 1\n")
+    expect("GT89", "タスクの外の免除の警告は、バッククォートで囲んだパスにも出す", stop(r), 0, says="文言だけのファイル")
+    # 改名の周辺
+    r = weak_repo("rename-to-impl")
+    git("mv", spec, "src/a.ts", cwd=r)
+    commit(r)
+    expect("GT90", "テストでない名前への改名は、テストを消したとして 2", stop(r), 2, says=(spec, "ファイルを消した"))
+    r = weak_repo("rename-unstaged")
+    (r / spec).rename(r / "src" / "a.spec.ts")
+    expect("GT91", "ステージしない mv は組にできないので、古いパスを消したとして 2", stop(r), 2, says=(spec, "ファイルを消した"))
     return out
 
 
@@ -1440,8 +1513,8 @@ def main() -> int:
         # わざと流すときだけ HOOK_FIXTURES_ALLOW_SKIP=1 で通す
         hard = [c for c, _, _ in skipped if c in ("TC", "GT")]
         if hard and os.environ.get("HOOK_FIXTURES_ALLOW_SKIP") != "1":
-            print(f"FAIL SKIP: {hard} を確かめられなかった（jq を入れるか、HOOK_FIXTURES_ALLOW_SKIP=1）")
-            failed += 1
+            # 下の結果の一覧に FAIL として足す（合計の数にも入る）
+            direct.append(("SKIP", "型検査とゲートを確かめられた", f"{hard} を SKIP した（jq を入れるか、HOOK_FIXTURES_ALLOW_SKIP=1）"))
         for cid, label, problem in direct:
             print(f"{'FAIL' if problem else 'PASS'} {cid}: {label}")
             if problem:

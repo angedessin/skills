@@ -66,6 +66,7 @@ has_code_ext() {
 }
 is_impl() {
   has_code_ext "$1" || return 1
+  case "${1##*/}" in .*) return 1 ;; esac # 名前が . で始まるファイル（.eslintrc.cjs などの設定）
   case "$1" in
     *.config.* | *.stories.*) return 1 ;;
     *.test.* | *.spec.*) return 1 ;;
@@ -73,12 +74,11 @@ is_impl() {
   esac
   return 0
 }
-norm_path() { # 免除の行のパスの書き方の揺れ（前後の `・先頭の ./）を取る
-  local p=$1
-  p=${p#\`}
-  p=${p%\`}
-  p=${p#./}
-  printf '%s' "$p"
+norm_path() { # 免除の行のパスの書き方の揺れ（前後の `・先頭の ./）を取り、NP に入れる（行ごとにサブシェルを起こさない）
+  NP=$1
+  NP=${NP#\`}
+  NP=${NP%\`}
+  NP=${NP#./}
 }
 
 # --- 免除のファイル ---
@@ -108,7 +108,8 @@ exempt_paths() { # $1 = 節の名前。理由のある行のパスを 1 行ず�
       line=${line#- }
       path=${line%% — *}
       reason=${line#* — }
-      [ -n "${reason//[[:space:]]/}" ] && printf '%s\n' "$(norm_path "$path")"
+      norm_path "$path"
+      [ -n "${reason//[[:space:]]/}" ] && printf '%s\n' "$NP"
     done <"$f"
   done
 }
@@ -208,7 +209,8 @@ if [ "${ex_files[*]}" = "$GLOBAL_EX" ] && [ -f "$GLOBAL_EX" ]; then
     while IFS= read -r line || [ -n "$line" ]; do
       case "$line" in "- "*" — "*) ;; *) continue ;; esac
       p=${line#- }
-      [ "$(norm_path "${p%% — *}")" = "$f" ] && stale="$stale  ${line}"$'\n'
+      norm_path "${p%% — *}"
+      [ "$NP" = "$f" ] && stale="$stale  ${line}"$'\n'
     done <"$GLOBAL_EX"
   done <<<"$changed"
 fi
@@ -220,7 +222,8 @@ if [ -n "$stale" ]; then
 fi
 
 # --- 判定 ---
-# 打ち切り: 全体で TIMEOUT 秒（hook の timeout 180 秒より短く）。超えたら vitest をプロセスグループごと止める。
+# 打ち切り: 全体で TIMEOUT 秒（hook の timeout 180 秒より 10 秒以上短く。tests/sandbox/check_settings.py の GATE_MARGIN が検査する）。
+# 超えたら vitest をプロセスグループごと止める。
 TIMEOUT="${STOP_TEST_GATE_TIMEOUT:-150}"
 work=$(mktemp -d "${TMPDIR:-/tmp}/stop-test-gate.XXXXXX") || exit 0
 trap 'rm -rf "$work"' EXIT
@@ -235,7 +238,8 @@ run_vitest() { # $1 = 残りの秒数, 残り = vitest の引数（--reporter �
   : >"$json" # 前のファイルの結果を読まないよう、毎回空にする
   rm -f "$marker"
   set -m
-  "$VITEST" "$@" --reporter=json --outputFile="$json" </dev/null >"$log" 2>&1 &
+  # カバレッジは切る（設定でしきい値を有効にしたプロジェクトでは、一部のテストだけを流すと割って 0 以外で終わるため）
+  "$VITEST" "$@" --coverage.enabled=false --reporter=json --outputFile="$json" </dev/null >"$log" 2>&1 &
   local pid=$!
   (
     sleep "$secs"
@@ -260,7 +264,8 @@ broken=""
 unjudged=""
 ran="" # 流れたテストファイル（根からの相対パス）。変えたテストを 2 度流さないため
 
-judge() { # $1 = 対象の表示（related なら実装ファイル）, $2 = 落ちたテストに添える文。json と rc を読んで結果を集める
+judge() { # $1 = 対象の表示（related なら実装ファイル）, $2 = 落ちたテストに添える文,
+  # $3 = 差し戻しの対象にするテストの一覧（空なら全部）。json と rc を読んで結果を集める
   local n name rel failed_any=0
   n=$(jq -r '.numTotalTestSuites | numbers' "$json" 2>/dev/null)
   if [ -z "$n" ]; then # 件数の無い終わり方は、テストの失敗でなく道具の故障（node が無い・設定のエラー・127 など）
@@ -276,6 +281,8 @@ judge() { # $1 = 対象の表示（related なら実装ファイル）, $2 = 落
     rel=${name#"$REAL_ROOT"/}
     rel=${rel#"$ROOT"/}
     listed "$rel" "$exempt_fail" && continue
+    # vitest run のフィルタは部分一致なので、渡していない似た名前のテストも流れる。それは差し戻さない
+    [ -n "${3:-}" ] && ! listed "$rel" "$3" && continue
     failures="$failures  - ${rel}（${2}）"$'\n'"$(
       jq -r --arg n "$name" '.testResults[] | select(.name == $n) |
         ([.assertionResults[]? | select(.status == "failed") | "      \(.fullName): \((.failureMessages[0] // "") | split("\n")[0])"]
@@ -326,7 +333,7 @@ if [ ${#run_tests[@]} -gt 0 ]; then
   if [ "$timed" = 1 ]; then
     for t in "${run_tests[@]}"; do unjudged="$unjudged  - $t"$'\n'; done
   else
-    judge "変えたテストファイル（${run_tests[*]}）" "変えたテストファイル"
+    judge "変えたテストファイル（${run_tests[*]}）" "変えたテストファイル" "$(printf '%s\n' "${run_tests[@]}")"
   fi
 fi
 
