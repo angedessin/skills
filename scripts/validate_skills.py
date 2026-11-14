@@ -311,9 +311,7 @@ def check_dependencies() -> tuple[list[str], list[str]]:
     return problems, ([] if problems else dependency_self_test(*args))
 
 
-# 項目10: 「小さな作業にしない」条件。行は導入の語で探し、「:」の後ろを「・」で分けて条件にする。
-# 目印はファイルごとに持つ（CLAUDE.md は「承認制のパス」、design-doc はそのパスを列挙する）。
-# 各条件はちょうど 1 つの目印の組に当たり、どの組も 1 つの条件に当たる（条件の数も 3 つで一致する）。
+# 項目10: 目印はファイルごとに持つ（CLAUDE.md は「承認制のパス」と書き、design-doc はそのパスを列挙するため）
 STAGE_RULES = {
     "CLAUDE.md": ("小さな作業にしない", [("3 ファイル以上",), ("公開している API",), ("承認制のパス",)]),
     ".claude/skills/design-doc/SKILL.md": (

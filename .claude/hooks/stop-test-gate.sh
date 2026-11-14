@@ -1,26 +1,7 @@
 #!/bin/bash
-# Stop hook: テストのゲート。変えた実装ファイルに関係するテストが無ければ exit 2 + stderr で AI に差し戻す。
-# 関係するテストの有無は `vitest related <file>` をファイルごとに流し、json の numTotalTestSuites で見る
-# （関係するテストが 0 件でも終了コードは 0。まとめて渡すと、どのファイルに無いかが分からない）。
-# 対象: ベースブランチとの分岐点（merge-base）からの差分＋未コミットの変更＋未追跡。削除だけの変更は除く。
-#   ベースは origin/HEAD → init.defaultBranch → main → master の順に探す。ベースそのものの上にいるときは未コミットの変更だけを見る。
-#   変えたテストファイル（e2e/ の下を除く）で、関係するテストとして流れなかったものは `vitest run` でまとめて流す。
-# 根: 入力の cwd から git rev-parse --show-toplevel で決める（worktree でも作業中の場所を見る）。
-#   vitest が根の node_modules に無いプロジェクト（サブパッケージにだけあるモノレポなど）は素通しになる。
-# 免除: アクティブなタスクがあれば .steering/<task>/test-exemptions.md（複数なら全部）、無ければ
-#   .steering/test-exemptions.md にある `- <パス> — <理由>` の行。理由の無い行は効かない。パスの前後の ` と先頭の ./ は無視する。
-#   「## テスト不要」: 関係するテストが無くても通す実装ファイル。
-#   「## 失敗を残す」: 落ちても通すテストファイル。実装ファイルを書けば、その実装ファイルはテストを流さない（時間切れの逃げ道）。
-#   「## テストを弱める」: expect を減らす・skip・only・todo を足す・消すのを認めるテストファイル。
-# 差し戻す: 関係するテストが無い・関係するテストか変えたテストが落ちる・vitest が 0 以外で終わる（落ちたファイルが無くても）・
-#   STOP_TEST_GATE_TIMEOUT 秒（既定 150）で流しきれない・
-#   テストを弱めた（ベースの版より expect が減った・skip・only・todo が増えた。消したテストファイルも含む。
-#   改名は git が組にしたもの（git mv・コミット済み）だけ古いパスの版と比べる。ステージしない mv は消したとみなす）。
-# 警告だけ: タスクが無いときに .steering/test-exemptions.md で免除したファイルが変わった（古い免除の見直しを促す）。
-# 警告だけ: vitest がテストの件数を返さない（node が無い・設定のエラー・127 など。テストの失敗と区別する）。
-# 通った差分のハッシュを TMPDIR の下に session_id ごとに残し、同じ差分では vitest を流さない。
-# 素通し: jq が無い・git の管理下でない・node_modules/.bin/vitest が無い。
-# stop_hook_active では緩めない（逃げ道は免除のファイル）。連続の差し戻しは Claude Code の上限に任せる。
+# Stop hook: テストのゲート。変えた実装ファイルに関係するテストが無い・落ちる・テストを弱めたときに exit 2 で差し戻す。
+# 対象・免除のファイルの書き方・差し戻す条件は README の「hook と設定」。
+# stop_hook_active では緩めない（逃げ道は免除のファイル。連続の差し戻しは Claude Code の上限に任せる）。
 
 command -v jq >/dev/null 2>&1 || exit 0
 input=$(cat)
@@ -33,7 +14,6 @@ VITEST="$ROOT/node_modules/.bin/vitest"
 [ -x "$VITEST" ] || exit 0
 cd "$ROOT" || exit 0
 
-# --- 対象のファイル ---
 base=""
 if git rev-parse --verify -q origin/HEAD >/dev/null 2>&1; then
   base=$(git rev-parse --abbrev-ref origin/HEAD 2>/dev/null)
@@ -66,7 +46,7 @@ has_code_ext() {
 }
 is_impl() {
   has_code_ext "$1" || return 1
-  case "${1##*/}" in .*) return 1 ;; esac # 名前が . で始まるファイル（.eslintrc.cjs などの設定）
+  case "${1##*/}" in .*) return 1 ;; esac # .eslintrc.cjs などの設定
   case "$1" in
     *.config.* | *.stories.*) return 1 ;;
     *.test.* | *.spec.*) return 1 ;;
@@ -74,14 +54,13 @@ is_impl() {
   esac
   return 0
 }
-norm_path() { # 免除の行のパスの書き方の揺れ（前後の `・先頭の ./）を取り、NP に入れる（行ごとにサブシェルを起こさない）
+norm_path() { # 結果は NP に入れる（行ごとに $(...) のサブシェルを起こさないため）
   NP=$1
   NP=${NP#\`}
   NP=${NP%\`}
   NP=${NP#./}
 }
 
-# --- 免除のファイル ---
 ex_files=()
 for d in .steering/*/; do
   [ -d "$d" ] || continue
@@ -91,7 +70,7 @@ for d in .steering/*/; do
 done
 [ ${#ex_files[@]} -eq 0 ] && ex_files=(".steering/test-exemptions.md")
 
-exempt_paths() { # $1 = 節の名前。理由のある行のパスを 1 行ずつ出す
+exempt_paths() { # $1 = 節の名前
   local f line on path reason
   for f in "${ex_files[@]}"; do
     [ -f "$f" ] || continue
@@ -115,7 +94,7 @@ exempt_paths() { # $1 = 節の名前。理由のある行のパスを 1 行ず�
 }
 exempt_none=$(exempt_paths "テスト不要")
 exempt_fail=$(exempt_paths "失敗を残す")
-listed() { printf '%s\n' "$2" | grep -qxF -- "$1"; } # $1 が一覧 $2 に載っているか
+listed() { printf '%s\n' "$2" | grep -qxF -- "$1"; }
 
 is_test() {
   has_code_ext "$1" || return 1
@@ -129,8 +108,7 @@ targets=()
 while IFS= read -r f; do
   [ -n "$f" ] && is_impl "$f" && targets+=("$f")
 done <<<"$changed"
-# テストを弱めた判定は、消したテストファイルも見る。改名は git が組にしたものを「新しいパス<TAB>古いパス」で覚え、
-# 古いパスのベースの版と比べる（組にしないと、新しいパスはベースに無く 0 件と比べてしまう）
+# 改名は古いパスの版と比べる（新しいパスはベースに無く、0 件と比べて弱めた判定をすり抜けるため）
 tests_changed=()
 renames=""
 while IFS=$'\t' read -r st a b; do
@@ -152,9 +130,7 @@ done < <(git -c core.quotepath=false ls-files --others --exclude-standard 2>/dev
 renamed_from() { printf '%s' "$renames" | awk -F'\t' -v n="$1" '$1 == n { print $2; exit }'; }
 [ ${#targets[@]} -eq 0 ] && [ ${#tests_changed[@]} -eq 0 ] && exit 0
 
-# --- 同じ差分で何度も流さない ---
-# 通った差分のハッシュを、プロジェクトの外（TMPDIR の下に session_id ごと）に残す。
-# 根・追跡分の差分・未追跡のファイル（名前と中身）・免除のファイルから作る。
+# 同じ差分で通った後は流さない。免除のファイルもハッシュに入れる（.steering/ を gitignore していても判定し直すため）
 session=$(printf '%s' "$input" | jq -r '.session_id // "nosession"' 2>/dev/null | tr -c 'A-Za-z0-9_-' '_')
 STATE_DIR="${TMPDIR:-/tmp}/claude-stop-test-gate"
 STATE="$STATE_DIR/${session:-nosession}"
@@ -171,9 +147,6 @@ hash=$(
 )
 [ -f "$STATE" ] && [ "$(cat "$STATE")" = "$hash" ] && exit 0
 
-# --- テストを弱めた ---
-# ベースの版と今の版で数を比べる。expect は expect( と expect.soft( / expect.poll( を数え、
-# expect.assertions などの補助は数えない。skip・only・todo は it/test/describe/suite/bench の修飾と xit・fit など。
 EXPECT_RE='(^|[^A-Za-z0-9_$.])expect(\.(soft|poll))?[[:space:]]*\('
 SKIP_RE='(^|[^A-Za-z0-9_$.])((it|test|describe|suite|bench)(\.[A-Za-z]+)*\.(skip|skipIf|only|todo)([^A-Za-z0-9_$]|$)|(xit|xtest|xdescribe|fit|fdescribe)[[:space:]]*\()'
 count() { grep -oE -- "$1" | wc -l | tr -d ' '; }
@@ -200,7 +173,7 @@ for t in "${tests_changed[@]}"; do
   [ -n "$why" ] && weakened="$weakened  - ${shown}（${why}）"$'\n'
 done
 
-# --- タスクの外の免除に載ったファイルが変わった（通しつつ警告） ---
+# タスクの外の免除は閉じても消えないので、載ったファイルが変わったら見直しを促す
 GLOBAL_EX=".steering/test-exemptions.md"
 stale=""
 if [ "${ex_files[*]}" = "$GLOBAL_EX" ] && [ -f "$GLOBAL_EX" ]; then
@@ -221,9 +194,7 @@ if [ -n "$stale" ]; then
   } >&2
 fi
 
-# --- 判定 ---
-# 打ち切り: 全体で TIMEOUT 秒（hook の timeout 180 秒より 10 秒以上短く。tests/sandbox/check_settings.py の GATE_MARGIN が検査する）。
-# 超えたら vitest をプロセスグループごと止める。
+# hook の timeout（180）より 10 秒以上短く保つ（check_settings.py が検査する）。時間切れの hook は差し戻さずに終わるため
 TIMEOUT="${STOP_TEST_GATE_TIMEOUT:-150}"
 work=$(mktemp -d "${TMPDIR:-/tmp}/stop-test-gate.XXXXXX") || exit 0
 trap 'rm -rf "$work"' EXIT
@@ -232,13 +203,13 @@ log="$work/vitest.log"
 marker="$work/timed-out"
 REAL_ROOT=$(pwd -P)
 
-run_vitest() { # $1 = 残りの秒数, 残り = vitest の引数（--reporter と --outputFile はここで足す）。rc と timed を決める
+run_vitest() { # $1 = 残りの秒数, 残り = vitest の引数。rc と timed を決める
   local secs=$1
   shift
-  : >"$json" # 前のファイルの結果を読まないよう、毎回空にする
+  : >"$json" # 道具の故障で json が書かれないとき、前のファイルの結果を読まないため
   rm -f "$marker"
   set -m
-  # カバレッジは切る（設定でしきい値を有効にしたプロジェクトでは、一部のテストだけを流すと割って 0 以外で終わるため）
+  # カバレッジを切る: 設定でしきい値を有効にしていると、一部のテストだけを流すと割って 0 以外で終わる
   "$VITEST" "$@" --coverage.enabled=false --reporter=json --outputFile="$json" </dev/null >"$log" 2>&1 &
   local pid=$!
   (
@@ -262,26 +233,24 @@ missing=""
 failures=""
 broken=""
 unjudged=""
-ran="" # 流れたテストファイル（根からの相対パス）。変えたテストを 2 度流さないため
+ran=""
 
-judge() { # $1 = 対象の表示（related なら実装ファイル）, $2 = 落ちたテストに添える文,
-  # $3 = 差し戻しの対象にするテストの一覧（空なら全部）。json と rc を読んで結果を集める
+judge() { # $1 = 対象の表示, $2 = 落ちたテストに添える文, $3 = 差し戻しの対象にするテストの一覧（空なら全部）
   local n name rel failed_any=0
   n=$(jq -r '.numTotalTestSuites | numbers' "$json" 2>/dev/null)
-  if [ -z "$n" ]; then # 件数の無い終わり方は、テストの失敗でなく道具の故障（node が無い・設定のエラー・127 など）
+  if [ -z "$n" ]; then # 件数が無い = 道具の故障（node が無い・設定のエラー）。テストの失敗と区別して差し戻さない
     broken="$broken  - ${1}（exit ${rc}）:"$'\n'"$(tail -5 "$log" | sed 's/^/      /')"$'\n'
     return 1
   fi
   ran="$ran$(jq -r --arg a "$REAL_ROOT/" --arg b "$ROOT/" '.testResults[]?.name | ltrimstr($a) | ltrimstr($b)' "$json" 2>/dev/null)"$'\n'
   [ "$n" -eq 0 ] && return 0
-  # 落ちたテストのファイルごとに、免除されていなければ失敗の文を集める
   while IFS= read -r name; do
     [ -n "$name" ] || continue
     failed_any=1
     rel=${name#"$REAL_ROOT"/}
     rel=${rel#"$ROOT"/}
     listed "$rel" "$exempt_fail" && continue
-    # vitest run のフィルタは部分一致なので、渡していない似た名前のテストも流れる。それは差し戻さない
+    # vitest run のフィルタは部分一致で、渡していない似た名前のテストも流れる
     [ -n "${3:-}" ] && ! listed "$rel" "$3" && continue
     failures="$failures  - ${rel}（${2}）"$'\n'"$(
       jq -r --arg n "$name" '.testResults[] | select(.name == $n) |
@@ -289,13 +258,14 @@ judge() { # $1 = 対象の表示（related なら実装ファイル）, $2 = 落
          + (if (.message // "") != "" then ["      \(.message | split("\n")[0])"] else [] end)) | .[]' "$json" 2>/dev/null | tail -20
     )"$'\n'
   done < <(jq -r '.testResults[]? | select(.status == "failed") | .name' "$json" 2>/dev/null)
-  # 落ちたファイルが無いのに 0 以外で終わった（Unhandled Errors など）。免除で落ちたのを通したときは除く
+  # 落ちたファイルが無いのに 0 以外（Unhandled Errors など）
   if [ "$rc" -ne 0 ] && [ "$failed_any" = 0 ]; then
     failures="$failures  - ${1}: vitest が失敗で終わりました（exit ${rc}。落ちたテストファイルは無い。Unhandled Errors など）:"$'\n'"$(tail -5 "$log" | sed 's/^/      /')"$'\n'
   fi
   return 0
 }
 
+# 実装ファイルごとに流し、件数で有無を見る（0 件でも終了コードは 0 で、まとめて渡すとどのファイルに無いかが分からない）
 i=0
 while [ $i -lt ${#targets[@]} ]; do
   f=${targets[$i]}
@@ -317,7 +287,7 @@ while [ $i -lt ${#targets[@]} ]; do
   [ "$n" -eq 0 ] && ! listed "$f" "$exempt_none" && missing="$missing  - $f"$'\n'
 done
 
-# 変えたテストファイルのうち、関係するテストとして流れなかったものを、まとめて 1 回流す（e2e/ の下は vitest で流さない）
+# 変えたテストのうち、上で流れなかったものをまとめて流す（e2e/ は Playwright の領分なので除く）
 run_tests=()
 for t in "${tests_changed[@]}"; do
   [ -f "$t" ] || continue
@@ -369,6 +339,6 @@ if [ -n "$missing$failures$unjudged$weakened" ]; then
   exit 2
 fi
 
-# 道具の故障があった差分は残さない（直ったら流し直す）
+# 道具の故障があった差分は残さない（直ったら流し直すため）
 [ -z "$broken" ] && mkdir -p "$STATE_DIR" && printf '%s' "$hash" >"$STATE"
 exit 0
