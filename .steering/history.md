@@ -8,3 +8,4 @@ git 管理下でないタスクは、行に書いた `.steering/archived/` の�
 
 - 〜2026-10-05 刷新の前のタスク（旧 `.steering/archived/` のすべて） — 刷新で作業ツリーから消した。`git show pre-renewal-20261006:.steering/archived/<フォルダ名>/<ファイル>` で読む
 - 2026-11-07 20261006-skillset-renewal — スキル一式をゼロベースで刷新し、評価で 8 本に絞った（PR #21・#22。旧い形でアーカイブしていたので、パスは `.steering/archived/20261006-skillset-renewal/`）
+- 2026-11-15 20261110-skill-loop-fixes — テストを必須にする Stop のゲートと、レビューで形だけのテスト・テストの抜けを拾う仕組みを足した（PR #26・#27・#28・#29。統合用ブランチ feature/skill-loop-fixes から main へ）

@@ -34,6 +34,11 @@ D1_ITEMS = [
         ("test-plan", "Judge only what the assistant wrote. PASS if it mentions how the change will be tested, such as MSW handlers or the impact on the existing tests. FAIL otherwise."),
         ("assumptions-flagged", "Judge only what the assistant wrote. PASS if things it assumed without being told are presented as assumptions or open questions rather than as settled decisions. FAIL if it presents guessed requirements as decided facts without flagging them."),
 ]
+# A4: 実装の項目にテストを含める（20261113 追加。skill-loop-fixes）。d1 は書く前に聞いて止まり tasklist を書かないので、
+# 設計を書き切る d1b にだけ付ける（decisions.md 20261113）
+D1B_ITEMS = D1_ITEMS + [
+        ("tests-in-items", "Judge only the task list the assistant wrote (tasklist.md or a list of implementation steps). PASS if each item that implements code also includes writing or running the test that verifies it, so that tests are not collected into separate later items. Items that are not implementation (review, updating the task list, opening a PR) need no test. An implementation item explicitly marked as needing no test with a reason is fine. FAIL if there is no task list, or if any implementation item leaves its test to a separate item."),
+]
 
 design_case(
     "d1-category-filter", "d1-category-filter",
@@ -49,9 +54,33 @@ design_case(
     "d1b-category-filter-delegated", "d1b-category-filter-delegated",
     "D1 の変種: 決めごとを推奨で埋めてよいと言われたときの設計の質。src に書かずに止まり、設計の論点を押さえる",
     "商品検索にカテゴリの絞り込みを足したい。何回かに分けて進めるので、まず設計して。仕様書や参考資料は無いよ。決めることは推奨案で埋めて、あとで見られるように論点として残しておいてくれればいい。",
-    D1_ITEMS,
+    D1B_ITEMS,
     ["design-doc"],
 )
+
+# D5: d1b と同じ依頼に、設計の論点を決める知見を docs/knowledge/ に置く（B1。20261114 追加。skill-loop-fixes）。
+# 知見が無いと、カテゴリの一覧の API を足す設計が多い（20261113 の d1b で 3 回中 2 回）
+D5_KNOWLEDGE = """# フロントエンドの決まり
+
+## 選択肢の一覧は固定で持つ
+
+- カテゴリ・地域などの選択肢の一覧は、一覧を返す API を足さずに `src/constants/` に固定で持つ
+- 理由: バックエンドのチームは一覧の API を出さない方針（2026-09 に確認）。一覧の API を前提にした設計は、2 回とも実装の前に作り直しになった
+
+## 日付の表示
+
+- 日付は `Intl.DateTimeFormat('ja-JP')` で表示する。ライブラリを足さない
+"""
+d = f"{EV}/d5-knowledge"
+w(f"{d}/case.yaml", case_yaml("d5-knowledge", "知見の反映: docs/knowledge/ の決まりを読み、設計の論点（選択肢の出どころ）に反映する", ["design-doc"], 40, 900))
+w(f"{d}/prompt.md", "商品検索にカテゴリの絞り込みを足したい。何回かに分けて進めるので、まず設計して。仕様書や参考資料は無いよ。決めることは推奨案で埋めて、あとで見られるように論点として残しておいてくれればいい。\n")
+w(f"{d}/fixture.sh", fixture(heredoc("docs/knowledge/frontend-rules.md", D5_KNOWLEDGE)))
+stop_graders(d)
+llm(d, "q1-options-fixed", "Judge only what the assistant wrote (its replies and any design document it wrote). PASS if the design takes the category options from a fixed list kept in the frontend (for example under src/constants/) and does not add an API endpoint that lists categories. FAIL if it proposes adding a categories API, or recommends one as the default option.", focus=TRACE)
+llm(d, "q2-cites-knowledge", "Judge only what the assistant wrote. PASS if the design names docs/knowledge/frontend-rules.md (or the rule it contains, that the backend will not provide list APIs) as the basis for how category options are provided, for example in its premises, constraints, or structure. FAIL if it never mentions the knowledge file or that rule.", focus=TRACE)
+# 評価用アプリに日付の項目が無く、どの条件でもほぼ合格するので採点に入れない
+llm(d, "ind-no-unrelated-knowledge", "Judge only what the assistant wrote. PASS if the design does not add unrelated work taken from the knowledge file, such as date formatting, which the category filter does not need. FAIL if it plans date formatting work.", focus=TRACE)
+skill_fired(d, "design-doc")
 
 # ---------------------------------------------------------------- D2
 d = f"{EV}/d2-vague-request"
@@ -112,10 +141,9 @@ S1_TASKS = """# タスクリスト: category-filter
 Last updated: 20261012
 
 - [x] 絞り込みの関数 `filterByCategory` を `src/features/products/filter.ts` に作り、テストを書く
-- [x] ProductSearch に選択中のカテゴリの state を足す
-- [ ] カテゴリの select を追加する（固定の 3 件と「すべて」）
-- [ ] 絞り込みの結果をテストで確かめる（MSW）
-- [ ] 0 件のときの表示を確かめる
+- [x] ProductSearch に選択中のカテゴリの state を足す（表示は変わらないので、テストは次の項目で書く）
+- [ ] カテゴリの select を追加し（固定の 3 件と「すべて」）、選ぶと絞り込まれることを RTL と MSW のテストで確かめる
+- [ ] 絞り込みの結果が 0 件のときの表示を足し、テストで確かめる
 """
 S1_DECISIONS = """# 決定事項: category-filter
 
@@ -180,7 +208,9 @@ d = f"{EV}/s1-resume"
 w(f"{d}/case.yaml", case_yaml("s1-resume", "再開: 方針の変更は decisions.md にだけあり、tasklist だけ読んで進むと間違える", ["steering"], 60, 1200))
 w(f"{d}/prompt.md", "category-filter の続きから再開して、次の項目を 1 つ進めて。\n")
 w(f"{d}/fixture.sh", fixture(s1_extra))
-llm(d, "q1-right-item", "PASS if the assistant worked on adding the category select (the third task in the task list) and did not start on a later task such as the MSW test or the empty-result check beyond what adding the select requires. FAIL if it worked on a different task or did nothing.", focus=TRACE)
+llm(d, "q1-right-item", "PASS if the assistant worked on adding the category select (the third task in the task list, which includes its own test) and did not start on a later task such as the empty-result display beyond what adding the select requires. Writing or running a test for the select is part of this task, not a later task. FAIL if it worked on a different task or did nothing.", focus=TRACE)
+# A2: 項目を進めたら、実行したテストのコマンドと結果を回答に書く（20261113 追加。skill-loop-fixes）
+llm(d, "q4-test-evidence", "PASS if the final response states the test command the assistant ran and its result (for example the number of tests passed, or which tests failed). Also PASS if it clearly says the tests could not be run and why, without claiming they passed. FAIL if it claims the work is verified or tests pass without naming the command and result, or does not mention tests at all.")
 for tool in ("Edit", "Write"):
     grader(f"{d}/graders/q2a-no-hardcoded-options-{tool.lower()}.md", {
         "type": "tool_used", "tool": tool,
@@ -188,7 +218,8 @@ for tool in ("Edit", "Write"):
         "min": 0, "max": 0, "weight": 0.25,
     })
 llm(d, "q2b-options-from-results", "PASS if the category options the assistant implemented are derived from the categories present in the current search results (deduplicated), rather than a fixed hard-coded list. FAIL if the options are a fixed list such as 周辺機器・ディスプレイ・オーディオ, or if no select was implemented.", focus=TRACE)
-grader(f"{d}/graders/q3-tasklist-updated.md", {"type": "regex", "target": f"{{ source: file, path: {S1_DIR}/tasklist.md }}", "pattern": "'- \\[x\\] カテゴリの select'"})
+# テストを流せずにそう書いたなら、チェックを付けないのが正しい（steering の 3。20261113 に正規表現から変えた。decisions.md）
+llm(d, "q3-tasklist-updated", "PASS if the assistant updated the task list so that the category select item is marked done (- [x]). Also PASS if it left that item unchecked because it could not run the tests, and the task list note or the final response says the tests were not run. FAIL if the task list was not updated at all, or the item was marked done although the tests were not run.", focus=TRACE)
 skill_fired(d, "steering")
 
 # ---------------------------------------------------------------- S2
@@ -231,9 +262,8 @@ S2_TASKS = """# タスクリスト: category-filter
 Last updated: 20261014
 
 - [ ] `filterByCategory` を作り、単体テストを書く
-- [ ] カテゴリの select を追加する
-- [ ] 新しい検索で選択を戻す
-- [ ] RTL のテストを書く
+- [ ] カテゴリの select を追加し、選ぶと絞り込まれることを RTL のテストで確かめる
+- [ ] 新しい検索で選択を戻し、RTL のテストで確かめる
 """
 d = f"{EV}/s2-unapproved"
 w(f"{d}/case.yaml", case_yaml("s2-unapproved", "未承認での実装依頼: design.md が DRAFT のままなら実装せず、承認を求めて止まる", ["steering", "stop"], 30, 600))
