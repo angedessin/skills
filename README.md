@@ -68,7 +68,7 @@ agent（`.claude/agents/`）: `review-bug`・`review-rules`・`review-ui-a11y`�
 ```bash
 mise exec -- pnpm run validate     # スキルの frontmatter・構造、CLAUDE.md の行数、依存の一覧
 mise exec -- pnpm run test:hooks   # PreToolUse hook のフィクスチャ
-mise exec -- pnpm run test:skills  # スキルのフォルダに置いたスクリプト（frontend-code-review の差分の数え方・変える前のコードで流す判定）と評価の src の採点
+mise exec -- pnpm run test:skills  # スキルのフォルダに置いたスクリプト（frontend-code-review の差分の数え方・変える前のコードで流す判定、frontend-code-review と pr-create の足したテストの免除の数え方と 2 つの写しの一致）と、評価の src と免除の採点
 mise exec -- pnpm run test:sandbox # settings.json の形（sandbox の中での確認は tests/sandbox/README.md）
 mise exec -- pnpm run lint         # Biome
 ```
@@ -82,7 +82,7 @@ mise exec -- pnpm run lint         # Biome
 - **品質ゲート**（`post-edit-lint.sh`・`stop-typecheck.sh`・`stop-test-gate.sh`・`validate-skill-edit.sh`）
   - **型検査**（`stop-typecheck.sh`）: 応答を終える前に tsc を流し、型エラーなら差し戻す。ターンの中で同じエラーが 2 回続いたら警告だけで通し、ユーザーの新しい依頼（ターンの最初の Stop）ではまた差し戻す（差し戻した出力のハッシュを `${TMPDIR}` の下に session_id ごとに残す。`stop_hook_active` が true でも緩めない。他の Stop hook の差し戻しでも立つため）
   - **テストのゲート**（`stop-test-gate.sh`）: ベースブランチ（origin/HEAD → `init.defaultBranch` → main → master）との分岐点からの差分・未コミット・未追跡の実装ファイル（ts・tsx・js・jsx・mts・cts・mjs・cjs・vue・svelte）ごとに `vitest related` を流し、変えたテストファイルも流す（e2e/ の下は除く）。関係するテストが無い・落ちる・vitest が 0 以外で終わる・`STOP_TEST_GATE_TIMEOUT` 秒（既定 150。hook の timeout 180 より 10 秒以上短く）で流しきれない・テストを弱めた（`expect` が減った・`skip`・`only`・`todo` が増えた。git が組にした改名は古いパスの版と比べる。ステージしない `mv` は組にできず、古いパスを消したとみなす）ときに差し戻す。根は入力の cwd から決める（worktree の中なら worktree を見る）。vitest が件数を返さない（node が無い・設定のエラー）ときは警告だけで通す。通った差分は流し直さない
-  - **テストの免除**: アクティブなタスクがあれば `.steering/<task>/test-exemptions.md`、無ければ `.steering/test-exemptions.md` に、`## テスト不要`・`## 失敗を残す`・`## テストを弱める` の節を置き、`- <パス> — <理由>（YYYYMMDD）` の行を書く。理由の無い行は効かない。パスの前後の `` ` `` と先頭の `./` は無視する。「失敗を残す」に実装ファイルを書くと、その実装ファイルはテストを流さない（時間切れの逃げ道）。タスクの外の免除に載ったファイルが変わると、通しつつ警告する
+  - **テストの免除**: アクティブなタスクがあれば `.steering/<task>/test-exemptions.md`、無ければ `.steering/test-exemptions.md` に、`## テスト不要`・`## 失敗を残す`・`## テストを弱める` の節を置き、`- <パス> — <理由>（YYYYMMDD）` の行を書く。理由の無い行は効かない。パスの前後の `` ` `` と先頭の `./` は無視する。「失敗を残す」に実装ファイルを書くと、その実装ファイルはテストを流さない（時間切れの逃げ道）。タスクの外の免除に載ったファイルが変わると、通しつつ警告する。足した免除は、`frontend-code-review` の報告と `pr-create` の PR の本文に載る（妥当かの判断は人がする）
 - **sandbox**（`.claude/settings.json`）: Bash の秘密の読み取り・通信先・書き込み範囲を OS のレベルで制限する。`.env` の読み取りも止めるが、対象はプロジェクトの中だけで、外の `.env` は sandbox では止まらない（20261105 に一回限りで確認）。`autoAllowBashIfSandboxed: false` で、sandbox の中の Bash も通常の確認に乗せる（hook が見ない書き込みを確認なしで通さないため）。ただし公式の説明では、acceptEdits は作業ディレクトリの中の `cp`・`sed` などを確認なしで通す。承認制のパスへの `cp`・`sed -i` を guard hook で ask にしているのはこのため。hook は sandbox の外で動く
 
 ## 他のプロジェクトで使う
@@ -133,7 +133,7 @@ cp -n templates/settings.template.json "$DEST/.claude/settings.json"
 
 - **agent:** 無いと、スキルは汎用の subagent に指示を渡す代替に落ちる。一緒に持っていく
 - **案内先のスキル:** 本文で名前を出すだけで、無くても動く
-- **スキルのフォルダのスクリプト:** スキルと一緒にフォルダごと持っていく。`frontend-code-review` の `scripts/count-diff.sh` は bash と git が、`scripts/run-tests-on-base.sh` はそれに加えて jq・tar・`node_modules/.bin/vitest` が要る（無ければ 2 で止まる）
+- **スキルのフォルダのスクリプト:** スキルと一緒にフォルダごと持っていく。`frontend-code-review` の `scripts/count-diff.sh` は bash と git が、`scripts/run-tests-on-base.sh` はそれに加えて jq・tar・`node_modules/.bin/vitest` が要る（無ければ 2 で止まる）。足したテストの免除を並べる `scripts/list-exemptions.sh` は、`frontend-code-review` と `pr-create` の両方に同じ中身で置いてあり、bash と git が要る（直すときは両方を直す。マスターでは `test:skills` が一致を見る）
 
 <!-- deps:skills -->
 | スキル | agent | 案内先のスキル | 配るか |

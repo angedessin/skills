@@ -120,6 +120,14 @@ def skill_fired(d, skill):
     })
 
 
+def exemption_shown(d, name, path, reason):
+    """最終回答に、免除したパスと理由が近くに並んで出ることを見る grader（regex の target の既定は最終回答）。
+    パスだけでは指摘の場所としても出るので、理由の文言と組で見る。表や箇条書きに組み直しても通るよう、間に 80 字まで許す。"""
+    import re
+    pattern = re.escape(path) + r"[\s\S]{0,80}?" + re.escape(reason)
+    grader(f"{d}/graders/{name}.md", {"type": "regex", "pattern": "'" + pattern.replace("'", "''") + "'"})
+
+
 TRACE = "trace"
 
 
