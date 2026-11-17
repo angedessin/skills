@@ -6,8 +6,8 @@ design.md が APPROVED になり、`20261116-exemption-visibility` が main に�
 
 ## 0. 前提を確かめる
 
-- [ ] 公式の hooks のページで、差し戻しが続いたときの Claude Code の側の上限と、`PostToolUse(Agent)` の入力の形を読む（無料）。結果を decisions.md に書く
-- [ ] sandbox の中で、`.env` のある作業ツリーを、denyRead の型を除いて複製する試作を 1 回流す（無料。前提の 8）。結果を decisions.md に書く
+- [x] 公式の hooks のページで、差し戻しが続いたときの Claude Code の側の上限と、`PostToolUse(Agent)` の入力の形を読む（無料）。結果を decisions.md に書く（20261117。上限は 8 回続けての続行。前景の Agent は終了後・背景は起動直後に来る。`report` は PostToolUse(Agent) と親の Stop の両方に置くと決めた。読みだけでテストは無し）
+- [x] sandbox の中で、`.env` のある作業ツリーを、denyRead の型を除いて複製する試作を 1 回流す（無料。前提の 8）。結果を decisions.md に書く（20261117。`cp -cR` は .env・.pem で rc=1、除外つきの `rsync -a` は rc=0。複製は rsync にすると決めた。試作のコマンドを手で流しただけで、機械の検査は 1 の run_make_copy.py に入れる）
 - [ ] ★ 発火を記録するだけの hook（`SubagentStart`・`SubagentStop`・`PostToolUse(Agent)`。入力の JSON をワークスペースの外のファイルに書き、stderr と `additionalContext` に決まった印を出す）を評価の plugin に入れ、`t2-shallow-test` を 1 回流す（0.7〜0.9 ドル）。次を確かめて decisions.md に書く
   - 3 つのイベントが発火するか
   - `PostToolUse(Agent)` が来るのは起動の直後か終了の後か。入力から agent の id を引けるか
