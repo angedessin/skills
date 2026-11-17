@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""eval/evalcase.py の src への書き込みの採点（stop-no-src-*）のテスト。数えるコマンドと数えないコマンドを並べて当てる。
+"""eval/evalcase.py の src への書き込みの採点（stop-no-src-*）と、免除が最終回答に出たかの採点（exemption_shown）のテスト。当たる入力と当たらない入力を並べて当てる。
 
 Usage: mise exec -- pnpm run test:skills
 Exit 0 = all pass. Exit 1 = failure (prints details).
@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "eval"))
@@ -65,6 +66,28 @@ def graders(scratch_ok: bool) -> dict[str, re.Pattern]:
     return out
 
 
+EX_PATH = "src/a.ts"
+EX_REASON = "文言を足すだけで、分岐が無い"
+# (id, 説明, 最終回答, 当たるか)
+SHOWN_CASES = [
+    ("EG15", "スクリプトの出力のままの行", f"exemptions: 1\n  [テスト不要] {EX_PATH} — {EX_REASON}（20261116） (.steering/x/test-exemptions.md)", True),
+    ("EG16", "表に組み直した行", f"| テスト不要 | `{EX_PATH}` | {EX_REASON}（20261116） |", True),
+    ("EG17", "パスと理由を 2 行に分けた箇条書き", f"- **{EX_PATH}**（テスト不要）\n  - 理由: {EX_REASON}", True),
+    ("EG18", "パスは指摘の場所として出るが、免除の理由が無い", f"### High\n- {EX_PATH}:12 件数の表示にテストが無い\n\n### この差分で足したテストの免除\n\nなし", False),
+    ("EG19", "理由が、パスから離れた所にだけ出る", f"- {EX_PATH}:12 の指摘。" + "あ" * 120 + EX_REASON, False),
+    ("EG20", "パスの . は任意の 1 文字に当てない", f"src/aXts — {EX_REASON}", False),
+]
+
+
+def exemption_pattern() -> re.Pattern:
+    with tempfile.TemporaryDirectory() as d:
+        evalcase.exemption_shown(d, "q", EX_PATH, EX_REASON)
+        front = (Path(d) / "graders" / "q.md").read_text(encoding="utf-8")
+    assert "type: regex" in front and "target:" not in front, front  # target の既定が最終回答
+    line = next(ln for ln in front.splitlines() if ln.startswith("pattern: "))
+    return re.compile(unquote(line[len("pattern: "):]))
+
+
 def main() -> int:
     failed = 0
     plain, scratch = graders(False), graders(True)
@@ -76,7 +99,16 @@ def main() -> int:
             print(f"FAIL {cid}: {desc}\n  数える: scratch_ok=False で {got_plain}（want {want_plain}）・True で {got_scratch}（want {want_scratch}）\n  入力: {inp}")
         else:
             print(f"PASS {cid}: {desc}")
-    print(f"\n{len(CASES) - failed}/{len(CASES)} passed")
+    shown = exemption_pattern()
+    for cid, desc, text, want in SHOWN_CASES:
+        got = bool(shown.search(text))
+        if got != want:
+            failed += 1
+            print(f"FAIL {cid}: {desc}\n  当たる: {got}（want {want}）\n  最終回答: {text}")
+        else:
+            print(f"PASS {cid}: {desc}")
+    total = len(CASES) + len(SHOWN_CASES)
+    print(f"\n{total - failed}/{total} passed")
     return 1 if failed else 0
 
 

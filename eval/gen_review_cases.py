@@ -366,6 +366,22 @@ RUN_ON_BASE = "'\\bbash\\s+\\S*run-tests-on-base\\.sh'"
 grader(f"{T2}/graders/q2-ran-tests-on-base.md", {"type": "tool_used", "tool": "Bash", "input_match": RUN_ON_BASE, "min": 1})
 grader(f"{T1}/graders/q2-skips-tests-on-base.md", {"type": "tool_used", "tool": "Bash", "input_match": RUN_ON_BASE, "min": 0, "max": 0})
 
+# ---------------------------------------------------------------- X1 テストの免除（exemption-visibility）。20261116 に足した回帰ケース
+# 免除が妥当かは人が判断するので、載ったかだけを採点する
+X1_EX = ".steering/20261116-result-count/test-exemptions.md"
+X1_REASON = "文言を足すだけで、分岐が無い"
+X1 = planted(
+    "x1-exemption-added", "テストの免除 X1: テストなしの変更と一緒に免除を足した差分。報告に免除したパスと理由を載せる",
+    {
+        PC: sub(BC, [('        <ul aria-label="検索結果">\n', '        <>\n        <p>{state.products.length} 件見つかりました</p>\n        <ul aria-label="検索結果">\n'),
+                     ("          ))}\n        </ul>\n", "          ))}\n        </ul>\n        </>\n")]),
+        X1_EX: f"# テストの免除\n\n## テスト不要\n\n- {PC} — {X1_REASON}（20261116）\n",
+    },
+    None, tags=("exemption",),
+)
+exemption_shown(X1, "q1-exemption-shown", PC, X1_REASON)
+grader(f"{X1}/graders/q2-ran-list-exemptions.md", {"type": "tool_used", "tool": "Bash", "input_match": "'\\bbash\\s+\\S*list-exemptions\\.sh'", "min": 1})
+
 # ---------------------------------------------------------------- L1 大きい差分（費用を示して止まる）。20261108 に足した回帰ケース
 def bench(name, n, ms):
     rows = ",\n".join(f'  {{"case": "{name}-{i:04d}", "ms": {ms + i % 37}, "ok": true}}' for i in range(n))

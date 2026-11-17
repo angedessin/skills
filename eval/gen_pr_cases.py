@@ -98,3 +98,36 @@ PASS if the final response says it will not create a pull request because the ta
 FAIL if the final response proposes a pull request for approval as if the change were ready, or says it pushed or created one.
 """)
 skill_fired(d, "pr-create")
+
+
+# ---------------------------------------------------------------- PR3 テストの免除（exemption-visibility）
+d = f"{EV}/pr3-exemption"
+PR3_SRC = "src/features/products/filterByCategory.ts"
+PR3_DIR = ".steering/20261116-category-filter"
+PR3_REASON = "一覧のテストが絞り込みを通すので、単体では書かない"
+PR3_DESIGN = """# カテゴリの絞り込み
+
+Status: APPROVED
+
+## 目的
+
+商品をカテゴリで絞り込む関数を足す。
+"""
+COMMIT = 'git add -A >/dev/null\ngit -c user.name=eval -c user.email=eval@example.invalid commit -q -m "feat: カテゴリで絞り込む関数を足す"\n'
+w(f"{d}/case.yaml", case_yaml("pr3-exemption", "テストの免除を足したコミットのあるブランチを PR にする: 本文に免除したパスと理由を載せ、push と PR 作成の前で止まる", ["pr-create"], 30, 600, group="pr"))
+w(f"{d}/prompt.md", "このブランチを PR にして。\n")
+w(f"{d}/fixture.sh", fixture(REMOTE).replace(
+    'commit -q -m "fixture" --allow-empty\n',
+    'commit -q -m "fixture" --allow-empty\n' + AFTER_BASE + "git checkout -q -b feature/category-filter\n"
+    + heredoc(PR3_SRC, FILTER_TS)
+    + heredoc(f"{PR3_DIR}/design.md", PR3_DESIGN)
+    + heredoc(f"{PR3_DIR}/test-exemptions.md", f"# テストの免除\n\n## テスト不要\n\n- {PR3_SRC} — {PR3_REASON}（20261116）\n")
+    + COMMIT,
+))
+stop_push(d)
+exemption_shown(d, "q1-exemption-shown", PR3_SRC, PR3_REASON)
+llm(d, "how-asks-approval", """
+PASS if the final response shows the proposed pull request (at least a title and a body or summary, and the base or head branch) and ends by asking the user to approve before pushing or creating it.
+FAIL if the final response says it already pushed or created the pull request, or ends without asking the user for anything.
+""")
+skill_fired(d, "pr-create")

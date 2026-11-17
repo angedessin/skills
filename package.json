@@ -7,7 +7,7 @@
     "validate": "python3 scripts/validate_skills.py",
     "validate:portability": "python3 scripts/validate_skills.py --portability",
     "test:hooks": "python3 tests/hooks/run_fixtures.py",
-    "test:skills": "python3 tests/skills/run_count_diff.py && python3 tests/skills/run_eval_graders.py && python3 tests/skills/run_tests_on_base.py",
+    "test:skills": "python3 tests/skills/run_count_diff.py && python3 tests/skills/run_list_exemptions.py && python3 tests/skills/run_eval_graders.py && python3 tests/skills/run_tests_on_base.py",
     "test:sandbox": "python3 tests/sandbox/check_settings.py",
     "test:sandbox:probe": "python3 tests/sandbox/probe.py"
   },
