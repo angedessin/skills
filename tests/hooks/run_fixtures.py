@@ -1399,6 +1399,166 @@ def check_test_gate(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | No
     return out
 
 
+def check_tree_guard(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | None]]:
+    """subagent-tree-guard.sh の start と stop。ケースごとに一時的な git リポジトリを作る。"""
+    hook = hooks_dir / "subagent-tree-guard.sh"
+    if not hook.is_file():
+        return [("TG", "subagent-tree-guard.sh が無い", "hook missing")]
+    if not shutil.which("jq"):
+        return [("TG", "jq が無い", SKIP)]
+    root = tmp / "tree-guard"
+    root.mkdir()
+    guard_tmp = tmp / "tree-guard-tmpdir"  # リポジトリの外に置く（中に置くと記録が未追跡のファイルに出る）
+    guard_tmp.mkdir()
+    genv = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
+
+    def git(repo: Path, *args: str) -> None:
+        subprocess.run(["git", "-c", "user.name=f", "-c", "user.email=f@example.com", "-c", "commit.gpgsign=false", *args], cwd=repo, check=True, capture_output=True, env=genv)
+
+    def write(repo: Path, rel: str, text: str) -> None:
+        f = repo / rel
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text(text)
+
+    def make_repo(name: str) -> Path:
+        """main に 2 ファイルをコミットし、tracked.ts を変えたまま・dirty.ts を変えた・未追跡の u/x.ts がある状態。"""
+        repo = root / name
+        repo.mkdir()
+        write(repo, ".gitignore", "node_modules/\n")
+        write(repo, "src/clean.ts", "export const a = 1\n")
+        write(repo, "src/dirty.ts", "export const b = 1\n")
+        git(repo, "init", "-q", "-b", "main")
+        git(repo, "add", ".")
+        git(repo, "commit", "-qm", "init")
+        write(repo, "src/dirty.ts", "export const b = 2\n")  # 既に変更のあるファイル
+        write(repo, "u/x.ts", "export const x = 1\n")  # 未追跡のディレクトリの下のファイル
+        write(repo, "node_modules/.cache/x", "1\n")  # 無視されたファイル（見ない）
+        return repo
+
+    def run(mode: str, cwd: Path, agent: str = "a1", session: str = "s1", extra_env: dict | None = None) -> subprocess.CompletedProcess[str]:
+        payload = {"session_id": session, "agent_id": agent, "agent_type": "review-verify", "cwd": str(cwd)}
+        if mode == "stop":
+            payload["stop_hook_active"] = False
+        env = {**genv, "TMPDIR": str(guard_tmp), **(extra_env or {})}
+        return subprocess.run(["bash", str(hook), mode], input=json.dumps(payload), capture_output=True, text=True, cwd=str(cwd), env=env, check=False, timeout=60)
+
+    def rec(session: str = "s1", agent: str = "a1") -> Path:
+        return guard_tmp / "claude-tree-guard" / session / agent
+
+    def result(session: str = "s1", agent: str = "a1") -> str:
+        f = rec(session, agent) / "result"
+        return f.read_text().strip() if f.is_file() else ""
+
+    out: list[tuple[str, str, str | None]] = []
+    n = 0
+
+    def case(label: str, change, want_rc: int, want_result: str, want_err: str | None = None) -> None:
+        """start → change(repo) → stop を 1 回流し、終了コード・記録・stderr を見る。"""
+        nonlocal n
+        n += 1
+        repo = make_repo(f"r{n}")
+        session = f"s{n}"
+        p = run("start", repo, session=session)
+        problem = None if p.returncode == 0 else f"start exit {p.returncode}: {p.stderr}"
+        if not problem:
+            change(repo)
+            p = run("stop", repo, session=session)
+            got = result(session)
+            if p.returncode != want_rc or got != want_result or (want_err and want_err not in p.stderr):
+                problem = f"exit {p.returncode}（期待 {want_rc}）; result={got!r}（期待 {want_result!r}）; stderr={p.stderr[:400]!r}"
+        out.append((f"TG{n}", label, problem))
+
+    def commit_one(repo: Path) -> None:
+        write(repo, "src/new.ts", "export {}\n")
+        git(repo, "add", "src/new.ts")
+        git(repo, "commit", "-qm", "by verifier")
+
+    def remote_only(repo: Path) -> None:
+        git(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+
+    case("違いが無ければ 0 で、same と記録する", lambda r: None, 0, "same")
+    case("コミットが増えたら 2 で差し戻し、増えたコミットを出す", commit_one, 2, "differs", "by verifier")
+    case("ブランチが増えたら 2", lambda r: git(r, "branch", "tmp-branch"), 2, "differs", "refs/heads/tmp-branch")
+    case("きれいな追跡ファイルを変えたら 2", lambda r: write(r, "src/clean.ts", "export const a = 9\n"), 2, "differs", "src/clean.ts")
+    case("既に変更のあるファイルをさらに変えたら 2", lambda r: write(r, "src/dirty.ts", "export const b = 3\n"), 2, "differs", "src/dirty.ts")
+    case("未追跡のファイルの中身を変えたら 2", lambda r: write(r, "u/x.ts", "export const x = 2\n"), 2, "differs", "u/x.ts")
+    case("未追跡のディレクトリの下にファイルを足したら 2", lambda r: write(r, "u/y.ts", "export {}\n"), 2, "differs", "u/y.ts")
+    case("ステージしたら 2", lambda r: git(r, "add", "src/dirty.ts"), 2, "differs", "ステージ")
+    case("追跡ファイルを消したら 2", lambda r: (r / "src/clean.ts").unlink(), 2, "differs", "src/clean.ts")
+    case("リモートの ref だけが変わっても 0", remote_only, 0, "same")
+    case("無視されたファイルだけが変わっても 0", lambda r: write(r, "node_modules/.cache/y", "1\n"), 0, "same")
+
+    def seq(label: str, steps: list) -> None:
+        """start の後に、(動き, 引数) の列を順に流す。動きは change（repo を変える）・stop（期待の終了コードと記録）・start。"""
+        nonlocal n
+        n += 1
+        repo = make_repo(f"r{n}")
+        session = f"s{n}"
+        problem = None
+        p = run("start", repo, session=session)
+        if p.returncode != 0:
+            problem = f"start exit {p.returncode}"
+        for i, (kind, arg) in enumerate(steps):
+            if problem:
+                break
+            if kind == "change":
+                arg(repo)
+            elif kind == "start":
+                run("start", repo, session=session)
+            elif kind == "stop":
+                want_rc, want_result, cwd = (*arg, None)[:3]
+                p = run("stop", cwd(tmp) if cwd else repo, session=session)
+                got = result(session)
+                if p.returncode != want_rc or got != want_result:
+                    problem = f"{i + 1} 手目の stop: exit {p.returncode}（期待 {want_rc}）; result={got!r}（期待 {want_result!r}）; stderr={p.stderr[:300]!r}"
+        out.append((f"TG{n}", label, problem))
+
+    other = tmp / "tree-guard-other"
+    other.mkdir()
+    git(other, "init", "-q", "-b", "main")
+    write(other, "o.ts", "export {}\n")  # こちらで比べると「未追跡が増えた」とは出ない（控えは本体）
+    seq("stop の cwd が別のリポジトリでも、控えた根と比べる",
+        [("change", lambda r: write(r, "src/clean.ts", "export const a = 9\n")), ("stop", (2, "differs", lambda t: other))])
+    seq("違いが無いとき、stop の cwd が別のリポジトリでも 0（別のリポジトリを比べない）",
+        [("stop", (0, "same", lambda t: other))])
+    seq("差し戻しは 1 回だけ: 2 回目は違いが同じなら 0 で not-returned",
+        [("change", commit_one), ("stop", (2, "differs")), ("stop", (0, "not-returned"))])
+    seq("差し戻しは 1 回だけ: 2 回目は違いが変わっていても 0 で not-returned",
+        [("change", commit_one), ("stop", (2, "differs")), ("change", lambda r: write(r, "u/z.ts", "1\n")), ("stop", (0, "not-returned"))])
+    seq("1 回目の後に戻っていれば、2 回目は returned",
+        [("change", lambda r: write(r, "u/y.ts", "1\n")), ("stop", (2, "differs")), ("change", lambda r: (r / "u/y.ts").unlink()), ("stop", (0, "returned"))])
+    seq("start が 2 回走っても、控えは最初のまま（再開で汚れた状態を控え直さない）",
+        [("change", commit_one), ("start", None), ("stop", (2, "differs"))])
+
+    # 控えが無い（start が動かなかった）
+    n += 1
+    repo = make_repo(f"r{n}")
+    p = run("stop", repo, session=f"s{n}")
+    got = result(f"s{n}")
+    ok = p.returncode == 0 and got == "unchecked" and "比べていない" in p.stderr
+    out.append((f"TG{n}", "控えが無ければ 0 で、unchecked と記録し、stderr に 1 行出す", None if ok else f"exit {p.returncode}; result={got!r}; stderr={p.stderr!r}"))
+
+    # git・jq が無ければ素通し（記録も残さない）
+    jq_only = tmp / "tree-guard-bin-jq"
+    jq_only.mkdir()
+    (jq_only / "jq").symlink_to(shutil.which("jq"))
+    bash = shutil.which("bash")
+    for label, path in (("jq が無ければ素通し", str(tmp / "tree-guard-empty-bin")), ("git が無ければ素通し", str(jq_only))):
+        n += 1
+        repo = make_repo(f"r{n}")
+        payload = json.dumps({"session_id": f"s{n}", "agent_id": "a1", "cwd": str(repo)})
+        env = {**genv, "TMPDIR": str(guard_tmp), "PATH": path}
+        problems = []
+        for mode in ("start", "stop"):
+            p = subprocess.run([bash, str(hook), mode], input=payload, capture_output=True, text=True, cwd=str(repo), env=env, check=False, timeout=60)
+            if p.returncode != 0 or p.stdout or p.stderr:
+                problems.append(f"{mode}: exit {p.returncode}; stdout={p.stdout!r}; stderr={p.stderr!r}")
+        if rec(f"s{n}").exists():
+            problems.append("記録を残した")
+        out.append((f"TG{n}", label, "; ".join(problems) or None))
+    return out
+
+
 def path_without_python(tmp: Path) -> str:
     """python3 を含まない PATH を作る（hook が使う外部コマンドだけを置く）。"""
     bindir = tmp / "bin"
@@ -1484,7 +1644,7 @@ def main() -> int:
             if not ok:
                 print(f"  {detail}")
                 failed += 1
-        direct = [r for check in (check_gated_direct, check_session_start, check_validate_skill_edit, check_typecheck, check_test_gate) for r in check(hooks_dir, tmp)]
+        direct = [r for check in (check_gated_direct, check_session_start, check_validate_skill_edit, check_typecheck, check_test_gate, check_tree_guard) for r in check(hooks_dir, tmp)]
         skipped = [r for r in direct if r[2] is SKIP]
         direct = [r for r in direct if r[2] is not SKIP]
         for cid, label in ((c, l) for c, l, _ in skipped):

@@ -26,8 +26,8 @@ design.md が APPROVED になり、`20261116-exemption-visibility` が main に�
 
 ## 2. 作業ツリーの見張り
 
-- [ ] `subagent-tree-guard.sh` の `start` と `stop` の比べる所を書き、`tests/hooks/run_fixtures.py` で確かめる（違いなし・コミット・ブランチ・きれいな追跡ファイル・既に変更のあるファイル・未追跡のファイルの中身・未追跡のディレクトリの下・ステージ・削除・リモートの ref だけ・`stop` の `cwd` が別のリポジトリや写しの中でも控えた根と比べる）
-- [ ] 差し戻しの上限と記録を足し、フィクスチャで確かめる（1 回だけ差し戻す・2 回目は違いが同じでも変わっていても 0・戻った／戻っていないの記録・`start` の 2 回目は上書きしない・控えが無い・git や jq が無い）
+- [x] `subagent-tree-guard.sh` の `start` と `stop` の比べる所を書き、`tests/hooks/run_fixtures.py` で確かめる（違いなし・コミット・ブランチ・きれいな追跡ファイル・既に変更のあるファイル・未追跡のファイルの中身・未追跡のディレクトリの下・ステージ・削除・リモートの ref だけ・`stop` の `cwd` が別のリポジトリや写しの中でも控えた根と比べる）（20261118。状態は HEAD・ref（heads・tags・stash）・HEAD と違う追跡ファイルの中身のハッシュ・索引の raw・未追跡のファイルごとのハッシュ。無視されたファイルが変わっても 0 も足した。python3 tests/hooks/run_fixtures.py 501/501（TG1〜TG13）。壊した hook 6 種のうち 5 種を捕まえ、残る 1 種は結果の変わらない書き換え）
+- [x] 差し戻しの上限と記録を足し、フィクスチャで確かめる（1 回だけ差し戻す・2 回目は違いが同じでも変わっていても 0・戻った／戻っていないの記録・`start` の 2 回目は上書きしない・控えが無い・git や jq が無い）（20261118。1 つ目と同じ hook に書いた。TG14〜TG20 で確かめた。記録は result に same・differs・returned・not-returned・unchecked）
 - [ ] `report` を、0 で決めたイベントに合わせて書き、フィクスチャで確かめる（違いのあった未報告の記録を知らせる・「確かめていない」は session ごとに 1 回知らせる・2 回知らせない・記録が無ければ何も出さない・古い記録の掃除）
 - [ ] `settings.json` と `templates/settings.template.json` に登録を足し、`tests/sandbox/check_settings.py` に検査と self-test を足す（壊すと落ちることを確かめる）。`Stop` に足すなら別のグループにし、既存の Stop のゲートの self-test を名前で探す形に直して、足した後も壊すと落ちることを確かめる
 - [ ] `frontend-code-review/SKILL.md` に、知らせを受けたときの手順（自分では戻さない・範囲の行の直後に警告・「確かめていない」は「レビューできなかったもの」に書く・`Stop` の分岐なら返答と `review-result.md` に追記）を足し、版を上げる（`validate` が通ることを確かめる）
