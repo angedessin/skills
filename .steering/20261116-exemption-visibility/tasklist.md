@@ -1,33 +1,33 @@
 # tasklist: exemption-visibility
 
-Last updated: 20261116
+Last updated: 20261117
 
 design.md が APPROVED になるまで着手しない。課金のある項目（★）は、見積もりを示して承認を取ってから、通常のターミナルで流してもらう。
 
 ## 1. スクリプト
 
-- [ ] `frontend-code-review/scripts/list-exemptions.sh` を書き、`tests/skills/run_list_exemptions.py` で、指定なしの範囲を確かめる（足した行・0 件・日付の無い行・理由の無い行と節の外の行は出ない・理由だけ変えた行は出る・消しただけの行は出ない・未追跡の免除ファイル）
-- [ ] `--base` と `--worktree` を足し、テストで確かめる（分岐点との比較・閉じたタスクの免除が印つきで出る・ファイルは残って行だけ消したものは出ない）
-- [ ] 分からないときと失敗のときを足し、テストで確かめる（gitignore で無視されているときは `unknown` で 0・引数の誤りとリポジトリの外は 2・`GIT=` を使う）
-- [ ] 同じファイルを `pr-create/scripts/` に置き、テストに「2 つの写しがバイト単位で一致する」を足す。`package.json` の `test:skills` に `run_list_exemptions.py` を足し、`mise exec -- pnpm run test:skills` が通ることを確かめる
+- [x] `frontend-code-review/scripts/list-exemptions.sh` を書き、`tests/skills/run_list_exemptions.py` で、指定なしの範囲を確かめる（足した行・0 件・日付の無い行・理由の無い行と節の外の行は出ない・理由だけ変えた行は出る・消しただけの行は出ない・未追跡の免除ファイル）（20261116。行の判定は stop-test-gate.sh と同じ規則を写した。python3 tests/skills/run_list_exemptions.py 26/26。壊した写しで落ちることも確かめた・一回限り）
+- [x] `--base` と `--worktree` を足し、テストで確かめる（分岐点との比較・閉じたタスクの免除が印つきで出る・ファイルは残って行だけ消したものは出ない）（20261116。閉じる途中（git rm の後・コミットの前）と、消して作り直した免除ファイルの場合も足した。python3 tests/skills/run_list_exemptions.py 26/26）
+- [x] 分からないときと失敗のときを足し、テストで確かめる（gitignore で無視されているときは `unknown` で 0・引数の誤りとリポジトリの外は 2・`GIT=` を使う）（20261116。`.steering/` ごと無視されていれば、免除ファイルが無くても unknown。git が途中で落ちても unknown。python3 tests/skills/run_list_exemptions.py 26/26）
+- [x] 同じファイルを `pr-create/scripts/` に置き、テストに「2 つの写しがバイト単位で一致する」を足す。`package.json` の `test:skills` に `run_list_exemptions.py` を足し、`mise exec -- pnpm run test:skills` が通ることを確かめる（20261116。mise exec -- pnpm run test:skills rc=0: 24/24・26/26・20/20・34/34）
 
 ## 2. スキルの本文
 
-- [ ] `frontend-code-review/SKILL.md` の Step 1 と Step 4 を直し、版を 2.2 にする（`validate` が通ることを確かめる。振る舞いは 3 の評価で確かめる）
-- [ ] `pr-create/SKILL.md` の Step 3 と Step 4 を直し、版を 2.1 にする（同上）
-- [ ] README の「スキルのフォルダのスクリプト」とテストのゲートの免除の説明を直し、`validate` が通ることを確かめる
+- [x] `frontend-code-review/SKILL.md` の Step 1 と Step 4 を直し、版を 2.2 にする（`validate` が通ることを確かめる。振る舞いは 3 の評価で確かめる）（20261116。mise exec -- pnpm run validate 11/11。振る舞いは未確認。3 の ★ で確かめる）
+- [x] `pr-create/SKILL.md` の Step 3 と Step 4 を直し、版を 2.1 にする（同上）（20261116。validate 11/11。振る舞いは未確認。3 の ★ で確かめる）
+- [x] README の「スキルのフォルダのスクリプト」とテストのゲートの免除の説明を直し、`validate` が通ることを確かめる（20261116。validate 11/11）
 
 ## 3. 評価
 
-- [ ] `eval/gen_review_cases.py` に `x1-exemption-added` を足す（差分に免除の追加を含むフィクスチャ。`regex` で最終回答に免除したパスと理由が出ることを見る）。`./prepare.sh c review` で生成でき、`test:skills` の `run_eval_graders.py` が通ることを確かめる
-- [ ] `eval/gen_pr_cases.py` に `pr3-exemption` を足す（分岐点との間のコミットに免除の追加を含む。示した本文に免除したパスが出る・`stop-no-push`・`stop-no-pr-create`）。`./prepare.sh c pr` で生成できることを確かめる
-- [ ] `eval/README.md` の回帰テストの表に 2 ケースを足す
-- [ ] ★ 回帰を流す: x1・pr3・l1・pr1・pr2 を各 3 回（目安 4〜5 ドル）。結果の JSON を grader ごとの合否で読み、llm の不合格と怪しい合格は最終回答を読んで確かめる。最終回答をこのフォルダに写し、結論と、流さなかったケース（n1・p2・r-c・t1・t2）と理由を decisions.md に書く
+- [x] `eval/gen_review_cases.py` に `x1-exemption-added` を足す（差分に免除の追加を含むフィクスチャ。`regex` で最終回答に免除したパスと理由が出ることを見る）。`./prepare.sh c review` で生成でき、`test:skills` の `run_eval_graders.py` が通ることを確かめる（20261116。regex の target の既定が最終回答であることは公式の plugin-evals のページで確かめた。パスと理由が 80 字以内に並ぶかを見る。`q2-ran-list-exemptions` も足した。./prepare.sh c review で生成。run_eval_graders.py 20/20）
+- [x] `eval/gen_pr_cases.py` に `pr3-exemption` を足す（分岐点との間のコミットに免除の追加を含む。示した本文に免除したパスが出る・`stop-no-push`・`stop-no-pr-create`）。`./prepare.sh c pr` で生成できることを確かめる（20261116。./prepare.sh c pr で生成し、fixture.sh は bash -n まで。フィクスチャの実行は ★ で初めて流れる）
+- [x] `eval/README.md` の回帰テストの表に 2 ケースを足す（20261116。実費は未計測と書いた。★ の後に実測値に直す）
+- [x] ★ 回帰を流す: x1・pr3・l1・pr1・pr2 を各 3 回（目安 4〜5 ドル）。結果の JSON を grader ごとの合否で読み、llm の不合格と怪しい合格は最終回答を読んで確かめる。最終回答をこのフォルダに写し、結論と、流さなかったケース（n1・p2・r-c・t1・t2）と理由を decisions.md に書く（20261116。実費 5.05 ドル。x1 は有効な 3 回とも合格（1 回目の 2 回は実行中に plugin が入れ替わって無効になり、単独で 2 回流し直した）・pr3 3/3・l1 3/3・pr2 3/3・pr1 は停止 3/3 で、q1 の 1 回の不合格は最終回答を読んで採点役の誤りと判断。最終回答は eval-answers-20261116.md、結論と流さなかったケースは decisions.md）
 
 ## 4. 仕上げ
 
-- [ ] 無料の検査を全部流す（`validate`・`validate:portability`・`test:hooks`・`test:skills`・`test:sandbox`・`lint`）。コマンドと結果を書く
-- [ ] frontend-code-review でレビューし、指摘を直す
-- [ ] tasklist.md を更新する
+- [x] 無料の検査を全部流す（`validate`・`validate:portability`・`test:hooks`・`test:skills`・`test:sandbox`・`lint`）。コマンドと結果を書く（20261116。mise exec -- pnpm run の validate 11/11・validate:portability rc=0・test:hooks 481/481・test:skills 24/24・26/26・20/20・34/34・test:sandbox 0 failed・lint rc=0）
+- [x] frontend-code-review でレビューし、指摘を直す（20261117。範囲は `--base main --worktree` で同じパスに絞り、11 ファイル・694 行・exemptions: 0。確かめられた指摘 7 件（Medium 1・Low 6）をすべて直した。詳細は review-result.md、対応と残した論点（`git mv` での改名）は decisions.md。python3 tests/skills/run_list_exemptions.py 29/29。壊した写しで LE24・LE27〜29 が落ちることも確かめた・一回限り。validate 11/11・validate:portability rc=0・test:hooks 481/481・test:skills 24/24・29/29・20/20・34/34・test:sandbox 0 failed・lint rc=0）
+- [x] tasklist.md を更新する（20261117）
 - [ ] pr-create で PR にする（本文に、決めたこと・回帰の結果・残した論点を書く）
 - [ ] マージの前に steering で閉じる（`20261116-verify-tree-guard` は閉じない。main に残して次に進める）
