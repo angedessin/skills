@@ -61,3 +61,8 @@
 
 - 事象: tasklist の最後の項目「マージの前に steering で閉じる」を、「PR のレビューが済んでから」という自分の判断で保留した。ユーザーに理由を聞かれた（分類: 訂正に近い）
 - 期待: CLAUDE.md の「マージ前に閉じる」に、レビューを待つ根拠は無い。PR を作った流れで、閉じる確認まで続けて出す
+
+## 20261117 — マージの後の `git checkout -B main origin/main` が sandbox の中で失敗する
+
+- 事象: `error: could not lock config file .git/config` で失敗し、ブランチは切り替わらなかった。上流の設定（`.git/config`）が書けないため。`git checkout main` の後に `git merge --ff-only origin/main` を流せば、config に書かずに済んだ
+- 期待: マージ後に main へ戻す手順を、sandbox の中で通る形（`checkout main` と `merge --ff-only`）にそろえる。記憶の「GitHub flow 運用」も同じ手順を書いている
