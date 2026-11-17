@@ -66,3 +66,8 @@
 
 - 事象: `error: could not lock config file .git/config` で失敗し、ブランチは切り替わらなかった。上流の設定（`.git/config`）が書けないため。`git checkout main` の後に `git merge --ff-only origin/main` を流せば、config に書かずに済んだ
 - 期待: マージ後に main へ戻す手順を、sandbox の中で通る形（`checkout main` と `merge --ff-only`）にそろえる。記憶の「GitHub flow 運用」も同じ手順を書いている
+
+## 20261117 — 課金のある試し実行で、回数の指定を落として 3 回流した（verify-tree-guard）
+
+- 事象: 「1 回 0.7〜0.9 ドル」と見積もって渡した `claude plugin eval` のコマンドに `--runs 1` が無く、既定の 3 回で流れて 2.11 ドルかかった（見積もりの約 2.5 倍）。skill-test の手順は `--runs <表の回数>` を書いているが、skill-test を通さずにコマンドを自分で組んだ
+- 期待: 課金のコマンドを渡す前に、見積もりの回数と `--runs` が一致しているかを確かめる。skill-test 以外で評価を流すときも、skill-test の雛形のコマンドから組む

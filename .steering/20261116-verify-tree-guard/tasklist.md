@@ -8,14 +8,14 @@ design.md が APPROVED になり、`20261116-exemption-visibility` が main に�
 
 - [x] 公式の hooks のページで、差し戻しが続いたときの Claude Code の側の上限と、`PostToolUse(Agent)` の入力の形を読む（無料）。結果を decisions.md に書く（20261117。上限は 8 回続けての続行。前景の Agent は終了後・背景は起動直後に来る。`report` は PostToolUse(Agent) と親の Stop の両方に置くと決めた。読みだけでテストは無し）
 - [x] sandbox の中で、`.env` のある作業ツリーを、denyRead の型を除いて複製する試作を 1 回流す（無料。前提の 8）。結果を decisions.md に書く（20261117。`cp -cR` は .env・.pem で rc=1、除外つきの `rsync -a` は rc=0。複製は rsync にすると決めた。試作のコマンドを手で流しただけで、機械の検査は 1 の run_make_copy.py に入れる）
-- [ ] ★ 発火を記録するだけの hook（`SubagentStart`・`SubagentStop`・`PostToolUse(Agent)`。入力の JSON をワークスペースの外のファイルに書き、stderr と `additionalContext` に決まった印を出す）を評価の plugin に入れ、`t2-shallow-test` を 1 回流す（0.7〜0.9 ドル）。次を確かめて decisions.md に書く
+- [x] ★ 発火を記録するだけの hook（`SubagentStart`・`SubagentStop`・`PostToolUse(Agent)`。入力の JSON をワークスペースの外のファイルに書き、stderr と `additionalContext` に決まった印を出す）を評価の plugin に入れ、`t2-shallow-test` を 1 回流す（0.7〜0.9 ドル）。次を確かめて decisions.md に書く（20261117。`--runs 1` を落として 3 回・2.11 ドル。発火・入力・TMPDIR・.git の regex は可、trace に印は載らない。probe は消して hooks.json を戻した）
   - 3 つのイベントが発火するか
   - `PostToolUse(Agent)` が来るのは起動の直後か終了の後か。入力から agent の id を引けるか
   - stderr と `additionalContext` の印が trace に載るか
   - 評価の sandbox の `$TMPDIR` の値と、Bash からそこに書けるか
   - `SubagentStart` の入力に `agent_id`・`cwd` があるか。4 つのイベント（親の `Stop` を含む）の `session_id` がそろうか
   - ワークスペースの `.git/` の下に書いたファイルを、regex の grader で拾えるか（試しの grader を 1 つ足しておく）
-- [ ] 上の結果で、design.md の分岐（`report` を置くイベント・印を残す場所・評価をやるか）のどれを採るかを decisions.md に 1 行ずつ書く。評価をやらないなら、4 の項目を「`eval/README.md` に見えないことを書く」だけに直す
+- [x] 上の結果で、design.md の分岐（`report` を置くイベント・印を残す場所・評価をやるか）のどれを採るかを decisions.md に 1 行ずつ書く。評価をやらないなら、4 の項目を「`eval/README.md` に見えないことを書く」だけに直す（20261117。評価は行い、印は .git/ の下に写して regex で見る。report は PostToolUse(Agent) と親の Stop の両方。読み合わせのみでテストは無し）
 
 ## 1. 写しと一時ディレクトリのスクリプト
 
@@ -41,7 +41,7 @@ design.md が APPROVED になり、`20261116-exemption-visibility` が main に�
 
 ## 4. 回帰と仕上げ
 
-- [ ] ★ `t2-shallow-test` を 1 回、`l1-large-diff` を 3 回、`x1-exemption-added` を 1 回流す（2〜2.35 ドル）。grader ごとの合否を読み、t2 の trace で検証役が `make-copy.sh` を呼んだことと、`stop-tree-checked` の合否を確かめる。最終回答をこのフォルダに写し、結論と、流さなかったケース（n1・p2・r-c・t1）と理由を decisions.md に書く
+- [ ] ★ `t2-shallow-test` を 1 回、`l1-large-diff` を 3 回、`x1-exemption-added` を 1 回流す（2〜2.35 ドル。ケースごとに `--runs` を表の回数で必ず付ける）。grader ごとの合否を読み、t2 の trace で検証役が `make-copy.sh` を呼んだことと、`stop-tree-checked` の合否を確かめる。最終回答をこのフォルダに写し、結論と、流さなかったケース（n1・p2・r-c・t1）と理由を decisions.md に書く
 - [ ] 無料の検査を全部流す（`validate`・`validate:portability`・`test:hooks`・`test:skills`・`test:sandbox`・`lint`）。コマンドと結果を書く
 - [ ] 普段のセッションで、このブランチの差分に frontend-code-review をかけ、見張りの記録（`${TMPDIR}/claude-tree-guard/`）に「確かめた」が残ることを確かめる（一回限りと decisions.md に書く）。出た指摘を直す
 - [ ] `.steering/skill-issues.md` の 20261114「review-verify の再現が作業ツリーに書き込んだ」に、入れた対策を 1 行添える

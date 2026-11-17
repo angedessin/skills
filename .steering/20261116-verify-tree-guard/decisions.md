@@ -33,3 +33,22 @@
 - rsync が無ければ、スクリプトの失敗（0 以外・パスを出さない）にする。検証役は読みで判定する
 - 遅さは、tasklist の 4 の普段のセッションでの確かめで時間を測り、打ち切り（既定 60 秒）に当たるなら見直す
 - 除外したファイルの件数（`excluded:`）は、rsync の出力からでなく、`find` で同じ型を数えて出す（openrsync と GNU rsync で出力の形が違うため）
+
+## 20261117 — 評価の中の hook の試し実行（前提の 1・2・3・4・6・7。課金）
+
+`eval/hooks/probe.sh`（一回限り。終えて消し、`hooks.json` を戻した）を `SubagentStart`・`SubagentStop`・`PostToolUse(Agent)`・`Stop` に matcher なしで登録し、`t2-shallow-test` を流した。結果は `eval/results-review-c-t2-probe-20261117.json`（追跡外）と `/tmp/claude-hook-probe/`。Claude Code 2.1.326。
+
+- `--runs 1` を付け忘れ、3 回流れて 2.11 ドル（見積もりは 1 回 0.7〜0.9 ドル）。`.steering/skill-issues.md` に記録した。3 回分そろったので、下は 3 回の結果
+- 前提 1（発火）: 成り立つ。4 つのイベントがすべて発火した。`agent_type` は `eval-c:review-verify` など plugin の名前つき
+- 前提 2（`PostToolUse(Agent)` の時点）: review-verify は 3 回とも前景（`run_in_background: false`）で起動され、`SubagentStop` の後に `status: "completed"` と `agentId` つきで来た。一次レビューの 4〜5 体は、3 回中 2 回が背景で起動され（`async_launched`）、終わったときの `PostToolUse(Agent)` は来なかった
+- 前提 3（trace に載るか）: 成り立たない。trace に hook の記録があるのは `SessionStart` だけで、`additionalContext`・stderr の印は 3 回とも見つからなかった（`ind-probe-ctx`・`ind-probe-stderr` が不合格）
+- 前提 4（`$TMPDIR`）: 成り立つ。モデルの Bash の `$TMPDIR` は `/private/tmp/e-*/tmp/claude-501` で、`mktemp` と写しの作成（`verify.*/app`）が通った。hook の `$TMPDIR` は `/private/tmp/e-*/tmp`（sandbox の外）
+- 前提 6（入力のキーと session）: 成り立つ。`SubagentStart` に `agent_id`・`agent_type`・`cwd` がある。1 回の実行の中で 4 つのイベントの `session_id` がそろい、`SubagentStart` と `SubagentStop`・`PostToolUse` の `agentId` が一致した。`cwd` は親も subagent もワークスペースの根（`/private/tmp/e-*/home/cwd`）
+- 前提 7（`.git/` の下を regex で読めるか）: 成り立つ。`.git/hook-probe.log` を見る `ind-probe-gitdir` が 3 回とも合格
+- ついでに見えたこと: t2 の本来の grader は、3 回とも `q1-found-bug` 以外合格。3 回目の `q1-found-bug` は費用の上限で採点が飛ばされた（`skipped: cost ceiling`）
+
+### 採った分岐
+
+- 評価（design.md の d）は行う。印は trace でなく、ワークスペースの `.git/` の下に写して、ファイルの `regex` で見る（3 が否・7 が可）。写すかどうかは `hooks.json` のコマンドの引数で切り替える
+- `report` は、決めたとおり `PostToolUse(Agent)` と親の `Stop` の両方に置く。review-verify は評価では前景だったが、スキルの本文は前景を求めておらず、背景で起動されたときは `PostToolUse(Agent)` が起動の直後に来るため
+- `report` のフィクスチャの入力は、実際の入力（`/tmp/claude-hook-probe/` の JSON）の形に合わせる。`PostToolUse` の `tool_response.agentId`・`status`、`SubagentStop` の `agent_id`・`stop_hook_active`
