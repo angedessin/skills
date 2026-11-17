@@ -1,6 +1,6 @@
 # tasklist: verify-tree-guard
 
-Last updated: 20261117
+Last updated: 20261118
 
 design.md が APPROVED になり、`20261116-exemption-visibility` が main に入るまで着手しない。課金のある項目（★）は、見積もりを示して承認を取ってから、通常のターミナルで流してもらう。
 
@@ -19,9 +19,9 @@ design.md が APPROVED になり、`20261116-exemption-visibility` が main に�
 
 ## 1. 写しと一時ディレクトリのスクリプト
 
-- [ ] `frontend-code-review/scripts/make-copy.sh` の写しのモードを書き、`tests/skills/run_make_copy.py` で確かめる（成功時のパスと中身・`.git` が無い・`.git` がファイルの worktree・`GIT=`・`.env` などを除いて `excluded:` を出す）
-- [ ] 失敗の扱いを足し、テストで確かめる（`TMPDIR` が書けない・作った先がリポジトリの中・打ち切り。どれもパスを出さず、作りかけが残らない）
-- [ ] `--empty` と古い写しの掃除を足し、テストで確かめる（空のディレクトリ・1 日より古いものだけ消す・古さは印のファイルで測り、時刻の古い作業ツリーから作った写しを消さない）。`package.json` の `test:skills` に足す
+- [x] `frontend-code-review/scripts/make-copy.sh` の写しのモードを書き、`tests/skills/run_make_copy.py` で確かめる（成功時のパスと中身・`.git` が無い・`.git` がファイルの worktree・`GIT=`・`.env` などを除いて `excluded:` を出す）（20261118。複製は除外つきの rsync。写しは review-copy.*/tree、印は review-copy.*/made。python3 tests/skills/run_make_copy.py 13/13。壊した写し 9 種のうち、打ち切りの TERM を外したものだけ通る（KILL で 3 秒以内に止まるため害なし））
+- [x] 失敗の扱いを足し、テストで確かめる（`TMPDIR` が書けない・作った先がリポジトリの中・打ち切り。どれもパスを出さず、作りかけが残らない）（20261118。1 つ目と同時に書いた。rsync の失敗・git の外・引数の誤りも足した。同じテストで確かめた）
+- [x] `--empty` と古い写しの掃除を足し、テストで確かめる（空のディレクトリ・1 日より古いものだけ消す・古さは印のファイルで測り、時刻の古い作業ツリーから作った写しを消さない）。`package.json` の `test:skills` に足す（20261118。印の無い作りかけはディレクトリの時刻で測る。pnpm run test:skills 全件通過・lint・validate 11/11）
 - [ ] `review-verify.md`（写しの作り方・差し戻されたときに戻してよいもの）と `frontend-code-review/SKILL.md` の Step 3（スクリプトを渡す・親が自分で再現するときもスクリプトを使う）を直す（`validate` が通ることを確かめる。振る舞いは 4 の評価で確かめる）
 
 ## 2. 作業ツリーの見張り
