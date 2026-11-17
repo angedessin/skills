@@ -71,3 +71,8 @@
 
 - 事象: 「1 回 0.7〜0.9 ドル」と見積もって渡した `claude plugin eval` のコマンドに `--runs 1` が無く、既定の 3 回で流れて 2.11 ドルかかった（見積もりの約 2.5 倍）。skill-test の手順は `--runs <表の回数>` を書いているが、skill-test を通さずにコマンドを自分で組んだ
 - 期待: 課金のコマンドを渡す前に、見積もりの回数と `--runs` が一致しているかを確かめる。skill-test 以外で評価を流すときも、skill-test の雛形のコマンドから組む
+
+## 20261118 — 検査の前後を比べるのに git stash を使い、sandbox で途中まで失敗した（verify-tree-guard）
+
+- 事象: `validate:portability` の前後を比べるため `git stash` を流したところ、sandbox が `.claude/` の下を書かせず `unable to unlink old ...` で途中まで失敗した。stash の項目だけが残り、作業ツリーは変わらなかった（stash と差分 0 を確かめた）
+- 期待: sandbox の中では、作業ツリーを動かす git（stash・checkout・reset）で前後を比べない。前の版は `git show HEAD:<パス>` か `git worktree` でなく一時ディレクトリへの `git archive` で取り出して比べる
