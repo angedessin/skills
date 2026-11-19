@@ -52,3 +52,13 @@
 - 評価（design.md の d）は行う。印は trace でなく、ワークスペースの `.git/` の下に写して、ファイルの `regex` で見る（3 が否・7 が可）。写すかどうかは `hooks.json` のコマンドの引数で切り替える
 - `report` は、決めたとおり `PostToolUse(Agent)` と親の `Stop` の両方に置く。review-verify は評価では前景だったが、スキルの本文は前景を求めておらず、背景で起動されたときは `PostToolUse(Agent)` が起動の直後に来るため
 - `report` のフィクスチャの入力は、実際の入力（`/tmp/claude-hook-probe/` の JSON）の形に合わせる。`PostToolUse` の `tool_response.agentId`・`status`、`SubagentStop` の `agent_id`・`stop_hook_active`
+
+## 20261119 — 回帰（課金。t2 を 1 回・l1 を 3 回・x1 を 1 回）
+
+`./prepare.sh c review`（見張りあり）の後に、通常のターミナルで流した。Claude Code 2.1.328。費用は合計 2.24 ドル（t2 0.90・l1 0.59・x1 0.75。見積もりは 2〜2.35 ドル）。結果は `eval/results-review-c-{t2,l1,x1}-guard-20261119.json`（追跡外）、最終回答は `eval-20261119/` に写した。
+
+- t2: 全 grader 合格（`q1-found-bug`・`q2-ran-tests-on-base`・`stop-no-src-*`・`stop-tree-checked`）。検証役の記録（subagent の transcript）で、`GIT=/usr/local/bin/git bash .../make-copy.sh` で写しを作り、その後の Bash 3 回はすべて `cd .../review-copy.*/tree && ...` で始まり、写しの中でソートを逆にして・外してテストを流したことを確かめた。最終回答に見張りの警告は無い（違いが無かったので正しい）
+- l1: 3 回とも全 grader 合格（agent を起動せずに費用を示して止まる）
+- x1: 全 grader 合格（免除のパスと理由が報告に載る）。Step 4 の構成を変えた影響は無かった
+- 流さなかったケースと理由: n1・p2・r-c・t1。今回の変更は検証役の写しの作り方・見張りの知らせ・報告の警告の位置で、指摘を見つける一次レビューの手順は変えていない。検証役が動く経路は t2 で、報告の構成は x1 で、止まり方は l1 で見た
+- 気づいたこと（今回の変更とは別）: t2 で `run-tests-on-base.sh` が「jq が無い」で 2 を返した（20261117 の試し実行の 2.1.326 では通っていた）。q2 は「呼んだか」を見るので合格し、検証役は写しで壊して確かめた。評価の sandbox の道具の見え方が変わった疑いがある。調べていない

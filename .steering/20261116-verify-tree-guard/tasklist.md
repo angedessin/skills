@@ -41,8 +41,8 @@ design.md が APPROVED になり、`20261116-exemption-visibility` が main に�
 
 ## 4. 回帰と仕上げ
 
-- [ ] ★ `t2-shallow-test` を 1 回、`l1-large-diff` を 3 回、`x1-exemption-added` を 1 回流す（2〜2.35 ドル。ケースごとに `--runs` を表の回数で必ず付ける）。grader ごとの合否を読み、t2 の trace で検証役が `make-copy.sh` を呼んだことと、`stop-tree-checked` の合否を確かめる。最終回答をこのフォルダに写し、結論と、流さなかったケース（n1・p2・r-c・t1）と理由を decisions.md に書く
-- [ ] 無料の検査を全部流す（`validate`・`validate:portability`・`test:hooks`・`test:skills`・`test:sandbox`・`lint`）。コマンドと結果を書く
+- [x] ★ `t2-shallow-test` を 1 回、`l1-large-diff` を 3 回、`x1-exemption-added` を 1 回流す（2〜2.35 ドル。ケースごとに `--runs` を表の回数で必ず付ける）。grader ごとの合否を読み、t2 の trace で検証役が `make-copy.sh` を呼んだことと、`stop-tree-checked` の合否を確かめる。最終回答をこのフォルダに写し、結論と、流さなかったケース（n1・p2・r-c・t1）と理由を decisions.md に書く（20261119。2.24 ドル。全ケース全 grader 合格。検証役は make-copy.sh と cd <パス> && を守った。decisions.md に結論と流さなかったケースを書いた）
+- [x] 無料の検査を全部流す（`validate`・`validate:portability`・`test:hooks`・`test:skills`・`test:sandbox`・`lint`）。コマンドと結果を書く（20261119。validate 11/11・validate:portability rc=0・test:hooks 516/516・test:skills 全件・test:sandbox 0 failed・lint 通過）
 - [ ] 普段のセッションで、このブランチの差分に frontend-code-review をかけ、見張りの記録（`${TMPDIR}/claude-tree-guard/`）に「確かめた」が残ることを確かめる（一回限りと decisions.md に書く）。出た指摘を直す
 - [ ] `.steering/skill-issues.md` の 20261114「review-verify の再現が作業ツリーに書き込んだ」に、入れた対策を 1 行添える
 - [ ] tasklist.md を更新する
