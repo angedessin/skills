@@ -83,7 +83,7 @@ mise exec -- pnpm run lint         # Biome
   - **型検査**（`stop-typecheck.sh`）: 応答を終える前に tsc を流し、型エラーなら差し戻す。ターンの中で同じエラーが 2 回続いたら警告だけで通し、ユーザーの新しい依頼（ターンの最初の Stop）ではまた差し戻す（差し戻した出力のハッシュを `${TMPDIR}` の下に session_id ごとに残す。`stop_hook_active` が true でも緩めない。他の Stop hook の差し戻しでも立つため）
   - **テストのゲート**（`stop-test-gate.sh`）: ベースブランチ（origin/HEAD → `init.defaultBranch` → main → master）との分岐点からの差分・未コミット・未追跡の実装ファイル（ts・tsx・js・jsx・mts・cts・mjs・cjs・vue・svelte）ごとに `vitest related` を流し、変えたテストファイルも流す（e2e/ の下は除く）。関係するテストが無い・落ちる・vitest が 0 以外で終わる・`STOP_TEST_GATE_TIMEOUT` 秒（既定 150。hook の timeout 180 より 10 秒以上短く）で流しきれない・テストを弱めた（`expect` が減った・`skip`・`only`・`todo` が増えた。git が組にした改名は古いパスの版と比べる。ステージしない `mv` は組にできず、古いパスを消したとみなす）ときに差し戻す。根は入力の cwd から決める（worktree の中なら worktree を見る）。vitest が件数を返さない（node が無い・設定のエラー）ときは警告だけで通す。通った差分は流し直さない
   - **テストの免除**: アクティブなタスクがあれば `.steering/<task>/test-exemptions.md`、無ければ `.steering/test-exemptions.md` に、`## テスト不要`・`## 失敗を残す`・`## テストを弱める` の節を置き、`- <パス> — <理由>（YYYYMMDD）` の行を書く。理由の無い行は効かない。パスの前後の `` ` `` と先頭の `./` は無視する。「失敗を残す」に実装ファイルを書くと、その実装ファイルはテストを流さない（時間切れの逃げ道）。タスクの外の免除に載ったファイルが変わると、通しつつ警告する。足した免除は、`frontend-code-review` の報告と `pr-create` の PR の本文に載る（妥当かの判断は人がする）
-- **検証役の作業ツリーの見張り**（`subagent-tree-guard.sh`）: `frontend-code-review` の検証役（`review-verify`）の開始時に、HEAD・ブランチ・タグ・stash・HEAD と違う追跡ファイルの中身・ステージ・未追跡のファイルごとの中身を `${TMPDIR}/claude-tree-guard/` に控え、終了時に比べる。違えば 1 回だけ差し戻して戻させ、`PostToolUse(Agent)` と親の `Stop` で、違いが残ったか・戻ったかを親に 1 回知らせる（親は自分では戻さず、ユーザーに示す）。控えが無く確かめられなかったときも session ごとに 1 回知らせる。事故を防ぐのではなく、起きた後に気づくための仕組み。リモートの ref と git が無視するファイルは見ない。検証役の名前で絞るので、agent が無くて汎用の subagent で代えたときは効かない
+- **検証役の作業ツリーの見張り**（`subagent-tree-guard.sh`）: `frontend-code-review` の検証役（`review-verify`）の開始時に、HEAD・ブランチ・タグ・stash・HEAD と違う追跡ファイルの中身・ステージ・未追跡のファイルごとの中身を `${TMPDIR}/claude-tree-guard/` に控え、終了時に比べる。違えば 1 回だけ差し戻し（戻させるのは、検証役が新しく作った未追跡のファイルを消すことだけ。追跡ファイルの書き換え・ステージ・コミットは、ユーザーの未コミットの変更まで消しうるので戻させない）、`PostToolUse(Agent)` と親の `Stop` で、違いが残ったか・戻ったかを結果が変わるたびに親に知らせる（親は自分では戻さず、ユーザーに示す）。控えが無く確かめられなかったときも session ごとに 1 回知らせる。検証役が一度終わった後に止まり直したとき（背景の作業の終わりなど）は、その間の親やユーザーの書き込みも入るので差し戻さず、知らせるだけにする。事故を防ぐのではなく、起きた後に気づくための仕組み。リモートの ref と git が無視するファイルは見ない。検証役の名前で絞るので、agent が無くて汎用の subagent で代えたときは効かない
 - **sandbox**（`.claude/settings.json`）: Bash の秘密の読み取り・通信先・書き込み範囲を OS のレベルで制限する。`.env` の読み取りも止めるが、対象はプロジェクトの中だけで、外の `.env` は sandbox では止まらない（20261105 に一回限りで確認）。`autoAllowBashIfSandboxed: false` で、sandbox の中の Bash も通常の確認に乗せる（hook が見ない書き込みを確認なしで通さないため）。ただし公式の説明では、acceptEdits は作業ディレクトリの中の `cp`・`sed` などを確認なしで通す。承認制のパスへの `cp`・`sed -i` を guard hook で ask にしているのはこのため。hook は sandbox の外で動く
 
 ## 他のプロジェクトで使う
@@ -102,7 +102,7 @@ mkdir -p "$DEST/.claude/skills" "$DEST/.claude/agents" "$DEST/.claude/hooks"
 cp -R .claude/skills/{design-doc,steering,frontend-code-review,pr-create} "$DEST/.claude/skills/"
 cp .claude/agents/review-*.md "$DEST/.claude/agents/"
 
-# hook: 配る 6 本と、guard hook の共通の部品
+# hook: 配る 7 本と、guard hook の共通の部品
 cp .claude/hooks/{guard-gated-delete,guard-gated-write,post-edit-lint,session-start-check,stop-typecheck,stop-test-gate,subagent-tree-guard}.sh .claude/hooks/guard_gated.py "$DEST/.claude/hooks/"
 
 # 知識: frontend-code-review の規約担当が読む

@@ -85,23 +85,7 @@ if [ "${cond}" = c ] && [ "${group}" = review ]; then
   cp ../.claude/hooks/subagent-tree-guard.sh hooks/
   guard=1
 fi
-python3 -I - "$PWD/hooks/hooks.json" "$guard" <<'PY'
-import json, sys
-path, guard = sys.argv[1], sys.argv[2] == "1"
-def cmd(script, *args):
-    return {"type": "command", "command": " ".join([f'bash "${{CLAUDE_PLUGIN_ROOT}}/hooks/{script}"', *args])}
-hooks = {"SessionStart": [{"hooks": [cmd("inject-claude-md.sh")]}]}
-if guard:
-    g = "subagent-tree-guard.sh"
-    verify = "^eval-c:review-verify$"
-    hooks["SubagentStart"] = [{"matcher": verify, "hooks": [{**cmd(g, "start", "--mirror-gitdir"), "timeout": 60}]}]
-    hooks["SubagentStop"] = [{"matcher": verify, "hooks": [{**cmd(g, "stop", "--mirror-gitdir"), "timeout": 60}]}]
-    hooks["PostToolUse"] = [{"matcher": "Agent", "hooks": [{**cmd(g, "report"), "timeout": 15}]}]
-    hooks["Stop"] = [{"hooks": [{**cmd(g, "report"), "timeout": 15}]}]
-with open(path, "w", encoding="utf-8") as f:
-    json.dump({"hooks": hooks}, f, ensure_ascii=False, indent=2)
-    f.write("\n")
-PY
+python3 -I -c 'import sys; sys.path.insert(0, sys.argv[1]); import evalcase; evalcase.write_hooks_json(sys.argv[2], sys.argv[3] == "1")' "$PWD" "$PWD/hooks/hooks.json" "$guard"
 
 cat > .claude-plugin/plugin.json <<JSON
 {

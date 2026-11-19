@@ -135,6 +135,38 @@ def check_excluded(tmp: Path) -> str | None:
     return None
 
 
+def check_excluded_dirs(tmp: Path) -> str | None:
+    repo = make_repo(tmp)
+    write(repo, ".envs/dev.json", "secret\n")  # rsync の除外はディレクトリにも当たり、中身ごと写さない
+    write(repo, "config/.env.d/app.conf", "secret\n")
+    rc, out, err = run(repo, env=env_with(tmpdir(tmp)))
+    if rc != 0 or out[1:] != ["excluded: 2"]:
+        return f"rc={rc} out={out} err={err}"
+    if any("secret" in (Path(out[0]) / rel).read_text() for rel in files(Path(out[0]))):
+        return "除くはずのディレクトリの中身が写しにある"
+    return None
+
+
+def check_no_rsync(tmp: Path) -> str | None:
+    repo = make_repo(tmp)
+    t = tmpdir(tmp)
+    # rsync だけを除いた PATH を作る（ほかの道具はリンクで残す）
+    bin_dir = tmp / "norsync"
+    bin_dir.mkdir()
+    for d in os.environ["PATH"].split(os.pathsep):
+        if not os.path.isdir(d):
+            continue
+        for name in os.listdir(d):
+            src, dst = Path(d) / name, bin_dir / name
+            if name == "rsync" or dst.exists() or dst.is_symlink() or not os.access(src, os.X_OK) or src.is_dir():
+                continue
+            dst.symlink_to(src)
+    rc, out, err = run(repo, env=env_with(t, PATH=str(bin_dir)))
+    if rc != 2 or out or boxes(t) or "rsync が無い" not in err:
+        return f"rc={rc} out={out} 残り={boxes(t)} err={err}"
+    return None
+
+
 def check_git_override(tmp: Path) -> str | None:
     repo = make_repo(tmp)
     bin_dir = tmp / "bin"
@@ -291,6 +323,8 @@ CHECKS = [
     check_copy,
     check_worktree,
     check_excluded,
+    check_excluded_dirs,
+    check_no_rsync,
     check_git_override,
     check_no_tmpdir,
     check_tmpdir_readonly,

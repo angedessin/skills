@@ -9,7 +9,7 @@
 #   MAKE_COPY_TIMEOUT=<秒>     複製の打ち切り（既定 60）
 #
 # 写しに入れないもの: .git（worktree では本物の gitdir を指すファイルで、写しの中の git が本物の索引に書く）と、
-# sandbox が読ませない型（.env*・*.env・*.pem・*.key）。後者を除いたときは 2 行目に `excluded: <件数>` を出す。
+# sandbox が読ませない型（.env*・*.env・*.pem・*.key）。後者を除いたときは 2 行目に `excluded: <件数>`（当たったファイルとディレクトリの数）を出す。
 # 終了コード: 0 = 作った / 2 = 作れない（理由は stderr。作りかけは消してある）
 set -u
 set -o pipefail
@@ -92,8 +92,9 @@ wait "$watcher" 2>/dev/null
 [ "$rc" = 127 ] && die "rsync が無い"
 [ "$rc" = 0 ] || die "複製に失敗した（rsync exit ${rc}）:"$'\n'"$(tail -5 "$box/log")"
 [ -d "$dest" ] || die "写しができていない: ${dest}"
-# 件数は rsync の出力でなく find で数える（openrsync と GNU rsync で出力の形が違う）
-excluded=$(cd "$root" && find . -name .git -prune -o \( -name '.env*' -o -name '*.env' -o -name '*.pem' -o -name '*.key' \) ! -type d -print | wc -l | tr -d ' ')
+# 件数は rsync の出力でなく find で数える（openrsync と GNU rsync で出力の形が違う）。
+# rsync の除外はディレクトリにも当たって中身ごと写さないので、当たったディレクトリも 1 件と数え、その下には入らない
+excluded=$(cd "$root" && find . -name .git -prune -o \( -name '.env*' -o -name '*.env' -o -name '*.pem' -o -name '*.key' \) -print -prune | wc -l | tr -d ' ')
 rm -f -- "$box/log"
 ok=1
 printf '%s\n' "$dest"

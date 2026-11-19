@@ -130,13 +130,35 @@ def exemption_shown(d, name, path, reason):
 
 def tree_checked(d):
     """検証役の作業ツリーの見張りが動き、違いが出なかったことを見る grader（stop-tree-checked）。
-    見張りの hook（prepare.sh が review の C に入れる）が .git/tree-guard.log に結果を写す。trace には hook の出力が載らない（20261117 に確かめた）。
+    見張りの hook（prepare.sh が review の C に入れる）が .git/tree-guard.log に結果を写す。trace には hook の出力が載らない（20261117 に 2.1.326 の試し実行 1 回で一回限りで確かめた）。
     印が 1 行も無い（hook が発火しなかった・ファイルが無い）ときも落とし、見張りが黙って止まったことに気づけるようにする。"""
     pattern = r"^(?![\s\S]*TREE-GUARD-DIFF)[\s\S]*TREE-GUARD-CHECKED"
     grader(f"{d}/graders/stop-tree-checked.md", {
         "type": "regex", "target": "{ source: file, path: .git/tree-guard.log }",
         "pattern": "'" + pattern.replace("'", "''") + "'",
     })
+
+
+def hooks_json(guard):
+    """評価の plugin の hooks.json の中身（prepare.sh が書く）。guard は review の C で、検証役の作業ツリーの見張りを入れる。
+    見張りの結果は --mirror-gitdir でワークスペースの .git/tree-guard.log にも写す（grader はワークスペースのファイルしか読めない）。"""
+    def cmd(script, *args):
+        return {"type": "command", "command": " ".join([f'bash "${{CLAUDE_PLUGIN_ROOT}}/hooks/{script}"', *args])}
+    hooks = {"SessionStart": [{"hooks": [cmd("inject-claude-md.sh")]}]}
+    if guard:
+        g = "subagent-tree-guard.sh"
+        verify = "^eval-c:review-verify$"
+        hooks["SubagentStart"] = [{"matcher": verify, "hooks": [{**cmd(g, "start", "--mirror-gitdir"), "timeout": 60}]}]
+        hooks["SubagentStop"] = [{"matcher": verify, "hooks": [{**cmd(g, "stop", "--mirror-gitdir"), "timeout": 60}]}]
+        hooks["PostToolUse"] = [{"matcher": "Agent", "hooks": [{**cmd(g, "report"), "timeout": 15}]}]
+        hooks["Stop"] = [{"hooks": [{**cmd(g, "report"), "timeout": 15}]}]
+    return {"hooks": hooks}
+
+
+def write_hooks_json(path, guard):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(hooks_json(guard), f, ensure_ascii=False, indent=2)
+        f.write("\n")
 
 
 TRACE = "trace"

@@ -1581,8 +1581,85 @@ def check_tree_guard(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | N
     mirror_case("--mirror-gitdir: 違いが無ければ CHECKED same だけを書く", lambda r: None, 1, ["TREE-GUARD-CHECKED same"])
     mirror_case("--mirror-gitdir: 差し戻しと、戻らなかったことを DIFF つきで書く", commit_one, 2,
                 ["TREE-GUARD-CHECKED differs", "TREE-GUARD-DIFF differs", "TREE-GUARD-CHECKED not-returned", "TREE-GUARD-DIFF not-returned"])
-    mirror_case("--mirror-gitdir: 控えが無ければ UNCHECKED を書く", None, 1, ["TREE-GUARD-UNCHECKED"])
+    mirror_case("--mirror-gitdir: 控えが無ければ UNCHECKED を書く", None, 1, ["TREE-GUARD-UNCHECKED unchecked"])
     mirror_case("引数が無ければ .git に書かない", commit_one, 1, [], flag=False)
+
+    def mirror_returned(repo: Path) -> None:
+        write(repo, "u/made.ts", "1\n")
+
+    n += 1
+    repo = make_repo(f"r{n}")
+    payload = json.dumps({"session_id": f"s{n}", "agent_id": "a1", "cwd": str(repo)})
+    menv = {**genv, "TMPDIR": str(guard_tmp)}
+    for mode, act in (("start", None), (None, mirror_returned), ("stop", None), (None, lambda r: (r / "u/made.ts").unlink()), ("stop", None)):
+        if act:
+            act(repo)
+        else:
+            subprocess.run(["bash", str(hook), mode, "--mirror-gitdir"], input=payload, capture_output=True, text=True, cwd=str(repo), env=menv, check=False, timeout=60)
+    log = (repo / ".git" / "tree-guard.log").read_text().splitlines() if (repo / ".git" / "tree-guard.log").is_file() else []
+    want = ["TREE-GUARD-CHECKED differs", "TREE-GUARD-DIFF differs", "TREE-GUARD-CHECKED returned", "TREE-GUARD-DIFF returned"]
+    out.append((f"TG{n}", "--mirror-gitdir: 差し戻して戻ったときも DIFF returned を書く（評価で戻した場合を合格にしない）", None if log == want else f"log={log!r}"))
+
+    # ref の種類・差し戻しの文面・取れないパス
+    def stash_one(repo: Path) -> None:
+        git(repo, "stash", "-q")
+        git(repo, "stash", "apply", "-q")  # 作業ツリーは元のまま、refs/stash だけが増える
+
+    case("タグが増えたら 2", lambda r: git(r, "tag", "t1"), 2, "differs", "refs/tags/t1")
+    case("stash が増えたら 2（作業ツリーが同じでも）", stash_one, 2, "differs", "refs/stash")
+    def delete_branch_case() -> None:
+        nonlocal n
+        n += 1
+        repo = make_repo(f"r{n}")
+        git(repo, "branch", "gone")
+        run("start", repo, session=f"s{n}")
+        git(repo, "branch", "-D", "gone")
+        p = run("stop", repo, session=f"s{n}")
+        ok = p.returncode == 2 and "ref が消えた: refs/heads/gone" in p.stderr
+        out.append((f"TG{n}", "ブランチを消したら 2 で「ref が消えた」", None if ok else f"exit {p.returncode}; {p.stderr[:300]!r}"))
+
+    delete_branch_case()
+    case("差し戻しの文面は、未追跡で自分が作ったものを消すことだけを許し、restore を勧めない",
+         lambda r: write(r, "src/dirty.ts", "export const b = 3\n"), 2, "differs", "戻してよいのは、一覧の「未追跡のファイルが増えた」のうち自分が作ったものを消すことだけ")
+
+    def nested_then_change(repo: Path) -> None:
+        write(repo, "u/z.ts", "export const z = 2\n")
+
+    def with_nested(label: str, prepare) -> None:
+        nonlocal n
+        n += 1
+        repo = make_repo(f"r{n}")
+        write(repo, "u/z.ts", "export const z = 1\n")  # 取れないパスより後ろに並ぶ未追跡のファイル
+        prepare(repo)
+        run("start", repo, session=f"s{n}")
+        write(repo, "u/z.ts", "export const z = 2\n")
+        p = run("stop", repo, session=f"s{n}")
+        ok = p.returncode == 2 and "u/z.ts" in p.stderr and result(f"s{n}") == "differs"
+        out.append((f"TG{n}", label, None if ok else f"exit {p.returncode}; result={result(f's{n}')!r}; {p.stderr[:300]!r}"))
+
+    def nested_repo(repo: Path) -> None:
+        nested = repo / "u" / "a-nested"
+        nested.mkdir(parents=True)
+        git(nested, "init", "-q")
+
+    def dangling_link(repo: Path) -> None:
+        (repo / "u").mkdir(exist_ok=True)
+        (repo / "u" / "a-link").symlink_to("nowhere")
+
+    def dirty_submodule(repo: Path) -> None:
+        sub = repo / "sm"
+        sub.mkdir()
+        git(sub, "init", "-q")
+        write(sub, "x", "1\n")
+        git(sub, "add", "x")
+        git(sub, "commit", "-qm", "s")
+        git(repo, "add", "sm")  # 埋め込みのリポジトリ（gitlink）
+        git(repo, "commit", "-qm", "add sm")
+        write(sub, "x", "2\n")  # サブモジュールの中を汚す
+
+    with_nested("未追跡の入れ子のリポジトリがあっても、後ろの未追跡ファイルの変化を拾う", nested_repo)
+    with_nested("指す先の無いリンクがあっても、後ろの未追跡ファイルの変化を拾う", dangling_link)
+    with_nested("汚れたサブモジュールがあっても控えを取り、変化を拾う", dirty_submodule)
 
     # report — 入力の形は評価の試し実行（20261117）で取った実物に合わせる
     def report(session: str, event: str = "PostToolUse", status: str = "completed") -> subprocess.CompletedProcess[str]:
@@ -1649,7 +1726,10 @@ def check_tree_guard(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | N
     p = report("rp-pending")
     session_with("rp-pending", {"a1": ["stop"]})  # 検証役が戻さずに終わった
     c = context(report("rp-pending"))
-    rcase("差し戻した直後の記録は知らせず、検証役が終わった後に知らせる", p.returncode == 0 and not p.stdout and "u/leftover.ts" in c, f"直後={p.stdout!r} 後={c!r}")
+    p3 = report("rp-pending")
+    c0 = context(p)
+    rcase("差し戻した直後は「まだ止まり直していない」と知らせ、結果が出たらもう一度知らせる（同じ結果は 2 回知らせない）",
+          "まだ止まり直していない" in c0 and "u/leftover.ts" in c0 and "残っている" in c and not p3.stdout, f"直後={c0!r} 後={c!r} 3 回目={p3.stdout!r}")
 
     session_with("rp-unchecked", {"a1": ["stop"], "a2": ["stop"]})
     p1, p2 = report("rp-unchecked"), report("rp-unchecked")
@@ -1681,7 +1761,76 @@ def check_tree_guard(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | N
     ago = time.time() - 2 * 86400
     os.utime(old, (ago, ago))
     session_with("rp-new", {"a1": ["start"]})
-    rcase("start が 1 日より古い session の記録を消す", not old.exists() and rec("rp-new").is_dir(), f"old={old.exists()} new={rec('rp-new').is_dir()}")
+    rcase("start が 1 日より古い session の記録を消し、1 日以内の別 session の記録は残す",
+          not old.exists() and rec("rp-new").is_dir() and rec("rp-stop").is_dir() and rec("rp-left").is_dir(),
+          f"old={old.exists()} new={rec('rp-new').is_dir()} rp-stop={rec('rp-stop').is_dir()} rp-left={rec('rp-left').is_dir()}")
+    # start の素通しと、HEAD の無いリポジトリ・状態を読めない stop
+    n += 1
+    outside = tmp / "tree-guard-outside"
+    outside.mkdir()
+    p1 = subprocess.run(["bash", str(hook), "start"], input=json.dumps({"session_id": f"s{n}", "agent_id": "a1", "cwd": str(outside)}),
+                        capture_output=True, text=True, env={**genv, "TMPDIR": str(guard_tmp), "GIT_CEILING_DIRECTORIES": str(tmp)}, check=False, timeout=60)
+    repo = make_repo(f"r{n}")
+    p2 = run("start", repo, agent="", session=f"s{n}b")
+    ok = p1.returncode == 0 and not (rec(f"s{n}") / "state").exists() and p2.returncode == 0 and not list((guard_tmp / "claude-tree-guard" / f"s{n}b").glob("*/state"))
+    out.append((f"TG{n}", "start はリポジトリの外・agent_id が空なら 0 で控えを残さない", None if ok else f"outside={p1.returncode} empty={p2.returncode}"))
+
+    n += 1
+    empty = root / f"r{n}"
+    empty.mkdir()
+    git(empty, "init", "-q", "-b", "main")
+    write(empty, "a.ts", "1\n")
+    run("start", empty, session=f"s{n}")
+    write(empty, "a.ts", "2\n")
+    p = run("stop", empty, session=f"s{n}")
+    out.append((f"TG{n}", "HEAD の無いリポジトリでも控えて比べる", None if p.returncode == 2 and "a.ts" in p.stderr else f"exit {p.returncode}; {p.stderr!r}"))
+
+    n += 1
+    repo = make_repo(f"r{n}")
+    run("start", repo, session=f"s{n}")
+    (repo / ".git").rename(repo / ".git-away")
+    p = run("stop", repo, session=f"s{n}", extra_env={"GIT_CEILING_DIRECTORIES": str(root)})
+    (repo / ".git-away").rename(repo / ".git")
+    c = context(report(f"s{n}"))
+    ok = p.returncode == 0 and result(f"s{n}") == "unreadable" and "読めず" in c and "控えが無く" not in c
+    out.append((f"TG{n}", "終了時に状態を読めなければ unreadable と記録し、「控えが無い」と取り違えずに知らせる", None if ok else f"exit {p.returncode}; result={result(f's{n}')!r}; context={c!r}"))
+
+    # 再開と、止まり直したとき
+    n += 1
+    repo = make_repo(f"r{n}")
+    s = f"s{n}"
+    run("start", repo, session=s)
+    p1 = run("stop", repo, session=s)
+    write(repo, "notes.md", "親が書いた\n")  # 検証役が終わった後に、親が書く
+    run("start", repo, session=s)  # 再開
+    p2 = run("stop", repo, session=s)
+    ok = p1.returncode == 0 and p2.returncode == 0 and result(s) == "same"
+    out.append((f"TG{n}", "same で終わった後の再開は控え直し、その間の親の書き込みを数えない", None if ok else f"exit {p1.returncode}/{p2.returncode}; result={result(s)!r}"))
+
+    n += 1
+    repo = make_repo(f"r{n}")
+    s = f"s{n}"
+    run("start", repo, session=s)
+    write(repo, "u/v.ts", "1\n")
+    run("stop", repo, session=s)  # differs
+    write(repo, "u/w.ts", "1\n")
+    run("start", repo, session=s)  # 違いが残ったまま再開
+    p = run("stop", repo, session=s)
+    out.append((f"TG{n}", "違いが残ったままの再開は控え直さない（汚れた状態を控えにしない）",
+                None if p.returncode == 0 and result(s) == "not-returned" else f"exit {p.returncode}; result={result(s)!r}"))
+
+    n += 1
+    repo = make_repo(f"r{n}")
+    s = f"s{n}"
+    run("start", repo, session=s)
+    run("stop", repo, session=s)  # same で終わる
+    write(repo, "notes.md", "親が書いた\n")
+    p = run("stop", repo, session=s)  # 背景の作業の終わりなどで、start なしに止まり直す
+    c = context(report(s))
+    p2 = run("stop", repo, session=s)
+    ok = p.returncode == 0 and result(s) == "late-diff" and "notes.md" in c and "差し戻していない" in c and p2.returncode == 0 and not context(report(s))
+    out.append((f"TG{n}", "一度終わった後に止まり直したら差し戻さず late-diff として 1 回だけ知らせる", None if ok else f"exit {p.returncode}; result={result(s)!r}; context={c!r}"))
+
     return out
 
 

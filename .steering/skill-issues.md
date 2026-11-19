@@ -76,3 +76,8 @@
 
 - 事象: `validate:portability` の前後を比べるため `git stash` を流したところ、sandbox が `.claude/` の下を書かせず `unable to unlink old ...` で途中まで失敗した。stash の項目だけが残り、作業ツリーは変わらなかった（stash と差分 0 を確かめた）
 - 期待: sandbox の中では、作業ツリーを動かす git（stash・checkout・reset）で前後を比べない。前の版は `git show HEAD:<パス>` か `git worktree` でなく一時ディレクトリへの `git archive` で取り出して比べる
+
+## 20261119 — make-copy.sh は TMPDIR が無いと必ず失敗する（verify-tree-guard のレビューの指摘 7）
+
+- 事象: sandbox を使わない配置先（Linux など）では TMPDIR が無いことが多く、検証役も親も再現できずに読みで判定する。設計どおり（sandbox の中で /tmp に落とすと拒まれ、cd の失敗の元になる）
+- 期待: 雛形は sandbox を必須にしているので、今は直さない。sandbox を使わない配置先が出たら、TMPDIR が無いときだけ /tmp に落とすかを決める
