@@ -43,7 +43,7 @@ design.md が APPROVED になり、`20261116-exemption-visibility` が main に�
 
 - [x] ★ `t2-shallow-test` を 1 回、`l1-large-diff` を 3 回、`x1-exemption-added` を 1 回流す（2〜2.35 ドル。ケースごとに `--runs` を表の回数で必ず付ける）。grader ごとの合否を読み、t2 の trace で検証役が `make-copy.sh` を呼んだことと、`stop-tree-checked` の合否を確かめる。最終回答をこのフォルダに写し、結論と、流さなかったケース（n1・p2・r-c・t1）と理由を decisions.md に書く（20261119。2.24 ドル。全ケース全 grader 合格。検証役は make-copy.sh と cd <パス> && を守った。decisions.md に結論と流さなかったケースを書いた）
 - [x] 無料の検査を全部流す（`validate`・`validate:portability`・`test:hooks`・`test:skills`・`test:sandbox`・`lint`）。コマンドと結果を書く（20261119。validate 11/11・validate:portability rc=0・test:hooks 516/516・test:skills 全件・test:sandbox 0 failed・lint 通過）
-- [ ] 普段のセッションで、このブランチの差分に frontend-code-review をかけ、見張りの記録（`${TMPDIR}/claude-tree-guard/`）に「確かめた」が残ることを確かめる（一回限りと decisions.md に書く）。出た指摘を直す
+- [ ] 普段のセッションで、このブランチの差分に frontend-code-review をかけ、見張りの記録（`${TMPDIR}/claude-tree-guard/`）に「確かめた」が残ることを確かめる（一回限りと decisions.md に書く）。出た指摘を直す（20261119 途中。レビューは済み（review-result.md。見張りの記録は same。一回限り）。指摘 1〜5・8〜15 を直して 49585cb。無料の検査は全部通過（test:hooks 530/530）。残り: 壊した hook で ref をブランチだけにしたときに TG26（タグ）が落ちるかを確かめ直す（自動の検査では落ちなかったが、手で流すと hook はタグを見逃した。検査の流し方の問題の疑い）。直した hook は評価で流していない。課金の t2 を 1 回流し直すかを決める）
 - [ ] `.steering/skill-issues.md` の 20261114「review-verify の再現が作業ツリーに書き込んだ」に、入れた対策を 1 行添える
 - [ ] tasklist.md を更新する
 - [ ] pr-create で PR にする（本文に、決めたこと・前提の確かめの結果・回帰の結果を書く）
