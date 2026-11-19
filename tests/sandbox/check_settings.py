@@ -208,6 +208,50 @@ def check_stop_hooks(settings: dict, gated: set[str], hook_text: str | None = No
     return None
 
 
+TREE_GUARD = "subagent-tree-guard.sh"
+# (イベント, 当たるべき agent・ツールの名前, 当たってはいけない名前, モード)
+TREE_GUARD_REGS = (
+    ("SubagentStart", "review-verify", "review-bug", "start"),
+    ("SubagentStop", "review-verify", "review-bug", "stop"),
+    ("PostToolUse", "Agent", "Edit", "report"),
+    ("Stop", None, None, "report"),
+)
+
+
+def check_tree_guard(settings: dict, gated: set[str]) -> str | None:
+    """見張りの hook が、検証役だけに当たる matcher で start・stop、Agent の後と Stop で report として登録されている。"""
+    problems = []
+    for event, hit, miss, mode in TREE_GUARD_REGS:
+        found = False
+        for group in settings.get("hooks", {}).get(event, []):
+            for h in group.get("hooks", []):
+                cmd = h.get("command", "")
+                if TREE_GUARD not in HOOK_PATH_RE.findall(cmd) or not re.search(rf"{re.escape(TREE_GUARD)}\s+{mode}\b", cmd):
+                    continue
+                matcher = group.get("matcher", "")
+                if hit is None:
+                    found = True
+                elif matcher and re.search(matcher, hit) and not re.search(matcher, miss):
+                    found = True
+        if not found:
+            problems.append(f"{event} に {TREE_GUARD} {mode}" + (f"（matcher が {hit} だけに当たる）" if hit else ""))
+    return f"見張りの登録が無い・違う: {problems}" if problems else None
+
+
+def find_hook(settings: dict, event: str, name: str) -> tuple[list, int]:
+    """名前で hook の位置を探す（並びの位置に頼ると、登録を足したときに壊す対象がずれる）。"""
+    for group in settings["hooks"][event]:
+        for i, h in enumerate(group["hooks"]):
+            if name in HOOK_PATH_RE.findall(h.get("command", "")):
+                return group["hooks"], i
+    raise KeyError(f"{event} に {name} が無い")
+
+
+def drop_hook(settings: dict, event: str, name: str) -> None:
+    hooks, i = find_hook(settings, event, name)
+    hooks.pop(i)
+
+
 CHECKS: list[tuple[str, Callable[[dict, set[str]], str | None]]] = [
     ("(s) GATED_PATHS と permissions.ask の Edit(./...) が一致", check_s),
     ("(t) allow に Bash(git ...) が無い", check_t),
@@ -220,6 +264,7 @@ CHECKS: list[tuple[str, Callable[[dict, set[str]], str | None]]] = [
     ("必須の deny・ask が揃っている", check_permissions),
     ("guard hook が PreToolUse の matcher Bash にある", check_hooks),
     ("Stop に型検査とテストのゲートがあり、ゲートの timeout が中の打ち切りより長い", check_stop_hooks),
+    ("見張りの hook が検証役の開始・終了と Agent の後・Stop に登録されている", check_tree_guard),
 ]
 
 
@@ -249,8 +294,19 @@ def self_test(settings: dict, gated: set[str]) -> list[str]:
         ("permissions-deny", check_permissions, lambda s: s["permissions"]["deny"].remove("Bash(git reset --hard*)")),
         ("permissions-read", check_permissions, lambda s: s["permissions"]["deny"].remove("Read(~/.ssh/**)")),
         ("permissions-ask", check_permissions, lambda s: s["permissions"]["ask"].remove("Bash(git push*)")),
-        ("stop-gate-missing", check_stop_hooks, lambda s: s["hooks"]["Stop"][0]["hooks"].pop()),
-        ("stop-typecheck-missing", check_stop_hooks, lambda s: s["hooks"]["Stop"][0]["hooks"].pop(0)),
+        ("stop-gate-missing", check_stop_hooks, lambda s: drop_hook(s, "Stop", "stop-test-gate.sh")),
+        ("stop-typecheck-missing", check_stop_hooks, lambda s: drop_hook(s, "Stop", "stop-typecheck.sh")),
+        ("guard-start-missing", check_tree_guard, lambda s: s["hooks"].pop("SubagentStart")),
+        ("guard-stop-missing", check_tree_guard, lambda s: drop_hook(s, "SubagentStop", TREE_GUARD)),
+        ("guard-report-agent-missing", check_tree_guard, lambda s: drop_hook(s, "PostToolUse", TREE_GUARD)),
+        ("guard-report-stop-missing", check_tree_guard, lambda s: drop_hook(s, "Stop", TREE_GUARD)),
+        ("guard-matcher-all", check_tree_guard, lambda s: s["hooks"]["SubagentStart"][0].update(matcher=".*")),
+        ("guard-matcher-none", check_tree_guard, lambda s: s["hooks"]["SubagentStop"][0].pop("matcher")),
+        ("guard-matcher-other", check_tree_guard, lambda s: s["hooks"]["SubagentStart"][0].update(matcher="^review-bug$")),
+        ("guard-report-matcher", check_tree_guard, lambda s: find_hook(s, "PostToolUse", TREE_GUARD)[0].clear() or s["hooks"]["PostToolUse"].append(
+            {"matcher": "Edit", "hooks": [{"type": "command", "command": f'bash ".claude/hooks/{TREE_GUARD} report"'}]})),
+        ("guard-wrong-mode", check_tree_guard, lambda s: s["hooks"]["SubagentStop"][0]["hooks"][0].update(
+            command=s["hooks"]["SubagentStop"][0]["hooks"][0]["command"].replace(" stop", " start"))),
     ]
     silent = [name for name, fn, broken in cases if fn(mutate(broken), gated) is None]
     if check_stop_hooks(settings, gated, hook_text="# 打ち切りの行が無い hook\n") is None:
@@ -259,7 +315,11 @@ def self_test(settings: dict, gated: set[str]) -> list[str]:
     fixed = 'TIMEOUT="${STOP_TEST_GATE_TIMEOUT:-150}"\n'
 
     def with_gate_timeout(t: int) -> dict:
-        return mutate(lambda s: s["hooks"]["Stop"][0]["hooks"][-1].update(timeout=t))
+        def set_timeout(s: dict) -> None:
+            hooks, i = find_hook(s, "Stop", "stop-test-gate.sh")
+            hooks[i]["timeout"] = t
+
+        return mutate(set_timeout)
 
     for t in (120, 150 + GATE_MARGIN - 1):  # 打ち切りより短い・余裕が 1 秒足りない
         if check_stop_hooks(with_gate_timeout(t), gated, hook_text=fixed) is None:
