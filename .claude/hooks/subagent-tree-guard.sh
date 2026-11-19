@@ -2,10 +2,13 @@
 # 検証役（review-verify）の作業ツリーの見張り。開始時に控え、終了時に比べ、違えば 1 回だけ差し戻す。
 # 事故を防ぐのではなく、起きた後に気づくための仕組み（検証役の Bash は残すため）。
 #
-# Usage: subagent-tree-guard.sh start|stop   （入力は hook の JSON を stdin で）
+# Usage: subagent-tree-guard.sh start|stop|report   （入力は hook の JSON を stdin で）
 #   start  SubagentStart: リポジトリの根と中身を控える。控えが既にあれば上書きしない（再開で汚れた状態を控え直さない）
 #   stop   SubagentStop:  控えた根を今と比べ、結果を記録する。違えば 1 回目だけ exit 2 で差し戻す
-# 記録: ${TMPDIR}/claude-tree-guard/<session_id>/<agent_id>/ の root・state・result・diff・rejected
+#   report PostToolUse(Agent)・親の Stop: その session の未報告の記録を親に知らせる。違いの残ったもの・戻ったものは 1 回ずつ、
+#          確かめていないものは session ごとに 1 回。PostToolUse は additionalContext で、Stop は exit 2 で知らせる
+#          （背景で起動した agent は PostToolUse が起動の直後に来るので、親の Stop でも拾う）
+# 記録: ${TMPDIR}/claude-tree-guard/<session_id>/<agent_id>/ の root・state・result・diff・rejected・reported
 #   result は same（同じ）・differs（違い、差し戻した）・returned（差し戻しの後に戻った）・
 #   not-returned（差し戻しの後も違う）・unchecked（控えが無く確かめていない）
 # git・jq が無い・リポジトリの外では素通しする（ほかの hook と同じ）。
@@ -152,6 +155,48 @@ case "$mode" in
       echo "戻したものと戻せなかったものを、返す結果の先頭に書くこと。"
     } >&2
     exit 2
+    ;;
+  report)
+    # 背景の agent の起動直後（まだ終わっていない）は読まない
+    status=$(printf '%s' "$input" | jq -r '.tool_response.status // ""' 2>/dev/null)
+    [ "$status" = async_launched ] && exit 0
+    [ -d "$sdir" ] || exit 0
+    msg=""
+    unchecked=0
+    for d in "$sdir"/*/; do
+      d=${d%/}
+      [ -f "$d/result" ] && [ ! -f "$d/reported" ] || continue
+      r=$(cat "$d/result")
+      id=${d##*/}
+      root_of=$(cat "$d/root" 2>/dev/null)
+      case "$r" in
+        not-returned)
+          msg+="- 検証役（${id}）の間に ${root_of} の作業ツリーが変わり、差し戻した後も違いが残っている:"$'\n'
+          msg+="$(sed 's/^/  /' "$d/diff" 2>/dev/null | head -30)"$'\n'
+          ;;
+        returned)
+          msg+="- 検証役（${id}）の間に ${root_of} の作業ツリーが変わったが、差し戻した後に元に戻った。戻る前の違い:"$'\n'
+          msg+="$(sed 's/^/  /' "$d/diff" 2>/dev/null | head -30)"$'\n'
+          ;;
+        unchecked) unchecked=1 ;;
+        *) continue ;; # same は知らせない。differs は検証役の次の終了で決まる
+      esac
+      : >"$d/reported"
+    done
+    if [ "$unchecked" = 1 ] && [ ! -f "$sdir/unchecked-reported" ]; then
+      : >"$sdir/unchecked-reported"
+      msg+="- 検証役の作業ツリーを確かめていないものがある（開始時の控えが無く、見張りが動いていない）。レビューの報告の「レビューできなかったもの」に書くこと"$'\n'
+    fi
+    [ -n "$msg" ] || exit 0
+    text="作業ツリーの見張り（subagent-tree-guard）からの知らせ:"$'\n'"${msg}"
+    text+="これは検証役の間に変わったことを示すだけで、検証役のせいとは限らない（ユーザーが同時に編集した場合もある）。"
+    text+="自分では戻さず（git restore・git checkout・git reset を打たない）、違いの一覧をユーザーに示すこと。"
+    if [ "$(printf '%s' "$input" | jq -r '.hook_event_name // ""' 2>/dev/null)" = Stop ]; then
+      printf '%s\n' "$text" >&2
+      exit 2
+    fi
+    jq -n --arg t "$text" '{hookSpecificOutput: {hookEventName: "PostToolUse", additionalContext: $t}}'
+    exit 0
     ;;
   *)
     exit 0

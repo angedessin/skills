@@ -1556,6 +1556,105 @@ def check_tree_guard(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | N
         if rec(f"s{n}").exists():
             problems.append("記録を残した")
         out.append((f"TG{n}", label, "; ".join(problems) or None))
+
+    # report — 入力の形は評価の試し実行（20261117）で取った実物に合わせる
+    def report(session: str, event: str = "PostToolUse", status: str = "completed") -> subprocess.CompletedProcess[str]:
+        if event == "Stop":
+            payload = {"session_id": session, "hook_event_name": "Stop", "stop_hook_active": False, "cwd": str(root)}
+        else:
+            payload = {"session_id": session, "hook_event_name": "PostToolUse", "tool_name": "Agent", "cwd": str(root),
+                       "tool_response": {"status": status, "agentId": "a1"}}
+        env = {**genv, "TMPDIR": str(guard_tmp)}
+        return subprocess.run(["bash", str(hook), "report"], input=json.dumps(payload), capture_output=True, text=True, cwd=str(root), env=env, check=False, timeout=60)
+
+    def context(p: subprocess.CompletedProcess[str]) -> str:
+        try:
+            return json.loads(p.stdout)["hookSpecificOutput"]["additionalContext"] if p.stdout.strip() else ""
+        except (json.JSONDecodeError, KeyError):
+            return f"<壊れた JSON: {p.stdout!r}>"
+
+    def session_with(name: str, agents: dict[str, list]) -> None:
+        """agents = {agent_id: [動き...]}。動きは "start"・"stop"・関数（repo を変える）。"""
+        for agent, steps in agents.items():
+            repo = root / f"{name}-{agent}"
+            if not repo.exists():  # 同じ session と agent を続けて流すときは、前の repo を使う
+                make_repo(repo.name)
+            for step in steps:
+                if step == "start":
+                    run("start", repo, agent=agent, session=name)
+                elif step == "stop":
+                    run("stop", repo, agent=agent, session=name)
+                else:
+                    step(repo)
+
+    def add_file(repo: Path) -> None:
+        write(repo, "u/leftover.ts", "1\n")
+
+    def drop_file(repo: Path) -> None:
+        (repo / "u/leftover.ts").unlink()
+
+    rp = 0
+
+    def rcase(label: str, ok: bool, detail: str) -> None:
+        nonlocal rp
+        rp += 1
+        out.append((f"RP{rp}", label, None if ok else detail))
+
+    p = report("none")
+    rcase("記録が無ければ何も出さない", p.returncode == 0 and not p.stdout and not p.stderr, f"exit {p.returncode}; {p.stdout!r} {p.stderr!r}")
+
+    session_with("rp-left", {"a1": ["start", add_file, "stop", "stop"]})  # 差し戻しの後も残った
+    p1, p2 = report("rp-left"), report("rp-left")
+    c1 = context(p1)
+    rcase("違いが残った記録を、違いの一覧と「自分では戻さず」つきで知らせる",
+          p1.returncode == 0 and "u/leftover.ts" in c1 and "残っている" in c1 and "自分では戻さず" in c1, f"exit {p1.returncode}; context={c1!r}")
+    rcase("同じ記録を 2 回知らせない", p2.returncode == 0 and not p2.stdout, f"2 回目: {p2.stdout!r}")
+
+    session_with("rp-back", {"a1": ["start", add_file, "stop", drop_file, "stop"]})
+    c = context(report("rp-back"))
+    rcase("戻った記録は「元に戻った」と戻る前の違いを知らせる", "元に戻った" in c and "u/leftover.ts" in c, f"context={c!r}")
+
+    session_with("rp-same", {"a1": ["start", "stop"]})
+    p = report("rp-same")
+    rcase("違いの無い記録は知らせない", p.returncode == 0 and not p.stdout, f"{p.stdout!r}")
+
+    session_with("rp-pending", {"a1": ["start", add_file, "stop"]})  # 差し戻した直後（検証役はまだ動いている）
+    p = report("rp-pending")
+    session_with("rp-pending", {"a1": ["stop"]})  # 検証役が戻さずに終わった
+    c = context(report("rp-pending"))
+    rcase("差し戻した直後の記録は知らせず、検証役が終わった後に知らせる", p.returncode == 0 and not p.stdout and "u/leftover.ts" in c, f"直後={p.stdout!r} 後={c!r}")
+
+    session_with("rp-unchecked", {"a1": ["stop"], "a2": ["stop"]})
+    p1, p2 = report("rp-unchecked"), report("rp-unchecked")
+    c1 = context(p1)
+    session_with("rp-unchecked", {"a3": ["stop"]})
+    p3 = report("rp-unchecked")
+    rcase("確かめていない記録は session ごとに 1 回だけ知らせる",
+          "確かめていない" in c1 and c1.count("確かめていない") == 1 and not p2.stdout and not p3.stdout, f"1={c1!r} 2={p2.stdout!r} 3={p3.stdout!r}")
+
+    session_with("rp-async", {"a1": ["start", add_file, "stop", "stop"]})
+    pa = report("rp-async", status="async_launched")
+    pb = report("rp-async")
+    rcase("背景の agent の起動直後（async_launched）は読まず、印も付けない",
+          not pa.stdout and "u/leftover.ts" in context(pb), f"async={pa.stdout!r} 後={pb.stdout!r}")
+
+    session_with("rp-stop", {"a1": ["start", add_file, "stop", "stop"]})
+    s1, s2 = report("rp-stop", event="Stop"), report("rp-stop", event="Stop")
+    rcase("親の Stop では exit 2 と stderr で 1 回だけ知らせる",
+          s1.returncode == 2 and "u/leftover.ts" in s1.stderr and not s1.stdout and s2.returncode == 0 and not s2.stderr,
+          f"1: exit {s1.returncode} {s1.stderr!r}; 2: exit {s2.returncode} {s2.stderr!r}")
+
+    session_with("rp-mine", {"a1": ["start", "stop"]})
+    session_with("rp-other", {"a1": ["start", add_file, "stop", "stop"]})
+    p = report("rp-mine")
+    rcase("別の session の記録は知らせない", not p.stdout, f"{p.stdout!r}")
+
+    old = guard_tmp / "claude-tree-guard" / "rp-old"
+    (old / "a1").mkdir(parents=True)
+    ago = time.time() - 2 * 86400
+    os.utime(old, (ago, ago))
+    session_with("rp-new", {"a1": ["start"]})
+    rcase("start が 1 日より古い session の記録を消す", not old.exists() and rec("rp-new").is_dir(), f"old={old.exists()} new={rec('rp-new').is_dir()}")
     return out
 
 
