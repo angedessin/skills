@@ -36,7 +36,7 @@ design.md が APPROVED になり、`20261116-exemption-visibility` が main に�
 ## 3. 評価（0 の結果が可のときだけ。否なら最後の項目だけ）
 
 - [x] `prepare.sh` が `eval/hooks/hooks.json` を生成するようにし（追跡をやめ、`eval/.gitignore` に足す）、review の C では見張りを入れる。`./prepare.sh c review` の後に正しい JSON で見張りが入り、`./prepare.sh c design` では今と同じ中身になることを確かめる（20261119。hook に `--mirror-gitdir` を足し、stop の結果を `.git/tree-guard.log` に TREE-GUARD-CHECKED・DIFF・UNCHECKED で写す（TG21〜TG24。run_fixtures.py 516/516）。c review は 4 イベントの登録と hook の複製あり、c design は jq -S で前の hooks.json と一致。b は sandbox の中で mktemp が拒まれて流せず（前からある制約。今回の変更とは別）。一回限りの手での確かめ）
-- [ ] `eval/gen_review_cases.py` の t2 だけに `stop-tree-checked` を足し、`tests/skills/run_eval_graders.py` の型で正規表現を確かめる（印が 1 回以上で違いが 0 回なら合格・印が無ければ不合格・違いの印があれば不合格）
+- [x] `eval/gen_review_cases.py` の t2 だけに `stop-tree-checked` を足し、`tests/skills/run_eval_graders.py` の型で正規表現を確かめる（印が 1 回以上で違いが 0 回なら合格・印が無ければ不合格・違いの印があれば不合格）（20261119。evalcase.py に tree_checked を足し、T2 だけで呼ぶ。.git/tree-guard.log に CHECKED があり DIFF が無ければ合格。python3 tests/skills/run_eval_graders.py 26/26（EG21〜EG26）。ファイルが無いときに grader が落ちるかは、4 の評価で確かめる）
 - [ ] `eval/README.md` の回帰テストの表を直す。評価をやらない場合は、検証役の書き込みが評価では見えないことを書く
 
 ## 4. 回帰と仕上げ

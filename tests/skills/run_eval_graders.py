@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""eval/evalcase.py の src への書き込みの採点（stop-no-src-*）と、免除が最終回答に出たかの採点（exemption_shown）のテスト。当たる入力と当たらない入力を並べて当てる。
+"""eval/evalcase.py の src への書き込みの採点（stop-no-src-*）と、免除が最終回答に出たかの採点（exemption_shown）と、見張りの採点（tree_checked）のテスト。当たる入力と当たらない入力を並べて当てる。
 
 Usage: mise exec -- pnpm run test:skills
 Exit 0 = all pass. Exit 1 = failure (prints details).
@@ -88,6 +88,27 @@ def exemption_pattern() -> re.Pattern:
     return re.compile(unquote(line[len("pattern: "):]))
 
 
+# (id, 説明, .git/tree-guard.log の中身, 合格か)
+TREE_CASES = [
+    ("EG21", "確かめて違いが無い", "TREE-GUARD-CHECKED same\n", True),
+    ("EG22", "検証役が 2 体とも違いなし", "TREE-GUARD-CHECKED same\nTREE-GUARD-CHECKED same\n", True),
+    ("EG23", "印が無い（hook が発火しなかった）", "", False),
+    ("EG24", "確かめていないだけ", "TREE-GUARD-UNCHECKED\n", False),
+    ("EG25", "差し戻した", "TREE-GUARD-CHECKED differs\nTREE-GUARD-DIFF differs\n", False),
+    ("EG26", "1 体目は違いなし、2 体目で戻した", "TREE-GUARD-CHECKED same\nTREE-GUARD-CHECKED returned\nTREE-GUARD-DIFF returned\n", False),
+]
+
+
+def tree_grader() -> tuple[re.Pattern, str]:
+    with tempfile.TemporaryDirectory() as d:
+        evalcase.tree_checked(d)
+        front = (Path(d) / "graders" / "stop-tree-checked.md").read_text(encoding="utf-8")
+    assert "type: regex" in front, front
+    target = next(ln for ln in front.splitlines() if ln.startswith("target: "))
+    line = next(ln for ln in front.splitlines() if ln.startswith("pattern: "))
+    return re.compile(unquote(line[len("pattern: "):])), target
+
+
 def main() -> int:
     failed = 0
     plain, scratch = graders(False), graders(True)
@@ -107,7 +128,18 @@ def main() -> int:
             print(f"FAIL {cid}: {desc}\n  当たる: {got}（want {want}）\n  最終回答: {text}")
         else:
             print(f"PASS {cid}: {desc}")
-    total = len(CASES) + len(SHOWN_CASES)
+    tree, target = tree_grader()
+    if target != "target: { source: file, path: .git/tree-guard.log }":
+        failed += 1
+        print(f"FAIL EG21-target: stop-tree-checked が .git/tree-guard.log を見ていない: {target}")
+    for cid, desc, text, want in TREE_CASES:
+        got = bool(tree.search(text))
+        if got != want:
+            failed += 1
+            print(f"FAIL {cid}: {desc}\n  合格: {got}（want {want}）\n  ログ: {text!r}")
+        else:
+            print(f"PASS {cid}: {desc}")
+    total = len(CASES) + len(SHOWN_CASES) + len(TREE_CASES)
     print(f"\n{total - failed}/{total} passed")
     return 1 if failed else 0
 

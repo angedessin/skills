@@ -128,6 +128,17 @@ def exemption_shown(d, name, path, reason):
     grader(f"{d}/graders/{name}.md", {"type": "regex", "pattern": "'" + pattern.replace("'", "''") + "'"})
 
 
+def tree_checked(d):
+    """検証役の作業ツリーの見張りが動き、違いが出なかったことを見る grader（stop-tree-checked）。
+    見張りの hook（prepare.sh が review の C に入れる）が .git/tree-guard.log に結果を写す。trace には hook の出力が載らない（20261117 に確かめた）。
+    印が 1 行も無い（hook が発火しなかった・ファイルが無い）ときも落とし、見張りが黙って止まったことに気づけるようにする。"""
+    pattern = r"^(?![\s\S]*TREE-GUARD-DIFF)[\s\S]*TREE-GUARD-CHECKED"
+    grader(f"{d}/graders/stop-tree-checked.md", {
+        "type": "regex", "target": "{ source: file, path: .git/tree-guard.log }",
+        "pattern": "'" + pattern.replace("'", "''") + "'",
+    })
+
+
 TRACE = "trace"
 
 
