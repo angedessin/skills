@@ -30,7 +30,7 @@ design.md が APPROVED になり、`20261116-exemption-visibility` が main に�
 - [x] 差し戻しの上限と記録を足し、フィクスチャで確かめる（1 回だけ差し戻す・2 回目は違いが同じでも変わっていても 0・戻った／戻っていないの記録・`start` の 2 回目は上書きしない・控えが無い・git や jq が無い）（20261118。1 つ目と同じ hook に書いた。TG14〜TG20 で確かめた。記録は result に same・differs・returned・not-returned・unchecked）
 - [x] `report` を、0 で決めたイベントに合わせて書き、フィクスチャで確かめる（違いのあった未報告の記録を知らせる・「確かめていない」は session ごとに 1 回知らせる・2 回知らせない・記録が無ければ何も出さない・古い記録の掃除）（20261119。PostToolUse は additionalContext、親の Stop は exit 2。async_launched は読まない。差し戻した直後の differs は知らせず、検証役が終わってから知らせる。python3 tests/hooks/run_fixtures.py 512/512（RP1〜RP11）。壊した hook 6 種をすべて捕まえた）
 - [x] `settings.json` と `templates/settings.template.json` に登録を足し、`tests/sandbox/check_settings.py` に検査と self-test を足す（壊すと落ちることを確かめる）。`Stop` に足すなら別のグループにし、既存の Stop のゲートの self-test を名前で探す形に直して、足した後も壊すと落ちることを確かめる（20261119。matcher は `^review-verify$`。report は PostToolUse の別グループ（Agent）と Stop の別グループ。self-test の Stop のゲートを名前で探す形に直した。python3 tests/sandbox/check_settings.py OK: 0 failed、見張りの self-test 9 種）
-- [ ] `frontend-code-review/SKILL.md` に、知らせを受けたときの手順（自分では戻さない・範囲の行の直後に警告・「確かめていない」は「レビューできなかったもの」に書く・`Stop` の分岐なら返答と `review-result.md` に追記）を足し、版を上げる（`validate` が通ることを確かめる）
+- [x] `frontend-code-review/SKILL.md` に、知らせを受けたときの手順（自分では戻さない・範囲の行の直後に警告・「確かめていない」は「レビューできなかったもの」に書く・`Stop` の分岐なら返答と `review-result.md` に追記）を足し、版を上げる（`validate` が通ることを確かめる）（20261119。Step 3 に受けたときの手順、Step 4 に範囲の行の直後の警告と、報告の後に届いたときの追記を書いた。版は同じブランチで上げた 2.3 のまま。validate 11/11。振る舞いは 4 の評価で確かめる）
 - [x] README の hook の依存の一覧・「hook と設定」・コピーの手順・スキルのフォルダのスクリプトを直し、`validate` で一覧と実体の一致を確かめる（20261119。登録と同時に直した。validate 11/11）
 
 ## 3. 評価（0 の結果が可のときだけ。否なら最後の項目だけ）
