@@ -55,7 +55,7 @@ esac
 rm -rf evals/design evals/impl evals/knowledge evals/pr evals/review reserve
 for g in design impl knowledge pr review; do python3 "gen_${g}_cases.py" "$PWD" >/dev/null; done
 
-rm -rf skills agents hooks/skill-claude-md.md .claude-plugin
+rm -rf skills agents hooks/skill-claude-md.md hooks/hooks.json hooks/subagent-tree-guard.sh .claude-plugin
 mkdir -p skills agents .claude-plugin
 
 if [ "${cond}" = b ]; then
@@ -77,6 +77,31 @@ else
 fi
 f="conditions/${cond}/${group}-skill-claude-md.md"
 if [ -f "$f" ]; then cp "$f" hooks/skill-claude-md.md; fi
+
+# hooks.json は毎回作る。review の C だけ、検証役の作業ツリーの見張りを入れる（マスターの .claude/hooks/ が正本）。
+# 結果はワークスペースの .git/tree-guard.log にも写し、t2 の grader stop-tree-checked が読む（trace に hook の出力が載らないため）
+guard=0
+if [ "${cond}" = c ] && [ "${group}" = review ]; then
+  cp ../.claude/hooks/subagent-tree-guard.sh hooks/
+  guard=1
+fi
+python3 -I - "$PWD/hooks/hooks.json" "$guard" <<'PY'
+import json, sys
+path, guard = sys.argv[1], sys.argv[2] == "1"
+def cmd(script, *args):
+    return {"type": "command", "command": " ".join([f'bash "${{CLAUDE_PLUGIN_ROOT}}/hooks/{script}"', *args])}
+hooks = {"SessionStart": [{"hooks": [cmd("inject-claude-md.sh")]}]}
+if guard:
+    g = "subagent-tree-guard.sh"
+    verify = "^eval-c:review-verify$"
+    hooks["SubagentStart"] = [{"matcher": verify, "hooks": [{**cmd(g, "start", "--mirror-gitdir"), "timeout": 60}]}]
+    hooks["SubagentStop"] = [{"matcher": verify, "hooks": [{**cmd(g, "stop", "--mirror-gitdir"), "timeout": 60}]}]
+    hooks["PostToolUse"] = [{"matcher": "Agent", "hooks": [{**cmd(g, "report"), "timeout": 15}]}]
+    hooks["Stop"] = [{"hooks": [{**cmd(g, "report"), "timeout": 15}]}]
+with open(path, "w", encoding="utf-8") as f:
+    json.dump({"hooks": hooks}, f, ensure_ascii=False, indent=2)
+    f.write("\n")
+PY
 
 cat > .claude-plugin/plugin.json <<JSON
 {

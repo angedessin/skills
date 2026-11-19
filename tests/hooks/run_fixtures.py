@@ -1557,6 +1557,33 @@ def check_tree_guard(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str | N
             problems.append("記録を残した")
         out.append((f"TG{n}", label, "; ".join(problems) or None))
 
+    # --mirror-gitdir（評価の grader が読む .git/tree-guard.log）
+    def mirror_case(label: str, change, stops: int, want: list[str], flag: bool = True) -> None:
+        nonlocal n
+        n += 1
+        repo = make_repo(f"r{n}")
+        args = ["--mirror-gitdir"] if flag else []
+        payload = {"session_id": f"s{n}", "agent_id": "a1", "cwd": str(repo)}
+        env = {**genv, "TMPDIR": str(guard_tmp)}
+
+        def call(mode: str, with_state: bool = True) -> None:
+            subprocess.run(["bash", str(hook), mode, *args], input=json.dumps(payload), capture_output=True, text=True, cwd=str(repo), env=env, check=False, timeout=60)
+
+        if change is not None:
+            call("start")
+            change(repo)
+        for _ in range(stops):
+            call("stop")
+        log = repo / ".git" / "tree-guard.log"
+        got = log.read_text().splitlines() if log.is_file() else []
+        out.append((f"TG{n}", label, None if got == want else f"log={got!r}（期待 {want!r}）"))
+
+    mirror_case("--mirror-gitdir: 違いが無ければ CHECKED same だけを書く", lambda r: None, 1, ["TREE-GUARD-CHECKED same"])
+    mirror_case("--mirror-gitdir: 差し戻しと、戻らなかったことを DIFF つきで書く", commit_one, 2,
+                ["TREE-GUARD-CHECKED differs", "TREE-GUARD-DIFF differs", "TREE-GUARD-CHECKED not-returned", "TREE-GUARD-DIFF not-returned"])
+    mirror_case("--mirror-gitdir: 控えが無ければ UNCHECKED を書く", None, 1, ["TREE-GUARD-UNCHECKED"])
+    mirror_case("引数が無ければ .git に書かない", commit_one, 1, [], flag=False)
+
     # report — 入力の形は評価の試し実行（20261117）で取った実物に合わせる
     def report(session: str, event: str = "PostToolUse", status: str = "completed") -> subprocess.CompletedProcess[str]:
         if event == "Stop":

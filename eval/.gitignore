@@ -6,3 +6,5 @@
 /.claude-plugin/
 /hooks/skill-claude-md.md
 /results-*.json
+/hooks/hooks.json
+/hooks/subagent-tree-guard.sh

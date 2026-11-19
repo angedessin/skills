@@ -12,8 +12,12 @@
 #   result は same（同じ）・differs（違い、差し戻した）・returned（差し戻しの後に戻った）・
 #   not-returned（差し戻しの後も違う）・unchecked（控えが無く確かめていない）
 # git・jq が無い・リポジトリの外では素通しする（ほかの hook と同じ）。
+#   --mirror-gitdir（2 つ目の引数）: stop の結果を、見張ったリポジトリの .git/tree-guard.log にも 1 行ずつ足す。
+#   評価（claude plugin eval）の grader は TMPDIR を読めず、ワークスペースのファイルしか見られないため。普段は付けない
 
 mode=${1:-}
+mirror=0
+[ "${2:-}" = --mirror-gitdir ] && mirror=1
 command -v jq >/dev/null 2>&1 || exit 0
 command -v git >/dev/null 2>&1 || exit 0
 input=$(cat)
@@ -100,6 +104,16 @@ describe() {
 
 record() { # $1 = 結果
   mkdir -p "$dir" 2>/dev/null && printf '%s\n' "$1" >"$dir/result"
+  [ "$mirror" = 1 ] || return 0
+  local r=${root:-$cwd} gd
+  gd=$(git -C "$r" rev-parse --absolute-git-dir 2>/dev/null) || return 0
+  case "$1" in
+    unchecked) echo "TREE-GUARD-UNCHECKED" ;;
+    same | returned | not-returned | differs) echo "TREE-GUARD-CHECKED $1" ;;
+  esac >>"$gd/tree-guard.log"
+  case "$1" in
+    differs | not-returned | returned) echo "TREE-GUARD-DIFF $1" >>"$gd/tree-guard.log" ;;
+  esac
 }
 
 case "$mode" in
