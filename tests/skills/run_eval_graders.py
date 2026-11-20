@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""eval/evalcase.py の src への書き込みの採点（stop-no-src-*）と、免除が最終回答に出たかの採点（exemption_shown）のテスト。当たる入力と当たらない入力を並べて当てる。
+"""eval/evalcase.py の src への書き込みの採点（stop-no-src-*）と、免除が最終回答に出たかの採点（exemption_shown）と、見張りの採点（tree_checked）のテスト。当たる入力と当たらない入力を並べて当てる。
 
 Usage: mise exec -- pnpm run test:skills
 Exit 0 = all pass. Exit 1 = failure (prints details).
@@ -88,6 +88,59 @@ def exemption_pattern() -> re.Pattern:
     return re.compile(unquote(line[len("pattern: "):]))
 
 
+# (id, 説明, .git/tree-guard.log の中身, 合格か)
+TREE_CASES = [
+    ("EG21", "確かめて違いが無い", "TREE-GUARD-CHECKED same\n", True),
+    ("EG22", "検証役が 2 体とも違いなし", "TREE-GUARD-CHECKED same\nTREE-GUARD-CHECKED same\n", True),
+    ("EG23", "印が無い（hook が発火しなかった）", "", False),
+    ("EG24", "確かめていないだけ", "TREE-GUARD-UNCHECKED\n", False),
+    ("EG25", "差し戻した", "TREE-GUARD-CHECKED differs\nTREE-GUARD-DIFF differs\n", False),
+    ("EG26", "1 体目は違いなし、2 体目で戻した", "TREE-GUARD-CHECKED same\nTREE-GUARD-CHECKED returned\nTREE-GUARD-DIFF returned\n", False),
+]
+
+
+def tree_grader() -> tuple[re.Pattern, str]:
+    with tempfile.TemporaryDirectory() as d:
+        evalcase.tree_checked(d)
+        front = (Path(d) / "graders" / "stop-tree-checked.md").read_text(encoding="utf-8")
+    assert "type: regex" in front, front
+    target = next(ln for ln in front.splitlines() if ln.startswith("target: "))
+    line = next(ln for ln in front.splitlines() if ln.startswith("pattern: "))
+    return re.compile(unquote(line[len("pattern: "):])), target
+
+
+def check_hooks_json() -> list[str]:
+    """prepare.sh が書く hooks.json: review の C だけに見張りを入れ、matcher は評価の plugin の検証役だけに当たる。"""
+    problems = []
+    plain = evalcase.hooks_json(False)["hooks"]
+    if set(plain) != {"SessionStart"}:
+        problems.append(f"見張りなしの hooks.json に SessionStart 以外がある: {sorted(plain)}")
+    hooks = evalcase.hooks_json(True)["hooks"]
+    want = {"SubagentStart": "start --mirror-gitdir", "SubagentStop": "stop --mirror-gitdir", "PostToolUse": "report", "Stop": "report"}
+    for event, args in want.items():
+        groups = hooks.get(event, [])
+        cmds = [h["command"] for g in groups for h in g["hooks"]]
+        if not any(c.endswith(f'subagent-tree-guard.sh" {args}') for c in cmds):
+            problems.append(f"{event} に subagent-tree-guard.sh {args} が無い: {cmds}")
+    for event in ("SubagentStart", "SubagentStop"):
+        m = (hooks.get(event) or [{}])[0].get("matcher", "")
+        if not (re.search(m, "eval-c:review-verify") and not re.search(m, "eval-c:review-bug") and not re.search(m, "review-verify")):
+            problems.append(f"{event} の matcher {m!r} が評価の検証役だけに当たらない")
+    if (hooks.get("PostToolUse") or [{}])[0].get("matcher") != "Agent":
+        problems.append("PostToolUse の matcher が Agent でない")
+    return problems
+
+
+def check_tree_grader_attached() -> list[str]:
+    """gen_review_cases.py が stop-tree-checked を t2 だけに付ける（検証役の動かないケースに付けると必ず落ちる）。"""
+    import subprocess
+    with tempfile.TemporaryDirectory() as d:
+        gen = Path(__file__).resolve().parents[2] / "eval" / "gen_review_cases.py"
+        subprocess.run([sys.executable, str(gen), d], check=True, capture_output=True)
+        got = sorted(p.parent.parent.name for p in Path(d).glob("evals/review/*/graders/stop-tree-checked.md"))
+    return [] if got == ["t2-shallow-test"] else [f"stop-tree-checked の付いたケース: {got}（期待 ['t2-shallow-test']）"]
+
+
 def main() -> int:
     failed = 0
     plain, scratch = graders(False), graders(True)
@@ -107,7 +160,26 @@ def main() -> int:
             print(f"FAIL {cid}: {desc}\n  当たる: {got}（want {want}）\n  最終回答: {text}")
         else:
             print(f"PASS {cid}: {desc}")
-    total = len(CASES) + len(SHOWN_CASES)
+    tree, target = tree_grader()
+    if target != "target: { source: file, path: .git/tree-guard.log }":
+        failed += 1
+        print(f"FAIL EG21-target: stop-tree-checked が .git/tree-guard.log を見ていない: {target}")
+    for cid, desc, text, want in TREE_CASES:
+        got = bool(tree.search(text))
+        if got != want:
+            failed += 1
+            print(f"FAIL {cid}: {desc}\n  合格: {got}（want {want}）\n  ログ: {text!r}")
+        else:
+            print(f"PASS {cid}: {desc}")
+    for cid, desc, fn in (("EG27", "評価の hooks.json に見張りが正しく入る", check_hooks_json),
+                          ("EG28", "stop-tree-checked は t2 だけに付く", check_tree_grader_attached)):
+        problems = fn()
+        if problems:
+            failed += 1
+            print(f"FAIL {cid}: {desc}\n  " + "\n  ".join(problems))
+        else:
+            print(f"PASS {cid}: {desc}")
+    total = len(CASES) + len(SHOWN_CASES) + len(TREE_CASES) + 2
     print(f"\n{total - failed}/{total} passed")
     return 1 if failed else 0
 

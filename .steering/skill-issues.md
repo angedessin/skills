@@ -10,6 +10,7 @@
 
 - 事象: 検証役が F2 を再現するとき、`mktemp -d`（既定の /var/folders/.../T）が sandbox に拒まれ、`cd "$D/r"` も失敗したまま後続のコマンドがリポジトリの根で動いた。`git init`・コミット（e938c3f）・未追跡ファイル 3 つを作った。本人が `git reset --mixed 76bcbe2` とファイルの削除で戻し、メインのセッションで HEAD・status・reflog を確かめた
 - 期待: 写しや一時リポジトリでの再現は、作る・移るの失敗で止まる（`set -e` か `&&` でつなぐ、`cd` の後に `pwd` が写しの中かを確かめる）。sandbox の中では `$TMPDIR` を使う。review-verify.md の「作業ツリーを変えない」を、手順で守れる形にする
+- 入れた対策（20261120。verify-tree-guard）: 写しは `make-copy.sh` が `$TMPDIR` に作り、検証役は毎回 `cd <写し> &&` で動く。`subagent-tree-guard.sh` が SubagentStart・SubagentStop で作業ツリーを比べ、違えば 1 回差し戻して親に知らせる（評価の t2 の `stop-tree-checked` で確かめる）
 
 ## 20261115 — SessionStart の hook が .steering の隠しディレクトリをタスクとして挙げた
 
@@ -66,3 +67,28 @@
 
 - 事象: `error: could not lock config file .git/config` で失敗し、ブランチは切り替わらなかった。上流の設定（`.git/config`）が書けないため。`git checkout main` の後に `git merge --ff-only origin/main` を流せば、config に書かずに済んだ
 - 期待: マージ後に main へ戻す手順を、sandbox の中で通る形（`checkout main` と `merge --ff-only`）にそろえる。記憶の「GitHub flow 運用」も同じ手順を書いている
+
+## 20261117 — 課金のある試し実行で、回数の指定を落として 3 回流した（verify-tree-guard）
+
+- 事象: 「1 回 0.7〜0.9 ドル」と見積もって渡した `claude plugin eval` のコマンドに `--runs 1` が無く、既定の 3 回で流れて 2.11 ドルかかった（見積もりの約 2.5 倍）。skill-test の手順は `--runs <表の回数>` を書いているが、skill-test を通さずにコマンドを自分で組んだ
+- 期待: 課金のコマンドを渡す前に、見積もりの回数と `--runs` が一致しているかを確かめる。skill-test 以外で評価を流すときも、skill-test の雛形のコマンドから組む
+
+## 20261118 — 検査の前後を比べるのに git stash を使い、sandbox で途中まで失敗した（verify-tree-guard）
+
+- 事象: `validate:portability` の前後を比べるため `git stash` を流したところ、sandbox が `.claude/` の下を書かせず `unable to unlink old ...` で途中まで失敗した。stash の項目だけが残り、作業ツリーは変わらなかった（stash と差分 0 を確かめた）
+- 期待: sandbox の中では、作業ツリーを動かす git（stash・checkout・reset）で前後を比べない。前の版は `git show HEAD:<パス>` か `git worktree` でなく一時ディレクトリへの `git archive` で取り出して比べる
+
+## 20261119 — make-copy.sh は TMPDIR が無いと必ず失敗する（verify-tree-guard のレビューの指摘 7）
+
+- 事象: sandbox を使わない配置先（Linux など）では TMPDIR が無いことが多く、検証役も親も再現できずに読みで判定する。設計どおり（sandbox の中で /tmp に落とすと拒まれ、cd の失敗の元になる）
+- 期待: 雛形は sandbox を必須にしているので、今は直さない。sandbox を使わない配置先が出たら、TMPDIR が無いときだけ /tmp に落とすかを決める
+
+## 20261120 — 評価の sandbox の中で jq が abort し、run-tests-on-base.sh が「jq が無い」で 2 を返す（verify-tree-guard の回帰で気づいた）
+
+- 事象: Claude Code 2.1.328・2.1.329 の t2 で、モデルの Bash から呼んだ `run-tests-on-base.sh` の `jq --version` が `Abort trap: 6` で落ち、「jq が無い」で 2 を返した（2.1.326 では通っていた）。普段のセッションの sandbox では `/usr/bin/jq`（1.7.1-apple）も anaconda の jq（1.6）も動く。hook（sandbox の外）の jq も評価の中で動いた。`q2-ran-tests-on-base` は呼んだかだけを見るので合格し、変える前のコードで流した結果が報告に使われたかは評価で見えていない
+- 期待: (1) 評価の中でどの jq が選ばれ、なぜ abort するかを調べる（無料。trace の PATH・`which -a jq`）(2) q2 を「呼んだ」でなく「結果（`passed-on-base:`）を得た」で見るかを決める (3) 「jq が無い」と「jq が動かない」を分けて知らせる。どれも verify-tree-guard の範囲の外
+
+## 20261120 — steering の「閉じる」の後に、タスクのフォルダが空のディレクトリだけで残った
+
+- 事象: `git rm -r .steering/20261116-verify-tree-guard/` の後に、追跡していない空のディレクトリ `.claude/.cc-writes` が残り、フォルダが消えなかった（Edit ツールが書くときに作ったものと思われる）。手順 2 の `git status --short` は空のディレクトリを出さないので、確認では見えなかった。`rmdir` で消した
+- 期待: 閉じるの手順 6 の後に、フォルダが残っていないかを確かめる。空のディレクトリだけなら消し、ファイルが残っていれば止まって知らせる

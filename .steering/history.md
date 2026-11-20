@@ -10,3 +10,4 @@ git 管理下でないタスクは、行に書いた `.steering/archived/` の�
 - 2026-11-07 20261006-skillset-renewal — スキル一式をゼロベースで刷新し、評価で 8 本に絞った（PR #21・#22。旧い形でアーカイブしていたので、パスは `.steering/archived/20261006-skillset-renewal/`）
 - 2026-11-15 20261110-skill-loop-fixes — テストを必須にする Stop のゲートと、レビューで形だけのテスト・テストの抜けを拾う仕組みを足した（PR #26・#27・#28・#29。統合用ブランチ feature/skill-loop-fixes から main へ）
 - 2026-11-17 20261116-exemption-visibility — 足したテストの免除をレビューの報告と PR の本文に載せる（list-exemptions.sh を frontend-code-review と pr-create に置く）（PR #31）
+- 2026-11-20 20261116-verify-tree-guard — 検証役の作業ツリーを見張る hook と、写しを作る make-copy.sh を足し、検証役が写しの中で再現するようにした（frontend-code-review 2.3）（PR #33）

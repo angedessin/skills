@@ -55,7 +55,7 @@ esac
 rm -rf evals/design evals/impl evals/knowledge evals/pr evals/review reserve
 for g in design impl knowledge pr review; do python3 "gen_${g}_cases.py" "$PWD" >/dev/null; done
 
-rm -rf skills agents hooks/skill-claude-md.md .claude-plugin
+rm -rf skills agents hooks/skill-claude-md.md hooks/hooks.json hooks/subagent-tree-guard.sh .claude-plugin
 mkdir -p skills agents .claude-plugin
 
 if [ "${cond}" = b ]; then
@@ -77,6 +77,15 @@ else
 fi
 f="conditions/${cond}/${group}-skill-claude-md.md"
 if [ -f "$f" ]; then cp "$f" hooks/skill-claude-md.md; fi
+
+# hooks.json は毎回作る。review の C だけ、検証役の作業ツリーの見張りを入れる（マスターの .claude/hooks/ が正本）。
+# 結果はワークスペースの .git/tree-guard.log にも写し、t2 の grader stop-tree-checked が読む（trace に hook の出力が載らないため）
+guard=0
+if [ "${cond}" = c ] && [ "${group}" = review ]; then
+  cp ../.claude/hooks/subagent-tree-guard.sh hooks/
+  guard=1
+fi
+python3 -I -c 'import sys; sys.path.insert(0, sys.argv[1]); import evalcase; evalcase.write_hooks_json(sys.argv[2], sys.argv[3] == "1")' "$PWD" "$PWD/hooks/hooks.json" "$guard"
 
 cat > .claude-plugin/plugin.json <<JSON
 {
