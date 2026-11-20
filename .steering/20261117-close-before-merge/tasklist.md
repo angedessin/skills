@@ -10,7 +10,7 @@ design.md は 20261120 に APPROVED。課金のある項目（★）は、見積
 
 ## 2. スキルの本文
 
-- [ ] `steering/SKILL.md` の閉じるの手順 2・手順 7、再開の手順 4、状況の確認を直し、版を上げる。README の `deps:skills` の steering の行も直す（`validate` が通ることを確かめる。振る舞いは 3 の評価で確かめる）
+- [x] `steering/SKILL.md` の閉じるの手順 2・手順 7、再開の手順 4、状況の確認を直し、版を上げる。README の `deps:skills` の steering の行も直す（`validate` が通ることを確かめる。振る舞いは 3 の評価で確かめる）（20261120。「閉じてよい状態」の節を足し、閉じるの手順 3 で gh pr view により push を予告する形にした。版 2.2。mise exec -- pnpm run validate 11/11。振る舞いは未確認で、3 の評価で見る）
 - [ ] `pr-create/SKILL.md` の Step 1・Step 4・PR を作った後を直し、版を 2.2 にする。README の `deps:skills` の pr-create の行も直す（同上）
 - [ ] `design-doc/SKILL.md` の tasklist の最後の項目を直し、版を上げる。README の `deps:skills` の design-doc の行も直す（`validate` が通ることを確かめる）
 - [ ] README の `deps:hooks` と SessionStart の説明を直し、`validate` が通ることを確かめる

@@ -141,7 +141,7 @@ cp -n templates/settings.template.json "$DEST/.claude/settings.json"
 |---|---|---|---|
 | `design-doc` | - | `design-premortem`・`steering` | 配る |
 | `design-premortem` | `premortem-attacker` | `design-doc` | 配る |
-| `steering` | - | `design-doc` | 配る |
+| `steering` | - | `design-doc`・`pr-create` | 配る |
 | `e2e` | - | `frontend-code-review` | 配る |
 | `frontend-code-review` | `review-bug`・`review-rules`・`review-ui-a11y`・`review-test`・`review-verify` | `e2e` | 配る |
 | `pr-create` | - | - | 配る |
