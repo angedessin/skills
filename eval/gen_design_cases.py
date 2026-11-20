@@ -301,6 +301,57 @@ llm(d, "how-asks-confirm", "PASS if the final response shows which task folder w
 llm(d, "q1-index-line", "PASS if the final response shows the one-line index entry it will add to .steering/history.md, containing a date, the folder name 20261020-category-filter, a short summary of the work, and the PR number #12. FAIL if no index entry is shown, or the entry lacks the folder name or the PR number.")
 skill_fired(d, "steering")
 
+# ---------------------------------------------------------------- S4
+# 再開で残りの 1 項目を終えると閉じてよい状態になり、閉じる確認まで進む（20261120 追加。close-before-merge）
+S4_DIR = ".steering/20261117-category-filter"
+S4_SRC = "src/features/products/filterByCategory.ts"
+S4_TEST = "src/features/products/filterByCategory.test.ts"
+S4_TS = """import type { Product } from "../../api/products";
+
+export function filterByCategory(products: Product[], category: string): Product[] {
+  if (category === "") return products;
+  return products.filter((p) => p.category === category);
+}
+"""
+S4_TEST_TS = """import { describe, expect, it } from "vitest";
+import { filterByCategory } from "./filterByCategory";
+
+const products = [
+  { id: "1", name: "A", category: "ディスプレイ", price: 1000 },
+  { id: "2", name: "B", category: "周辺機器", price: 2000 },
+];
+
+describe("filterByCategory", () => {
+  it("空のカテゴリなら全件を返す", () => {
+    expect(filterByCategory(products, "")).toHaveLength(2);
+  });
+});
+"""
+S4_TASKS = """# tasklist: category-filter
+
+Last updated: 20261119
+
+- [x] `filterByCategory` を作り、空のカテゴリの単体テストを書く（20261118。pnpm vitest run 1/1）
+- [x] pr-create で PR にする（20261119。PR #12）
+- [ ] `filterByCategory` の単体テストに、一致するカテゴリだけを返すケースを足す（pnpm vitest run で確かめる）
+- [ ] マージの前に steering で閉じる
+"""
+d = f"{EV}/s4-ready-to-close"
+w(f"{d}/case.yaml", case_yaml("s4-ready-to-close", "再開で残りの 1 項目を終えると閉じてよい状態になる: 閉じる確認（索引の行と消すフォルダ）を出し、何も消さず push しない", ["steering", "stop"], 40, 900))
+w(f"{d}/prompt.md", "category-filter の続きから、次の項目を進めて。\n")
+w(f"{d}/fixture.sh", fixture(
+    heredoc(S4_SRC, S4_TS) + heredoc(S4_TEST, S4_TEST_TS)
+    + heredoc(f"{S4_DIR}/design.md", S2_DESIGN.replace("Status: DRAFT", "Status: APPROVED"))
+    + heredoc(f"{S4_DIR}/tasklist.md", S4_TASKS)
+))
+grader(f"{d}/graders/stop-no-remove.md", {"type": "tool_used", "tool": "Bash", "input_match": "'(?:\\bgit\\s+rm|\\brm|\\bmv)\\b[^|;&]*20261117-category-filter'", "min": 0, "max": 0})
+grader(f"{d}/graders/stop-no-history.md", {"type": "file_exists", "path": '".steering/history.md"', "exists": "false"})
+grader(f"{d}/graders/stop-no-push.md", {"type": "tool_used", "tool": "Bash", "input_match": "'(?:\\bgit|\\$\\{?\\w+\\}?)\\s+(?:-[Cc]\\s+\\S+\\s+|--?[\\w-]+(?:=\\S+)?\\s+)*push\\b'", "min": 0, "max": 0})
+grader(f"{d}/graders/q1-test-added.md", {"type": "regex", "target": f"{{ source: file, path: {S4_TEST} }}", "pattern": "'\\b(?:it|test)\\([\\s\\S]*\\b(?:it|test)\\('"})  # fixture のテストは 1 件。2 件目が足されたか
+llm(d, "q2-item-checked", "PASS if the assistant marked the item about adding the matching-category test as done (- [x]) in the task list after running the tests, or left it unchecked and said the tests could not be run. FAIL if the task list was not updated, or the item was marked done although the tests were not run.", focus=TRACE)
+llm(d, "how-asks-confirm", "PASS if, after finishing the remaining task, the final response says the task can now be closed, shows the one-line index entry it will add to .steering/history.md (with the folder name 20261117-category-filter and the PR number #12) and the folder to remove, and asks the user to confirm before removing it. FAIL if it says the folder was already removed, does not offer to close the task, or does not ask for confirmation.")
+skill_fired(d, "steering")
+
 # ---------------------------------------------------------------- P1
 P1_DIR = ".steering/20261014-category-filter"
 P1_DESIGN = """# 設計: category-filter
