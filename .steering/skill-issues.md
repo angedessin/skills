@@ -87,6 +87,8 @@
 
 - 事象: Claude Code 2.1.328・2.1.329 の t2 で、モデルの Bash から呼んだ `run-tests-on-base.sh` の `jq --version` が `Abort trap: 6` で落ち、「jq が無い」で 2 を返した（2.1.326 では通っていた）。普段のセッションの sandbox では `/usr/bin/jq`（1.7.1-apple）も anaconda の jq（1.6）も動く。hook（sandbox の外）の jq も評価の中で動いた。`q2-ran-tests-on-base` は呼んだかだけを見るので合格し、変える前のコードで流した結果が報告に使われたかは評価で見えていない
 - 期待: (1) 評価の中でどの jq が選ばれ、なぜ abort するかを調べる（無料。trace の PATH・`which -a jq`）(2) q2 を「呼んだ」でなく「結果（`passed-on-base:`）を得た」で見るかを決める (3) 「jq が無い」と「jq が動かない」を分けて知らせる。どれも verify-tree-guard の範囲の外
+- 調べた結果（20261120。(1) の答え）: 評価の sandbox は anaconda の `bin/` だけを allowRead に入れ、`/Users` を denyRead にしている。PATH で先に当たる anaconda の jq（1.6）は `@rpath/libonig.5.dylib`（`anaconda3/lib/`）を読み込むので、dyld が読めずに SIGABRT（rc=134 = Abort trap: 6）で落ちる。ライブラリの無い場所へ写した anaconda の jq で同じ rc=134 と `Library not loaded: @rpath/libonig.5.dylib` を再現した。`/usr/bin/jq`（1.7.1-apple）は libSystem だけに依存する。2.1.326 で通った理由は、その回の sandbox の設定が残っておらず確かめられない
+- 入れた対策（20261120。feature/run-tests-jq-fallback）: (2)(3) を入れた。`run-tests-on-base.sh` は PATH の jq が起動できなければ `/usr/bin/jq` を試し、`JQ=<パス>` も受け、「jq が無い」と「jq が動かない（exit と stderr の 1 行）」を分ける（frontend-code-review 2.4）。t2 に `q3-got-tests-on-base`（trace の regex で判定の出力を見る）を足した
 
 ## 20261120 — steering の「閉じる」の後に、タスクのフォルダが空のディレクトリだけで残った
 

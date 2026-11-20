@@ -365,6 +365,8 @@ T2 = planted(
 RUN_ON_BASE = "'\\bbash\\s+\\S*run-tests-on-base\\.sh'"
 grader(f"{T2}/graders/q2-ran-tests-on-base.md", {"type": "tool_used", "tool": "Bash", "input_match": RUN_ON_BASE, "min": 1})
 grader(f"{T1}/graders/q2-skips-tests-on-base.md", {"type": "tool_used", "tool": "Bash", "input_match": RUN_ON_BASE, "min": 0, "max": 0})
+# 呼んだだけでなく判定まで進んだか。T2 の形だけのテストは変える前でも通るので passed-on-base が 1 以上になる
+got_tests_on_base(T2)
 # 検証役が作業ツリーを変えなかったか（verify-tree-guard）。検証役が必ず動く T2 だけに付ける（L1 は agent を起動しないのが正解）
 tree_checked(T2)
 
