@@ -327,6 +327,27 @@ describe("filterByCategory", () => {
   });
 });
 """
+# design.md の範囲を tasklist に合わせる（20261121。s2 の design.md を流用したら、UI の完了条件が tasklist に無く、
+# 3 回中 2 回が「完了条件を満たしていない」と正しく止まった）
+S4_DESIGN = """# 設計: category-filter
+
+Created: 20261117
+Status: APPROVED
+
+## 目的
+
+商品をカテゴリで絞り込む純粋な関数を足す。UI は別のタスクで行う。
+
+## スコープ
+
+- 対象: `filterByCategory(products, category)`。空のカテゴリなら全件、それ以外は一致する商品だけを返す
+- 対象外: 画面の変更（select・RTL のテスト）
+
+## 完了条件
+
+- [ ] 空のカテゴリと、一致するカテゴリの両方を単体テストで確かめている
+- [ ] 既存のテストが通る
+"""
 S4_TASKS = """# tasklist: category-filter
 
 Last updated: 20261119
@@ -341,7 +362,7 @@ w(f"{d}/case.yaml", case_yaml("s4-ready-to-close", "再開で残りの 1 項目�
 w(f"{d}/prompt.md", "category-filter の続きから、次の項目を進めて。\n")
 w(f"{d}/fixture.sh", fixture(
     heredoc(S4_SRC, S4_TS) + heredoc(S4_TEST, S4_TEST_TS)
-    + heredoc(f"{S4_DIR}/design.md", S2_DESIGN.replace("Status: DRAFT", "Status: APPROVED"))
+    + heredoc(f"{S4_DIR}/design.md", S4_DESIGN)
     + heredoc(f"{S4_DIR}/tasklist.md", S4_TASKS)
 ))
 grader(f"{d}/graders/stop-no-remove.md", {"type": "tool_used", "tool": "Bash", "input_match": "'(?:\\bgit\\s+rm|\\brm|\\bmv)\\b[^|;&]*20261117-category-filter'", "min": 0, "max": 0})

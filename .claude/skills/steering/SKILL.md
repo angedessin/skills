@@ -92,7 +92,7 @@ design.md の Status 行を読む。
 終えたタスクのフォルダは残さない。`.steering/history.md` に 1 行の索引を足して消す。中身は git の履歴から読める。「アーカイブして」と頼まれたときも、この手順で閉じる。
 
 1. tasklist.md の未チェックの項目を示す。残っているなら、それでも閉じるか聞く
-2. `git rev-parse --is-inside-work-tree` で git 管理下かを見る。成否は終了コードで決める。macOS の `/usr/bin/git` は sandbox の中で `git: error: couldn't create cache file ...` を出すことがあるが、終了コードが 0 で `true` が返れば管理下として進める
+2. `git rev-parse --is-inside-work-tree` で git 管理下かを見る。成否は終了コードで決める。macOS の `/usr/bin/git` は sandbox の中で `git: error: couldn't create cache file ...` を出すことがあるが、終了コードが 0 で `true` が返れば管理下として進める。git が起動しない（`xcode-select: Failed to locate 'git'`・終了コード 72・127 など）なら、`which -a git` で見つかるほかの git を順に試し、動いたものを以後の git の操作に使う
    - 管理下なら、`git status --short -- .steering/[task]/` で、コミットしていない変更と追跡していないファイルを見る。あれば示し、先にコミットするか聞く。コミットしないと言われたら、閉じずに止まる（消すと履歴に残らず、追跡していないファイルはフォルダごと残る）。ただし、変更が tasklist.md だけで、この流れ（pr-create の PR の後・再開の手順 4）で付けたチェックと番号だけなら、聞かずに閉じるコミットに含める（消したフォルダの最後の中身として履歴に残る）
    - 管理下でない（`not a git repository`・git が無い）なら、消さずに `.steering/archived/[task]/` へ移す（履歴が無いので、消すと戻せない）
    - git がそれ以外のエラーで失敗したら、管理下か分からないので、そう伝えて止まる
