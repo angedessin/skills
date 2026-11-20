@@ -87,3 +87,8 @@
 
 - 事象: Claude Code 2.1.328・2.1.329 の t2 で、モデルの Bash から呼んだ `run-tests-on-base.sh` の `jq --version` が `Abort trap: 6` で落ち、「jq が無い」で 2 を返した（2.1.326 では通っていた）。普段のセッションの sandbox では `/usr/bin/jq`（1.7.1-apple）も anaconda の jq（1.6）も動く。hook（sandbox の外）の jq も評価の中で動いた。`q2-ran-tests-on-base` は呼んだかだけを見るので合格し、変える前のコードで流した結果が報告に使われたかは評価で見えていない
 - 期待: (1) 評価の中でどの jq が選ばれ、なぜ abort するかを調べる（無料。trace の PATH・`which -a jq`）(2) q2 を「呼んだ」でなく「結果（`passed-on-base:`）を得た」で見るかを決める (3) 「jq が無い」と「jq が動かない」を分けて知らせる。どれも verify-tree-guard の範囲の外
+
+## 20261120 — steering の「閉じる」の後に、タスクのフォルダが空のディレクトリだけで残った
+
+- 事象: `git rm -r .steering/20261116-verify-tree-guard/` の後に、追跡していない空のディレクトリ `.claude/.cc-writes` が残り、フォルダが消えなかった（Edit ツールが書くときに作ったものと思われる）。手順 2 の `git status --short` は空のディレクトリを出さないので、確認では見えなかった。`rmdir` で消した
+- 期待: 閉じるの手順 6 の後に、フォルダが残っていないかを確かめる。空のディレクトリだけなら消し、ファイルが残っていれば止まって知らせる
