@@ -139,7 +139,7 @@ cp -n templates/settings.template.json "$DEST/.claude/settings.json"
 <!-- deps:skills -->
 | スキル | agent | 案内先のスキル | 配るか |
 |---|---|---|---|
-| `design-doc` | - | `design-premortem`・`steering` | 配る |
+| `design-doc` | - | `design-premortem`・`steering`・`pr-create` | 配る |
 | `design-premortem` | `premortem-attacker` | `design-doc` | 配る |
 | `steering` | - | `design-doc`・`pr-create` | 配る |
 | `e2e` | - | `frontend-code-review` | 配る |
