@@ -1,12 +1,12 @@
 # tasklist: close-before-merge
 
-Last updated: 20261117
+Last updated: 20261120
 
-design.md が APPROVED になるまで着手しない。課金のある項目（★）は、見積もりを示して承認を取ってから、通常のターミナルで流してもらう。
+design.md は 20261120 に APPROVED。課金のある項目（★）は、見積もりを示して承認を取ってから、通常のターミナルで流してもらう。
 
 ## 1. hook
 
-- [ ] `session-start-check.sh` に、統合ブランチの決め方と閉じ忘れの疑いの印を足す。`tests/hooks/run_fixtures.py` の `check_session_start` に完了条件 1 のケースを足し、git の環境を固定して確かめる（`mise exec -- pnpm run test:hooks`）
+- [x] `session-start-check.sh` に、統合ブランチの決め方と閉じ忘れの疑いの印を足す。`tests/hooks/run_fixtures.py` の `check_session_start` に完了条件 1 のケースを足し、git の環境を固定して確かめる（`mise exec -- pnpm run test:hooks`）（20261120。SS4〜SS12 を足した。origin/HEAD が無く main がある場合は SS4 が兼ねる。mise exec -- pnpm run test:hooks 539/539）
 
 ## 2. スキルの本文
 
