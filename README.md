@@ -144,7 +144,7 @@ cp -n templates/settings.template.json "$DEST/.claude/settings.json"
 | `steering` | - | `design-doc`・`pr-create` | 配る |
 | `e2e` | - | `frontend-code-review` | 配る |
 | `frontend-code-review` | `review-bug`・`review-rules`・`review-ui-a11y`・`review-test`・`review-verify` | `e2e` | 配る |
-| `pr-create` | - | - | 配る |
+| `pr-create` | - | `steering` | 配る |
 | `session-retrospective` | - | - | 配る |
 | `skill-test` | - | - | マスター専用 |
 
