@@ -77,7 +77,7 @@ mise exec -- pnpm run lint         # Biome
 
 ## hook と設定
 
-- **SessionStart**（`session-start-check.sh`）: `.steering/` のアクティブなタスクの一覧を context に注入する
+- **SessionStart**（`session-start-check.sh`）: `.steering/` のアクティブなタスクの一覧を context に注入する。統合ブランチ（`origin/HEAD` の指すブランチ・`main`・`master`・`develop`）の tree に APPROVED のまま入っているタスクには「閉じ忘れの疑い」の印を付け、steering で閉じるかを聞くよう促す（タスクは PR ごとに作り、PR の後に閉じる前提。DRAFT には付けない。手元の統合ブランチが古いと印は遅れる）
 - **承認制パスのガード**（`guard-gated-write.sh`・`guard-gated-delete.sh`）: permissions の ask と同じパス（CLAUDE.md・docs/・.claude/。正本は hook 冒頭の `# GATED_PATHS:` 行）への、Bash 経由の書き込み（リダイレクト・`tee`・`cp`・`sed -i`・`git mv`）を ask にする。プロジェクトの中の CLAUDE.md・docs/ への `rm`・`mv` は deny にする（`.claude/` の素の `rm`・`mv` は sandbox が止める）。sandbox には「承認すれば進む」が無く、作業ディレクトリの CLAUDE.md・docs/ も守らないため。python3 が無いと、書き込みの ask はリダイレクトと `tee` だけになる（`cp`・`sed -i`・`git mv`・`.claude/` は見ない）
 - **品質ゲート**（`post-edit-lint.sh`・`stop-typecheck.sh`・`stop-test-gate.sh`・`validate-skill-edit.sh`）
   - **型検査**（`stop-typecheck.sh`）: 応答を終える前に tsc を流し、型エラーなら差し戻す。ターンの中で同じエラーが 2 回続いたら警告だけで通し、ユーザーの新しい依頼（ターンの最初の Stop）ではまた差し戻す（差し戻した出力のハッシュを `${TMPDIR}` の下に session_id ごとに残す。`stop_hook_active` が true でも緩めない。他の Stop hook の差し戻しでも立つため）
@@ -151,7 +151,7 @@ cp -n templates/settings.template.json "$DEST/.claude/settings.json"
 <!-- deps:hooks -->
 | hook | 要るもの（無ければ素通し） | 配るか |
 |---|---|---|
-| `session-start-check.sh` | - | 配る |
+| `session-start-check.sh` | git（無ければ一覧だけ出し、閉じ忘れの印を付けない） | 配る |
 | `guard-gated-write.sh` | python3（無ければ全文 grep に縮退。リダイレクトと `tee` だけを見る） | 配る |
 | `guard-gated-delete.sh` | python3 | 配る |
 | `guard_gated.py` | guard hook 2 本が呼ぶ部品 | 配る（部品） |
