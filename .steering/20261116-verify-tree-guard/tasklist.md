@@ -46,5 +46,5 @@ design.md が APPROVED になり、`20261116-exemption-visibility` が main に�
 - [x] 普段のセッションで、このブランチの差分に frontend-code-review をかけ、見張りの記録（`${TMPDIR}/claude-tree-guard/`）に「確かめた」が残ることを確かめる（一回限りと decisions.md に書く）。出た指摘を直す（20261119 途中。レビューは済み（review-result.md。見張りの記録は same。一回限り）。指摘 1〜5・8〜15 を直して 49585cb。無料の検査は全部通過（test:hooks 530/530）。20261120: ref をブランチだけにした壊した hook を `--hooks-dir` で流し、TG26（タグ）と TG27（stash）が落ちることを確かめた（python3 tests/hooks/run_fixtures.py --hooks-dir <壊した写し> 528/530。前の「落ちなかった」は流し方の問題。一回限り）。20261120: 直した hook で t2 を 1 回流し直し、全 grader 合格（0.81 ドル。stop-tree-checked 合格。検証役は make-copy.sh の写しの中で再現）。decisions.md に書いた）
 - [x] `.steering/skill-issues.md` の 20261114「review-verify の再現が作業ツリーに書き込んだ」に、入れた対策を 1 行添える（20261120。文書だけでテストは無し。評価の中の jq の abort は 20261120 の項に別に記録し、この PR の後に調べる）
 - [x] tasklist.md を更新する（20261120）
-- [ ] pr-create で PR にする（本文に、決めたこと・前提の確かめの結果・回帰の結果を書く）
+- [x] pr-create で PR にする（本文に、決めたこと・前提の確かめの結果・回帰の結果を書く）（20261120。PR #33）
 - [ ] マージの前に steering で閉じる
