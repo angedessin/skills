@@ -134,7 +134,7 @@ cp -n templates/settings.template.json "$DEST/.claude/settings.json"
 
 - **agent:** 無いと、スキルは汎用の subagent に指示を渡す代替に落ちる。一緒に持っていく
 - **案内先のスキル:** 本文で名前を出すだけで、無くても動く
-- **スキルのフォルダのスクリプト:** スキルと一緒にフォルダごと持っていく。`frontend-code-review` の `scripts/count-diff.sh` は bash と git が、`scripts/run-tests-on-base.sh` はそれに加えて jq・tar・`node_modules/.bin/vitest` が要る（無ければ 2 で止まる）。足したテストの免除を並べる `scripts/list-exemptions.sh` は、`frontend-code-review` と `pr-create` の両方に同じ中身で置いてあり、bash と git が要る（直すときは両方を直す。マスターでは `test:skills` が一致を見る）。再現用の写しを作る `scripts/make-copy.sh` は bash と git と rsync が要る（無ければ 2 で止まり、検証役は読みで判定する）
+- **スキルのフォルダのスクリプト:** スキルと一緒にフォルダごと持っていく。`frontend-code-review` の `scripts/count-diff.sh` は bash と git が、`scripts/run-tests-on-base.sh` はそれに加えて jq・tar・`node_modules/.bin/vitest` が要る（無ければ 2 で止まる。PATH の jq が起動できなければ `/usr/bin/jq` を試し、`JQ=<パス>` で渡すこともできる）。足したテストの免除を並べる `scripts/list-exemptions.sh` は、`frontend-code-review` と `pr-create` の両方に同じ中身で置いてあり、bash と git が要る（直すときは両方を直す。マスターでは `test:skills` が一致を見る）。再現用の写しを作る `scripts/make-copy.sh` は bash と git と rsync が要る（無ければ 2 で止まり、検証役は読みで判定する）
 
 <!-- deps:skills -->
 | スキル | agent | 案内先のスキル | 配るか |

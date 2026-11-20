@@ -8,6 +8,7 @@
 #   --worktree          --base と一緒に。未コミットの変更と未追跡のテストも足す
 #   -- <path>...        パスで絞る
 #   GIT=<path>          使う git（PATH の先頭の git が動かない環境で、動く git を渡す）
+#   JQ=<path>           使う jq。無ければ PATH の jq を使い、それが起動できなければ /usr/bin/jq を試す
 #   RUN_TESTS_ON_BASE_TIMEOUT=<秒>  vitest の打ち切り（既定 90。2 回の起動の合計）
 #
 # 出力: tests（対象のテストファイルの数）・passed-on-base（変える前でも通った新しいテスト。<ファイル> > <名前>）・
@@ -134,7 +135,23 @@ fi
 
 VITEST="$root/node_modules/.bin/vitest"
 [ -x "$VITEST" ] || die "vitest が無い: node_modules/.bin/vitest（依存を入れてから呼ぶ。vitest がサブパッケージにだけあるモノレポは対象外）"
-jq --version >/dev/null 2>&1 || die "jq が無い"
+# 起動の失敗（127 以外）は「動かない」と分ける: sandbox がライブラリの読み込みを拒むと jq は abort する（134）
+jq_bin=${JQ:-jq}
+jq_err=$("$jq_bin" --version 2>&1 >/dev/null)
+jq_rc=$?
+if [ "$jq_rc" -ne 0 ] && [ -z "${JQ:-}" ] && [ "$jq_rc" -ne 127 ] && /usr/bin/jq --version >/dev/null 2>&1; then
+  jq_bin=/usr/bin/jq
+  jq_rc=0
+fi
+if [ "$jq_rc" -eq 127 ]; then
+  die "jq が無い"
+elif [ "$jq_rc" -ne 0 ]; then
+  first=""
+  while IFS= read -r line; do
+    [ -n "${line//[[:space:]]/}" ] && { first=$line; break; }
+  done <<<"$jq_err"
+  die "jq が動かない: ${jq_bin}（exit ${jq_rc}）: ${first}"
+fi
 
 copy="$work/base"
 mkdir "$copy" || die "一時ディレクトリを作れない"
@@ -179,13 +196,13 @@ run_vitest() { # 引数 = 写しの中のテストのパス
   wait "$watcher" 2>/dev/null
   [ -f "$marker" ] && die "vitest を ${TIMEOUT} 秒で打ち切った（RUN_TESTS_ON_BASE_TIMEOUT で延ばせる）"
   # 件数が無い = 道具の故障（node が無い・設定のエラー）。テストの失敗とは分ける
-  [ -n "$(jq -r '.numTotalTestSuites | numbers' "$json" 2>/dev/null)" ] ||
+  [ -n "$("$jq_bin" -r '.numTotalTestSuites | numbers' "$json" 2>/dev/null)" ] ||
     die "vitest が結果を返さなかった（exit ${rc}）:"$'\n'"$(tail -5 "$log")"
 }
 
 # <写しの中のパス> NUL <状態> NUL <テストの名前> NUL を $work/results に書く。ファイルごと落ちたもの（import のエラーなど）は名前を空にする
 results() {
-  jq -j --arg a "$copy_real/" --arg b "$copy/" '.testResults[]? |
+  "$jq_bin" -j --arg a "$copy_real/" --arg b "$copy/" '.testResults[]? |
     (.name | ltrimstr($a) | ltrimstr($b)) as $f |
     if ((.assertionResults // []) | length) == 0 and .status == "failed" then "\($f)\u0000broken\u0000\u0000"
     else (.assertionResults[]? | "\($f)\u0000\(.status)\u0000\(.fullName)\u0000") end' "$json" >"$work/results" ||
