@@ -74,3 +74,12 @@ design.md の次の箇所を、この決定で置き換える。
 - **再開と止まり直し（指摘 8。設計の「start は控えを上書きしない」を変える）:** 前の実行が same・returned で終わっていれば、再開の start で控え直す（その間の親やユーザーの書き込みを数えない）。違いが残っていれば控え直さない。start なしに止まり直したとき（背景の作業の終わりなど。20261119 のレビューで、親が書いた review-result.md が違いに出た）は差し戻さず、late-diff として親に 1 回知らせる。評価の .git/tree-guard.log には TREE-GUARD-LATE と書き、DIFF には数えない
 - **excluded の件数（指摘 5）:** 当たったディレクトリも 1 件と数え、その下には入らない
 - **記録だけにしたもの:** 指摘 6 の大きさ（まとめてハッシュにしたので、git の起動は数回になった。時間は測っていない）と 7（TMPDIR が無いと make-copy.sh は失敗する。設計どおり）は `.steering/skill-issues.md` に残す
+
+## 20261120 — 直した hook（49585cb）での t2 の流し直し（課金。ユーザー: 流し直す）
+
+`./prepare.sh c review` の後に、通常のターミナルで `t2-shallow-test` を `--runs 1` で 1 回流した。Claude Code 2.1.329。0.81 ドル（見積もり 0.9 前後）。結果は `eval/results-review-c-t2-guard-20261120.json`（追跡外）、最終回答は `eval-20261120/` に写した。
+
+- 全 grader 合格（`stop-tree-checked` を含む 7 つ）。`.git/tree-guard.log` は評価のワークスペースが読めず中身は見ていない。grader の合格で、CHECKED があり DIFF が無いことだけ分かる（LATE が出たかは分からない）
+- 検証役は前景で起動され、`GIT=/usr/local/bin/git bash .../make-copy.sh` で写しを作り、その後の Bash は `cd .../review-copy.*/tree && ...` で始まった。最終回答に見張りの警告は無い（違いが無かったので正しい）
+- 先に、ref をブランチだけにした壊した hook を `--hooks-dir` で流し、TG26（タグ）・TG27（stash）が落ちることを確かめた（528/530。一回限り）。20261119 に「自動の検査で落ちなかった」のは流し方の問題だった
+- 20261119 の「`run-tests-on-base.sh` が jq が無いで 2」は、評価の sandbox の中で `jq --version` が `Abort trap: 6` で落ちていた（jq が無いのでなく、起動で abort している）。今回の変更とは別。調べていない

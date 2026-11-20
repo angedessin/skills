@@ -10,6 +10,7 @@
 
 - 事象: 検証役が F2 を再現するとき、`mktemp -d`（既定の /var/folders/.../T）が sandbox に拒まれ、`cd "$D/r"` も失敗したまま後続のコマンドがリポジトリの根で動いた。`git init`・コミット（e938c3f）・未追跡ファイル 3 つを作った。本人が `git reset --mixed 76bcbe2` とファイルの削除で戻し、メインのセッションで HEAD・status・reflog を確かめた
 - 期待: 写しや一時リポジトリでの再現は、作る・移るの失敗で止まる（`set -e` か `&&` でつなぐ、`cd` の後に `pwd` が写しの中かを確かめる）。sandbox の中では `$TMPDIR` を使う。review-verify.md の「作業ツリーを変えない」を、手順で守れる形にする
+- 入れた対策（20261120。verify-tree-guard）: 写しは `make-copy.sh` が `$TMPDIR` に作り、検証役は毎回 `cd <写し> &&` で動く。`subagent-tree-guard.sh` が SubagentStart・SubagentStop で作業ツリーを比べ、違えば 1 回差し戻して親に知らせる（評価の t2 の `stop-tree-checked` で確かめる）
 
 ## 20261115 — SessionStart の hook が .steering の隠しディレクトリをタスクとして挙げた
 
@@ -81,3 +82,8 @@
 
 - 事象: sandbox を使わない配置先（Linux など）では TMPDIR が無いことが多く、検証役も親も再現できずに読みで判定する。設計どおり（sandbox の中で /tmp に落とすと拒まれ、cd の失敗の元になる）
 - 期待: 雛形は sandbox を必須にしているので、今は直さない。sandbox を使わない配置先が出たら、TMPDIR が無いときだけ /tmp に落とすかを決める
+
+## 20261120 — 評価の sandbox の中で jq が abort し、run-tests-on-base.sh が「jq が無い」で 2 を返す（verify-tree-guard の回帰で気づいた）
+
+- 事象: Claude Code 2.1.328・2.1.329 の t2 で、モデルの Bash から呼んだ `run-tests-on-base.sh` の `jq --version` が `Abort trap: 6` で落ち、「jq が無い」で 2 を返した（2.1.326 では通っていた）。普段のセッションの sandbox では `/usr/bin/jq`（1.7.1-apple）も anaconda の jq（1.6）も動く。hook（sandbox の外）の jq も評価の中で動いた。`q2-ran-tests-on-base` は呼んだかだけを見るので合格し、変える前のコードで流した結果が報告に使われたかは評価で見えていない
+- 期待: (1) 評価の中でどの jq が選ばれ、なぜ abort するかを調べる（無料。trace の PATH・`which -a jq`）(2) q2 を「呼んだ」でなく「結果（`passed-on-base:`）を得た」で見るかを決める (3) 「jq が無い」と「jq が動かない」を分けて知らせる。どれも verify-tree-guard の範囲の外
