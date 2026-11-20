@@ -109,6 +109,43 @@ def tree_grader() -> tuple[re.Pattern, str]:
     return re.compile(unquote(line[len("pattern: "):])), target
 
 
+def trace_line(result: str) -> str:
+    # trace は 1 行 1 メッセージの JSON。ツールの結果の改行は \n にエスケープされる
+    return json.dumps({"type": "user", "message": {"content": [{"type": "tool_result", "content": result}]}}, ensure_ascii=False)
+
+
+SCRIPT_TEXT = "  printf 'tests: 0\\npassed-on-base: 0\\nfailed-on-base: 0\\nbroken-on-base: 0\\n'\nprintf 'tests: %d\\n' \"$total\""
+
+# (id, 説明, trace, 合格か)
+BASE_CASES = [
+    ("EG29", "判定まで進み、変える前でも通ったテストが出た", trace_line("tests: 1\npassed-on-base: 1\n  src/a.test.tsx > 並べる\nfailed-on-base: 0\nbroken-on-base: 0\n"), True),
+    ("EG30", "jq が abort して判定できなかった", trace_line("line 137: Abort trap: 6  jq --version\nrun-tests-on-base: jq が無い\nrc=2"), False),
+    ("EG31", "判定したが、変える前でも通ったテストが無い", trace_line("tests: 1\npassed-on-base: 0\nfailed-on-base: 1\nbroken-on-base: 0\n"), False),
+    ("EG32", "スクリプトの本文を読んだだけ", trace_line(SCRIPT_TEXT), False),
+    ("EG33", "SKILL.md の言及だけ", trace_line("- `passed-on-base` に出たテストは、新しい振る舞いを確かめていない候補"), False),
+]
+
+
+def base_grader() -> tuple[re.Pattern, str]:
+    with tempfile.TemporaryDirectory() as d:
+        evalcase.got_tests_on_base(d)
+        front = (Path(d) / "graders" / "q3-got-tests-on-base.md").read_text(encoding="utf-8")
+    assert "type: regex" in front, front
+    target = next(ln for ln in front.splitlines() if ln.startswith("target: "))
+    line = next(ln for ln in front.splitlines() if ln.startswith("pattern: "))
+    return re.compile(unquote(line[len("pattern: "):])), target
+
+
+def check_base_grader_attached() -> list[str]:
+    """q3-got-tests-on-base は t2 だけに付く（t1 は呼ばないのが正解）。"""
+    import subprocess
+    with tempfile.TemporaryDirectory() as d:
+        gen = Path(__file__).resolve().parents[2] / "eval" / "gen_review_cases.py"
+        subprocess.run([sys.executable, str(gen), d], check=True, capture_output=True)
+        got = sorted(p.parent.parent.name for p in Path(d).glob("evals/review/*/graders/q3-got-tests-on-base.md"))
+    return [] if got == ["t2-shallow-test"] else [f"q3-got-tests-on-base の付いたケース: {got}（期待 ['t2-shallow-test']）"]
+
+
 def check_hooks_json() -> list[str]:
     """prepare.sh が書く hooks.json: review の C だけに見張りを入れ、matcher は評価の plugin の検証役だけに当たる。"""
     problems = []
@@ -171,15 +208,27 @@ def main() -> int:
             print(f"FAIL {cid}: {desc}\n  合格: {got}（want {want}）\n  ログ: {text!r}")
         else:
             print(f"PASS {cid}: {desc}")
+    base, target = base_grader()
+    if target != "target: trace":
+        failed += 1
+        print(f"FAIL EG29-target: q3-got-tests-on-base が trace を見ていない: {target}")
+    for cid, desc, text, want in BASE_CASES:
+        got = bool(base.search(text))
+        if got != want:
+            failed += 1
+            print(f"FAIL {cid}: {desc}\n  合格: {got}（want {want}）\n  trace: {text}")
+        else:
+            print(f"PASS {cid}: {desc}")
     for cid, desc, fn in (("EG27", "評価の hooks.json に見張りが正しく入る", check_hooks_json),
-                          ("EG28", "stop-tree-checked は t2 だけに付く", check_tree_grader_attached)):
+                          ("EG28", "stop-tree-checked は t2 だけに付く", check_tree_grader_attached),
+                          ("EG34", "q3-got-tests-on-base は t2 だけに付く", check_base_grader_attached)):
         problems = fn()
         if problems:
             failed += 1
             print(f"FAIL {cid}: {desc}\n  " + "\n  ".join(problems))
         else:
             print(f"PASS {cid}: {desc}")
-    total = len(CASES) + len(SHOWN_CASES) + len(TREE_CASES) + 2
+    total = len(CASES) + len(SHOWN_CASES) + len(TREE_CASES) + len(BASE_CASES) + 3
     print(f"\n{total - failed}/{total} passed")
     return 1 if failed else 0
 

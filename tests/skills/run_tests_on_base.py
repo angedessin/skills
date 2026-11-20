@@ -549,6 +549,46 @@ def check_special(tmp: Path) -> list[tuple[str, str, str | None]]:
         elif any(tdir.iterdir()):
             problem = "一時ディレクトリが残った"
         res.append((cid, desc, problem))
+
+    # RB35〜RB37: PATH の jq が起動できない（sandbox がライブラリの読み込みを拒んで abort する形を真似る）
+    real_jq = shutil.which("jq")
+    usr_jq_ok = subprocess.run(["/usr/bin/jq", "--version"], capture_output=True, check=False).returncode == 0 if Path("/usr/bin/jq").exists() else False
+
+    def broken_jq(path: Path) -> Path:
+        path.write_text("#!/bin/sh\necho 'dyld[1]: Library not loaded: @rpath/libonig.5.dylib' >&2\nkill -ABRT $$\n")
+        path.chmod(0o755)
+        return path
+
+    for cid, desc, use_jq_env, want_rc in (("RB35", "PATH の jq が起動できなくても、JQ= の jq で判定する", "real", 0),
+                                           ("RB36", "JQ= の jq が起動できなければ、exit と stderr の 1 行つきで「jq が動かない」の 2", "broken", 2),
+                                           ("RB37", "PATH の jq が起動できなければ /usr/bin/jq で判定する", None, 0)):
+        if cid == "RB37" and not usr_jq_ok:
+            res.append((cid, desc, "SKIP: /usr/bin/jq が起動できないマシン"))
+            continue
+        d = tmp / cid.lower()
+        d.mkdir()
+        repo = make_repo(d)
+        s_new_file_shallow(repo)
+        tdir = d / "t"
+        tdir.mkdir()
+        path = tool_path(d, "jq")
+        broken = broken_jq(Path(path) / "jq")
+        env = {**GIT_ENV, "TMPDIR": str(tdir), "PATH": path}
+        if use_jq_env == "real":
+            env["JQ"] = real_jq or "/usr/bin/jq"
+        elif use_jq_env == "broken":
+            env["JQ"] = str(broken)
+        rc, out, err = run(repo, env=env)
+        problem = None
+        if rc != want_rc:
+            problem = f"rc={rc}（期待 {want_rc}）\nstdout:\n{out}\nstderr:\n{err}"
+        elif want_rc == 0 and "passed-on-base: 1" not in out:
+            problem = f"判定の出力が無い\nstdout:\n{out}\nstderr:\n{err}"
+        elif want_rc == 2 and not all(s in err for s in ("jq が動かない", "exit 134", "Library not loaded")):
+            problem = f"知らせの文面が違う\nstderr:\n{err}"
+        elif any(tdir.iterdir()):
+            problem = "一時ディレクトリが残った"
+        res.append((cid, desc, problem))
     return res
 
 
@@ -572,6 +612,9 @@ def main() -> int:
     tmp = Path(tempfile.mkdtemp(prefix="run-tests-on-base-"))
     try:
         for case_id, desc, problem in check_special(tmp):
+            if problem and problem.startswith("SKIP:"):
+                print(f"SKIP {case_id}: {desc}（{problem[5:].strip()}）")
+                continue
             total += 1
             if problem:
                 failed += 1

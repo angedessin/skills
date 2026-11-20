@@ -139,6 +139,17 @@ def tree_checked(d):
     })
 
 
+def got_tests_on_base(d):
+    """run-tests-on-base.sh が判定まで進み、変える前でも通った新しいテストを 1 件以上出したかを見る grader（q3-got-tests-on-base）。
+    呼んだかだけを見る q2 は、スクリプトが道具の故障で 2 を返しても合格する（20261119〜20261120 の評価の sandbox の jq の abort）。
+    trace の中のツールの結果は改行が \\n にエスケープされる。tests: 0 を外し、スクリプトの本文（printf 'tests: 0\\npassed-on-base: 0'）を読んだだけで当たらないようにする。"""
+    pattern = r"tests: [1-9][0-9]*\\+npassed-on-base: [1-9]"
+    grader(f"{d}/graders/q3-got-tests-on-base.md", {
+        "type": "regex", "target": "trace",
+        "pattern": "'" + pattern.replace("'", "''") + "'",
+    })
+
+
 def hooks_json(guard):
     """評価の plugin の hooks.json の中身（prepare.sh が書く）。guard は review の C で、検証役の作業ツリーの見張りを入れる。
     見張りの結果は --mirror-gitdir でワークスペースの .git/tree-guard.log にも写す（grader はワークスペースのファイルしか読めない）。"""
