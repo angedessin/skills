@@ -46,3 +46,4 @@ Tech stack: React / TypeScript / Vitest / React Testing Library / MSW / Playwrig
 
 - mise 管理下では Bash から素の pnpm / node を呼ばず、`mise exec --` を使う
 - `gh`・git のリモート操作で TLS や Host key のエラーが出たら、まずパイプや `cd` を外して単独で呼び直す（sandbox の除外は呼び出し全体が一致するときだけ効く）
+- sandbox の中では `.git/config` に書く git（`branch -m`・追跡を設定する `checkout -B`・ブランチを消した後の設定の掃除）が失敗する。マージ後に main へ戻すのは `git checkout -q --no-track -B main origin/main`。設定の掃除は `!` でユーザーに頼む

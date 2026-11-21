@@ -63,7 +63,7 @@ while IFS= read -r d; do
   tasks="$tasks$line
 "
 done <<EOF
-$(find "$STEERING_DIR" -maxdepth 1 -mindepth 1 -type d ! -name archived 2>/dev/null | sort)
+$(find "$STEERING_DIR" -maxdepth 1 -mindepth 1 -type d ! -name archived ! -name '.*' 2>/dev/null | sort)
 EOF
 
 msg=""
