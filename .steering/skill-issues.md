@@ -69,4 +69,4 @@
 - 20261121 steering の閉じる手順 3: DRAFT で入れたタスクを閉じ忘れと取り違える — APPROVED のまま入っているときだけ閉じ忘れと見る（PR #35 の 09e2aad）
 - 20261121 空白の無い ask が auto mode で確認を出さない（評価の H2）— ask を空白ありの形にし `test:sandbox` が落とす・`~/.claude/CLAUDE.md` に 1 行（PR #38）
 - 20261121 frontend-code-review の費用の停止に、言い回しで通れる例外があった（評価の M2）— 例外を `--cost-ok` の印だけにし、基準以下でも目安を 1 行出す・評価の l2-phrase-not-enough・run_cost_ok.py（feature/review-cost-ok）
-- 20261121 時期で古くなる記述が配るスキルの本文にあった（評価の L1）— 費用の目安を frontend-code-review/cost.md に移して測った年月も出す・steering の例の日付を <YYYYMMDD> に・validate:portability が年月と金額を拾う（feature/cost-table）。steering の macOS の git のメッセージは手順の本体でないので残した
+- 20261121 時期で古くなる記述が配るスキルの本文にあった（評価の L1）— 費用の目安を frontend-code-review/references/cost.md に移して測った年月も出す・steering の例の日付を <YYYYMMDD> に・validate:portability が年月と金額を拾う（feature/cost-table）。steering の macOS の git のメッセージは手順の本体でないので残した

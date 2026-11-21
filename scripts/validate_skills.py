@@ -57,6 +57,7 @@ CLAUDE_MD_MAX_LINES = 50
 #   1. 単独の YYYYMMDD 日付（内部 QA/インシデントの日付付きエピソード。配置先に文脈が無い）。
 #      パス（直前が "/"）は除外。
 #   2. マスター固有語（配置先に存在しない仕組みを前提にした語）。
+MEASURED_FILES = {"references/cost.md"}  # 測った時期と値を書く決まった置き場。年月と金額を拾わない
 PORTABILITY_VOCAB = [
     "還流", "配布セット", "source-commit", "deployments.md",
     "このマスター", "マスターへ", "マスターの git", "（distributable）",
@@ -143,7 +144,7 @@ def validate(skill_dir: Path, template_mode: bool = False) -> list[str]:
 
 
 def portability_selftest() -> list[str]:
-    """拾うべき行を拾い、拾ってはいけないもの（パスの中の日付・SKILL.md の外のファイル）を拾わないかを確かめる。
+    """拾うべき行を拾い、拾ってはいけないもの（パスの中の日付・測った値の置き場の references/cost.md）を拾わないかを確かめる。
     戻り値は期待どおりにならなかった行。"""
     import tempfile
 
@@ -152,12 +153,18 @@ def portability_selftest() -> list[str]:
     bad = []
     with tempfile.TemporaryDirectory() as tmp:
         d = Path(tmp)
-        (d / "cost.md").write_text("| 500 行まで | 0.7〜3 ドル |\n測った時期: 2026-11\n", encoding="utf-8")
+        (d / "references").mkdir()
+        (d / "references" / "cost.md").write_text("| 500 行まで | 0.7〜3 ドル |\n測った時期: 2026-11\n", encoding="utf-8")
         for line, hit in want.items():
             (d / "SKILL.md").write_text(f"---\nname: x\n---\n{line}\n", encoding="utf-8")
             got = portability_hits(d)
             if bool(got) != hit or any(rel != "SKILL.md" for rel, _, _ in got):
                 bad.append(line)
+        # 測った値の置き場の外の references は拾う
+        (d / "SKILL.md").write_text("---\nname: x\n---\n本文\n", encoding="utf-8")
+        (d / "references" / "guide.md").write_text("500 行まで 0.7〜3 ドル\n", encoding="utf-8")
+        if [rel for rel, _, _ in portability_hits(d)] != ["references/guide.md"]:
+            bad.append("references/guide.md の金額")
     return bad
 
 
@@ -173,7 +180,7 @@ def portability_hits(skill_dir: Path) -> list[tuple[str, int, str]]:
     if ref.is_dir():
         files += sorted(ref.glob("*.md"))
     date_re = re.compile(r"(?<![/\w])20\d{6}(?![\w])")
-    # 時期で古くなる記述。測った値は本文でなく別ファイル（frontend-code-review/cost.md など）に置く
+    # 時期で古くなる記述。測った値は本文でなく references/cost.md に置き、そこだけは拾わない
     month_re = re.compile(r"(?<![/\w-])20\d{2}-(?:0[1-9]|1[0-2])(?![\d])")
     money_re = re.compile(r"\d\s*ドル")
     for f in files:
@@ -191,10 +198,11 @@ def portability_hits(skill_dir: Path) -> list[tuple[str, int, str]]:
         for i, line in enumerate(body.splitlines(), 1 + offset):
             for dm in date_re.finditer(line):
                 hits.append((rel, i, f"日付 {dm.group()}（内部エピソードの疑い）"))
-            for mm in month_re.finditer(line):
-                hits.append((rel, i, f"年月 {mm.group()}（時期で古くなる記述の疑い）"))
-            if money_re.search(line):
-                hits.append((rel, i, "金額（時期で古くなる記述の疑い。測った値は別ファイルへ）"))
+            if rel not in MEASURED_FILES:
+                for mm in month_re.finditer(line):
+                    hits.append((rel, i, f"年月 {mm.group()}（時期で古くなる記述の疑い）"))
+                if money_re.search(line):
+                    hits.append((rel, i, "金額（時期で古くなる記述の疑い。測った値は references/cost.md へ）"))
             for v in PORTABILITY_VOCAB:
                 if v in line:
                     hits.append((rel, i, f"マスター固有語「{v}」"))
