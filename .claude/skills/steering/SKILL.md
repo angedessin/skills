@@ -106,7 +106,7 @@ design.md の Status 行を読む。
      ```
    - 消すフォルダ（git 管理下でなければ移す先）
    - タスクのフォルダに skill-issues.md があれば（古い形）、`.steering/skill-issues.md` へ移す記録
-   - git 管理下で、タスクのフォルダが統合ブランチ（`git symbolic-ref --short refs/remotes/origin/HEAD` が指すブランチと、`main`・`master`・`develop`）のどの tree にも無い（`git cat-file -e <ブランチ>:./.steering/[task]/design.md` がどれも失敗する。今のブランチで作ったタスク）なら、`gh pr view --json number,state` で今のブランチの PR を見る。OPEN なら、索引の行にその番号を書き、「承認したら、tasklist の更新と閉じるのを 2 つのコミットにして、1 回で push する」と書く（承認を 1 回で済ませる）。統合ブランチの tree にある（閉じ忘れたままマージされた）タスクは、今のブランチの PR とは関係が無いので、番号を取らず、push も予告しない。PR が無い・gh が無い・失敗したときも、この 1 行は書かない（手順 7 をしない）
+   - git 管理下で、タスクのフォルダが統合ブランチ（`git symbolic-ref --short refs/remotes/origin/HEAD` が指すブランチと、`main`・`master`・`develop`）のどの tree にも APPROVED のまま入っていない（`git show <ブランチ>:./.steering/[task]/design.md` が無いか、`Status:` が APPROVED でない。今のブランチで進めているタスク。設計だけを DRAFT で先に入れたものも含む）なら、`gh pr view --json number,state` で今のブランチの PR を見る。OPEN なら、索引の行にその番号を書き、「承認したら、tasklist の更新と閉じるのを 2 つのコミットにして、1 回で push する」と書く（承認を 1 回で済ませる）。統合ブランチの tree に APPROVED のまま入っている（閉じ忘れたままマージされた）タスクは、今のブランチの PR とは関係が無いので、番号を取らず、push も予告しない。PR が無い・gh が無い・失敗したときも、この 1 行は書かない（手順 7 をしない）
    - 手順 2 で残した tasklist.md の更新があれば、「消す前に、tasklist の更新だけを先にコミットする」と書く
 4. 確認をもらったら、手順 3 で push を予告したときは、何かを書く前に `gh pr view --json state` で状態をもう一度見る（確認を待つ間にマージされることがある）。OPEN でなければ、何も書かず何も消さずに、統合ブランチを最新にしてその上で閉じ直すよう案内して止まる。続けて、古い形の skill-issues.md の記録を `.steering/skill-issues.md` の末尾に写す（無ければ作る）。元のファイルは書き換えない（手順 6 でフォルダごと消すか移す）
 5. 索引の行を `.steering/history.md` の末尾に足す。無ければ、先頭に次の説明を置いて作る:
