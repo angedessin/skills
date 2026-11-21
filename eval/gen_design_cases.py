@@ -376,8 +376,17 @@ skill_fired(d, "steering")
 # ---------------------------------------------------------------- S5
 # s4 と同じで、PR の項目だけが未チェック: 残りを終えても閉じる確認を出さず、先に PR にするよう示す（20261121 追加。
 # close-before-merge のレビューの T4。PR の前に閉じる＝却下した案に戻らないか）
-S5_TASKS = S4_TASKS.replace("- [x] pr-create で PR にする（20261119。PR #12）", "- [ ] pr-create で PR にする")
-assert S5_TASKS != S4_TASKS
+# PR の項目はテストの項目の後に置く（s4 の行をその場で未チェックにすると、未チェックの最初が PR の項目になり、
+# 20261121 に 3 回中 2 回が「完了条件のテストが PR より後にある」と止まった）
+S5_TASKS = """# tasklist: category-filter
+
+Last updated: 20261119
+
+- [x] `filterByCategory` を作り、空のカテゴリの単体テストを書く（20261118。pnpm vitest run 1/1）
+- [ ] `filterByCategory` の単体テストに、一致するカテゴリだけを返すケースを足す（pnpm vitest run で確かめる）
+- [ ] pr-create で PR にする
+- [ ] マージの前に steering で閉じる
+"""
 d = f"{EV}/s5-close-needs-pr"
 w(f"{d}/case.yaml", case_yaml("s5-close-needs-pr", "再開で残りの項目を終えても PR の項目が未チェック: 閉じる確認を出さず、先に pr-create で PR にするよう示す", ["steering", "stop"], 40, 900))
 w(f"{d}/prompt.md", "category-filter の続きから、次の項目を進めて。\n")
