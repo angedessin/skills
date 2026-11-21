@@ -43,7 +43,7 @@
 ## 20261116 — 未着手: スキル評価（20261115）の残りの所見
 
 - 事象: 評価の所見のうち、タスクにしたのは M1（`20261116-exemption-visibility`）と H1（`20261116-verify-tree-guard`）だけ。レポートは追跡外（`.tmp/skill-eval-report-20261115.md`）で、このマシンにしか無い。残りをここに控える
-  - H2: `gh pr create` が permissions の ask に無い。push 済みのブランチから PR だけ作る経路は、スキル本文だけが歯止め（設計は未着手。中くらいの作業の見込み）
+  - H2: `gh pr create` が permissions の ask に無い。push 済みのブランチから PR だけ作る経路は、スキル本文だけが歯止め（20261121 に対策。下の「空白の無い ask が auto mode で確認を出さない」の記録）
   - M2: frontend-code-review の費用の停止に、解釈で通れる例外がある（「大きいけど全部見て」）。1,000 行以下は見積もりなしで最大 3 ドル
   - M3: 発火を採点していない。近いスキルの取り合い（「レビューに出して」は pr-create か frontend-code-review か）を測るケースが無い。条件 C の `d2-vague-request` は発火 3/6
   - M4: design-premortem の本文は評価を通っていない。20261116 に初めて実際の設計で使い、所見 10 件のうち 10 件を採った（1 件は一部を捨てた）
@@ -114,3 +114,9 @@
 - 事象: close-before-merge を PR #35 の後に閉じようとした。タスクのフォルダは PR #32（設計だけ・DRAFT）で main に入っているため、手順 3 の「統合ブランチの tree にある → 今のブランチの PR とは関係が無い。番号を取らず push も予告しない」に当たり、PR #35 に閉じるコミットを載せられない形になった
 - 期待: hook と同じく、統合ブランチの tree に APPROVED のまま入っているときだけ閉じ忘れと見る（DRAFT で入っているのは設計だけの PR で、続きの PR が今のブランチにある）
 - 入れた対策（20261121。PR #35 の 09e2aad）: 期待どおりに直した
+
+## 20261121 — 空白の無い ask が auto mode で確認を出さない（H2・feature/gh-ask）
+
+- 事象: H2 で ask に足した `Bash(gh api*)` が、auto mode で確認を出さずに流れた。前からある `Bash(git push*)`・`Bash(rm -r*)` も同じで、push は H2 の前から確認なしだった。`Bash(npx *)` は「Rule ... overrides auto mode」の確認を出した。deny は空白の無い `Bash(git clean -f*)` でも `git clean -fn` を止めた
+- 期待: auto mode で止めたい ask は `*` の前に空白を置く（`Bash(gh api *)`）。引数なしで外に書くもの（`git push`・`gh pr ready`・`gh pr merge`）は引数なしの行も置く
+- 入れた対策（20261121。feature/gh-ask）: ask をすべて空白ありの形にし、`test:sandbox` が空白の無い ask を落とす。`gh api *` は単独と `cd . &&` でつないだ形の両方で確認が出た（手で 1 回。tests/sandbox/README.md に手順）

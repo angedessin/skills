@@ -50,3 +50,5 @@ git branch -D sandbox-probe-a sandbox-probe-b
 | `cd . && gh api repos/{owner}/{repo} --jq .name` | 確認が出る（つないだ形でも効く） |
 
 `gh pr create` は実際に PR を作るので流さない。同じ `ask` の書き方の `gh api` で代える。
+
+auto mode では、`*` の前に空白の無い ask（`Bash(gh api*)`）は確認を出さなかった。空白のある `Bash(npx *)` は出た。deny は空白の無い `Bash(git clean -f*)` でも `git clean -fn` を止めた（20261121。`test:sandbox` が空白の無い ask を落とす）。
