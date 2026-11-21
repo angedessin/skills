@@ -9,7 +9,9 @@
 - 事象: `stop-test-gate.sh` は根を git のトップレベルに決め、`$ROOT/node_modules/.bin/vitest` が無ければ素通しする。vitest をサブパッケージにだけ入れたモノレポでは、ゲートが何も言わずに効かない
 - 期待: 変えたファイルから一番近い package.json の vitest で判定する（パッケージごとに related を流す）か、効いていないことを知らせる
 - 今回の扱い: README に対象外と書いた。根の決め方を変えるのは別の設計が要る
-- 条件: モノレポの配置先が出たら設計する
+- 条件: モノレポの配置先が出たら設計する（20261122 に「使うプロジェクトはある」。構成が分かったら大きな作業として設計する。先に L2〜L4）
+- 方針の案（20261122）: 根を 1 つに決めず、変えたファイルから上へたどって一番近い `package.json` をパッケージにし、道具はそこから根へ向かって最初の `node_modules/.bin/<道具>`、設定（biome・eslint・stylelint・tsconfig）も一番近いものを使う。単一パッケージでは今と同じ動きになる。対象は stop-test-gate・stop-typecheck・post-edit-lint・run-tests-on-base
+- 案の懸念: パッケージをまたぐと起動が増えて Stop の打ち切り（150 秒）に触れる／型検査を変えたファイルの tsconfig だけにすると、依存するパッケージの破壊に気づけない（project references と `tsc -b` を決める）／根だけの vitest の projects や Turborepo・Nx では探し方がずれるので、対象外は今どおり素通しにする／単一パッケージで動きが変わらないことを test:hooks の fixture で確かめる
 
 ### 20261115 — 保留: テストのゲートの所要時間を配置先で測る（skill-loop-fixes の tasklist 10b）
 
