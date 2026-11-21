@@ -38,3 +38,15 @@ git branch -D sandbox-probe-a sandbox-probe-b
 - `git branch -D` はブランチを消せるが、sandbox の中では `.git/config` を書けない。そのブランチの設定（VS Code が足す `vscode-merge-base` など）が残ったら、通常のターミナルで `git config --remove-section branch.<名前>` を流す
 
 設定や Claude Code のバージョンを変えたら流し直し、結果を残す。
+
+## 外向きの gh が確認で止まるかの確かめ方
+
+`permissions.ask` の `Bash(gh pr create*)` などが効くかは、静的検査では分からない。Claude Code を再起動してから、Bash ツールで次を 1 つずつ流す。
+
+| コマンド | 期待 |
+|---|---|
+| `gh pr list --limit 1` | 確認なしで流れる |
+| `gh api repos/{owner}/{repo} --jq .name` | 確認が出る（断って止める） |
+| `cd . && gh api repos/{owner}/{repo} --jq .name` | 確認が出る（つないだ形でも効く） |
+
+`gh pr create` は実際に PR を作るので流さない。同じ `ask` の書き方の `gh api` で代える。

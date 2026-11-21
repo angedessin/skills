@@ -30,8 +30,11 @@ REQUIRED_EXCLUDED = {
     "git restore *", "git rm *", "git mv *", "git cherry-pick *", "git revert *",
     "git fetch *", "git pull *", "git push *", "gh pr *", "gh api *", "gh repo view *",
 }
+# gh は外へ書くものだけ。gh api は引数から読み取りか見分けられない（-f で POST になる）ので丸ごと
 REQUIRED_ASK = {
     "Bash(git push*)", "Bash(npx *)", "Bash(rm -r*)",
+    "Bash(gh pr create*)", "Bash(gh pr merge*)", "Bash(gh pr comment*)", "Bash(gh pr review*)",
+    "Bash(gh pr edit*)", "Bash(gh pr close*)", "Bash(gh pr reopen*)", "Bash(gh pr ready*)", "Bash(gh api*)",
     "Edit(./CLAUDE.md)", "Edit(~/.claude/CLAUDE.md)", "Edit(./docs/**)", "Edit(./.claude/**)",
 }
 REQUIRED_DENY = {
@@ -294,6 +297,7 @@ def self_test(settings: dict, gated: set[str]) -> list[str]:
         ("permissions-deny", check_permissions, lambda s: s["permissions"]["deny"].remove("Bash(git reset --hard*)")),
         ("permissions-read", check_permissions, lambda s: s["permissions"]["deny"].remove("Read(~/.ssh/**)")),
         ("permissions-ask", check_permissions, lambda s: s["permissions"]["ask"].remove("Bash(git push*)")),
+        ("permissions-ask-gh", check_permissions, lambda s: s["permissions"]["ask"].remove("Bash(gh pr create*)")),
         ("stop-gate-missing", check_stop_hooks, lambda s: drop_hook(s, "Stop", "stop-test-gate.sh")),
         ("stop-typecheck-missing", check_stop_hooks, lambda s: drop_hook(s, "Stop", "stop-typecheck.sh")),
         ("guard-start-missing", check_tree_guard, lambda s: s["hooks"].pop("SubagentStart")),

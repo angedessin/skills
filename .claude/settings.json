@@ -3,6 +3,15 @@
   "permissions": {
     "ask": [
       "Bash(git push*)",
+      "Bash(gh pr create*)",
+      "Bash(gh pr merge*)",
+      "Bash(gh pr comment*)",
+      "Bash(gh pr review*)",
+      "Bash(gh pr edit*)",
+      "Bash(gh pr close*)",
+      "Bash(gh pr reopen*)",
+      "Bash(gh pr ready*)",
+      "Bash(gh api*)",
       "Bash(npx *)",
       "Bash(rm -r*)",
       "Edit(./CLAUDE.md)",
