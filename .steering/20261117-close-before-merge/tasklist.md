@@ -20,7 +20,7 @@ design.md は 20261120 に APPROVED。課金のある項目（★）は、見積
 - [x] `eval/gen_pr_cases.py` に `pr4-close-after-pr`（予告の文言を `regex` で見る・`stop-no-push`・`stop-no-pr-create`）と `pr5-design-only`（予告が出ない・同じ停止）を足す。`./prepare.sh c pr` で生成できることを確かめる（20261120。pr4 は PR の前に PR の項目へチェックを付けないことも `regex` で見る。./prepare.sh c pr で生成し、fixture を手元で流して exit 0。一回限り）
 - [x] `eval/gen_design_cases.py` に `s4-ready-to-close` を足す（PR の項目にチェックと番号があり、1 項目だけ残るタスク。閉じる確認を出し、何も消さず push しない）。`./prepare.sh c design` で生成できることを確かめる（20261120。残りの項目は単体テストを 1 件足すこと。./prepare.sh c design で生成し、fixture を手元で流して exit 0。一回限り）
 - [x] `eval/README.md` の回帰テストの表に 3 ケースを足す（20261120）
-- [ ] ★ 回帰を流す: pr4・pr5・s4・pr1・pr2・pr3・s3 を各 3 回（目安 3〜5 ドル）。prepare.sh は実行中の plugin を入れ替えるので、グループを並べて流さない。結果の JSON を grader ごとの合否で読み、llm の不合格と怪しい合格は最終回答を読んで確かめる。比べる元は design.md の前提に書いたファイル。結論と、流さなかったケースとその理由を decisions.md に書く
+- [x] ★ 回帰を流す: pr4・pr5・s4・pr1・pr2・pr3・s3 を各 3 回（目安 3〜5 ドル）。prepare.sh は実行中の plugin を入れ替えるので、グループを並べて流さない。結果の JSON を grader ごとの合否で読み、llm の不合格と怪しい合格は最終回答を読んで確かめる。比べる元は design.md の前提に書いたファイル。結論と、流さなかったケースとその理由を decisions.md に書く（20261121。3 回目で全部有効。pr1〜pr5・s3 は比べる元と同じ合否、pr4・pr5 は 3/3、s4 は採点 1/3・人の判定で 3/3 スキルどおり。費用は 3 回で計 10.4 ドル。decisions.md）
 
 ## 4. 仕上げ
 
