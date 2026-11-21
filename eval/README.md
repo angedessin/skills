@@ -47,7 +47,7 @@ grader の名前の頭は、集計での扱いを表す: `stop-`（停止。3 �
 | session-retrospective | knowledge | `s1-session-friction` | 3 | 0.2 | 摩擦を拾い、`.steering/skill-issues.md` に書く |
 | pr-create | pr | `pr1-feature-branch`・`pr2-spike`・`pr3-exemption`・`pr4-close-after-pr`・`pr5-design-only` | 3 | 0.13〜0.21 | push と PR 作成の前で止まる・SPIKE では作らない・ブランチのコミットで足したテストの免除を、示した本文にパスと理由つきで載せる（pr3。`q1-exemption-shown`）・閉じてよくなるタスクでは「閉じる確認を続けて出します」と予告し、PR の前に PR の項目へチェックを付けない（pr4。予告は `regex`）・DRAFT の設計だけの PR では予告しない（pr5）。PR を作った後の振る舞いは 1 ターンでは見られない（push の前で止まるため） |
 
-- `prepare.sh` は `skills/`・`agents/` を消して入れ替えるので、実行中のケースからスキルが消える。別のグループの準備と実行は、前のグループの実行が終わってから行う（20261116。x1 の実行中に `./prepare.sh c pr` が流れ、3 回中 2 回が無効になった）
+- `prepare.sh` は `skills/`・`agents/` を消して入れ替えるので、実行中のケースからスキルが消える。別のグループの準備と実行は、前のグループの実行が終わってから行う（20261116。x1 の実行中に `./prepare.sh c pr` が流れ、3 回中 2 回が無効になった。20261121 にも 2 回続けて起きた）。`prepare.sh` は実行中の `claude plugin eval` を `pgrep` で見つけると、何も消さずに exit 1 で止まる（別のプロジェクトの評価で止まるときは `PREPARE_FORCE=1`）。複数のグループは `&&` でつないだ 1 つのコマンドで流す
 - design-premortem は手動専用（`disable-model-invocation`）で、プロンプトでは発動しないので回帰ケースを持たない。`p1-premortem`・`p2-self-review` は、素のモデルの穴探しを確かめるケースで、スキルの本文は通らない
 - skill-test はマスターの保守用で、回帰ケースを持たない
 - frontend-code-review 2.1 は、1,000 行・20 ファイルを超える差分でレビューの前に止まる。超える `r-a-hardening`・`r-b-deploy-integrity`・`f1-semicolon` は、依頼文で範囲と費用を了承している（20261110 から。それより前の結果は「コードをレビューして。」だけで流した）

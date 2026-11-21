@@ -3,7 +3,7 @@ name: steering
 description: ".steering/ にある作業を再開する・状況を確かめる・終えたタスクを閉じる（索引に 1 行残してフォルダを消す）。再開では design.md・tasklist.md・decisions.md を読み合わせ、後から変わった方針を反映して次の項目を決める。design.md が DRAFT なら実装せず承認を求めて止まる。"
 when_to_use: "「〜の続きから」「〜を再開して」「〜を実装して」（.steering/ に設計があるもの）「進行中のタスクは？」「steering status」「〜を閉じて」「〜をアーカイブして」など。.steering/ に無い新しい作業の設計は design-doc。"
 metadata:
-  version: "2.2"
+  version: "2.3"
 ---
 
 # steering
@@ -119,5 +119,5 @@ design.md の Status 行を読む。
    （feature ブランチの中で作って消したフォルダは、`--full-history` が無いと見つからない。squash merge でマージしてブランチを消すと、中身は残らない）
    git 管理下でないタスクは、行に書いた `.steering/archived/` の下に移してある。
    ```
-6. git 管理下なら、手順 2 で残した tasklist.md の更新を先にそれだけでコミットし（`git rm` は HEAD と中身の違うファイルを消さない。先にコミットすれば、更新も履歴に残る）、`git rm -r .steering/[task]/` で消す。管理下でなければ `.steering/archived/[task]/` へ移す（`.steering/archived/` が無ければ作る）
+6. git 管理下なら、手順 2 で残した tasklist.md の更新を先にそれだけでコミットし（`git rm` は HEAD と中身の違うファイルを消さない。先にコミットすれば、更新も履歴に残る）、`git rm -r .steering/[task]/` で消す。続けて `find .steering/[task] -depth -type d -empty -delete` で、残った空のディレクトリを消す（git に載らない空のディレクトリ。Edit ツールが作る `.claude/.cc-writes` など）。それでもフォルダが残っていれば、残ったファイルを示して止まる（自分では消さない）。管理下でなければ `.steering/archived/[task]/` へ移す（`.steering/archived/` が無ければ作る）
 7. 手順 3 で push を予告したときだけ、`git status --short` でステージする中身（history.md・skill-issues.md・消したフォルダ）を確かめ、閉じるコミットにして、手順 6 のコミットと合わせて 1 回で push する

@@ -52,6 +52,15 @@ case "${cond}" in
   *) echo "usage: $0 b|c design|impl|review|knowledge|pr" >&2; exit 2 ;;
 esac
 
+# 下で skills/ を消して入れ替えるので、実行中の評価があると、そのケースからスキルが消えて結果が無効になる
+if [ "${PREPARE_FORCE:-}" != 1 ] && command -v pgrep >/dev/null 2>&1; then
+  running="$(pgrep -f 'claude plugin eval' 2>/dev/null | tr '\n' ' ' || true)"
+  if [ -n "${running// /}" ]; then
+    echo "実行中の claude plugin eval がある（pid: ${running% }）。終わってから流す。別のプロジェクトの評価なら PREPARE_FORCE=1 で通す" >&2
+    exit 1
+  fi
+fi
+
 rm -rf evals/design evals/impl evals/knowledge evals/pr evals/review reserve
 for g in design impl knowledge pr review; do python3 "gen_${g}_cases.py" "$PWD" >/dev/null; done
 
