@@ -30,8 +30,12 @@ REQUIRED_EXCLUDED = {
     "git restore *", "git rm *", "git mv *", "git cherry-pick *", "git revert *",
     "git fetch *", "git pull *", "git push *", "gh pr *", "gh api *", "gh repo view *",
 }
+# gh は外へ書くものだけ。gh api は引数から読み取りか見分けられない（-f で POST になる）ので丸ごと
 REQUIRED_ASK = {
-    "Bash(git push*)", "Bash(npx *)", "Bash(rm -r*)",
+    "Bash(git push)", "Bash(git push *)", "Bash(npx *)", "Bash(rm -r *)",
+    "Bash(gh pr create *)", "Bash(gh pr merge)", "Bash(gh pr merge *)", "Bash(gh pr comment *)",
+    "Bash(gh pr review *)", "Bash(gh pr edit *)", "Bash(gh pr close *)", "Bash(gh pr reopen *)",
+    "Bash(gh pr ready)", "Bash(gh pr ready *)", "Bash(gh api *)",
     "Edit(./CLAUDE.md)", "Edit(~/.claude/CLAUDE.md)", "Edit(./docs/**)", "Edit(./.claude/**)",
 }
 REQUIRED_DENY = {
@@ -155,6 +159,10 @@ def check_permissions(settings: dict, gated: set[str]) -> str | None:
     missing_deny = REQUIRED_DENY - set(perms.get("deny", []))
     if missing_ask or missing_deny:
         return f"必須のルールが無い（ask: {sorted(missing_ask)}・deny: {sorted(missing_deny)}）"
+    # auto mode では Bash(git push*) の形の ask が確認を出さなかった（Bash(npx *) は出た。deny は両方の形で効く）
+    glued = [r for r in perms.get("ask", []) if re.fullmatch(r"Bash\(.*[^ ]\*\)", r)]
+    if glued:
+        return f"ask の Bash ルールで * の前に空白が無い（auto mode で確認が出ない）: {glued}"
     return None
 
 
@@ -293,7 +301,9 @@ def self_test(settings: dict, gated: set[str]) -> list[str]:
         ("hooks-matcher", check_hooks, lambda s: s["hooks"]["PreToolUse"][0].update(matcher="Edit")),
         ("permissions-deny", check_permissions, lambda s: s["permissions"]["deny"].remove("Bash(git reset --hard*)")),
         ("permissions-read", check_permissions, lambda s: s["permissions"]["deny"].remove("Read(~/.ssh/**)")),
-        ("permissions-ask", check_permissions, lambda s: s["permissions"]["ask"].remove("Bash(git push*)")),
+        ("permissions-ask", check_permissions, lambda s: s["permissions"]["ask"].remove("Bash(git push *)")),
+        ("permissions-ask-gh", check_permissions, lambda s: s["permissions"]["ask"].remove("Bash(gh pr create *)")),
+        ("permissions-ask-glued", check_permissions, lambda s: s["permissions"]["ask"].append("Bash(gh release create*)")),
         ("stop-gate-missing", check_stop_hooks, lambda s: drop_hook(s, "Stop", "stop-test-gate.sh")),
         ("stop-typecheck-missing", check_stop_hooks, lambda s: drop_hook(s, "Stop", "stop-typecheck.sh")),
         ("guard-start-missing", check_tree_guard, lambda s: s["hooks"].pop("SubagentStart")),
