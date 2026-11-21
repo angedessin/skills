@@ -16,6 +16,8 @@
 
 - 事象: `.steering/.claude/.cc-writes`（空。Bash の作業ディレクトリを .steering にしたまま書いたときに Claude Code が作ったと見られる）があり、SessionStart の hook がアクティブなタスクに `.claude` を挙げた。空なのを確かめて消した
 - 期待: hook は `.` で始まるディレクトリ（と archived/）をタスクに数えない。steering スキルの「タスクの見つけ方」も同じ
+- 入れた対策（一部。20261121。PR #36）: hook はファイルの無いフォルダを一覧に出さなくなったので、空の `.claude/.cc-writes` は挙がらない。中にファイルのある `.` で始まるディレクトリは、まだタスクとして挙がる
+- 入れた対策（20261121。skill-issues の整理）: hook は `.` で始まるディレクトリを数えない（SS21）。steering 2.4 の「タスクの見つけ方」も同じにした。20261116 の M6 もこれで閉じた
 
 ## 20261115 — 未了: テストのゲートの所要時間を配置先で測る（skill-loop-fixes の tasklist 10b）
 
@@ -36,6 +38,7 @@
 
 - 事象: ブランチの改名で `error: could not lock config file .git/config` が出て rc 128。ref の改名は済んでおり、上流の設定の無いブランチでは実害が無かった。失敗と読み違えやすい
 - 期待: 改名の後に `git branch --show-current` で確かめる。上流の設定のあるブランチでは設定が古い名前のまま残るはずで、そのときは通常のターミナルで流す（未確認）
+- 入れた対策（20261121。skill-issues の整理）: 20261117 の `checkout -B`・20261118 の `stash`・20261121 の `checkout -B` と `branch -d` の後の設定の掃除と合わせて、繰り返している事象として CLAUDE.md の「環境」に 1 行足した（`.git/config` に書く git は失敗する。main へ戻すのは `checkout -q --no-track -B main origin/main`。設定の掃除は `!` で頼む）。記憶の「GitHub flow 運用」も同じにした
 
 ## 20261116 — 未着手: スキル評価（20261115）の残りの所見
 
@@ -57,21 +60,25 @@
 
 - 事象: `git rm -r` の後も `.steering/20261116-exemption-visibility/.claude/.cc-writes`（空）が残り、フォルダが消えなかった。作業ディレクトリがタスクのフォルダにあった間に、Claude Code が作ったとみられる。残ると SessionStart の hook がアクティブなタスクとして数える
 - 期待: 閉じる手順の最後に、フォルダが消えたことを `ls .steering/` で確かめ、追跡外の空のディレクトリだけなら消す
+- 入れた対策（20261121。PR #36）: 20261120 の記録と同じ件。steering 2.3 の閉じる手順 6 と、hook がファイルの無いフォルダを出さないことで直した
 
 ## 20261117 — PR を作った後、閉じずに止めて「なんで閉じてないの？」と聞かれた（steering）
 
 - 事象: tasklist の最後の項目「マージの前に steering で閉じる」を、「PR のレビューが済んでから」という自分の判断で保留した。ユーザーに理由を聞かれた（分類: 訂正に近い）
 - 期待: CLAUDE.md の「マージ前に閉じる」に、レビューを待つ根拠は無い。PR を作った流れで、閉じる確認まで続けて出す
+- 入れた対策（20261121。PR #35・close-before-merge）: pr-create の Step 5 が、PR の後に閉じてよい状態なら steering を呼んで閉じる確認を出す。閉じ忘れたままマージしたタスクには SessionStart の hook が印を付ける
 
 ## 20261117 — マージの後の `git checkout -B main origin/main` が sandbox の中で失敗する
 
 - 事象: `error: could not lock config file .git/config` で失敗し、ブランチは切り替わらなかった。上流の設定（`.git/config`）が書けないため。`git checkout main` の後に `git merge --ff-only origin/main` を流せば、config に書かずに済んだ
 - 期待: マージ後に main へ戻す手順を、sandbox の中で通る形（`checkout main` と `merge --ff-only`）にそろえる。記憶の「GitHub flow 運用」も同じ手順を書いている
+- 入れた対策（20261121。skill-issues の整理）: 20261116 の記録と合わせて CLAUDE.md の「環境」に 1 行足した。`checkout main` は手元の main が古いと .claude/ の書き戻しで止まるので、`checkout -q --no-track -B main origin/main` にそろえた（このセッションで 2 回通った）
 
 ## 20261117 — 課金のある試し実行で、回数の指定を落として 3 回流した（verify-tree-guard）
 
 - 事象: 「1 回 0.7〜0.9 ドル」と見積もって渡した `claude plugin eval` のコマンドに `--runs 1` が無く、既定の 3 回で流れて 2.11 ドルかかった（見積もりの約 2.5 倍）。skill-test の手順は `--runs <表の回数>` を書いているが、skill-test を通さずにコマンドを自分で組んだ
 - 期待: 課金のコマンドを渡す前に、見積もりの回数と `--runs` が一致しているかを確かめる。skill-test 以外で評価を流すときも、skill-test の雛形のコマンドから組む
+- 判断（20261121。skill-issues の整理）: 仕組みにしない。`--runs` を落としたのは skill-test を通さなかった 1 回だけで、繰り返していない。同時に流された件（20261121）は prepare.sh が止めるようになった。もう一度起きたら、回帰の流し方を包むスクリプト（`eval/run.sh`）を考える
 
 ## 20261118 — 検査の前後を比べるのに git stash を使い、sandbox で途中まで失敗した（verify-tree-guard）
 
@@ -106,3 +113,4 @@
 
 - 事象: close-before-merge を PR #35 の後に閉じようとした。タスクのフォルダは PR #32（設計だけ・DRAFT）で main に入っているため、手順 3 の「統合ブランチの tree にある → 今のブランチの PR とは関係が無い。番号を取らず push も予告しない」に当たり、PR #35 に閉じるコミットを載せられない形になった
 - 期待: hook と同じく、統合ブランチの tree に APPROVED のまま入っているときだけ閉じ忘れと見る（DRAFT で入っているのは設計だけの PR で、続きの PR が今のブランチにある）
+- 入れた対策（20261121。PR #35 の 09e2aad）: 期待どおりに直した

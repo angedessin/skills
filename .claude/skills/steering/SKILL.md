@@ -3,7 +3,7 @@ name: steering
 description: ".steering/ にある作業を再開する・状況を確かめる・終えたタスクを閉じる（索引に 1 行残してフォルダを消す）。再開では design.md・tasklist.md・decisions.md を読み合わせ、後から変わった方針を反映して次の項目を決める。design.md が DRAFT なら実装せず承認を求めて止まる。"
 when_to_use: "「〜の続きから」「〜を再開して」「〜を実装して」（.steering/ に設計があるもの）「進行中のタスクは？」「steering status」「〜を閉じて」「〜をアーカイブして」など。.steering/ に無い新しい作業の設計は design-doc。"
 metadata:
-  version: "2.3"
+  version: "2.4"
 ---
 
 # steering
@@ -21,7 +21,7 @@ metadata:
 
 ## タスクの見つけ方
 
-`.steering/` 直下のディレクトリ（`archived/` を除く）がアクティブなタスク。直下のファイル（`history.md`・`skill-issues.md`）はタスクではない。依頼の名前に合うものを選ぶ。複数が当てはまる・どれも当てはまらないときは、候補を示して聞く。`.steering/` が無ければ、そう伝えて design-doc での開始を提案する。
+`.steering/` 直下のディレクトリ（`archived/` と、`.claude/` のような `.` で始まるものを除く）がアクティブなタスク。直下のファイル（`history.md`・`skill-issues.md`）はタスクではない。依頼の名前に合うものを選ぶ。複数が当てはまる・どれも当てはまらないときは、候補を示して聞く。`.steering/` が無ければ、そう伝えて design-doc での開始を提案する。
 
 ## 閉じてよい状態
 

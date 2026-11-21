@@ -741,6 +741,11 @@ def check_session_start(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str 
     (project / ".steering" / "2026-closed" / "design.md").write_text("x")
     p = run_hook(hook, "", project)
     out.append(("SS20", "ファイルが 1 つでもあれば一覧に出す", None if "2026-closed" in p.stdout else f"stdout={p.stdout!r}"))
+    # Claude Code が作る .claude/ などは、中にファイルがあってもタスクではない
+    (project / ".steering" / ".claude" / ".cc-writes").mkdir(parents=True)
+    (project / ".steering" / ".claude" / ".cc-writes" / "x").write_text("x")
+    p = run_hook(hook, "", project)
+    out.append(("SS21", ". で始まるディレクトリは、ファイルがあっても一覧に出さない", None if "- .claude" not in p.stdout and "2026-d" in p.stdout else f"stdout={p.stdout!r}"))
     return out + check_session_start_suspects(hook, tmp)
 
 
