@@ -48,6 +48,8 @@ suspects=0
 tasks=""
 while IFS= read -r d; do
   [ -n "$d" ] || continue
+  # 閉じた後に空のディレクトリだけが残ることがある（git に載らない）。ファイルの無いフォルダはタスクとして出さない
+  [ -n "$(find "$d" -type f 2>/dev/null | head -n 1)" ] || continue
   name=$(basename "$d")
   line="  - $name"
   if [ -n "$refs" ]; then

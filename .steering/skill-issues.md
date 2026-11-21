@@ -94,11 +94,13 @@
 
 - 事象: `git rm -r .steering/20261116-verify-tree-guard/` の後に、追跡していない空のディレクトリ `.claude/.cc-writes` が残り、フォルダが消えなかった（Edit ツールが書くときに作ったものと思われる）。手順 2 の `git status --short` は空のディレクトリを出さないので、確認では見えなかった。`rmdir` で消した
 - 期待: 閉じるの手順 6 の後に、フォルダが残っていないかを確かめる。空のディレクトリだけなら消し、ファイルが残っていれば止まって知らせる
+- 入れた対策（20261121。feature/skill-issues-close-and-prepare）: steering 2.3 の閉じる手順 6 で、`git rm -r` の後に空のディレクトリを消し、ファイルが残れば止まる。SessionStart の hook は、ファイルの無いフォルダを一覧に出さない（SS19・SS20）。20261121 の close-before-merge でも同じく残った（2 回目）
 
 ## 20261121 — skill-test: グループをまたぐ回帰のコマンドを 2 つのブロックで示し、同時に流された
 
 - 事象: close-before-merge の回帰で、pr と design のコマンドを別々のブロックで示した（「pr が終わってから」と注記）。2 回続けて別のターミナルで同時に流され、`prepare.sh c design` が pr の実行中に plugin を入れ替え、pr の 14 回が無効になった（計 7.5 ドルのうち約 6 ドル分）
 - 期待: skill-test の Step 3 で、複数のグループを流すときは 1 つのコマンドに `&&` でつないで示す（注記だけでは止まらない）。または prepare.sh が実行中の eval を検知して止まる
+- 入れた対策（20261121。feature/skill-issues-close-and-prepare）: 両方入れた。prepare.sh は実行中の `claude plugin eval` を pgrep で見つけると何も消さずに exit 1（`PREPARE_FORCE=1` で通す。tests/skills/run_prepare.py）。skill-test 2.1 の Step 3 に `&&` でつなぐことを書いた
 
 ## 20261121 — steering の閉じる手順 3: 設計だけを DRAFT で統合ブランチに入れたタスクを「閉じ忘れ」と取り違える
 

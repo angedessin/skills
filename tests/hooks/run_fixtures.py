@@ -725,13 +725,22 @@ def check_session_start(hooks_dir: Path, tmp: Path) -> list[tuple[str, str, str 
     names = ['2026-a"b', "2026-c\\x", "2026-d"]
     for name in names:
         (project / ".steering" / name).mkdir()
+        (project / ".steering" / name / "design.md").write_text("x")
+    # 閉じた後に空のディレクトリだけが残ったフォルダ（Edit ツールが作る .claude/.cc-writes）
+    (project / ".steering" / "2026-closed" / ".claude" / ".cc-writes").mkdir(parents=True)
     p = run_hook(hook, "", project)
+    context = None
     try:
         context = json.loads(p.stdout)["hookSpecificOutput"]["additionalContext"]
         bad = None if all(n in context for n in names) and "archived" not in context else f"context={context!r}"
     except (json.JSONDecodeError, KeyError) as e:
         bad = f"{type(e).__name__}; stdout={p.stdout!r}"
     out.append(("SS3", "タスク名の引用符と \\ でも JSON が壊れず、archived を含まない", bad))
+    bad = None if context is not None and "2026-closed" not in context and "2026-d" in context else f"context={context!r}"
+    out.append(("SS19", "空のディレクトリだけが残ったフォルダは一覧に出さない（ファイルのあるフォルダは出す）", bad))
+    (project / ".steering" / "2026-closed" / "design.md").write_text("x")
+    p = run_hook(hook, "", project)
+    out.append(("SS20", "ファイルが 1 つでもあれば一覧に出す", None if "2026-closed" in p.stdout else f"stdout={p.stdout!r}"))
     return out + check_session_start_suspects(hook, tmp)
 
 
