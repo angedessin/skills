@@ -142,6 +142,25 @@ def validate(skill_dir: Path, template_mode: bool = False) -> list[str]:
     return errors
 
 
+def portability_selftest() -> list[str]:
+    """拾うべき行を拾い、拾ってはいけないもの（パスの中の日付・SKILL.md の外のファイル）を拾わないかを確かめる。
+    戻り値は期待どおりにならなかった行。"""
+    import tempfile
+
+    want = {"目安は 2026-10 の実測": True, "500 行まで 0.7〜3 ドル": True, "例: （20261026。要点）": True,
+            "例: （<YYYYMMDD>。要点）": False, "`.steering/20261026-x/` を読む": False, "差分 1,000 行": False}
+    bad = []
+    with tempfile.TemporaryDirectory() as tmp:
+        d = Path(tmp)
+        (d / "cost.md").write_text("| 500 行まで | 0.7〜3 ドル |\n測った時期: 2026-11\n", encoding="utf-8")
+        for line, hit in want.items():
+            (d / "SKILL.md").write_text(f"---\nname: x\n---\n{line}\n", encoding="utf-8")
+            got = portability_hits(d)
+            if bool(got) != hit or any(rel != "SKILL.md" for rel, _, _ in got):
+                bad.append(line)
+    return bad
+
+
 def portability_hits(skill_dir: Path) -> list[tuple[str, int, str]]:
     """配るスキルの SKILL.md + references/*.md から、配置先で解読できない
     マスター内部前提（日付付きエピソード・マスター固有語）を行単位で拾う。
@@ -154,6 +173,9 @@ def portability_hits(skill_dir: Path) -> list[tuple[str, int, str]]:
     if ref.is_dir():
         files += sorted(ref.glob("*.md"))
     date_re = re.compile(r"(?<![/\w])20\d{6}(?![\w])")
+    # 時期で古くなる記述。測った値は本文でなく別ファイル（frontend-code-review/cost.md など）に置く
+    month_re = re.compile(r"(?<![/\w-])20\d{2}-(?:0[1-9]|1[0-2])(?![\d])")
+    money_re = re.compile(r"\d\s*ドル")
     for f in files:
         if not f.exists():
             continue
@@ -169,6 +191,10 @@ def portability_hits(skill_dir: Path) -> list[tuple[str, int, str]]:
         for i, line in enumerate(body.splitlines(), 1 + offset):
             for dm in date_re.finditer(line):
                 hits.append((rel, i, f"日付 {dm.group()}（内部エピソードの疑い）"))
+            for mm in month_re.finditer(line):
+                hits.append((rel, i, f"年月 {mm.group()}（時期で古くなる記述の疑い）"))
+            if money_re.search(line):
+                hits.append((rel, i, "金額（時期で古くなる記述の疑い。測った値は別ファイルへ）"))
             for v in PORTABILITY_VOCAB:
                 if v in line:
                     hits.append((rel, i, f"マスター固有語「{v}」"))
@@ -396,6 +422,10 @@ def main() -> None:
         dirs = sorted(
             d for d in root.iterdir() if d.is_dir() and d.name not in MASTER_ONLY
         )
+        silent = portability_selftest()
+        if silent:
+            print(f"FAIL  ポータビリティの self-test — 拾わなかった行: {silent}")
+            sys.exit(1)
         print("ポータビリティレポート（配るスキルのマスター内部前提・0 件が目標）")
         print("  配置先の読み手が解読できない日付付きエピソード・マスター固有語を検出")
         print(f"  master-only（走査対象外）: {', '.join(sorted(MASTER_ONLY))}\n")

@@ -43,13 +43,13 @@
 
 ### 20261116 — スキル評価（20261115）の残りの所見
 
-- 事象: 評価の所見のうち、タスクにしたのは M1・M2・H1・H2 と M6 だけ。レポートは追跡外（`.tmp/skill-eval-report-20261115.md`）で、このマシンにしか無い。残りをここに控える
+- 事象: 評価の所見のうち、タスクにしたのは M1・M2・H1・H2・L1 と M6 だけ。レポートは追跡外（`.tmp/skill-eval-report-20261115.md`）で、このマシンにしか無い。残りをここに控える
   - M3: 発火を採点していない。近いスキルの取り合い（「レビューに出して」は pr-create か frontend-code-review か）を測るケースが無い。条件 C の `d2-vague-request` は発火 3/6
   - M4: design-premortem の本文は評価を通っていない。20261116 に初めて実際の設計で使い、所見 10 件のうち 10 件を採った（1 件は一部を捨てた）
   - M5: design-doc の「1 問ずつ聞く」の 2 問目以降と、中くらいの作業の要約は、1 ターンの評価で測れない
   - M7: steering の「閉じる」は、確認の後の経路（索引の追記・`git rm`）を測っていない
   - M8: e2e は書いた spec を評価でも実行していない
-  - L1〜L4: 時期で古くなる記述（frontend-code-review の費用の表など）・`${CLAUDE_SKILL_DIR}` を使っていない・skill-test に `test:sandbox` が無い・skill-test の写し先がタスクの無いときに決まらない（L5 は上の「承認の基準」の件）
+  - L2〜L4: `${CLAUDE_SKILL_DIR}` を使っていない・skill-test に `test:sandbox` が無い・skill-test の写し先がタスクの無いときに決まらない（L5 は上の「承認の基準」の件）
   - 評価の仕組み: モデルが変わったときにベースラインを取り直す手順が無く、結果にモデル名が残らない。採点役と人の一致の記録が 1 件だけ。回帰に使う s1・d5 の grader が `focus=TRACE` のまま（`eval/README.md` は trace を避けると書いている）
   - Fable 5.2 の指針: 停止のケースを今のモデルで流し直す。レビューの agent の `effort: high` を比べ直す
   - TDD: 「新しいテストは、実装の前に落ちることを確かめる」を steering に 1 行足す案
@@ -69,3 +69,4 @@
 - 20261121 steering の閉じる手順 3: DRAFT で入れたタスクを閉じ忘れと取り違える — APPROVED のまま入っているときだけ閉じ忘れと見る（PR #35 の 09e2aad）
 - 20261121 空白の無い ask が auto mode で確認を出さない（評価の H2）— ask を空白ありの形にし `test:sandbox` が落とす・`~/.claude/CLAUDE.md` に 1 行（PR #38）
 - 20261121 frontend-code-review の費用の停止に、言い回しで通れる例外があった（評価の M2）— 例外を `--cost-ok` の印だけにし、基準以下でも目安を 1 行出す・評価の l2-phrase-not-enough・run_cost_ok.py（feature/review-cost-ok）
+- 20261121 時期で古くなる記述が配るスキルの本文にあった（評価の L1）— 費用の目安を frontend-code-review/cost.md に移して測った年月も出す・steering の例の日付を <YYYYMMDD> に・validate:portability が年月と金額を拾う（feature/cost-table）。steering の macOS の git のメッセージは手順の本体でないので残した

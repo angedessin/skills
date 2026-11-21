@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """frontend-code-review の費用の停止を通す印（--cost-ok）が、スキルの本文と評価の依頼文で食い違っていないかを確かめる。
+費用の目安が本文でなく cost.md にあることも確かめる。
 
 gen_review_cases.py を一時ディレクトリに向けて流し、生成した prompt.md を見る。
 大きい差分をレビューさせるケースには印があり、止まることを見るケースには無いこと。
@@ -9,6 +10,7 @@ Exit 0 = all pass. Exit 1 = failure.
 """
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 import tempfile
@@ -17,6 +19,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 MARK = "--cost-ok"
 SKILL = ROOT / ".claude" / "skills" / "frontend-code-review" / "SKILL.md"
+COST = SKILL.parent / "cost.md"
 GEN = ROOT / "eval" / "gen_review_cases.py"
 WITH_MARK = ("r-a-hardening", "r-b-deploy-integrity", "f1-semicolon")
 WITHOUT_MARK = ("l1-large-diff", "l2-phrase-not-enough")
@@ -24,8 +27,13 @@ WITHOUT_MARK = ("l1-large-diff", "l2-phrase-not-enough")
 
 def main() -> int:
     failures = []
-    if MARK not in SKILL.read_text(encoding="utf-8"):
+    body = SKILL.read_text(encoding="utf-8")
+    if MARK not in body:
         failures.append(f"SKILL.md に {MARK} が無い")
+    if not COST.exists():
+        failures.append("cost.md が無い（費用の目安の置き場）")
+    if re.search(r"\d\s*ドル", body):
+        failures.append("SKILL.md に金額がある（目安は cost.md に置く）")
     with tempfile.TemporaryDirectory() as tmp:
         r = subprocess.run([sys.executable, "-I", str(GEN), tmp], capture_output=True, text=True)
         if r.returncode != 0:
