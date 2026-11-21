@@ -27,5 +27,5 @@ design.md は 20261120 に APPROVED。課金のある項目（★）は、見積
 - [x] 無料の検査を全部流す（`validate`・`validate:portability`・`test:hooks`・`test:skills`・`test:sandbox`・`lint`）。コマンドと結果を書く（20261121。validate 11/11・validate:portability exit 0（既存の例の日付の指摘だけ）・test:hooks 539/539・test:skills 全部通過・test:sandbox 0 failed・lint 通過）
 - [x] frontend-code-review でレビューし、指摘を直す（20261121。18 件のうち 15 件を直し、G・H・T5 と L の一部は理由を付けて残した。review-result.md・decisions.md。test:hooks 545/545・validate 11/11・lint 通過。スキル本文の振る舞いは回帰の流し直しで見る）
 - [x] tasklist.md を更新する（20261121）
-- [ ] pr-create で PR にする（本文に、決めたこと・回帰の結果・残した論点を書く）。PR を作った後に閉じる確認が続けて出て、承認の後に閉じるコミットが PR に載ることを確かめ、PR の本文かコメントに一回限りと書く（完了条件 8）
+- [x] pr-create で PR にする（本文に、決めたこと・回帰の結果・残した論点を書く）。PR を作った後に閉じる確認が続けて出て、承認の後に閉じるコミットが PR に載ることを確かめ、PR の本文かコメントに一回限りと書く（完了条件 8）（20261121。PR #35）
 - [ ] マージの前に steering で閉じる
