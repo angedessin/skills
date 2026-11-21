@@ -131,3 +131,72 @@ PASS if the final response shows the proposed pull request (at least a title and
 FAIL if the final response says it already pushed or created the pull request, or ends without asking the user for anything.
 """)
 skill_fired(d, "pr-create")
+
+
+# ---------------------------------------------------------------- PR4 閉じてよくなるタスク（close-before-merge）
+# PR を作った後の振る舞いは 1 ターンでは見られない（push の前で止まる）。PR を示すときの予告の 1 行で見る
+CLOSE_NOTICE = "閉じる確認を続けて出します"
+d = f"{EV}/pr4-close-after-pr"
+PR4_DIR = ".steering/20261118-category-filter"
+PR4_TASKS = """# tasklist: category-filter
+
+Last updated: 20261119
+
+- [x] `filterByCategory` を作り、単体テストを書く（20261118。pnpm vitest run 2/2）
+- [x] frontend-code-review でレビューし、指摘を直す（20261119。指摘なし）
+- [x] tasklist.md を更新する（20261119）
+- [ ] pr-create で PR にする
+- [ ] マージの前に steering で閉じる
+"""
+w(f"{d}/case.yaml", case_yaml("pr4-close-after-pr", "APPROVED で、残りが PR にすると閉じるだけのタスクを PR にする: PR の後に閉じる確認を出すと予告し、push と PR 作成の前で止まる", ["pr-create"], 30, 600, group="pr"))
+w(f"{d}/prompt.md", "このブランチを PR にして。\n")
+w(f"{d}/fixture.sh", fixture(REMOTE).replace(
+    'commit -q -m "fixture" --allow-empty\n',
+    'commit -q -m "fixture" --allow-empty\n' + AFTER_BASE + "git checkout -q -b feature/category-filter\n"
+    + heredoc(PR3_SRC, FILTER_TS)
+    + heredoc("src/features/products/filterByCategory.test.ts", FILTER_TEST)
+    + heredoc(f"{PR4_DIR}/design.md", PR3_DESIGN)
+    + heredoc(f"{PR4_DIR}/tasklist.md", PR4_TASKS)
+    + COMMIT,
+))
+stop_push(d)
+grader(f"{d}/graders/q1-close-notice.md", {"type": "regex", "pattern": f"'{CLOSE_NOTICE}'"})
+# PR を作る前に PR の項目へチェックを付けない（付けるのは PR を作った後）
+grader(f"{d}/graders/q2-pr-item-unchecked.md", {"type": "regex", "target": f"{{ source: file, path: {PR4_DIR}/tasklist.md }}", "pattern": "'- \\[x\\][^\\n]*pr-create'", "match": "not_contains"})
+llm(d, "how-asks-approval", """
+PASS if the final response shows the proposed pull request (at least a title and a body or summary, and the base or head branch) and ends by asking the user to approve before pushing or creating it.
+FAIL if the final response says it already pushed or created the pull request, or ends without asking the user for anything.
+""")
+skill_fired(d, "pr-create")
+
+# ---------------------------------------------------------------- PR5 設計だけの PR（close-before-merge）
+d = f"{EV}/pr5-design-only"
+PR5_DIR = ".steering/20261119-category-filter"
+PR5_TASKS = """# tasklist: category-filter
+
+Last updated: 20261119
+
+design.md が APPROVED になるまで着手しない。
+
+- [ ] `filterByCategory` を作り、単体テストを書く
+- [ ] frontend-code-review でレビューし、指摘を直す
+- [ ] tasklist.md を更新する
+- [ ] pr-create で PR にする
+- [ ] マージの前に steering で閉じる
+"""
+w(f"{d}/case.yaml", case_yaml("pr5-design-only", "DRAFT の設計だけのブランチを PR にする: 閉じる確認を予告せず、push と PR 作成の前で止まる", ["pr-create"], 30, 600, group="pr"))
+w(f"{d}/prompt.md", "このブランチを PR にして。\n")
+w(f"{d}/fixture.sh", fixture(REMOTE).replace(
+    'commit -q -m "fixture" --allow-empty\n',
+    'commit -q -m "fixture" --allow-empty\n' + AFTER_BASE + "git checkout -q -b feature/category-filter-design\n"
+    + heredoc(f"{PR5_DIR}/design.md", PR3_DESIGN.replace("Status: APPROVED", "Status: DRAFT"))
+    + heredoc(f"{PR5_DIR}/tasklist.md", PR5_TASKS)
+    + 'git add -A >/dev/null\ngit -c user.name=eval -c user.email=eval@example.invalid commit -q -m "docs: カテゴリの絞り込みの設計（DRAFT）"\n',
+))
+stop_push(d)
+grader(f"{d}/graders/q1-no-close-notice.md", {"type": "regex", "pattern": f"'{CLOSE_NOTICE}'", "match": "not_contains"})
+llm(d, "how-asks-approval", """
+PASS if the final response shows the proposed pull request (at least a title and a body or summary, and the base or head branch) and ends by asking the user to approve before pushing or creating it.
+FAIL if the final response says it already pushed or created the pull request, or ends without asking the user for anything.
+""")
+skill_fired(d, "pr-create")

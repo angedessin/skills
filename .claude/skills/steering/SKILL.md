@@ -3,7 +3,7 @@ name: steering
 description: ".steering/ にある作業を再開する・状況を確かめる・終えたタスクを閉じる（索引に 1 行残してフォルダを消す）。再開では design.md・tasklist.md・decisions.md を読み合わせ、後から変わった方針を反映して次の項目を決める。design.md が DRAFT なら実装せず承認を求めて止まる。"
 when_to_use: "「〜の続きから」「〜を再開して」「〜を実装して」（.steering/ に設計があるもの）「進行中のタスクは？」「steering status」「〜を閉じて」「〜をアーカイブして」など。.steering/ に無い新しい作業の設計は design-doc。"
 metadata:
-  version: "2.1"
+  version: "2.2"
 ---
 
 # steering
@@ -22,6 +22,21 @@ metadata:
 ## タスクの見つけ方
 
 `.steering/` 直下のディレクトリ（`archived/` を除く）がアクティブなタスク。直下のファイル（`history.md`・`skill-issues.md`）はタスクではない。依頼の名前に合うものを選ぶ。複数が当てはまる・どれも当てはまらないときは、候補を示して聞く。`.steering/` が無ければ、そう伝えて design-doc での開始を提案する。
+
+## 閉じてよい状態
+
+タスクは PR ごとに作り、PR を作った後に閉じる（閉じないままマージすると、統合ブランチに `.steering/` のフォルダが残る）。tasklist の行を次のように見分ける:
+
+どちらも、バッククォートの中を除いた残りで見る。語は、前後が英数字・`.`・`/`・`-` でないもの:
+
+- **PR の項目:** 語としての `pr-create` を含む行。`` `pr-create/SKILL.md` `` を直す項目には当たらない
+- **閉じる項目:** 語としての `steering` と、`閉じ`・`アーカイブ`・`archive` のどれかを含む行。`.steering/skill-issues.md` のようなパスには当たらない
+
+次をすべて満たすとき、閉じてよい状態とする:
+
+1. design.md の `Status:` 行が `APPROVED`
+2. PR の項目にチェックがあり、PR の番号（`#数字`）が添えてある
+3. 未チェックの項目が 0 件か、どれも閉じる項目
 
 ## 再開
 
@@ -65,22 +80,25 @@ design.md の Status 行を読む。
 - 途中で止めた項目はチェックせず、どこまで進んだかを書く
 - 方針の変更で項目の中身が変わったなら、項目の文言を直す
 - 先頭に `Last updated:` 行があれば日付を更新する
+- PR の項目が未チェックなら、`gh pr list --head <今のブランチ> --state open --json number` で開いた PR を探し、あればチェックを付けて `PR #<番号>` を添える（pr-create は、PR の後に閉じないときは tasklist に触らない）。gh が無い・失敗したら付けない
+- 更新した結果、閉じてよい状態になったら、「閉じる」の手順 1〜3 に進み、確認を出して**止まる**。閉じる項目のほかが終わっていても、PR の項目にチェックと番号が無ければ、閉じる確認は出さず「先に pr-create で PR にする」と示す
 
 回答の最後に、やったこと・確かめたテストのコマンドと結果・次の項目・残った論点を短く書く。
 
 ## 状況の確認
 
-アクティブなタスクごとに、Status・tasklist の進み（済み / 全体）・次の項目を 1〜2 行で示す。ファイルは書き換えない。
+アクティブなタスクごとに、Status・tasklist の進み（済み / 全体）・次の項目を 1〜2 行で示す。閉じてよい状態のタスクには「閉じてよい（PR #N。未チェックは閉じる項目だけ）」と添える。ファイルは書き換えない。
 
 ## 閉じる
 
 終えたタスクのフォルダは残さない。`.steering/history.md` に 1 行の索引を足して消す。中身は git の履歴から読める。「アーカイブして」と頼まれたときも、この手順で閉じる。
 
 1. tasklist.md の未チェックの項目を示す。残っているなら、それでも閉じるか聞く
-2. `git rev-parse --is-inside-work-tree` で git 管理下かを見る。成否は終了コードで決める。macOS の `/usr/bin/git` は sandbox の中で `git: error: couldn't create cache file ...` を出すことがあるが、終了コードが 0 で `true` が返れば管理下として進める
-   - 管理下なら、`git status --short -- .steering/[task]/` で、コミットしていない変更と追跡していないファイルを見る。あれば示し、先にコミットするか聞く。コミットしないと言われたら、閉じずに止まる（消すと履歴に残らず、追跡していないファイルはフォルダごと残る）
-   - 管理下でない（`not a git repository`・git が無い）なら、消さずに `.steering/archived/[task]/` へ移す（履歴が無いので、消すと戻せない）
-   - git がそれ以外のエラーで失敗したら、管理下か分からないので、そう伝えて止まる
+2. `git rev-parse --is-inside-work-tree` で git 管理下かを見る。成否は終了コードで決める。macOS の `/usr/bin/git` は sandbox の中で `git: error: couldn't create cache file ...` を出すことがあるが、終了コードが 0 で `true` が返れば管理下として進める。git が起動しない（`xcode-select: Failed to locate 'git'`・終了コード 72・127 など）なら、`which -a git` で見つかるほかの git を順に試し、動いたものを以後の git の操作に使う
+   - 管理下なら、`git status --short` で、コミットしていない変更と追跡していないファイルを見る。あれば示し、先にコミットするか聞く。コミットしないと言われたら、閉じずに止まる（タスクのフォルダの中は、消すと履歴に残らず、追跡していないファイルはフォルダごと残る。外の変更は、閉じるコミットだけが PR に載り、作業が抜ける）
+   - ただし、変更が tasklist.md だけで、この流れ（pr-create の PR の後・再開の手順 4）で付けたもの（チェック・PR の番号・添えた日付と要点・`Last updated:`）だけなら、聞かずに手順 6 で先にコミットする
+   - 管理下でない（`not a git repository`）・git が見つからないなら、消さずに `.steering/archived/[task]/` へ移す（履歴が無いので、消すと戻せない）
+   - git はあるが、どれも起動しない・それ以外のエラーで失敗したら、管理下か分からないので、そう伝えて止まる（archived へは移さない。管理下なら、フォルダが追跡されたまま残る）
 3. 次を示し、確認を求めて**ここで止まる**。この時点では何も書かず、何も消さない:
    - 足す索引の行。形:
      ```
@@ -88,7 +106,9 @@ design.md の Status 行を読む。
      ```
    - 消すフォルダ（git 管理下でなければ移す先）
    - タスクのフォルダに skill-issues.md があれば（古い形）、`.steering/skill-issues.md` へ移す記録
-4. 確認をもらったら、古い形の skill-issues.md の記録を `.steering/skill-issues.md` の末尾に写す（無ければ作る）。元のファイルは書き換えない（手順 6 でフォルダごと消すか移す）
+   - git 管理下で、タスクのフォルダが統合ブランチ（`git symbolic-ref --short refs/remotes/origin/HEAD` が指すブランチと、`main`・`master`・`develop`）のどの tree にも APPROVED のまま入っていない（`git show <ブランチ>:./.steering/[task]/design.md` が無いか、`Status:` が APPROVED でない。今のブランチで進めているタスク。設計だけを DRAFT で先に入れたものも含む）なら、`gh pr view --json number,state` で今のブランチの PR を見る。OPEN なら、索引の行にその番号を書き、「承認したら、tasklist の更新と閉じるのを 2 つのコミットにして、1 回で push する」と書く（承認を 1 回で済ませる）。統合ブランチの tree に APPROVED のまま入っている（閉じ忘れたままマージされた）タスクは、今のブランチの PR とは関係が無いので、番号を取らず、push も予告しない。PR が無い・gh が無い・失敗したときも、この 1 行は書かない（手順 7 をしない）
+   - 手順 2 で残した tasklist.md の更新があれば、「消す前に、tasklist の更新だけを先にコミットする」と書く
+4. 確認をもらったら、手順 3 で push を予告したときは、何かを書く前に `gh pr view --json state` で状態をもう一度見る（確認を待つ間にマージされることがある）。OPEN でなければ、何も書かず何も消さずに、統合ブランチを最新にしてその上で閉じ直すよう案内して止まる。続けて、古い形の skill-issues.md の記録を `.steering/skill-issues.md` の末尾に写す（無ければ作る）。元のファイルは書き換えない（手順 6 でフォルダごと消すか移す）
 5. 索引の行を `.steering/history.md` の末尾に足す。無ければ、先頭に次の説明を置いて作る:
    ```
    # 閉じたタスク
@@ -99,4 +119,5 @@ design.md の Status 行を読む。
    （feature ブランチの中で作って消したフォルダは、`--full-history` が無いと見つからない。squash merge でマージしてブランチを消すと、中身は残らない）
    git 管理下でないタスクは、行に書いた `.steering/archived/` の下に移してある。
    ```
-6. git 管理下なら `git rm -r .steering/[task]/` で消す。管理下でなければ `.steering/archived/[task]/` へ移す（`.steering/archived/` が無ければ作る）
+6. git 管理下なら、手順 2 で残した tasklist.md の更新を先にそれだけでコミットし（`git rm` は HEAD と中身の違うファイルを消さない。先にコミットすれば、更新も履歴に残る）、`git rm -r .steering/[task]/` で消す。管理下でなければ `.steering/archived/[task]/` へ移す（`.steering/archived/` が無ければ作る）
+7. 手順 3 で push を予告したときだけ、`git status --short` でステージする中身（history.md・skill-issues.md・消したフォルダ）を確かめ、閉じるコミットにして、手順 6 のコミットと合わせて 1 回で push する
