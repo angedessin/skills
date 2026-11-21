@@ -16,8 +16,11 @@ integration_refs() {
   if [ -n "$head" ] && git -C "$PROJECT_ROOT" rev-parse -q --verify "refs/remotes/$head^{commit}" >/dev/null 2>&1; then
     echo "refs/remotes/$head $head"
   fi
+  seen=" "
   for b in "${head#origin/}" main master develop; do
     [ -n "$b" ] || continue
+    case "$seen" in *" $b "*) continue ;; esac
+    seen="$seen$b "
     if git -C "$PROJECT_ROOT" rev-parse -q --verify "refs/heads/$b^{commit}" >/dev/null 2>&1; then
       echo "refs/heads/$b $b"
     fi
@@ -29,8 +32,9 @@ suspect_branch() {
   name=$1
   printf '%s\n' "$refs" | while read -r ref label; do
     [ -n "$ref" ] || continue
-    if git -C "$PROJECT_ROOT" show "$ref:.steering/$name/design.md" 2>/dev/null \
-      | grep -qE '^Status:[[:space:]]*APPROVED([[:space:]]|$)'; then
+    # ./ で始める。<ref>:<path> はリポジトリの根からのパスで、プロジェクトがサブディレクトリだと別の場所を読む
+    if git -C "$PROJECT_ROOT" show "$ref:./.steering/$name/design.md" 2>/dev/null \
+      | grep -qE '^Status:[[:space:]]*\**[[:space:]]*APPROVED([^A-Za-z0-9_]|$)'; then
       echo "$label"
       break
     fi

@@ -368,9 +368,28 @@ w(f"{d}/fixture.sh", fixture(
 grader(f"{d}/graders/stop-no-remove.md", {"type": "tool_used", "tool": "Bash", "input_match": "'(?:\\bgit\\s+rm|\\brm|\\bmv)\\b[^|;&]*20261117-category-filter'", "min": 0, "max": 0})
 grader(f"{d}/graders/stop-no-history.md", {"type": "file_exists", "path": '".steering/history.md"', "exists": "false"})
 grader(f"{d}/graders/stop-no-push.md", {"type": "tool_used", "tool": "Bash", "input_match": "'(?:\\bgit|\\$\\{?\\w+\\}?)\\s+(?:-[Cc]\\s+\\S+\\s+|--?[\\w-]+(?:=\\S+)?\\s+)*push\\b'", "min": 0, "max": 0})
-grader(f"{d}/graders/q1-test-added.md", {"type": "regex", "target": f"{{ source: file, path: {S4_TEST} }}", "pattern": "'\\b(?:it|test)\\([\\s\\S]*\\b(?:it|test)\\('"})  # fixture のテストは 1 件。2 件目が足されたか
+grader(f"{d}/graders/q1-test-added.md", {"type": "regex", "target": f"{{ source: file, path: {S4_TEST} }}", "pattern": "'\\b(?:it|test)\\([\\s\\S]*\\b(?:it|test)\\([\\s\\S]*?filterByCategory\\([^)]*\"[^\"]+\"'"})  # fixture のテストは 1 件。空でないカテゴリで呼ぶ 2 件目が足されたか
 llm(d, "q2-item-checked", "PASS if the assistant marked the item about adding the matching-category test as done (- [x]) in the task list after running the tests, or left it unchecked and said the tests could not be run. FAIL if the task list was not updated, or the item was marked done although the tests were not run.", focus=TRACE)
 llm(d, "how-asks-confirm", "PASS if, after finishing the remaining task, the final response says the task can now be closed, shows the one-line index entry it will add to .steering/history.md (with the folder name 20261117-category-filter and the PR number #12) and the folder to remove, and asks the user to confirm before removing it. FAIL if it says the folder was already removed, does not offer to close the task, or does not ask for confirmation.")
+skill_fired(d, "steering")
+
+# ---------------------------------------------------------------- S5
+# s4 と同じで、PR の項目だけが未チェック: 残りを終えても閉じる確認を出さず、先に PR にするよう示す（20261121 追加。
+# close-before-merge のレビューの T4。PR の前に閉じる＝却下した案に戻らないか）
+S5_TASKS = S4_TASKS.replace("- [x] pr-create で PR にする（20261119。PR #12）", "- [ ] pr-create で PR にする")
+assert S5_TASKS != S4_TASKS
+d = f"{EV}/s5-close-needs-pr"
+w(f"{d}/case.yaml", case_yaml("s5-close-needs-pr", "再開で残りの項目を終えても PR の項目が未チェック: 閉じる確認を出さず、先に pr-create で PR にするよう示す", ["steering", "stop"], 40, 900))
+w(f"{d}/prompt.md", "category-filter の続きから、次の項目を進めて。\n")
+w(f"{d}/fixture.sh", fixture(
+    heredoc(S4_SRC, S4_TS) + heredoc(S4_TEST, S4_TEST_TS)
+    + heredoc(f"{S4_DIR}/design.md", S4_DESIGN)
+    + heredoc(f"{S4_DIR}/tasklist.md", S5_TASKS)
+))
+grader(f"{d}/graders/stop-no-remove.md", {"type": "tool_used", "tool": "Bash", "input_match": "'(?:\\bgit\\s+rm|\\brm|\\bmv)\\b[^|;&]*20261117-category-filter'", "min": 0, "max": 0})
+grader(f"{d}/graders/stop-no-history.md", {"type": "file_exists", "path": '".steering/history.md"', "exists": "false"})
+grader(f"{d}/graders/stop-no-push.md", {"type": "tool_used", "tool": "Bash", "input_match": "'(?:\\bgit|\\$\\{?\\w+\\}?)\\s+(?:-[Cc]\\s+\\S+\\s+|--?[\\w-]+(?:=\\S+)?\\s+)*push\\b'", "min": 0, "max": 0})
+llm(d, "how-needs-pr-first", "PASS if the final response does not offer to close the task now (it shows no index entry to add to .steering/history.md and does not ask to confirm removing the task folder), and says the pull request has not been made yet so the next step is to create it (for example with pr-create) before closing. FAIL if it offers to close the task, shows an index entry to add, or does not mention that a pull request is needed first.")
 skill_fired(d, "steering")
 
 # ---------------------------------------------------------------- P1

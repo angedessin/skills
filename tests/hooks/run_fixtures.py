@@ -758,6 +758,11 @@ def check_session_start_suspects(hook: Path, tmp: Path) -> list[tuple[str, str, 
         d.mkdir(parents=True, exist_ok=True)
         (d / "design.md").write_text(f"# {name}\n\nStatus: {status}\n")
 
+    def write(repo: Path, name: str, text: str) -> None:
+        d = repo / ".steering" / name
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "design.md").write_text(text)
+
     def lines(repo: Path, path_prefix: str | None = None) -> dict[str, str] | str:
         env = {**genv, "CLAUDE_PROJECT_DIR": str(repo)}
         if path_prefix:
@@ -770,7 +775,8 @@ def check_session_start_suspects(hook: Path, tmp: Path) -> list[tuple[str, str, 
         return {m.group(1): m.group(2) for m in re.finditer(r"^  - ([^（\n]+)(.*)$", context, re.M)} | {"": context}
 
     def expect(cid: str, label: str, got: dict[str, str] | str, name: str, mark: str | None) -> None:
-        """mark が None なら印が無いこと、"absent" なら一覧に無いこと、それ以外は印にその文字列が入ること。"""
+        """mark が None なら印が無いこと、"no-notice" なら印も案内の 1 行も無いこと、"absent" なら一覧に無いこと、
+        それ以外は印にその文字列が入ること。"""
         if isinstance(got, str):
             out.append((cid, label, got))
             return
@@ -778,6 +784,8 @@ def check_session_start_suspects(hook: Path, tmp: Path) -> list[tuple[str, str, 
             ok = name not in got and len(got) > 1  # 一覧が空でも「無い」と通らないように
         elif mark is None:
             ok = name in got and got[name] == ""
+        elif mark == "no-notice":
+            ok = name in got and got[name] == "" and "steering で閉じる" not in got[""]
         else:
             ok = name in got and f"閉じ忘れの疑い: {mark} に" in got[name] and "steering で閉じる" in got[""]
         out.append((cid, label, None if ok else f"context={got['']!r}"))
@@ -789,6 +797,9 @@ def check_session_start_suspects(hook: Path, tmp: Path) -> list[tuple[str, str, 
         task(repo, "t-approved", "APPROVED")
         task(repo, "t-draft", "DRAFT")
         task(repo, "t-closed", "APPROVED")
+        # 本文に APPROVED の語がある DRAFT と、Status 行の後ろに文が続く APPROVED（判定は Status 行だけを見る）
+        write(repo, "t-draft-body", "# t\n\nStatus: DRAFT\n\nAPPROVED になるまで実装しない。\n")
+        write(repo, "t-dated", "# t\n\nStatus: **APPROVED**（20261117）\n")
         git(repo, "add", "-A")
         git(repo, "commit", "-q", "-m", "main")
         git(repo, "checkout", "-q", "-b", "feature/x")
@@ -802,6 +813,8 @@ def check_session_start_suspects(hook: Path, tmp: Path) -> list[tuple[str, str, 
         expect("SS5", "main の tree では DRAFT → 印が付かない", got, "t-draft", None)
         expect("SS6", "今のブランチにだけある APPROVED → 印が付かない", got, "t-new", None)
         expect("SS7", "今のブランチで閉じた（作業ツリーに無い）→ 一覧に出ない", got, "t-closed", "absent")
+        expect("SS13", "DRAFT の本文に APPROVED の語があっても印が付かない", got, "t-draft-body", None)
+        expect("SS14", "Status 行が「**APPROVED**（日付）」でも印が付く", got, "t-dated", "main")
 
         git(repo, "checkout", "-q", "main")
         expect("SS8", "今いるのが main → 印が付く", lines(repo), "t-approved", "main")
@@ -829,6 +842,40 @@ def check_session_start_suspects(hook: Path, tmp: Path) -> list[tuple[str, str, 
         plain = base / "plain"
         task(plain, "t-plain", "APPROVED")
         expect("SS12", "git 管理下でない → 一覧は出て、印が無い", lines(plain), "t-plain", None)
+
+        # origin/main とローカルの main の両方に入っている → 印は 1 つで、先に見る origin/main を名指す
+        both = base / "both"
+        both.mkdir()
+        git(both, "init", "-q", "-b", "main")
+        task(both, "t-both", "APPROVED")
+        git(both, "add", "-A")
+        git(both, "commit", "-q", "-m", "both")
+        git(both, "update-ref", "refs/remotes/origin/main", "HEAD")
+        git(both, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main")
+        task(both, "t-local", "APPROVED")  # ローカルの main にだけある（origin/main には無い）
+        git(both, "add", "-A")
+        git(both, "commit", "-q", "-m", "local")
+        git(both, "checkout", "-q", "-b", "feature/y")
+        got = lines(both)
+        expect("SS15", "origin/main とローカルの main の両方にある → 印は 1 行で origin/main", got, "t-both", "origin/main")
+        expect("SS16", "ローカルの main にだけある → 印が付く", got, "t-local", "main")
+
+        quiet = base / "quiet"
+        quiet.mkdir()
+        git(quiet, "init", "-q", "-b", "main")
+        task(quiet, "t-quiet", "DRAFT")
+        git(quiet, "add", "-A")
+        git(quiet, "commit", "-q", "-m", "quiet")
+        expect("SS17", "統合ブランチはあるが印が 0 件 → 案内の 1 行を出さない", lines(quiet), "t-quiet", "no-notice")
+
+        mono = base / "mono"
+        (mono / "app").mkdir(parents=True)
+        git(mono, "init", "-q", "-b", "main")
+        task(mono / "app", "t-sub", "APPROVED")
+        git(mono, "add", "-A")
+        git(mono, "commit", "-q", "-m", "mono")
+        git(mono, "checkout", "-q", "-b", "feature/z")
+        expect("SS18", "プロジェクトがリポジトリのサブディレクトリでも印が付く", lines(mono / "app"), "t-sub", "main")
     except subprocess.CalledProcessError as e:
         out.append(("SS-git", "fixture の git が失敗しない", f"{e.cmd}: {e.stderr}"))
     return out
