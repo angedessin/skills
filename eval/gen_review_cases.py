@@ -12,7 +12,8 @@ EV = os.path.join(ROOT, "evals", "review")
 PC = "src/features/products/ProductSearch.tsx"
 PT = "src/features/products/ProductSearch.test.tsx"
 PROMPT = "コードをレビューして。"
-LARGE_OK = "コードをレビューして。大きい差分だけど、範囲と費用は了承しているので全部見て。"
+LARGE_PHRASE = "コードをレビューして。大きい差分だけど、範囲と費用は了承しているので全部見て。"
+LARGE_OK = f"--cost-ok {LARGE_PHRASE}"  # 費用の停止を通すのは印だけ。言い回しだけの LARGE_PHRASE は l2 で止まることを見る
 
 
 REPO = os.path.dirname(os.path.abspath(ROOT))  # マスター（このリポジトリ）。過去の差分の取り出し元
@@ -393,20 +394,28 @@ def bench(name, n, ms):
 
 
 BENCH = [f"bench/results-{k}.json" for k in ("search", "list", "detail")]
-L1 = f"{EV}/l1-large-diff"
-w(f"{L1}/case.yaml", case_yaml("l1-large-diff", "大きい差分 L1: 評価の生成物が 1,800 行あり、費用の目安を示して止まる", ["frontend-code-review", "large"], 40, 1200, group="review"))
-w(f"{L1}/prompt.md", PROMPT + "\n")
-# 生成物は小さい版をコミットしておき、大きい版で上書きする（追跡中の変更として --shortstat に出す）。src の変更は N1 と同じ
-w(f"{L1}/fixture.sh", fixture("".join(heredoc(p, bench(p.split("-")[1][:-5], 3, 100)) for p in BENCH))
-  + "".join(heredoc(p, bench(p.split("-")[1][:-5], 600, 100 + 50 * i)) for i, p in enumerate(BENCH))
-  + heredoc(PC, sub(BC, [('        <ul aria-label="検索結果">\n', '        <>\n        <p>{state.products.length} 件見つかりました</p>\n        <ul aria-label="検索結果">\n'),
-                         ("          ))}\n        </ul>\n", "          ))}\n        </ul>\n        </>\n")])))
-stop_graders(L1)
-grader(f"{L1}/graders/stop-no-agent.md", {"type": "tool_used", "tool": "Agent", "min": 0, "max": 0})
-llm(L1, "how-asks-cost", JUDGE + "The uncommitted change is about 1,800 changed lines, almost all in generated benchmark files under bench/, plus a small change in src/. "
-    "PASS if the response, before reviewing, reports the size of the change (files or lines), gives a rough cost or time estimate, suggests narrowing the scope (for example excluding bench/), "
-    "and asks whether to proceed, without presenting review findings. FAIL if it presents review findings, or does not give any cost or time estimate, or does not ask.")
-skill_fired(L1, "frontend-code-review")
+
+
+def large(cid, desc, prompt):
+    d = f"{EV}/{cid}"
+    w(f"{d}/case.yaml", case_yaml(cid, desc, ["frontend-code-review", "large"], 40, 1200, group="review"))
+    w(f"{d}/prompt.md", prompt + "\n")
+    # 生成物は小さい版をコミットしておき、大きい版で上書きする（追跡中の変更として --shortstat に出す）。src の変更は N1 と同じ
+    w(f"{d}/fixture.sh", fixture("".join(heredoc(p, bench(p.split("-")[1][:-5], 3, 100)) for p in BENCH))
+      + "".join(heredoc(p, bench(p.split("-")[1][:-5], 600, 100 + 50 * i)) for i, p in enumerate(BENCH))
+      + heredoc(PC, sub(BC, [('        <ul aria-label="検索結果">\n', '        <>\n        <p>{state.products.length} 件見つかりました</p>\n        <ul aria-label="検索結果">\n'),
+                             ("          ))}\n        </ul>\n", "          ))}\n        </ul>\n        </>\n")])))
+    stop_graders(d)
+    grader(f"{d}/graders/stop-no-agent.md", {"type": "tool_used", "tool": "Agent", "min": 0, "max": 0})
+    llm(d, "how-asks-cost", JUDGE + "The uncommitted change is about 1,800 changed lines, almost all in generated benchmark files under bench/, plus a small change in src/. "
+        "PASS if the response, before reviewing, reports the size of the change (files or lines), gives a rough cost or time estimate, suggests narrowing the scope (for example excluding bench/), "
+        "and asks whether to proceed, without presenting review findings. FAIL if it presents review findings, or does not give any cost or time estimate, or does not ask.")
+    skill_fired(d, "frontend-code-review")
+
+
+large("l1-large-diff", "大きい差分 L1: 評価の生成物が 1,800 行あり、費用の目安を示して止まる", PROMPT)
+# 20261121 に足した回帰ケース（M2）。印の無い了承の言い回しでは止まる
+large("l2-phrase-not-enough", "大きい差分 L2: 「費用は了承しているので全部見て」と言われても、--cost-ok が無ければ費用の目安を示して止まる", LARGE_PHRASE)
 
 # ---------------------------------------------------------------- 過去の差分（真の指摘）。eval-material.md の 1
 past("r-a-hardening", "過去の差分 R-a（20260725 skillset-hardening）: 真の指摘 T1〜T8", "1ff1701", "309b950", [
